@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>3D dev bench</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#view{position:fixed;inset:0;width:100%;height:100%}</style></head>
+<body><canvas id="view"></canvas>
+<script src="js/vendor/three.min.js"></script>
+<script src="js/engine/i18n.js"></script><script src="js/engine/core.js"></script><script src="js/engine/flow.js"></script>
+<script src="js/engine/abilities.js"></script><script src="js/engine/friends.js"></script><script src="js/engine/combat.js"></script><script src="js/engine/realtime.js"></script>
+<script src="js/world/looks.js"></script><script src="js/world/mapdata.js"></script><script src="js/content/world.js"></script>
+<script src="js/g3/core.js"></script><script src="js/g3/tex.js"></script><script src="js/g3/kit.js"></script><script src="js/g3/figure.js"></script><script src="js/g3/fx.js"></script><script src="js/g3/sets.js"></script>
+<script>
+// A bench for looking at figures and props: dev.html?bench=figures|props
+(function () {
+  const G = K.G3, q = new URLSearchParams(location.search), bench = q.get("bench") || "figures";
+  K.prefs = () => ({ gfx: "high" });
+  G.init(); G.setSky(q.get("sky") || "gold");
+  const rnd = G.rand(3);
+  G.fx.init(); G.onStageFrame();
+  const figs = [];
+  if (bench === "set") {
+    // dev.html?bench=set&key=scene_dice_hall&clear=8&who=me,arjuna
+    K.S = Object.assign(K.newLife(), { origin: q.get("origin") || "hastinapura", age: 30, path: "mace", pronoun: "he", side: q.get("side") || "pandava" });
+    const st = G.setStage(q.get("key") || "war_day14", { clear: +(q.get("clear") || 8) });
+    const who = (q.get("who") || "me,arjuna,krishna").split(",");
+    who.forEach((id, i) => { const f = G.figure(G.lookOf(id, K.S) || G.lookOf("soldier")); const sp = i === 0 ? st.me : st.spots[i - 1]; f.place(sp[0], sp[1], sp[2]); if (q.get("pose")) f.pose(q.get("pose"), true); G.actors.add(f.root); figs.push(f); });
+    const c = st.cam, d = +(q.get("dist") || c.dist), yaw = c.yaw + (+(q.get("yaw") || 0)), pitch = c.pitch + (+(q.get("pitch") || 0));
+    G.camSet([c.look[0] + Math.sin(yaw) * Math.cos(pitch) * d, c.look[1] + Math.sin(pitch) * d, c.look[2] + Math.cos(yaw) * Math.cos(pitch) * d], c.look, 40, true);
+    window.st = st;
+  } else G.world.add(G.ground({ col: (x, z, r) => (r < 14 ? 0xb89a6a : 0x8a9a5a), size: 200 }));
+  if (bench === "set") { /* built above */ } else if (bench === "figures") {
+    const S = Object.assign(K.newLife(), { origin: "panchala", age: 30, path: "mace", pronoun: "she" });
+    const who = (q.get("who") || "me,arjuna,bhima,karna,duryodhana,drona,bhishma,krishna,draupadi,soldier,guard,charu").split(",");
+    const poses = (q.get("pose") || "stand").split(",");
+    who.forEach((id, i) => {
+      const f = G.figure(G.lookOf(id, S) || G.lookOf("soldier"));
+      if (id === "me") f.setShield(true);
+      f.place((i - (who.length - 1) / 2) * 1.25, 0, 0); f.pose(poses[i % poses.length], true); G.actors.add(f.root); figs.push(f);
+    });
+    window.figs = figs;
+    const d = +(q.get("dist") || 0) || Math.max(6, who.length * 0.95);
+    const yaw = (+(q.get("yaw") || 0) * Math.PI) / 180;
+    G.camSet([Math.sin(yaw) * d, +(q.get("cy") || 1.7), Math.cos(yaw) * d], [0, 0.95, 0], 34, true);
+  } else {
+    const b = new G.Builder();
+    G.tree(b, -14, -6, "banyan", 1, rnd); G.tree(b, -8, -8, "mango", 1, rnd); G.tree(b, -4, -9, "palm", 1, rnd); G.tree(b, 0, -9, "sal", 1, rnd); G.tree(b, 4, -9, "pine", 1, rnd);
+    G.hut(b, 9, -7, 0.4, 1); G.house(b, 16, -8, -0.3, { awning: 0xa3302a }); G.pavilion(b, -12, 4, 1); G.temple(b, 12, 6, 0.8, null, -1.2);
+    G.tent(b, -5, 3, 0, 1); G.stall(b, 0, 4, 0, 0x2d5aa0, rnd); G.pillar(b, 4, 3, 5); G.rack(b, 6, 4, 0); G.target(b, 8, 3, 0); G.well(b, -8, 5); G.wreck(b, 3, 7, rnd);
+    G.wall(b, -20, -14, 20, -14, 4, 1.2, 0xc7a47a); G.gate(b, 0, -14, 0, 4, 6, 0xb98a62); G.hills(b, { snow: true, h: 30 }, rnd);
+    G.world.add(b.mesh());
+    const ch = G.chariot({ flag: ["#a3302a", "#e2b55a", "sun"], canopy: 0xa3302a }); ch.position.set(-2, 0, 9); ch.rotation.y = 1.2; G.world.add(ch);
+    const el = G.elephant(); el.position.set(8, 0, 10); el.rotation.y = -0.8; G.world.add(el);
+    const host = G.host({ x: 0, z: -26, ry: 0, cols: 30, rows: 4, flag: ["#2d5aa0", "#e2b55a", "moon"], col: [0x2d5aa0, 0x3b6fb0] }, rnd); G.world.add(host);
+    G.onFrame((dt, t) => { G.roll(ch, t * 3, t, 1); G.stomp(el, t * 3, 1); host.userData.tick(dt, t); });
+    G.camSet([0, 9, 26], [0, 2, 0], 42, true);
+  }
+  G.onFrame((dt, t) => figs.forEach((f) => f.update(dt, t)));
+  window.__ready = true;
+})();
+</script></body></html>

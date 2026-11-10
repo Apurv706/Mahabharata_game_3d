@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kurukshetra: A Life · 3D</title>
+<meta name="description" content="Live one whole life inside the Mahabharata, in 3D: a narrative RPG with real-time battles.">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#1a0f0a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Alegreya+Sans:wght@400;500;700&family=Tiro+Devanagari+Hindi:ital@0;1&family=Mukta:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<canvas id="view" aria-hidden="true"></canvas>
+<div id="shade" aria-hidden="true"></div>
+<div class="app" id="app">
+  <header class="top" id="top">
+    <div class="where" id="where"></div>
+    <nav class="nav" id="nav" aria-label="Game menu" hidden>
+      <button type="button" id="nav-char" title="Character"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.8-3.8 3.6-5.8 7-5.8s6.2 2 7 5.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Character">Character</span></button>
+      <button type="button" id="nav-journal" title="Journal"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7.5 4.6 4 5v13c3.5-.4 6 0 8 1.5 2-1.5 4.5-1.9 8-1.5V5c-3.5-.4-6 0-8 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="lbl-t" data-tr="Journal">Journal</span></button>
+      <button type="button" id="nav-standing" title="Standing"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c2.4 2.6 3.6 5.2 3.6 7.8 0 2.2-1.6 3.9-3.6 3.9s-3.6-1.7-3.6-3.9C8.4 8.2 9.6 5.6 12 3z" fill="currentColor"/><path d="M4 13.5c2.6-.2 5 .8 6.6 3.2M20 13.5c-2.6-.2-5 .8-6.6 3.2M6 19.5h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Standing">Standing</span></button>
+      <button type="button" id="nav-map" title="Map"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2zM9 4.5v13M15 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="lbl-t" data-tr="Map">Map</span></button>
+      <button type="button" id="nav-menu" title="Menu"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Menu">Menu</span></button>
+    </nav>
+  </header>
+  <main class="page" id="page" aria-live="polite"></main>
+  <div class="stagehud" id="stagehud"></div>
+  <div class="floats" id="floats" aria-live="polite"></div>
+</div>
+<noscript><p style="color:#f2e8d5;padding:2em">This game needs JavaScript.</p></noscript>
+
+<script src="js/vendor/three.min.js"></script>
+<!-- Rules (engine-agnostic, carried over unchanged from the 2D game) -->
+<script src="js/engine/i18n.js"></script>
+<script src="js/engine/core.js"></script>
+<script src="js/engine/flow.js"></script>
+<script src="js/engine/abilities.js"></script>
+<script src="js/engine/friends.js"></script>
+<script src="js/engine/combat.js"></script>
+<script src="js/engine/realtime.js"></script>
+<!-- How people look, and the map, as data -->
+<script src="js/world/looks.js"></script>
+<script src="js/world/mapdata.js"></script>
+<!-- The story (plain data, carried over unchanged) -->
+<script src="js/content/world.js"></script>
+<script src="js/content/tests.js"></script>
+<script src="js/content/act1.js"></script>
+<script src="js/content/roots.js"></script>
+<script src="js/content/act2.js"></script>
+<script src="js/content/act3.js"></script>
+<script src="js/content/act4.js"></script>
+<script src="js/content/act5.js"></script>
+<script src="js/content/act6a.js"></script>
+<script src="js/content/act6b.js"></script>
+<script src="js/content/command.js"></script>
+<script src="js/content/act7.js"></script>
+<script src="js/content/events.js"></script>
+<script src="js/content/vows.js"></script>
+<script src="js/content/astras.js"></script>
+<script src="js/content/episodes.js"></script>
+<script src="js/content/war_reach.js"></script>
+<script src="js/content/war_child.js"></script>
+<script src="js/content/war_kings.js"></script>
+<script src="js/content/war_lake.js"></script>
+<script src="js/content/war_oath.js"></script>
+<script src="js/content/war_bhishma.js"></script>
+<script src="js/content/war_crossing.js"></script>
+<script src="js/content/war_duel.js"></script>
+<script src="js/content/war_fights.js"></script>
+<script src="js/content/war_orders.js"></script>
+<script src="js/rules/race.js"></script>
+<script src="js/rules/dash.js"></script>
+<script src="js/ui/battle/sim.js"></script>
+<!-- The 3D world -->
+<script src="js/g3/core.js"></script>
+<script src="js/g3/tex.js"></script>
+<script src="js/g3/kit.js"></script>
+<script src="js/g3/figure.js"></script>
+<script src="js/g3/fx.js"></script>
+<script src="js/g3/sets.js"></script>
+<!-- Screens -->
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/audio.js"></script>
+<script src="js/ui/windows.js"></script>
+<script src="js/ui/map3d.js"></script>
+<script src="js/ui/trials.js"></script>
+<script src="js/ui/games.js"></script>
+<script src="js/ui/battle/view.js"></script>
+<script src="js/ui/story.js"></script>
+<script src="js/ui/screens.js"></script>
+<script src="js/ui/arena.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
