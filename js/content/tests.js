@@ -559,7 +559,7 @@
           title: "Once more", body: ["One more chance. There will not be a third."] } }
     }),
     K.trialScenes({
-      id: "a2_pathtest", next: "a2_trial", tests: PATH, back: { scene: "a2_path", then: "a2_pathtest" },
+      id: "a2_pathtest", next: "a2_trial", tests: PATH, // (no way back: fail twice and you pay for it, but the path you chose stays yours)
       scene: { act: 2, age: 15, art: "scene_path", place: (S) => (S.path === "bard" ? "The spring fair" : S.path === "spy" ? "The palace, at night" : S.path === "healer" ? "The healers' hall" : S.path === "strategist" ? "Shakuni's rooms" : "Your teacher's school"), caption: "Your second year",
         title: "The test of your path",
         body: (S) => ["Prove the {path!} path is yours."] },

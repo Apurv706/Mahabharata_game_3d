@@ -142,3 +142,17 @@ Known: the painting is mirrored round the horizon, so a painted sun or moon near
 ## Chariots after the user's reference paintings (12 Nov)
 
 `G.chariot`: lotus wheels and gold panels on the sides, bosses on the rails, a scroll at each rear corner and a prow, a two-tier domed umbrella with a hanging fringe and pot finial, and a taller standard (3.35, or 4.05 with an umbrella) so the cloth flies above heads and umbrella. `G.horse` with tack: face plate, collar of bosses with tassels, girth, crupper, tail ribbon, anklets. The opening shot stands wider of a team of four.
+
+## After two played lives on a phone screen (12 Nov)
+
+A script played two lives through the real buttons on a 390×844 screen, a frame every 30 s (harness kept outside the repo). What changed because of what the frames showed:
+
+- **Fight camera, upright phones:** the overhead view stands closer (fov 58, back 6.4, up 9.4 at the narrowest; wide screens unchanged). The opening shots lose their black bars on upright screens and stand 1.34× further back so heads are not cut. A rider's face shot is framed by the way the car points, clear of the team.
+- **Test camera:** `ctx.cam(pos, look, fov, snap, wide)`: with `wide`, a narrow screen stands back until that half-width fits. Used by rings, dive, boards, forge.
+- **Cut the oil lines:** the camera stood above the cellar's low roof and saw nothing. It is now under the roof (wider angle on narrow screens), the cellar is lit, the lines are bright oil, the lamp throws a pool, a ring marks the line you chose.
+- **Lost child (rings at night):** lit, brighter walls and line.
+- **Dive:** a line at your depth and a ring round the vessel that closes as you hold level; you follow the vessel sideways on your own (rate 2.4, was 0.6, which made the catch mostly luck); depth tolerance 0.1 (was 0.075); shorter prompt.
+- **Boards:** on upright screens the track is 6 across with 13vw squares and the tiger board has 16.5vw squares. The board's `.track` no longer inherits the 2D race's fixed height (it was clipping rows). Chaupar's track is 24 (was 36) with quicker turns.
+- **Forge:** an anvil in front of you and the smith to the side (a shielded soldier used to stand in the way).
+- **Path test (shared content, differs from the 2D game):** `a2_pathtest` has no `back`: failing the second chance costs what it costs but no longer strikes the path out and sends you back to choose again. Golden lives re-recorded.
+- **Not changed:** fights for an archer in Acts III–V already exist (kings at the swayamvara, Jayadratha, the Gandharvas, the cattle raid, bandits) and are marked on their choices; the scripted life missed them by choosing at random.

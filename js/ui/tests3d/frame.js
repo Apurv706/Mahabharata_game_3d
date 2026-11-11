@@ -71,7 +71,8 @@
       after(ms, fn) { const id = setTimeout(() => { if (!finished) fn(); }, ms); timers.push(id); return id; },
       add(obj, parent) { (parent || G.actors).add(obj); things.push(obj); return obj; },
       figure(who, o) { const f = G.figure(typeof who === "string" ? D().lookOf(who) : who, o || {}); G.actors.add(f.root); figs.push(f); return f; },
-      cam(pos, look, fov, snap) { G.camSet(pos, look, fov || 42, snap); },
+      // (wide: how far to each side of where it looks must be in the picture; a narrow screen stands back until it is)
+      cam(pos, look, fov, snap, wide) { fov = fov || 42; if (wide) { const d = Math.hypot(pos[0] - look[0], pos[1] - look[1], pos[2] - look[2]), need = wide / (Math.tan((fov * Math.PI) / 360) * (G.W / G.H)), f = Math.min(2.4, Math.max(1, need / d)); pos = [look[0] + (pos[0] - look[0]) * f, look[1] + (pos[1] - look[1]) * f, look[2] + (pos[2] - look[2]) * f]; } G.camSet(pos, look, fov, snap); },
       cue(ev) { if (ev === "good") { if (K.Sound) K.Sound.play("tap"); } else if (ev === "bad") { if (K.Sound) K.Sound.play("hit"); G.shake(0.1, 0.25); } },
       toast(text, cls) { const el = U.el('<div class="t-toast ' + (cls || "") + '">' + text + "</div>"); mid.appendChild(el); setTimeout(() => el.remove(), 1300); },
       finish

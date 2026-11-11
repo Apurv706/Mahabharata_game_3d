@@ -130,6 +130,10 @@
   function duelSetup(ctx) {
     const t = ctx.t, who = foeFor(t);
     meAt(ctx, 0, 1.2, Math.PI, "ready", { item: /mace|Balarama/i.test((t.foe || "") + K.S.path) ? "mace" : "woodsword" });
+    if (/smithy/.test(K.val(t.stage) || "")) { // the forge: an anvil in front of you, the smith to one side with the tongs, nobody in the way
+      const an = ctx.add(mesh((b) => { b.cyl(0.34, 0.4, 0.55, 0, 0, 0, 0x5a3a22, 10); b.box(0.5, 0.16, 0.3, 0, 0.55, 0, 0x3a3a40); b.box(0.9, 0.2, 0.34, 0, 0.7, 0, 0x4a4a52); b.cone(0.14, 0.36, 0.6, 0.8, 0, 0x4a4a52, 8, 0, 0, -Math.PI / 2); b.box(0.5, 0.05, 0.08, 0, 0.92, 0, 0xff8a3a); })); an.position.set(0, 0, 0.1);
+      const cast = [].concat(K.val(t.cast) || [])[0], sid = cast && (typeof cast === "string" ? cast : cast.id); let sm = null; try { sm = ctx.figure(sid && (K.PUPPETS[sid] || G.EXTRAS[sid] || K.PEOPLE[sid]) ? sid : "soldier", { item: null }); sm.place(-1.5, -0.2, Math.PI / 2 + 0.4); sm.pose("ready", true); } catch (e) { sm = null; }
+      ctx.x = { anvil: an, smith: sm }; ctx.cam([2.9, 2.4, 4.6], [-0.2, 1.0, 0.3], 42, true, 2.1); return; }
     if (who) { ctx.x = { foe: ctx.figure(who, { item: U.lookOf3d(who).item || "woodsword" }) }; ctx.x.foe.place(0, -0.9, 0); ctx.x.foe.pose("ready", true); }
     else { ctx.x = { post: ctx.add(mesh((b) => { b.cyl(0.16, 0.19, 1.9, 0, 0, 0, 0x7a5232, 8); b.cyl(0.2, 0.2, 0.1, 0, 1.3, 0, 0x5a3a20, 8); b.box(1.1, 0.12, 0.12, 0, 1.45, 0, 0x7a5232); })) }; ctx.x.post.position.set(0, 0, -0.7); }
     ctx.cam([3.4, 2.3, 4.4], [0, 1.1, 0.1], 42, true);
@@ -239,23 +243,26 @@
     ctx.st = G.setStage("stage_deep_lake", { clear: 9 });
     meAt(ctx, 0, 0, Math.PI / 2, "swim"); ctx.me.root.position.y = 7;
     const v = mesh((b) => { b.cyl(0.22, 0.14, 0.34, 0, 0, 0, 0xd9a53a, 8); b.torus(0.16, 0.03, 0, 0.36, 0, 0x6b4a14, Math.PI / 2); }, G.mat.vcGlow); v.add(glow(0xffd27a, 2.4)); v.position.set(2, 0.4, 0); ctx.add(v); ctx.x = { v };
-    ctx.cam([0, 4.6, 14], [0, 4.2, 0], 50, true);
+    // A line across the water at your own depth, and a ring round the vessel that closes as your hand does: what to line up, and how near you are.
+    const lvl = ctx.add(new T.Mesh(new T.PlaneGeometry(7, 0.06), basic(0xffffff, 0.35)), G.fxRoot), ring = new T.Mesh(new T.RingGeometry(0.62, 0.72, 32), basic(0xffe2a0, 0.9)); v.add(ring); ctx.x.lvl = lvl; ctx.x.ring = ring;
+    ctx.cam([0, 3.9, 11.5], [0, 3.6, 0], 50, true, 3.7);
   } };
   PLAY.breath = function (ctx) {
     const t = ctx.t, hard = !!t.divine, dives = (t.dives || 3) + (hard ? 1 : 0), need = (t.need || 2) + (hard ? 1 : 0), air0 = ((t.secs || 12) + ctx.power * 0.6) * (hard ? 0.86 : 1);
     let n = 0, got = 0, depth = 0, air = air0, held = false, has = false, reach = 0, vx = 2, rest = 0;
     const draw = () => ctx.score(pips(dives, got, n - got));
-    draw(); ctx.prompt(tx(hard ? "Hold to dive, let go to rise. The glow rides the current up and down: stay level with it until your hand closes, then come up before your breath is gone." : "Hold to dive, let go to rise. Reach the glow, then come up before your breath is gone."));
+    draw(); ctx.prompt(tx(hard ? "Hold to dive, let go to rise. Keep your line on the glow until the ring closes, then come up." : "Hold to dive, let go to rise. Reach the glow, then come up before your breath is gone."));
     const end = (ok) => { n++; if (ok) got++; draw(); has = false; depth = 0; air = air0; rest = 1; ctx.toast(tx(ok ? "You bring it up." : "You come up with nothing."), ok ? "good" : "bad"); sfx(ok ? "heal" : "hit");
       if (got >= need) ctx.after(700, () => ctx.finish("win", null)); else if (got + dives - n < need) ctx.after(700, () => ctx.finish(got === need - 1 ? "close" : "lose", null)); };
     ctx.loop((dt, tt) => {
       if (rest > 0) { rest -= dt; return; }
       depth = clamp(depth + (held ? 0.24 : -0.34) * dt, 0, 1);
-      vx = Math.sin(tt * (hard ? 0.8 : 0.5)) * 2.4; const gd = hard ? 0.74 + 0.2 * Math.sin(tt * 1.15 + n * 2) : 0.94, mx = ctx.me.root.position.x + ((has ? 0 : vx) - ctx.me.root.position.x) * dt * 0.6;
+      vx = Math.sin(tt * (hard ? 0.8 : 0.5)) * 2.4; const gd = hard ? 0.74 + 0.2 * Math.sin(tt * 1.15 + n * 2) : 0.94, mx = ctx.me.root.position.x + ((has ? 0 : vx) - ctx.me.root.position.x) * Math.min(1, dt * 2.4); // (you swim after it: the test is your depth and your breath, not a chase)
       ctx.me.root.position.set(mx, 7 - depth * 6.4, 0); ctx.me.speed = held || depth > 0.02 ? 1.5 : 0;
       if (!has) ctx.x.v.position.set(vx, hard ? 7 - gd * 6.4 - 0.2 : 0.4, 0); else ctx.x.v.position.copy(ctx.me.root.position).add(V(0.3, 0.6, 0));
       if (depth > 0.02) air -= dt * (1 + depth * 0.9); else air = Math.min(air0, air + dt * 4);
-      if (!has && (hard ? Math.abs(depth - gd) < 0.075 : depth > 0.9) && Math.abs(mx - vx) < 0.9) { reach += dt; if (reach > (hard ? 0.8 : 0.5)) { has = true; reach = 0; sfx("tap"); ctx.toast(tx("You have it. Up!"), "good"); } } else reach = 0;
+      const level = hard ? Math.abs(depth - gd) < 0.1 : depth > 0.9, lv = ctx.x.lvl, rg = ctx.x.ring; lv.position.set(0, 7 - depth * 6.4 - 0.2, 0.2); lv.visible = depth > 0.02 && !has; lv.material.color.setHex(level ? 0x86c56f : 0xffffff); lv.material.opacity = level ? 0.8 : 0.35; rg.visible = !has; rg.scale.setScalar(1.6 - 0.9 * Math.min(1, reach / (hard ? 0.8 : 0.5))); rg.material.color.setHex(level ? 0x86c56f : 0xffe2a0);
+      if (!has && level && Math.abs(mx - vx) < 0.9) { reach += dt; if (reach > (hard ? 0.8 : 0.5)) { has = true; reach = 0; sfx("tap"); ctx.toast(tx("You have it. Up!"), "good"); } } else reach = 0;
       ctx.clock.set(air, air0);
       if (has && depth <= 0.02) end(true); else if (air <= 0) end(false);
       if (K.rng() < dt * 6 && depth > 0.05) G.fx.burst("splash", ctx.me.headPos(), { n: 1, s: 0.3 });
@@ -439,8 +446,11 @@
   // =====================================================================================================
   SETUP.fuse = { clear: 9, setup(ctx) {
     meAt(ctx, 0, 2.4, Math.PI, "sneak", { item: "dagger" });
-    const lines = [-3, 0, 3].map((lx) => { const m = ctx.add(mesh((b) => b.box(0.18, 0.05, 6, 0, 0, 0, 0x2a1a0a)), G.fxRoot); m.position.set(lx, 0.03, -1.4); return m; });
-    const lamp = glow(0xffc070, 7); lamp.position.set(-3, 1.2, -1.5); ctx.add(lamp, G.fxRoot); ctx.x = { lines, lamp }; ctx.cam([0, 5.4, 8.6], [0, 0.6, -0.6], 46, true);
+    G.setSky(G.skyName, { amb: 0.75, hi: 1.1, si: 0.9, fd: 0.006 }); // (a cellar by lamplight, not a black screen)
+    const lines = [-3, 0, 3].map((lx) => { const m = ctx.add(new T.Mesh(new T.BoxGeometry(0.3, 0.05, 6), basic(0xd9a53a, 0.85)), G.fxRoot); m.position.set(lx, 0.05, -1.4); return m; });
+    const lamp = glow(0xffc070, 7); lamp.position.set(-3, 1.2, -1.5); ctx.add(lamp, G.fxRoot); const pool = ctx.add(new T.Mesh(new T.CircleGeometry(1.5, 28).rotateX(-Math.PI / 2), basic(0xffd27a, 0.3)), G.fxRoot); pool.position.set(-3, 0.04, -1.4);
+    const pick = ctx.add(new T.Mesh(new T.RingGeometry(0.55, 0.7, 28).rotateX(-Math.PI / 2), basic(0x8fd0ff, 0.9)), G.fxRoot); pick.position.set(0, 0.07, 2.4);
+    ctx.x = { lines, lamp, pool, pick }; ctx.cam([0, 2.85, 8.4], [0, 0.5, -0.6], G.W / G.H < 0.8 ? 78 : 50, true); // (under the cellar's low roof: the old view stood above it and saw nothing) // (a narrow screen looks wider; it cannot step back through the cellar wall)
   } };
   PLAY.fuse = function (ctx) {
     const t = ctx.t, N = t.lines || 3, secs = t.secs || 48, x = ctx.x, need = clamp(2.6 - ctx.power * 0.08, 1.6, 2.6);
@@ -454,11 +464,11 @@
       left -= dt; ctx.clock.set(left, secs); next -= dt;
       if (next <= 0.7 && warn < 0) { const o = [0, 1, 2].filter((i) => i !== lit); warn = o[Math.floor(K.rng() * o.length)]; }
       if (next <= 0) { lit = warn; warn = -1; next = 2.2 + K.rng() * 2; }
-      const lx = [-3, 0, 3][lit]; x.lamp.position.x += (lx - x.lamp.position.x) * Math.min(1, dt * 6); x.lamp.material.opacity = warn >= 0 ? 0.6 + 0.4 * Math.sin(tt * 30) : 1;
+      const lx = [-3, 0, 3][lit]; x.lamp.position.x += (lx - x.lamp.position.x) * Math.min(1, dt * 6); x.lamp.material.opacity = warn >= 0 ? 0.6 + 0.4 * Math.sin(tt * 30) : 1; x.pool.position.x = x.lamp.position.x; x.pick.position.x = ctx.me.root.position.x; x.pick.material.color.setHex(held ? 0x86c56f : 0x8fd0ff);
       ctx.me.root.position.x += ([-3, 0, 3][sel] - ctx.me.root.position.x) * Math.min(1, dt * 8); ctx.me.pose(held ? "herbs" : "sneak");
       if (held && !cut[sel]) {
         if (lit === sel && Math.abs(x.lamp.position.x - lx) < 0.6) { caught++; held = false; prog[sel] = Math.max(0, prog[sel] - 0.8); ctx.toast(tx("The light finds you. You drop flat."), "bad"); ctx.cue("bad"); draw(); if (caught >= 2) return done(); }
-        else { prog[sel] += dt; if (prog[sel] >= need) { cut[sel] = true; x.lines[sel].scale.z = 0.45; sfx("clang"); ctx.toast(tx("Cut."), "good"); draw(); if (cut.filter(Boolean).length >= 2) return done(); } }
+        else { prog[sel] += dt; if (prog[sel] >= need) { cut[sel] = true; x.lines[sel].scale.z = 0.45; x.lines[sel].material.color.setHex(0x4a3a2a); sfx("clang"); ctx.toast(tx("Cut."), "good"); draw(); if (cut.filter(Boolean).length >= 2) return done(); } }
       }
       if (left <= 0) done();
     });
@@ -540,13 +550,13 @@
       if (R.over) ctx.finish(R.outcome, null);
     });
   };
-  SETUP.rings = { clear: 20, setup(ctx) { ctx.st = G.setStage(K.val(ctx.t.stage) || "stage_chakravyuha_top", { clear: 20 }); ctx.cam([0, 24, 13], [0, 0, 0], 46, true); } };
+  SETUP.rings = { clear: 20, setup(ctx) { ctx.st = G.setStage(K.val(ctx.t.stage) || "stage_chakravyuha_top", { clear: 20 }); if (/night|cave/.test(G.skyName || "")) G.setSky(G.skyName, { amb: 0.8, hi: 1.25, si: 1.1, fd: 0.004 }); /* (a puzzle has to be seen) */ ctx.cam([0, 24, 13], [0, 0, 0], 46, true, 9.4); } };
   PLAY.rings = function (ctx) {
     const t = ctx.t, N = 4, STEP = Math.PI / 6, secs = clamp(34 + ctx.power * 1.2, 34, 46); ctx.tapActs = false;
     const ang = [], ms = []; let sel = 0, left = secs, shift = 6;
-    for (let i = 0; i < N; i++) { ang.push(Math.floor(K.rng() * 12) * STEP); const m = ctx.add(ringMesh(8.4 - i * 1.9, 1, 0.9, 0.55, t.theme === "maze" ? 0x3f6b3a : 0xa3302a)); m.rotation.y = ang[i]; ms.push(m); }
+    for (let i = 0; i < N; i++) { ang.push(Math.floor(K.rng() * 12) * STEP); const m = ctx.add(ringMesh(8.4 - i * 1.9, 1, 0.9, 0.55, t.theme === "maze" ? 0x86b85e : 0xa3302a)); m.rotation.y = ang[i]; ms.push(m); }
     if (ang.every((a) => a === ang[0])) ang[1] += STEP * 3;
-    const goalA = 0, mark = ctx.add(new T.Mesh(new T.PlaneGeometry(0.5, 9).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.3)), G.fxRoot); mark.position.set(0, 0.05, 4.8);
+    const goalA = 0, mark = ctx.add(new T.Mesh(new T.PlaneGeometry(0.5, 9).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.5)), G.fxRoot); mark.position.set(0, 0.05, 4.8);
     const aligned = () => ang.filter((a) => Math.abs(Math.atan2(Math.sin(a - goalA), Math.cos(a - goalA))) < 0.05).length;
     const draw = () => { ctx.score(tx("Rings open: {n} of {m}", { n: aligned(), m: N })); ms.forEach((m, i) => { m.position.y = i === sel ? 0.25 : 0; }); };
     ctx.prompt(tx(t.help || "Turn each ring until every opening stands on the bright line."));
@@ -677,7 +687,7 @@
   function boardSetup(ctx) {
     ctx.st = G.setStage("stage_board_table", { clear: 8 }); meAt(ctx, -1.5, 0.3, Math.PI / 2, "sitThink", { item: null });
     const who = U.personByName(ctx.t.opponent) || "vikarna", f = ctx.figure(who, { item: null }); f.place(1.5, 0.3, -Math.PI / 2); f.pose("sitThink", true); ctx.x = { foe: f, who: K.tr(ctx.t.opponent || "Your opponent") };
-    ctx.cam([0, 2.5, 5.6], [0, 0.9, 0.3], 40, true); ctx.tapActs = false;
+    ctx.cam([0, 2.5, 5.6], [0, 0.9, 0.3], 40, true, 2.5); ctx.tapActs = false;
   }
   for (const k of ["moksha", "chaupar", "baghchal"]) SETUP[k] = { clear: 8, setup: boardSetup };
   const boardBox = (ctx) => { const b = U.el('<div class="t-board"></div>'); ctx.mid.appendChild(b); return b; };
@@ -704,7 +714,7 @@
     draw(); mine(); void turn;
   };
   PLAY.chaupar = function (ctx) {
-    const box = boardBox(ctx), who = ctx.x.who, SAFE = { 1: "safe", 9: "safe", 18: "safe", 27: "safe" }, N = 36;
+    const box = boardBox(ctx), who = ctx.x.who, SAFE = { 1: "safe", 7: "safe", 13: "safe", 19: "safe" }, N = 24; // (a shorter track: a game of two minutes, not five)
     const me = [0, 0], them = [0, 0];
     ctx.prompt(tx("Throw the cowries and move one of your two pieces. Land on his piece and it goes back to the start, unless it stands on a safe square. Bring both home first."));
     const cow = () => { let n = 0; for (let i = 0; i < 6; i++) if (K.rng() < 0.5) n++; return n === 0 ? 6 : n; };
@@ -714,9 +724,9 @@
     const over = () => (me.every((p) => p >= N) ? "win" : them.every((p) => p >= N) ? "lose" : null);
     const theirs = () => { const n = cow(), slip = K.rng() < clamp(0.1 + ctx.power * 0.03, 0.1, 0.4); const opts = [0, 1].filter((i) => them[i] < N);
       let i = opts[0]; if (!slip) { const cap = opts.find((k) => me.some((p) => p > 0 && p === them[k] + n && !SAFE[p])); i = cap != null ? cap : opts.sort((x, y) => them[y] - them[x])[0]; }
-      const note = move(false, i, n); sfx("dice"); ctx.x.foe.act("throw", 0.5); draw(note || ["{who} throws {n}.", { who, n }]); const o = over(); if (o) return ctx.after(800, () => ctx.finish(o, null)); ctx.after(700, mine); };
+      const note = move(false, i, n); sfx("dice"); ctx.x.foe.act("throw", 0.5); draw(note || ["{who} throws {n}.", { who, n }]); const o = over(); if (o) return ctx.after(800, () => ctx.finish(o, null)); ctx.after(380, mine); };
     const mine = () => { ctx.clearButtons(); ctx.choice(tx("Throw"), () => { const n = cow(); sfx("dice"); ctx.me.act("throw", 0.5); ctx.clearButtons(); draw(["You throw {n}.", { n }]);
-      [0, 1].filter((i) => me[i] < N).forEach((i) => ctx.choice(tx("Piece {k}: {a} → {b}", { k: i + 1, a: me[i], b: Math.min(N, me[i] + n) }), () => { const note = move(true, i, n); draw(note); ctx.clearButtons(); const o = over(); if (o) return ctx.after(700, () => ctx.finish(o, null)); ctx.after(800, theirs); })); }); };
+      [0, 1].filter((i) => me[i] < N).forEach((i) => ctx.choice(tx("Piece {k}: {a} → {b}", { k: i + 1, a: me[i], b: Math.min(N, me[i] + n) }), () => { const note = move(true, i, n); draw(note); ctx.clearButtons(); const o = over(); if (o) return ctx.after(700, () => ctx.finish(o, null)); ctx.after(420, theirs); })); }); };
     draw(); mine();
   };
   // Tigers and goats on a five-by-five board: you are the two tigers. Jump a goat to take it; hemmed in, you lose.

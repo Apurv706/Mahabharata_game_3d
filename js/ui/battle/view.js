@@ -597,11 +597,11 @@
       if (viewEase > 0) viewEase -= G.real || dt;
       const asp = G.W / G.H, k = clamp((asp - 0.75) / 0.6, 0, 1);         // 0 upright phone … 1 wide screen
       if (mode === "top") {
-        const fov = 62 - 16 * k, back = 7.6 + 3.6 * k, up = 12.4 - 7.0 * k;
+        const fov = 58 - 12 * k, back = 6.4 + 4.8 * k, up = 9.4 - 4.0 * k; // (an upright phone stands closer: the fighters are the picture, not the ground)
         // Pull back while foes on the field stand far from you, so none is lost off the edge.
         let far = 5, cx = p.g.x, cz = p.g.z, n = 1;
         for (const u of B.units) { if (u.side !== "enemy" || u.hp <= 0 || !u.g || !u.g.entered || u.g.kind === "light" || u.line) continue; const d = Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z); if (d < 16) { far = Math.max(far, d); cx += u.g.x; cz += u.g.z; n++; } }
-        const wantZoom = clamp(far / 8.5, 1, 1.75);
+        const wantZoom = clamp(far / (8.5 - 2.2 * (1 - k)), 1, 1.75 - 0.1 * (1 - k));
         zoom += (wantZoom - zoom) * (snap ? 1 : Math.min(1, dt * 1.6));
         const lx = p.g.x * 0.7 + (cx / n) * 0.3, lz = p.g.z * 0.7 + (cz / n) * 0.3 - 0.6;
         camLook.set(lx, 1.0, lz);
@@ -855,6 +855,9 @@
       b.classList.remove("in"); void b.offsetWidth; b.classList.add("in");
       s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" ? 0.6 : 1);
       const v = s.who != null ? views.get(s.who) : null; if (v && s.act) for (const f of v.figs) f.act(s.act, 1.7);
+      // (On an upright screen the close shots stand a little further back, so a head is not cut off at the brow.)
+      const up = G.W / G.H < 0.85 ? 1.34 : 1, off = (c) => [[c[1][0] + (c[0][0] - c[1][0]) * up, c[1][1] + (c[0][1] - c[1][1]) * up + (up - 1) * 0.25, c[1][2] + (c[0][2] - c[1][2]) * up], [c[1][0], c[1][1] + (up - 1) * 0.12, c[1][2]], c[2]];
+      if (!s.far) { s.a = off(s.a); s.b = off(s.b); s.far = true; }
       G.camSet(s.a[0], s.a[1], s.a[2], true);
       if (s.sfx) sfx(s.sfx);
     }
@@ -865,7 +868,7 @@
       let to = s.b;
       if (s.face != null) { // end on his face: in front of where his head is turned, a little to one side and above, clear of his horses, his standard and his umbrella
         const v = views.get(s.face), f = v && v.figs[0];
-        if (f) { f.root.updateWorldMatrix(true, true); const hp = f.j.H.getWorldPosition(new T.Vector3()), sc = f.j.H.getWorldScale(new T.Vector3()).y, fw = new T.Vector3(0, 0, 1).applyQuaternion(f.j.H.getWorldQuaternion(new T.Quaternion()));
+        if (f) { f.root.updateWorldMatrix(true, true); const hp = f.j.H.getWorldPosition(new T.Vector3()), sc = f.j.H.getWorldScale(new T.Vector3()).y, fw = new T.Vector3(0, 0, 1).applyQuaternion((v.car || f.j.H).getWorldQuaternion(new T.Quaternion())); // (a rider is framed by the way his car points, clear of the team, whichever way he looks)
           const ang = Math.atan2(fw.x, fw.z) + (v.car ? 1.0 : 0.55) /* (wide of a team of four) */, d = (v.car ? 5.0 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
           to = [[hp.x + Math.sin(ang) * d, hp.y + (v.car ? -0.55 : 0.12), hp.z + Math.cos(ang) * d], [hp.x, hp.y - 0.22, hp.z], 32]; } } // (under a king's umbrella the camera looks up from below its rim)
       G.camSet(mix(s.a[0], to[0]), mix(s.a[1], to[1]), s.a[2] + (to[2] - s.a[2]) * k, true);
