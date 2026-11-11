@@ -1,9 +1,9 @@
-/* Boot: start the 3D view, wire the top bar, check the story's references, choose the language, open the title. */
+/* Boot. Wires the header buttons and opens the title screen. */
 (function (K) {
   "use strict";
-  const U = K.UI, G = K.G3;
+  const U = K.UI;
 
-  // Static content check: every reference in the story must point at something real.
+  // Static content check: every string reference must point at something real.
   K.validate = function () {
     const problems = [];
     const ref = (from, id) => { if (typeof id === "string" && !K.SCENES[id] && !K.SLOTS[id]) problems.push(from + " → missing scene " + id); };
@@ -27,29 +27,23 @@
     return problems;
   };
 
-  // The 3D view first (without it the story still runs, on a plain ground).
-  if (!U.headless()) {
-    try { G.init(); } catch (e) { if (window.console) console.error(e); }
-    if (G.ok) { G.fx.init(); G.onStageFrame(); U.initStory(); }
-    else document.body.classList.add("no-gl");
-  }
-  K.on("scene", (sc) => { if (U.screen) U.screen(null); U.renderScene(sc); });
-  U.$("nav-char").addEventListener("click", () => U.openCharacter());
-  U.$("nav-journal").addEventListener("click", () => U.openJournal());
+  K.on("scene", (sc) => U.renderScene(sc));
+  U.$("nav-char").addEventListener("click", U.openCharacter);
+  U.$("nav-journal").addEventListener("click", U.openJournal);
   U.$("nav-map").addEventListener("click", () => U.openMap());
-  U.$("nav-menu").addEventListener("click", () => U.openMenu());
-  U.$("nav-standing").addEventListener("click", () => U.openStanding());
+  U.$("nav-menu").addEventListener("click", U.openMenu);
+  U.$("nav-standing").addEventListener("click", () => U.toggleLedger());
   if (K.prefs().bigText) document.body.classList.add("big-text");
-  U.applyCalm();
-  U.fpsMeter();
-  // Sound starts on the first touch (browsers ask for one).
-  const wake = () => { if (K.Sound && K.Sound.refresh) K.Sound.refresh(); };
-  document.addEventListener("pointerdown", wake, { once: true }); document.addEventListener("keydown", wake, { once: true });
+  U.applyCalm(); // "Calm motion" from the menu (ui/dom.js U.calm)
   // Language: the saved choice, else Hindi for a browser set to Hindi, else English.
-  const saved = K.prefs().lang, nav = (navigator.languages && navigator.languages[0]) || navigator.language || "";
+  const saved = K.prefs().lang;
+  const nav = (navigator.languages && navigator.languages[0]) || navigator.language || "";
   K.lang = K.LANGS[saved] ? saved : /^hi\b/i.test(nav) ? "hi" : "en";
+  U.initBackdrop();
+  U.initTurn();
   const problems = K.validate();
   if (problems.length && window.console) console.warn("Content problems:\n" + problems.join("\n"));
+  // The chosen language's dictionary first (English needs none), then the title.
   const boot = () => { U.applyStatic(); U.renderTitle(); };
   if (K.lang === "en" || (K.hasStrings && K.hasStrings(K.lang))) boot();
   else { U.applyStatic(); U.loadLang(K.lang).then((ok) => { if (!ok) K.lang = "en"; boot(); }); }

@@ -279,8 +279,10 @@
       // The walk: legs and (when the hands are free) arms ride on the distance covered.
       const sp2 = Math.min(1, f.speed / 3.2), moving = f.speed > 0.15 && f.fall < 0.2;
       if (moving) {
-        f.phase += dt * (4.2 + f.speed * 2.1);
-        const s = Math.sin(f.phase), c = Math.cos(f.phase), A = 22 + 26 * sp2, Kn = 34 + 34 * sp2, crouch = tg.y < -0.1;
+        // (the stride a swing of A degrees covers, so feet do not skate: one cycle is two steps)
+        const A = 22 + 26 * sp2, stride = 4 * 0.87 * size * Math.sin(A * D);
+        f.phase += dt * Math.max(2.4, (6.283 * f.speed) / stride);
+        const s = Math.sin(f.phase), c = Math.cos(f.phase), Kn = 34 + 34 * sp2, crouch = tg.y < -0.1;
         tg.lL[0] += A * s; tg.lR[0] -= A * s; tg.kL[0] += Kn * Math.max(0, -c) + (crouch ? 0 : 4); tg.kR[0] += Kn * Math.max(0, c) + (crouch ? 0 : 4);
         tg.y -= Math.abs(s) * 0.022 * (1 + sp2); tg.T[1] += 5 * s; tg.T[0] += 4 + 8 * sp2;
         if (f.base === "stand" || f.base === "carry0") { const Ba = 18 + 24 * sp2; tg.aL[0] += -Ba * s; tg.aR[0] += Ba * s; tg.eL[0] = -14 - 46 * sp2; tg.eR[0] = -14 - 46 * sp2; }

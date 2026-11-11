@@ -11,10 +11,10 @@
 (function (K) {
   "use strict";
   const U = K.UI, G = K.G3, C = K.Combat, R3 = K.RT3, RT = K.RT, T = window.THREE;
-  const FIGHT_BG = { e_ugra: "fight_fair_ring", e_spar: "stage_training_ground", e_panchala: "fight_drupada_yard", e_border: "fight_border_road", e_kings: "fight_swayamvara", e_jayadratha: "fight_forest_road", e_bandits: "fight_forest_road", e_gandharva: "fight_royal_camp",
+  const FIGHT_BG = Object.assign({}, { e_ugra: "fight_fair_ring", e_spar: "stage_training_ground", e_panchala: "fight_drupada_yard", e_border: "fight_border_road", e_kings: "fight_swayamvara", e_jayadratha: "fight_forest_road", e_bandits: "fight_forest_road", e_gandharva: "fight_royal_camp",
     e_sudatta: "fight_grazing", e_cattle: "fight_grazing", e_cattle_k: "fight_grazing", e_dream: "fight_war_field", e_day1: "fight_war_field", e_wheel: "fight_war_field", e_day16: "fight_war_field", e_day18: "fight_war_field",
     e_guard: "fight_war_chariot", e_hunt: "fight_war_chariot", e_road: "fight_war_sunset", e_jaya: "fight_war_sunset", e_gate: "fight_war_sunset", e_night: "stage_battlefield_night", e_last_stand: "fight_chakravyuha_inner", e_ring: "fight_chakravyuha_inner",
-    e_dushasana: "fight_war_camp", e_ep_carts: "fight_supply_carts", e_raid: "fight_camp_gate_night", e_ash: "fight_camp_gate_night" };
+    e_dushasana: "fight_war_camp", e_ep_carts: "fight_supply_carts", e_raid: "fight_camp_gate_night", e_ash: "fight_camp_gate_night" });
   Object.assign(FIGHT_BG, K.COMMAND_FIGHT_BG || {});
   U.FIGHT_BG = FIGHT_BG;
   const headless = () => U.headless();
@@ -26,7 +26,7 @@
   const NAMED = [[/^Ugra(?!'s)/, "ugra"], [/Dushasana's/, "guard"], [/Dushasana(?!'s)/, "dushasana"], [/Karna(?!'s)/, "karna"], [/Bhima(?!'s)/, "bhima"], [/Brihannala(?!'s)/, "arjuna"], [/Ketan|boy/i, "boy"], [/Drona(?!'s)/, "drona"], [/^Satyaki$/, "satyaki"],
     [/^Ghatotkacha$/, "ghatotkacha"], [/^Jayadratha$/, "jayadratha"], [/^Shalya$/, "shalya"], [/^Kripa$/, "kripa"], [/^Abhimanyu$/, "abhimanyu"], [/Ashwatthama/, "ashwatthama"]];
   function lookFor(u, B) {
-    const S = K.S, D = U.director;
+    const S = K.S, D = { lookOf: U.lookOf3d };
     if (u.side === "player") { const s = Object.assign({}, K.puppetSpec(S)); if (B.enc.dream) s.stage = "adult"; return s; }
     if (u.person && (K.PUPPETS[u.person] || G.EXTRAS[u.person])) return D.lookOf(u.person);
     const n = String(u.src || u.name);
@@ -51,12 +51,17 @@
     }
     return look;
   }
+  const D3 = (id) => U.lookOf3d(id);
+  // Each hero's own standard, as the epic names them.
+  const STANDARD = { arjuna: ["#2d5aa0", "#f2d27a", "ape"], bhishma: ["#efe6cf", "#c9a24e", "palm"], karna: ["#a3302a", "#f2d27a", "girth"], drona: ["#d98a3a", "#f2ead2", "pot"], abhimanyu: ["#2d5aa0", "#f2d27a", "tree"], duryodhana: ["#7a1f2a", "#e2b55a", "serpent"],
+    bhima: ["#2d5aa0", "#f2d27a", "lion"], jayadratha: ["#5a4a6a", "#e8e8e8", "boar"], yudhishthira: ["#2d5aa0", "#f2ead2", "moon"], ashwatthama: ["#3a2a3a", "#c9a24e", "lion"], kripa: ["#8a5a2a", "#f2ead2", "wheel"] };
   const itemOf = (w) => (w === "fist" || w === "tusk" || w === "fire" ? null : w);
   const READY = { bow: "readyBow", spear: "readySpear", staff: "readySpear", fist: "readyFist" };
   const SQUAD = [[0, 0.3], [-0.66, -0.34], [0.66, -0.34]];
 
   U.startBattle = function (encId, onEnd) {
-    if (headless() || !G.ok) { onEnd(R3.autoplay(encId, { assist: U.assist() })); return; }
+    // The 2D game's own screens where there is no 3D (its tests, a browser without WebGL), and for its practice bouts.
+    if (!K.ENCOUNTERS[encId] || encId === "x_practice" || !U.b3d.on()) return U.startBattle2D(encId, onEnd);
     open(encId, onEnd);
   };
 
@@ -72,8 +77,6 @@
     if (K.Sound) K.Sound.mood("battle");
     U.keys([]);
     U.curtain(() => {
-      U.$("page").innerHTML = ""; U.setNav(false); U.layout("full");
-      U.director.release();
       build();
       U.$("stagehud").appendChild(hud);
       buildHud();
@@ -83,7 +86,7 @@
 
     // ---------- The ground and the figures ----------
     function build() {
-      const key = FIGHT_BG[enc.id] || K.val(enc.art) || (U.director.sceneNow ? U.artFor(U.director.sceneNow) : "fight_war_field");
+      const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
       st = G.setStage(key, { clear: 15 });
       // The edge of the field: a ring worn into the ground, and spears with pennants round it.
       const b = new G.Builder(), rad = R.rad;
@@ -104,11 +107,18 @@
       else if (g.kind === "light") { v.obj = new T.Sprite(new T.SpriteMaterial({ map: G.tex("glow"), color: 0xfff0c0, blending: T.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); v.obj.scale.set(7, 7, 1); G.fxRoot.add(v.obj); }
       else {
         const look = lookFor(u, B), n = v.bodies;
+        if (g.car) { // a chariot: the archer on its deck, a driver at the rail, the hero's own standard behind
+          const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, flag = STANDARD[u.person] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
+          v.car = G.chariot({ col: u.hero || u.person ? 0x6e3a1e : 0x5a4026, trim: u.hero || u.person ? 0xe2b55a : 0xb8873a, flag, canopy: u.hero || u.person ? new T.Color(flag[0]).getHex() : null, horseCol: u.person === "arjuna" || u.person === "bhishma" ? 0xf2efe6 : undefined });
+          v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
+          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: u.person === "arjuna" ? null : "whip" }); v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
+        }
         for (let i = 0; i < n; i++) {
           const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon) });
           if (u.side === "player" ? R.shield && !R.broken : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.side === "enemy" ? 0x6e3026 : undefined);
           f.pose(READY[g.weapon] || "ready", true); f.turnRate = 16;
-          G.actors.add(f.root); v.figs.push(f);
+          if (v.car) { v.car.add(f.root); f.root.position.set(-0.2, 0.86, -0.3); } else G.actors.add(f.root);
+          v.figs.push(f);
         }
       }
       if (u.side !== "player") {
@@ -123,7 +133,7 @@
     function dropView(v, how) {
       if (v.mark) { v.mark.userData.free(); v.mark = null; }
       if (v.bar) v.bar.remove();
-      const gone = () => { for (const f of v.figs) f.dispose(); if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
+      const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
       if (how === "now") gone(); else setTimeout(gone, 1400);
       views.delete(v.u.uid);
     }
@@ -139,22 +149,30 @@
         if (u.hp <= 0 && v.kind === "elephant") v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2);
         return;
       }
+      if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
+        const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
+        const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
+        let da = g.a - c.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.rotation.y += da * Math.min(1, dt * (u.hp > 0 ? 5 : 0));
+        v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
+      }
       const alive = u.plural ? Math.max(u.hp > 0 ? 1 : 0, Math.ceil(v.bodies * u.hp / u.maxHp)) : u.hp > 0 ? 1 : 0;
       v.figs.forEach((f, i) => {
         const o = v.bodies > 1 ? SQUAD[i] : [0, 0], s = Math.sin(g.a), c = Math.cos(g.a);
         const x = g.x + o[0] * c + o[1] * s, z = g.z - o[0] * s + o[1] * c;
         const down = i >= alive;
-        if (!f.fellAt) {
+        if (v.car) { f.root.rotation.y = 0; f.face = 0; }
+        else if (!f.fellAt) {
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
           f.face = g.a;
         }
         if (down && !f.fellAt) { f.fellAt = t || 0.001; f.drop(true, g.lastFrom && ((g.lastFrom.x - g.x) * s + (g.lastFrom.z - g.z) * c) > 0 ? 1 : -1); f.speed = 0; if (f.shield && u.side === "enemy") f.setShield(false); G.fx.burst("dust", f.root.position, { n: 6 }); }
         if (f.fellAt) { f.update(dt, t); return; }
-        f.speed = g.moving * g.speed * (u.side === "player" && R.block ? 0.5 : 1);
+        f.speed = v.car ? 0 : g.moving * g.speed * (u.side === "player" && R.block ? 0.5 : 1);
         // How it holds itself now.
         let pose = READY[g.weapon] || "ready";
         if (u.side === "player") {
           f.spin = R.roll > 0 && !R.dash ? Math.PI * 2 * (1 - R.roll / R3.P.roll) : 0;
+          if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
           if (R.block) pose = "block"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
         } else {
@@ -180,7 +198,7 @@
           if (m && v.mark) { v.mark.position.set(m.x, 0.05, m.z); v.mark.rotation.y = m.a || 0; v.mark.userData.set(m.fill, m.locked, m.heavy); v.mark.visible = !(m.feint && Math.floor(t * 20) % 2 === 0 && m.fill > 0.75); }
         }
         if (!a) { v.atkRef = null; continue; }
-        const name = u.side === "enemy" ? actFor(u, a) : a.ranged ? null : "slash";
+        const name = actFor(u, a);
         if (!name) continue;
         const A = G.ACTS[name], left = a.land - R.t;
         if (v.atkRef !== a) { v.atkRef = a; v.actDur = Math.max(0.2, left / A.land); for (const f of v.figs) if (!f.fellAt) f.act(name, v.actDur, 0); }
@@ -357,7 +375,7 @@
       const el = U.el('<div class="b-card b-pause"><h2>' + U.esc(ask ? ask.title : K.tr("Paused")) + "</h2>" + (ask ? "<p>" + U.esc(ask.text) + "</p>" : "") + '<div class="btnrow"></div></div>');
       const row = el.querySelector(".btnrow");
       if (ask) { row.appendChild(U.button("cta retry", U.esc(ask.yes), () => { pause(false); ask.onYes(); })); row.appendChild(U.button("cta secondary", U.esc(ask.no), () => pause(false))); }
-      else { row.appendChild(U.button("cta", U.tr("Resume ▶"), () => pause(false))); if (R3.can(R, "withdraw")) row.appendChild(U.button("ghost", U.tr("Withdraw"), () => { pause(false); withdraw(); })); row.appendChild(U.button("ghost", U.tr("Menu"), () => U.openMenu())); }
+      else { row.appendChild(U.button("cta", U.tr("Resume ▶"), () => pause(false))); if (R3.can(R, "withdraw")) row.appendChild(U.button("ghost", U.tr("Withdraw"), () => { pause(false); withdraw(); })); }
       hud.appendChild(el);
     }
     // The pointer: on a phone the left half of the screen is the stick; with a mouse, click strikes and the right button guards.
@@ -446,7 +464,7 @@
         const u = v.u; if (!v.bar) continue;
         const show = u.hp > 0 && u.g.entered !== false && (u.side === "ally" ? u.hp < u.maxHp || u.still : true) && v.kind !== "light";
         if (!show) { v.bar.style.display = "none"; continue; }
-        G.toScreen(tmp.set(u.g.x, v.kind === "elephant" ? 4 : v.kind === "cart" ? 2.2 : 2.25, u.g.z), scr);
+        G.toScreen(tmp.set(u.g.x, v.kind === "elephant" ? 4 : v.car ? 3.3 : v.kind === "cart" ? 2.2 : 2.25, u.g.z), scr);
         if (scr.behind || scr.x < -40 || scr.x > G.W + 40 || scr.y < 30) { v.bar.style.display = "none"; continue; }
         v.bar.style.display = ""; v.bar.style.transform = "translate(" + Math.round(scr.x) + "px," + Math.round(scr.y) + "px) translate(-50%,-100%)";
         v.bar.querySelector("i").style.transform = "scaleX(" + clamp(u.hp / u.maxHp, 0, 1).toFixed(3) + ")";
@@ -497,7 +515,7 @@
       if (pf && p.hp > 0) pf.pose(out === "win" || out === "spare" ? "cheer" : "slump");
       setTimeout(() => {
         U.curtain(() => {
-          res.remove(); close();
+          res.remove(); close(); U.b3d.off();
           R3.unscale(B);
           const done = C.end();
           onEnd(done ? done.over : out);
@@ -525,16 +543,18 @@
       gamepad();
       if (started && !R.over && !paused && dt > 0) {
         const sp = U.battleSpeed || 1; // (the smoke tests run fights faster than life)
-        if (hitStop > 0 && sp === 1) hitStop -= real; else acc += Math.min(dt, 0.05) * sp;
+        if (hitStop > 0 && sp === 1) hitStop -= real; else acc += Math.min(dt, 0.1) * sp;
         let n = 0;
-        while (acc >= R3.STEP && n++ < 5 * sp && !R.over) { R3.step(R, act()); acc -= R3.STEP; events(); if (hitStop > 0 && sp === 1) break; }
-        if (n >= 5 * sp) acc = 0;
+        while (acc >= R3.STEP && n++ < 8 * sp && !R.over) { R3.step(R, act()); acc -= R3.STEP; events(); if (hitStop > 0 && sp === 1) break; }
+        if (n >= 5 * sp) acc = Math.min(acc, R3.STEP * 2);
       }
       sync();
       for (const v of [...views.values()]) { if (!B.units.includes(v.u) && !v.gone) { v.gone = true; dropView(v, "now"); continue; } place(v, dt, t); }
       windups(t);
       // Arrows in the air.
-      for (const s of R.shots) { if (R.t < s.t0) continue; let m = shots.get(s.n); if (!m) { m = G.arrowMesh(0.9); G.fxRoot.add(m); shots.set(s.n, m); } m.position.set(s.x, 1.3, s.z); m.rotation.set(0, s.a, 0); }
+      for (const s of R.shots) { if (R.t < s.t0) continue; let m = shots.get(s.n); if (!m) { m = G.arrowMesh(0.9); G.fxRoot.add(m); shots.set(s.n, m); } if (m.userData.x0 == null) { m.userData.x0 = s.x; m.userData.z0 = s.z; const tg2 = s.on != null ? B.units.find((u) => u.uid === s.on) : null; m.userData.len = Math.max(4, tg2 && tg2.g ? Math.hypot(tg2.g.x - s.x, tg2.g.z - s.z) : 14); }
+        const k = Math.min(1, Math.hypot(s.x - m.userData.x0, s.z - m.userData.z0) / m.userData.len), lift = Math.min(1.6, m.userData.len * 0.07);
+        m.position.set(s.x, 1.35 + Math.sin(k * Math.PI) * lift, s.z); m.rotation.set(-Math.cos(k * Math.PI) * lift * 0.5, s.a, 0, "YXZ"); }
       for (const [n, m] of shots) if (!R.shots.some((s) => s.n === n)) { G.fxRoot.remove(m); G.dispose(m); shots.delete(n); }
       // The one you face.
       const tg = !R.over && started ? R3.target(R) : null;

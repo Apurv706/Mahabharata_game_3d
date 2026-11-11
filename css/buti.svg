@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="88" height="88" viewBox="0 0 88 88">
+  <!-- A block-print buti: an eight-petal lotus on a diagonal grid, with a bindu at each corner. -->
+  <defs>
+    <path id="p" d="M0 -5 C4 -9 4 -15 0 -19 C-4 -15 -4 -9 0 -5 Z"/>
+  </defs>
+  <g fill="none" stroke="#e2b55a" stroke-opacity="0.12" stroke-width="1.1" transform="translate(44 44)">
+    <circle r="3"/>
+    <use xlink:href="#p" href="#p"/>
+    <use xlink:href="#p" href="#p" transform="rotate(45)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(90)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(135)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(180)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(225)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(270)"/>
+    <use xlink:href="#p" href="#p" transform="rotate(315)"/>
+  </g>
+  <g fill="#e2b55a" fill-opacity="0.13">
+    <circle cx="0" cy="0" r="2.2"/><circle cx="88" cy="0" r="2.2"/><circle cx="0" cy="88" r="2.2"/><circle cx="88" cy="88" r="2.2"/>
+  </g>
+</svg>

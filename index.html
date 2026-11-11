@@ -2,39 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Kurukshetra: A Life · 3D</title>
-<meta name="description" content="Live one whole life inside the Mahabharata, in 3D: a narrative RPG with real-time battles.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kurukshetra: A Life · 3D battles</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A narrative RPG: live one whole life inside the Mahabharata.">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
-<meta name="theme-color" content="#1a0f0a">
+<meta name="theme-color" content="#2a120f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Alegreya+Sans:wght@400;500;700&family=Tiro+Devanagari+Hindi:ital@0;1&family=Mukta:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/screens.css">
+<link rel="stylesheet" href="css/realtime.css">
+<link rel="stylesheet" href="css/battle3d.css">
 </head>
 <body>
-<canvas id="view" aria-hidden="true"></canvas>
-<div id="shade" aria-hidden="true"></div>
-<div class="app" id="app">
-  <header class="top" id="top">
+<div id="b3d" aria-hidden="true"><canvas id="view"></canvas><div id="shade"></div><div class="stagehud" id="stagehud"></div></div>
+<div class="backdrop" id="backdrop" aria-hidden="true"><div class="bdl"><i class="bd"></i><div class="pic"></div></div><div class="bdl"><i class="bd"></i><div class="pic"></div></div><canvas class="stagefx" id="stagefx"></canvas></div>
+<div class="turn" id="turn" hidden role="alertdialog" aria-labelledby="turn-t"><div class="turn-in"><svg class="turn-ico" viewBox="0 0 64 64" aria-hidden="true"><rect x="22" y="8" width="20" height="36" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="32" cy="39" r="1.6" fill="currentColor"/><path d="M12 46a22 22 0 0 0 38 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M45 47l5 5 1-7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><b id="turn-t">Turn your phone upright to continue</b><p id="turn-p">This game is made to be played with the phone upright. Everything waits for you here.</p></div></div>
+<button type="button" class="view-full" id="view-full" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<button type="button" class="view-back" id="view-back" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="view-back-t">Back to the story</span></button>
+<div class="app">
+  <header class="top">
+    <div class="brand" id="brand">Kurukshetra: A Life</div>
     <div class="where" id="where"></div>
     <nav class="nav" id="nav" aria-label="Game menu" hidden>
-      <button type="button" id="nav-char" title="Character"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.8-3.8 3.6-5.8 7-5.8s6.2 2 7 5.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Character">Character</span></button>
-      <button type="button" id="nav-journal" title="Journal"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7.5 4.6 4 5v13c3.5-.4 6 0 8 1.5 2-1.5 4.5-1.9 8-1.5V5c-3.5-.4-6 0-8 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="lbl-t" data-tr="Journal">Journal</span></button>
-      <button type="button" id="nav-standing" title="Standing"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c2.4 2.6 3.6 5.2 3.6 7.8 0 2.2-1.6 3.9-3.6 3.9s-3.6-1.7-3.6-3.9C8.4 8.2 9.6 5.6 12 3z" fill="currentColor"/><path d="M4 13.5c2.6-.2 5 .8 6.6 3.2M20 13.5c-2.6-.2-5 .8-6.6 3.2M6 19.5h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Standing">Standing</span></button>
-      <button type="button" id="nav-map" title="Map"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2zM9 4.5v13M15 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span class="lbl-t" data-tr="Map">Map</span></button>
-      <button type="button" id="nav-menu" title="Menu"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="lbl-t" data-tr="Menu">Menu</span></button>
+      <button type="button" id="nav-char"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20c.8-3.8 3.6-5.8 7-5.8s6.2 2 7 5.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl-t">Character</span></button>
+      <button type="button" id="nav-journal"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5C10 5 7.5 4.6 4 5v13c3.5-.4 6 0 8 1.5 2-1.5 4.5-1.9 8-1.5V5c-3.5-.4-6 0-8 1.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl-t">Journal</span></button>
+      <button type="button" id="nav-map"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2zM9 4.5v13M15 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl-t">Map</span></button>
+      <button type="button" id="nav-menu"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl-t">Menu</span></button>
     </nav>
+    <button type="button" class="standing" id="nav-standing" aria-expanded="false" aria-controls="ledger" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c2.4 2.6 3.6 5.2 3.6 7.8 0 2.2-1.6 3.9-3.6 3.9s-3.6-1.7-3.6-3.9C8.4 8.2 9.6 5.6 12 3z" fill="currentColor"/><path d="M4 13.5c2.6-.2 5 .8 6.6 3.2M20 13.5c-2.6-.2-5 .8-6.6 3.2M6 19.5h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span id="standing-label">Standing</span></button>
+    <div class="floats" id="floats" aria-live="polite"></div>
   </header>
-  <main class="page" id="page" aria-live="polite"></main>
-  <div class="stagehud" id="stagehud"></div>
-  <div class="floats" id="floats" aria-live="polite"></div>
+  <div class="game" id="game">
+    <main class="leaf" id="leaf" aria-live="polite"></main>
+    <aside class="ledger" id="ledger" tabindex="-1" aria-label="Obligations, bonds, vows and memories" hidden></aside>
+  </div>
 </div>
-<noscript><p style="color:#f2e8d5;padding:2em">This game needs JavaScript.</p></noscript>
 
-<script src="js/vendor/three.min.js"></script>
-<!-- Rules (engine-agnostic, carried over unchanged from the 2D game) -->
+<!-- Engine (engine-agnostic rules) -->
 <script src="js/engine/i18n.js"></script>
 <script src="js/engine/core.js"></script>
 <script src="js/engine/flow.js"></script>
@@ -42,10 +50,7 @@
 <script src="js/engine/friends.js"></script>
 <script src="js/engine/combat.js"></script>
 <script src="js/engine/realtime.js"></script>
-<!-- How people look, and the map, as data -->
-<script src="js/world/looks.js"></script>
-<script src="js/world/mapdata.js"></script>
-<!-- The story (plain data, carried over unchanged) -->
+<!-- Content (plain data) -->
 <script src="js/content/world.js"></script>
 <script src="js/content/tests.js"></script>
 <script src="js/content/act1.js"></script>
@@ -72,27 +77,49 @@
 <script src="js/content/war_duel.js"></script>
 <script src="js/content/war_fights.js"></script>
 <script src="js/content/war_orders.js"></script>
-<script src="js/rules/race.js"></script>
-<script src="js/rules/dash.js"></script>
-<script src="js/ui/battle/sim.js"></script>
-<!-- The 3D world -->
+<!-- Languages: English is the source text; each other language's dictionary (js/i18n/<lang>.js)
+     loads only when that language is chosen (U.loadLang). -->
+<!-- Interface -->
+<script src="js/ui/dom.js"></script>
+<script src="js/ui/safearea.js"></script>
+<script src="js/ui/puppet.js"></script>
+<script src="js/ui/puppet-anim.js"></script>
+<script src="js/ui/stage.js"></script>
+<script src="js/ui/audio.js"></script>
+<script src="js/ui/ledger.js"></script>
+<script src="js/ui/games.js"></script>
+<script src="js/ui/trials.js"></script>
+<script src="js/ui/play.js"></script>
+<script src="js/ui/army.js"></script>
+<script src="js/ui/breath.js"></script>
+<script src="js/ui/boards.js"></script>
+<script src="js/ui/scene.js"></script>
+<script src="js/ui/warmap.js"></script>
+<script src="js/ui/orders.js"></script>
+<script src="js/ui/battle.js"></script>
+<script src="js/ui/fightmodes.js"></script>
+<script src="js/ui/realtime.js"></script>
+<script src="js/ui/warday.js"></script>
+<script src="js/ui/fx.js"></script>
+<script src="js/ui/moments.js"></script>
+<script src="js/ui/practice.js"></script>
+<script src="js/ui/lachouse.js"></script>
+<script src="js/ui/screens.js"></script>
+<script src="js/ui/modals.js"></script>
+<script src="js/ui/lives.js"></script>
+<script src="js/ui/ending.js"></script>
+<script src="js/ui/map.js"></script>
+<!-- The 3D battles: every fight is fought on open ground (js/ui/battle), over the 2D game -->
+<script src="js/vendor/three.min.js"></script>
 <script src="js/g3/core.js"></script>
 <script src="js/g3/tex.js"></script>
 <script src="js/g3/kit.js"></script>
 <script src="js/g3/figure.js"></script>
 <script src="js/g3/fx.js"></script>
 <script src="js/g3/sets.js"></script>
-<!-- Screens -->
-<script src="js/ui/hud.js"></script>
-<script src="js/ui/audio.js"></script>
-<script src="js/ui/windows.js"></script>
-<script src="js/ui/map3d.js"></script>
-<script src="js/ui/trials.js"></script>
-<script src="js/ui/games.js"></script>
+<script src="js/ui/battle/sim.js"></script>
+<script src="js/ui/battle/bridge.js"></script>
 <script src="js/ui/battle/view.js"></script>
-<script src="js/ui/story.js"></script>
-<script src="js/ui/screens.js"></script>
-<script src="js/ui/arena.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

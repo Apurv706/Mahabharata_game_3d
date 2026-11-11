@@ -90,6 +90,8 @@
       cool: foe ? rr(0.8, 1.9) : rr(0.3, 0.9), cd: {}, st: {}, down: 0, stag: 0, rec: 0, atk: null, entered: !foe, wave: 0, hits: [], bodies: u.plural ? 3 : 1, idx: i, sideIdx,
       vx: 0, vz: 0, orbit: K.rng() < 0.5 ? 1 : -1, moving: 0, busy: 0, blow: null
     };
+    // The great archers fight from their chariots, as the epic has them: a wider body, a little faster over the ground.
+    if (u.side !== "player" && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
     for (const [s, v] of Object.entries(u.status)) if (typeof v === "number") u.g.st[s] = v * ROUND;
     if (foe && (u.shield || u.shieldDrawn) && u.sp == null) u.sp = P.shieldPts;
     if (u.leave != null) { u.g.leaveAt = R.t + Math.max(1, u.leave - B.round) * P.story; delete u.leave; }
@@ -702,6 +704,7 @@
       if (foe) { const an = angTo(foe, a), r = g.archer ? 8 : g.reach * 0.9 + foe.g.rad; gx = foe.g.x + Math.sin(an + side * 0.12) * r; gz = foe.g.z + Math.cos(an + side * 0.12) * r; }
       else behind(0.6, side);
     }
+    { const pd = dist(a, p); if (pd < 1.15) { gx = g.x + (g.x - p.g.x) / (pd + 0.01) * 1.2; gz = g.z + (g.z - p.g.z) / (pd + 0.01) * 1.2; } } // never standing in you
     const dx = gx - g.x, dz = gz - g.z, d = Math.hypot(dx, dz);
     if (d > 0.25) { const sp = g.speed * Math.min(1, d / 0.8); move(R, a, (dx / d) * sp * dt, (dz / d) * sp * dt, false); g.moving = Math.min(1, d / 0.8); g.a = turnTo(g.a, Math.atan2(dx, dz), 8 * dt); }
     if (foe && d <= 0.6) g.a = turnTo(g.a, angTo(a, foe), 8 * dt);

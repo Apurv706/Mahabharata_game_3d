@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="16" viewBox="0 0 28 16">
+  <!-- A torana fringe: a gold rule with hanging scallops and a bead under each. -->
+  <g stroke="#e2b55a" stroke-opacity="0.6" stroke-width="1" fill="none">
+    <path d="M0 1.5 H28"/>
+    <path d="M0 4 H28" stroke-opacity="0.35"/>
+    <path d="M0 4 Q7 14 14 4 Q21 14 28 4"/>
+  </g>
+  <g fill="#e2b55a" fill-opacity="0.6"><circle cx="7" cy="12.6" r="1.4"/><circle cx="21" cy="12.6" r="1.4"/></g>
+</svg>

@@ -1,49 +1,30 @@
-# Conversion notes: 2D to 3D
+# Conversion notes
 
-## Approach
-The 2D game keeps its rules (`js/engine`) and story (`js/content`) apart from its screens. The conversion reuses both
-unchanged and replaces only the presentation layer with one WebGL canvas (three.js, vendored, no build) and a DOM page
-drawn over it. Without WebGL, or under a test harness (`K.headless`), every 3D call is a no-op and the game still runs.
+## Where it landed
+Version 1 rebuilt the whole game in 3D (story scenes, map, tests, menus). A review found the 3D story pages static
+next to the 2D paintings, and the owner's direction was: keep 2D where it works better, put the effort into battles.
+Version 2 is therefore the 2D game unchanged, with a 3D layer that opens only for fights. The full-3D screens remain
+in git history (commit e2fd6e0).
 
-## The world, made in code
-- `g3/kit.js`: a Builder that merges vertex-coloured low-poly solids into one mesh per place, plus props (trees, huts,
-  halls, gates, chariots, horses, elephants, banners, instanced crowds and hosts).
-- `g3/figure.js`: jointed figures built from the 2D game's own look data (`K.PUPPETS`, `K.puppetSpec`): pose tables,
-  one-shot actions timed so a weapon comes down exactly when a blow lands, walking, falling, rolling.
-- `g3/sets.js`: sixteen place builders; a table maps every art key of the 2D game (scene paintings, test stages, fight
-  grounds) to a builder, a sky and options. Each place keeps its middle clear and is seeded, so it is the same each visit.
-- `g3/core.js`: renderer, light and sky presets, a camera rig with a movable focus so the scene sits in whatever part
-  of the screen the page leaves free, adaptive quality.
+## How a fight is wired
+`js/ui/battle/bridge.js` keeps the 2D `U.startBattle` as a fallback and lets `view.js` replace it. A fight shows
+`#b3d` (a canvas and HUD above the page), starts the renderer on first use, and puts it to sleep afterwards. The rules
+(`sim.js`) ride on the 2D combat engine: `K.Combat.start` builds the fight, every blow is an ability's own `use()`,
+and the end is `K.Combat.settle`, so story consequences are exactly the 2D game's.
 
-## Story
-`ui/story.js` follows the 2D scene flow step for step (journey, act and title cards, witness layer, choices, lamp,
-test or fight, result, "after" beat). Its director decides who is on stage: speakers, then people named in the scene's
-text in order, then a few plain folk of the place.
+## Liberties taken in battles
+Free movement on a round field; everyone can roll; foes come two at a time and turn slowly while winding up; a mace
+sweep cleaves; archer heroes ride chariots; the 2D "live" fight kinds (chariot, range, mace, carry) are fought on the
+same field as holds.
 
-## Battles (creative liberties)
-`ui/battle/sim.js` is a deterministic fixed-step simulation that rides on the turn engine: `K.Combat.start` builds the
-fight, every blow is the abilities' own `use()`, and the end is `K.Combat.settle` then `K.combatOutcome`, so vows,
-holds, story beats, sparing and consequences behave as before. New: positions in metres, facings, marks on the ground,
-weapon chains, roll with i-frames, shield with perfect block and breaking, parry, projectiles, allies with orders, a
-human-like bot (tests, and "Meet blows for me"). Liberties taken so the fights play well: everyone can roll; foes
-come in two at a time and turn slowly while winding up; the special "live" fight kinds of 2D (chariot, range, mace,
-carry) are fought on the same field as holds; a mace sweep cleaves.
+## Fixed after the review
+Rolls tumble the way you roll; walking feet keep pace with the ground; allies no longer stand inside you and use their
+own weapon's blow; arrows rise and fall; slow devices skip frames (down to 10 a second) instead of slowing time;
+lighter crowds on phones.
 
-Balance (bot, 14 runs per fight, all seven paths): mean win 92%, mean length 41 s; hard fights 57-86%; `e_ring`
-(Abhimanyu) cannot be won, by design. Per-fight tuning is `R3.TUNE`.
-
-## Tests
-All 23 kinds keep their rules, windows and stakes (`ui/games.js`). The three board games and the dice are played on a
-board drawn over the hall rather than as 3D pieces. Simplified against 2D: `escape` is open ground with walls instead
-of a 5x5 room grid; `herd` is free movement instead of a grid; `sneak` twists other than "turns" and "dog" are not
-modelled; `aim` has no return shot in duels; `formation` and `array` are compact versions.
-
-## Not carried over
-Paintings and video clips; the turn-based fight screen; the practice ground (the "Just the fights" ladder stands in);
-the war-day tap map (its choices remain); 2D moment effects drawn over paintings (moments are staged in 3D instead).
-
-## Checked
-- `tests/fights.js`: all 72 fights, 0 errors.
-- `tools/play.js`: a whole life in headless Chrome (software WebGL) from creation to an ending, no page errors;
-  every kind of test opened and played a few inputs with no errors; a fight on a phone-sized touch screen; Hindi.
-- Not checked: real devices and real GPUs (frame rate), a human playing every test to its end, screen readers.
+## Checked, and not
+Checked: `npm test` (72 fights, 0 errors, bot win rate 94%); fights opened from the 2D game in headless Chrome,
+desktop and phone size, to a settled outcome. Not checked: real devices and GPUs, a person playing fights by hand at
+length, gamepad, sound. The 2D game's own regression tests were not carried over or re-run against this build.
+Known leftovers: the 2D menu's "Fights: turn-based" switch no longer changes anything while WebGL is available; the
+practice ground's bouts still use the 2D screens.

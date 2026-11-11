@@ -27,7 +27,7 @@
 
   // ---------- Quality ----------
   // "auto" starts from the device (a phone: medium) and then follows the measured frame time by changing the render scale.
-  const QUALITY = { low: { shadows: false, crowd: 0.45, dpr: 1, shadowMap: 0 }, med: { shadows: true, crowd: 0.75, dpr: 1.5, shadowMap: 1024 }, high: { shadows: true, crowd: 1, dpr: 2, shadowMap: 2048 } };
+  const QUALITY = { low: { shadows: false, crowd: 0.3, dpr: 1, shadowMap: 0 }, med: { shadows: true, crowd: 0.55, dpr: 1.5, shadowMap: 1024 }, high: { shadows: true, crowd: 1, dpr: 2, shadowMap: 2048 } };
   const coarse = () => !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
   let scale = 1, slowT = 0, fastT = 0, auto = true;
   G.setQuality = function (name) {
@@ -124,8 +124,8 @@
   function tick(now) {
     if (!running) return;
     requestAnimationFrame(tick);
-    let dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
-    if (document.hidden) return;
+    let dt = Math.min(0.1, (now - lastNow) / 1000); lastNow = now;
+    if (document.hidden || G.asleep) return; // (asleep: no fight is on; the 2D game has the screen)
     adapt(dt);
     const still = G.paused();
     const gdt = still ? 0 : dt;
