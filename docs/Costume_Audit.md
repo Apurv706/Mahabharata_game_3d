@@ -67,6 +67,19 @@ This follows the text's own words for dress (cloth, upper garment, ear-rings, ar
 account of early Indian dress in the history cited below; no single passage describes the drape, so the cut of it is
 the game's reading.
 
+## Marks that belong to one person
+
+Read again for what sets each of the great ones apart (11 Nov), and what the figures now carry:
+
+| Who | The mark | In the game |
+|---|---|---|
+| Krishna, Arjuna, Bhima, Yudhishthira, Nakula, Sahadeva | Each has his own conch: Panchajanya, Devadatta, "the huge conch" Paundra, Anantavijaya, Sughosha, Manipushpaka (Bhishma XXV). | A white conch hangs at each one's right hip. (Dhrishtadyumna carries one too, as his portrait has it.) |
+| Balarama | "Clad in blue robes and possessed of a fair complexion", "whose banner bore the device of the palmyra palm, and who owns the plough for his weapon" (Shalya XXXIV). | Fair, in blue, the plough slung across his back; he still teaches with the mace. |
+| Draupadi | Dragged "by her locks, so long and blue and wavy", "with hair dishevelled"; she leaves for exile "covering her face with her dishevelled hair" (Sabha LXVI, LXXVIII). | From the exile on her hair hangs loose and she wears no diadem. |
+| Ghatotkacha | Born "bald-headed", his head like a water-pot, which is his name; "straight arrowy ears", "lips brown as copper" (Adi CLVII). In the war the text gives him stiff hair standing upward (Drona CLV). | The grown figure follows the war's description. The two passages differ. |
+| Ekalavya | Gives his right thumb to Drona (Adi CXXXIV). | Not shown: the figures' hands have no fingers. |
+| Already in place | Arjuna's diadem, dark skin and two quivers; Bhima the tallest and broadest, with the mace; Yudhishthira's spear; the twins' swords; Karna's mail and ear-rings until he gives them away; Bhishma all in white; Drona in white with the water-pot and thread; Ashwatthama's brow gem; Shakuni's dice; Gandhari's bandage; Dhritarashtra's blind eyes. | |
+
 ## Soldiers
 
 The epic names the heroes' gear and says little about the rank and file, so the line's foot soldiers follow a
@@ -129,5 +142,10 @@ The Mahabharata of Krishna-Dwaipayana Vyasa, translated by Kisari Mohan Ganguli:
 - Drona Parva XXIII (steeds and standards): https://www.ibiblio.org/sripedia/ebooks/mb/m07/m07023.htm
 - Drona Parva CIV (standards): https://mahabharataonline.com/translation/mahabharata_07101.php
 - Drona Parva CLV (Ghatotkacha): https://www.wisdomlib.org/hinduism/book/the-mahabharata-mohan/d/doc493143.html
+
+- Bhishma Parva XXV (the conches): https://mahabharataonline.com/translation/mahabharata_06025.php
+- Shalya Parva XXXIV (Balarama): https://mahabharataonline.com/translation/mahabharata_09034.php
+- Sabha Parva LXVI, LXXVIII (Draupadi's hair): https://mahabharataonline.com/translation/mahabharata_02066.php · https://mahabharataonline.com/translation/mahabharata_02078.php
+- Adi Parva CLVII (Ghatotkacha's birth): https://www.wisdomlib.org/hinduism/book/the-mahabharata-mohan/d/doc4152.html
 
 Soldiers and the bow: World History Encyclopedia, "Ancient Indian Warfare": https://www.worldhistory.org/Indian_Warfare/

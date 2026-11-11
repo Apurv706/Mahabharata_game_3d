@@ -245,6 +245,7 @@
     if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
     // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
     if (!sp.hair && !she && sp.stage !== "child") { b.geo(new T.BoxGeometry(0.2, 0.2, 0.05), 0, 0.1, -0.116, 0.1, 0, 0, hair); for (const sx of [-1, 1]) b.sph(0.045, sx * 0.1, 0.11, -0.08, hair, 1.3, 5); if (!/^(turban|helmet)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * 0.134, 0.15, 0.004, GOLD, 1, 5); }
+    if (sp.hair === "loose") { b.geo(new T.BoxGeometry(0.25, 0.46, 0.06), 0, -0.02, -0.12, 0.12, 0, 0, hair); for (const sx of [-1, 1]) b.geo(new T.BoxGeometry(0.06, 0.34, 0.07), sx * 0.125, 0.04, -0.03, 0, 0, sx * 0.1, hair); }
     if (sp.hair === "long") b.geo(new T.BoxGeometry(0.21, 0.27, 0.05), 0, 0.07, -0.118, 0.14, 0, 0, hair);
     else if (sp.hair === "braid") { b.sph(0.07, 0, 0.2, -0.125, hair, 1, 6); b.rod(0, 0.14, -0.13, 0, -0.42, -0.17, 0.04, hair, 5, 0.022); b.sph(0.03, 0, -0.44, -0.17, 0xb2432a, 1, 5); }
     else if (sp.hair === "matted") { for (const sx of [-1, 0, 1]) b.rod(sx * 0.07, 0.2, -0.11, sx * 0.09, -0.08, -0.15, 0.032, hair, 5, 0.018); }
@@ -306,7 +307,7 @@
         b.geo(new T.BoxGeometry(0.15, 0.5, 0.03).translate(0, -0.25, 0), 0.19 * wide, 0.55, 0.13, 0.08, 0, 0.03, cloth); b.geo(new T.BoxGeometry(0.15, 0.03, 0.032), 0.19 * wide, 0.06, 0.168, 0, 0, 0, accent);
       } else { const cloth0 = cloth; if (/^(turban|helmet)$/.test(sp.headgear || "")) cloth = accent; // (a soldier's is his host's colour)
         // everyone else's: broad across the chest from the left shoulder to the right hip, its border in the wearer's colour
-        for (const fz of [1, -1]) { b.geo(new T.BoxGeometry(0.25, 0.7, 0.03), 0.015, 0.27, fz * 0.146, 0, 0, fz * 0.62, cloth); b.geo(new T.BoxGeometry(0.045, 0.7, 0.034), 0.015 - 0.1 * Math.cos(0.62), 0.27 - fz * 0.1 * Math.sin(0.62) - 0.06, fz * 0.148, 0, 0, fz * 0.62, cloth === accent ? GOLD : accent); }
+        for (const fz of [1, -1]) { b.geo(new T.BoxGeometry(0.25, 0.7, 0.03), 0.015, 0.27, fz * (0.134 + 0.028 * wide), 0, 0, fz * 0.62, cloth); b.geo(new T.BoxGeometry(0.045, 0.7, 0.034), 0.015 - 0.1 * Math.cos(0.62), 0.27 - fz * 0.1 * Math.sin(0.62) - 0.06, fz * (0.136 + 0.028 * wide), 0, 0, fz * 0.62, cloth === accent ? GOLD : accent); }
       }
       b.box(0.15, 0.035, 0.34, 0.2 * wide, 0.53, 0, cloth); b.geo(new T.BoxGeometry(0.16, 0.4, 0.028).translate(0, -0.2, 0), 0.2 * wide, 0.54, -0.165, -0.1, 0, 0.05, G.shade(cloth, 0.93)); b.box(0.16, 0.035, 0.03, 0.2 * wide, 0.13, -0.205, accent);
       if (sp.stage === "elder" || /^(crown|kirita|mukuta)$/.test(sp.headgear || "")) b.sph(0.032, 0.18 * wide, 0.53, 0.13, GOLD, 1, 6); // pinned with a gold brooch
@@ -315,6 +316,8 @@
     if (!she || true) b.torus(0.105, 0.012, 0, 0.5, 0.045, trim, PI / 2.3, 0, 0, 12); // a necklace
     if (gear.includes("quivers") || sp.item === "bow") { b.geo(new T.CylinderGeometry(0.055, 0.045, 0.5, 6), -0.1, 0.36, -0.2, 0.25, 0, 0.25, 0x6a4628); for (let i = 0; i < 3; i++) b.box(0.012, 0.1, 0.05, -0.17 + i * 0.03, 0.6, -0.24, 0xc8402c); }
     if (gear.includes("waterpot")) b.sph(0.07, 0.2, 0.02, 0.08, 0xb5793a);
+    if (gear.includes("conch")) { b.geo(new T.SphereGeometry(0.055, 8, 6).scale(1, 1.25, 0.9), -0.19 * wide, -0.03, 0.1, 0, 0, 0.5, 0xf8f4ea); b.geo(new T.ConeGeometry(0.04, 0.09, 6), -0.19 * wide - 0.045, -0.085, 0.1, 0, 0, 0.5 + PI, 0xf0e8d8); b.sph(0.016, -0.19 * wide + 0.035, 0.03, 0.1, GOLD, 1, 5); } // his conch, hung at the right hip
+    if (gear.includes("plough")) { b.rod(-0.16, -0.05, -0.2, 0.2, 0.86, -0.2, 0.022, WOOD, 5); b.rod(0.2, 0.86, -0.2, 0.3, 0.7, -0.2, 0.026, WOOD, 5); b.geo(new T.ConeGeometry(0.035, 0.16, 4), 0.33, 0.63, -0.2, 0, 0, -2.6, STEEL); } // Balarama's plough, slung across his back
     b.geo(new T.CylinderGeometry(0.2 * wide, 0.222 * wide, 0.14, 10, 1).scale(1, 1, 0.76), 0, -0.03, 0, 0, 0, 0, accent, G.shade(accent, 1.15)); // the sash, broad at the waist
     if (sp.stage !== "child") { b.geo(new T.CylinderGeometry(0.055, 0.055, 0.022, 12).rotateX(PI / 2), 0, 0.04, 0.162 * wide + 0.004, 0, 0, 0, GOLD); b.sph(0.022, 0, 0.04, 0.162 * wide + 0.018, 0xf4d67a, 1, 5); } // and its round clasp
     return b.mesh();
@@ -540,6 +543,8 @@
     if (id === "vasu") return { pronoun: "he", palette: ["#b8743f", "#3f6b3a", "#e2b55a"], stage: S && S.age >= 40 ? "youth" : "child", item: S && S.age >= 40 ? "sword" : null };
     if (id === "ugra") return Object.assign({}, K.PUPPETS.ugra, { stage: S && S.age >= 20 ? "adult" : "youth", item: null });
     if (K.PUPPETS[id]) return K.UI.puppetFor(id, S);
+    // From the dice hall on Draupadi's hair is unbound and she wears no diadem ("covering her face with her dishevelled hair").
+    if (id === "draupadi" && S && S.act >= 5 && EXTRAS.draupadi) return Object.assign({}, EXTRAS.draupadi, { headgear: null, crown: null, hair: "loose" });
     return EXTRAS[id] || null;
   };
   // People the story names who have no look of their own in the 2D game, and the ordinary folk of every scene.
