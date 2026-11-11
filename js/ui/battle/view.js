@@ -98,7 +98,7 @@
     const enc = K.ENCOUNTERS[encId];
     let B = C.start(encId, null), R = R3.begin(B, { assist: U.assist() });
     const views = new Map(), offs = [], shots = new Map(), grounds = new Map();
-    let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
+    let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, backMesh = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
     let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null;
     const threatEls = [];
@@ -121,6 +121,7 @@
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
       st = G.setStage(key, { clear: 15 });
       buildEdge(key);
+      backdrop(key);
       lockRing = new T.Mesh(new T.RingGeometry(0.62, 0.74, 30).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
       lockRing.position.y = 0.06; lockRing.visible = false; lockRing.renderOrder = 3; G.fxRoot.add(lockRing);
       if (R.goal) { goalMark = G.fx.mark("ring", { r: R.goal.r, col: 0x7fe08a }); goalMark.position.set(R.goal.x, 0.05, R.goal.z); goalMark.userData.set(1, false, false); st.flame(R.goal.x, 0, R.goal.z, 0.9, true); }
@@ -158,6 +159,31 @@
       else if (kind === "conch") { const at = new V3(-dirX * (rad + 2), 0.08, -rad * 0.3); for (let i = 0; i < 4; i++) setTimeout(() => { if (!closed) F.ring(at, 0xfff0c8, 0.5, rad * (0.8 + i * 0.35), 1.1); }, i * 200); sfx("conch"); }
       else if (kind === "water") { let t = 0; F.run((dt, cut) => { t += dt; const k = t / secs, at = new V3(-rad + k * rad * 2, 0.1, rad * 0.75); if (Math.random() < dt * 9) { F.burst("splash", at, { n: 5, s: 0.8 }); F.ring(at, 0x8fd0f8, 0.2, 0.9, 0.5); } return k > 1 || cut; }); }
       else { for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + rs(0.2); setTimeout(() => { if (!closed) F.burst("dust", new V3(Math.sin(a) * (rad + 1.5), 0.1, Math.cos(a) * (rad + 1.5)), { n: 6, s: 1.4 }); }, i * 60); } sfx("drum"); }
+    }
+    // Behind the field, the 2D game's own painting of this place: its sky, its hills and its far hosts, wrapped round the
+    // horizon (mirrored, so it has no seam) and fading upward into a sky taken from its colours. The ground and the haze
+    // are tinted toward it too, so the field in front and the picture behind are one place. Halls keep their walls.
+    function backdrop(key) {
+      if (st.indoor || !G.ok || !/^(fight|stage)_/.test(key) || /hall|corridor|court|cellar|table|_top/.test(key)) return; // (only the empty stages: a painting with people in it would put giants on the horizon)
+      const src = "art/" + key.replace(/_(tall|wide)$/, "") + ".webp";
+      new T.TextureLoader().load(src, (tex) => {
+        if (closed) { tex.dispose(); return; }
+        const CROP = 0.56, RAD = 190, REP = 4, img = tex.image, H = (2 * Math.PI * RAD / REP) / ((img.width || 16) / ((img.height || 9) * CROP));
+        tex.colorSpace = T.SRGBColorSpace; tex.wrapS = T.MirroredRepeatWrapping; tex.repeat.set(REP, CROP); tex.offset.set(0.5, 1 - CROP); tex.needsUpdate = true;
+        // Its colours: the top of its sky, its horizon, its ground.
+        let top = null, hor = null, gnd = null;
+        try { const cv = document.createElement("canvas"); cv.width = 16; cv.height = 32; const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, 16, 32); const px = cx.getImageData(0, 0, 16, 32).data;
+          const avg = (y0, y1) => { let r = 0, g = 0, b2 = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < 16; x++) { const i = (y * 16 + x) * 4; r += px[i]; g += px[i + 1]; b2 += px[i + 2]; n++; } return new T.Color().setRGB(r / n / 255, g / n / 255, b2 / n / 255, T.SRGBColorSpace); };
+          top = avg(0, 3); hor = avg(11, 14); gnd = avg(20, 28); } catch (e) { top = hor = gnd = null; }
+        const geo = new T.CylinderGeometry(RAD, RAD, H, 72, 5, true), pos = geo.attributes.position, col = new Float32Array(pos.count * 4);
+        for (let i = 0; i < pos.count; i++) { const v = (pos.getY(i) + H / 2) / H; col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = 1; col[i * 4 + 3] = v > 0.72 ? Math.max(0, 1 - (v - 0.72) / 0.28) : 1; }
+        geo.setAttribute("color", new T.BufferAttribute(col, 4));
+        const m = new T.Mesh(geo, new T.MeshBasicMaterial({ map: tex, side: T.BackSide, fog: false, transparent: true, vertexColors: true, depthWrite: false })); m.renderOrder = -5; m.frustumCulled = false;
+        const horizon = 0.2; m.userData.y = H / 2 - horizon * H + 1.2; m.position.y = m.userData.y; // (the picture's horizon sits at eye height)
+        st.group.add(m); backMesh = m; st.offs.push(() => { tex.dispose(); });
+        if (top && hor) { G.setSky(st.sky, { top: top.getHex(), hor: hor.getHex(), bot: hor.getHex(), fog: hor.clone().lerp(new T.Color(0xffffff), 0.08).getHex(), cloud: hor.clone().lerp(new T.Color(0xffffff), 0.5).getHex() }); }
+        if (gnd && st.lastGround && st.lastGround.material && st.lastGround.material.color) { const base = new T.Color(0xa58a62), t = new T.Color(gnd.r / base.r, gnd.g / base.g, gnd.b / base.b); st.lastGround.material.color.copy(new T.Color(1, 1, 1).lerp(t, 0.55)); }
+      }, undefined, () => {});
     }
     U.fieldEvent3d = fieldEvent; // (so a check can ask for each kind)
     function buildEdge(key) {
@@ -253,7 +279,7 @@
           const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
           v.car = G.chariot({ col: car ? car[0] : great ? 0x6e3a1e : 0x5a4026, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
-          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
+          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
           const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
@@ -788,6 +814,7 @@
       const bh = boss.g.kind === "elephant" ? 3.2 : boss.g.car ? 2.2 : 1.38, bd = boss.g.kind === "elephant" ? 9 : boss.g.car ? 6.6 : boss.g.kind === "squad" ? 4.4 : 3.2;
       const rest = tally(every.filter((u) => u !== boss)), more = every.some((u) => u.g.entered === false) || (enc.rounds && !enc.hold && every.length > foes.length);
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
+        face: boss.g.kind === "man" || boss.g.car ? boss.uid : null,
         text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
@@ -803,7 +830,7 @@
       intro.i++; intro.t = 0;
       const s = intro.shots[intro.i];
       if (!s) return ready(false);
-      const b = intro.box, pp = b.querySelector("p"); b.querySelector(".kind").textContent = s.kind; b.querySelector("h2").textContent = s.head; pp.textContent = s.text || ""; pp.hidden = !s.text;
+      const b = intro.box, pp = b.querySelector("p"); b.querySelector(".kind").textContent = s.kind; const plain = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">"); b.querySelector("h2").textContent = plain(s.head); pp.textContent = plain(s.text); pp.hidden = !s.text;
       b.classList.remove("in"); void b.offsetWidth; b.classList.add("in");
       s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" ? 0.6 : 1);
       const v = s.who != null ? views.get(s.who) : null; if (v && s.act) for (const f of v.figs) f.act(s.act, 1.7);
@@ -814,7 +841,13 @@
       const s = intro.shots[intro.i]; if (!s) return;
       intro.t += dt;
       const k = G.ease(clamp(intro.t / s.secs, 0, 1)), mix = (a, b) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-      G.camSet(mix(s.a[0], s.b[0]), mix(s.a[1], s.b[1]), s.a[2] + (s.b[2] - s.a[2]) * k, true);
+      let to = s.b;
+      if (s.face != null) { // end on his face: in front of where his head is turned, a little to one side and above, clear of his horses, his standard and his umbrella
+        const v = views.get(s.face), f = v && v.figs[0];
+        if (f) { f.root.updateWorldMatrix(true, true); const hp = f.j.H.getWorldPosition(new T.Vector3()), sc = f.j.H.getWorldScale(new T.Vector3()).y, fw = new T.Vector3(0, 0, 1).applyQuaternion(f.j.H.getWorldQuaternion(new T.Quaternion()));
+          const ang = Math.atan2(fw.x, fw.z) + 0.55, d = (v.car ? 4.4 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
+          to = [[hp.x + Math.sin(ang) * d, hp.y + (v.car ? -0.55 : 0.12), hp.z + Math.cos(ang) * d], [hp.x, hp.y - 0.22, hp.z], 32]; } } // (under a king's umbrella the camera looks up from below its rim)
+      G.camSet(mix(s.a[0], to[0]), mix(s.a[1], to[1]), s.a[2] + (to[2] - s.a[2]) * k, true);
       if (intro.t >= s.hold) introNext();
     }
     // The field, and your word to begin.
@@ -908,6 +941,7 @@
       for (const [n, m] of shots) if (!R.shots.some((s) => s.n === n)) { G.fxRoot.remove(m); G.dispose(m); shots.delete(n); }
       // The one you face.
       const tg = !R.over && started ? R3.target(R) : null;
+      if (backMesh) backMesh.position.set(G.camera.position.x, backMesh.userData.y, G.camera.position.z);
       if (edgeGlow) { const pp = C.player(), d = pp && pp.g ? R.rad - Math.hypot(pp.g.x, pp.g.z) : 9; edgeGlow.material.opacity += ((d < 2.4 ? Math.min(0.34, (2.4 - d) / 2.4 * 0.45) : 0) - edgeGlow.material.opacity) * 0.2; edgeGlow.visible = edgeGlow.material.opacity > 0.01; if (pp && pp.g) edgeGlow.rotation.y = Math.atan2(pp.g.x, pp.g.z) - Math.PI / 2; }
       if (tg && lockRing) { lockRing.visible = true; lockRing.position.set(tg.g.x, 0.06, tg.g.z); const s = (tg.g.rad / 0.42) * (1 + Math.sin(t * 5) * 0.05); lockRing.scale.set(s, 1, s); } else if (lockRing) lockRing.visible = false;
       for (const m of grounds.values()) m.rotation.y = t * 2;

@@ -85,6 +85,18 @@ fight; the 2D game's tests brought over; every battle tuned.
   Field events are not drawn over a painting here: `fieldEvent` in `view.js` makes them happen on the field (riders,
   a chariot or an elephant crossing beyond the edge, arrows falling, fire, dark, dust, a serpent of light, rings from a
   conch). Three fights are tuned apart for 3D, where being surrounded is harder: Bhadra's bout, the border road, the crossing.
+- **Behind the field is the 2D game's own painting of the place** (`backdrop` in `view.js`): the top of the fight's
+  stage painting wrapped round the horizon, mirrored so it has no seam, fading up into a sky set from its colours, with
+  the ground and haze tinted toward it. Only the empty stage paintings (`fight_*`, `stage_*`) are used; halls keep their
+  walls; if the file is not there the built sky stays. No new art was needed.
+- **The opening shot of the one against you** ends in front of his face (from where his head is turned, to one side,
+  and from below the rim if he stands under an umbrella); it used to end where his standard or umbrella could cover him.
+- **More to look at on everything that moves:** horses (chest, quarters, mane, tail, bridle, saddle cloth, plume);
+  chariots (curved panelled breastwork with gold bosses, rails, twelve-spoked iron-shod wheels, yoke, reins, arrow
+  case, a fringed and ribbed umbrella, the standard at the rear corner); elephants (ears, ringed tusks, a bordered
+  cloth with tassels, frontlet, girth and bell, a railed howdah, anklets); fighting men (bronze helmets with brow band,
+  nose guard, cheek pieces and neck guard, horsehair crests, greaves, a dagger at the belt, a quiver on every archer);
+  charioteers turbaned and bare-chested. After the 2D game's own chariot paintings.
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512

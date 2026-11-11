@@ -339,7 +339,10 @@
       b.sph(0.055, 0.035, 0.41, 0.012, hc, 0.9, 6); b.cyl(0.139, 0.139, 0.022, 0, 0.243, -0.004, sp.hatTrim || trim, 10);
       if (sp.chin) { b.torus(0.118, 0.012, 0, 0.17, 0.0, G.shade(hc, 0.9), 0, 0, 0, 10); } // tied under the chin
     }
-    else if (hg === "helmet" || hg === "crest") { b.dome(0.142, 0, 0.215, -0.005, sp.hat && hg === "crest" ? 0x8a6a3a : 0x8a7248, 1.05, 10); b.cyl(0.146, 0.146, 0.03, 0, 0.215, -0.005, 0x6a5232, 10); if (hg === "crest") b.box(0.03, 0.14, 0.26, 0, 0.33, -0.02, sp.hat || 0xa3302a); else b.cone(0.03, 0.09, 0, 0.36, 0, 0x8a7248, 5); }
+    else if (hg === "helmet" || hg === "crest") { const hc = hg === "crest" ? 0xa8843e : 0x8f7646, hd = G.shade(hc, 0.72); b.dome(0.142, 0, 0.215, -0.005, hc, 1.05, LITE ? 9 : 16); b.cyl(0.147, 0.147, 0.03, 0, 0.215, -0.005, GOLD, LITE ? 9 : 16); // a bronze cap with a gold band at the brow
+      b.box(0.022, 0.085, 0.02, 0, 0.165, 0.143, hd); for (const sx of [-1, 1]) { b.geo(new T.BoxGeometry(0.012, 0.11, 0.075), sx * 0.132, 0.165, 0.04, 0, 0, sx * 0.08, hd); b.sph(0.012, sx * 0.142, 0.19, 0.045, GOLD, 1, 5); } // the nose guard and the cheek pieces
+      b.geo(new T.CylinderGeometry(0.15, 0.165, 0.09, LITE ? 8 : 12, 1, true, PI * 0.55, PI * 0.9), 0, 0.165, -0.005, 0, 0, 0, hd); // the guard at the neck
+      if (hg === "crest") { for (let k = 0; k < 7; k++) b.geo(new T.BoxGeometry(0.035, 0.11 + Math.sin((k / 6) * PI) * 0.05, 0.05), 0, 0.345 + Math.sin((k / 6) * PI) * 0.035, 0.1 - k * 0.04, -0.2 + k * 0.07, 0, 0, sp.hat || 0xa3302a); b.box(0.02, 0.03, 0.27, 0, 0.3, -0.03, GOLD); } else { b.cone(0.03, 0.1, 0, 0.36, 0, GOLD, 6); b.sph(0.022, 0, 0.42, 0, GOLD, 1, 5); } }
     else if (hg === "capfeather") { b.dome(0.14, 0, 0.225, -0.01, sp.hat || 0x5d3b2a, 0.9, 9); b.geo(new T.ConeGeometry(0.028, 0.26, 4), 0.09, 0.4, -0.05, -0.3, 0, -0.3, 0xe8e0d0); }
     else if (hg === "peacock") { b.cyl(0.131, 0.131, 0.035, 0, 0.25, -0.005, GOLD, 10); b.geo(new T.SphereGeometry(0.06, 6, 5).scale(0.5, 2.1, 0.2), 0.03, 0.44, 0.0, 0, 0, -0.18, 0x2f8a6a, 0x3a5ac0); b.sph(0.022, 0.045, 0.5, 0.012, 0x2a3a9a); }
     else if (hg === "feather") { b.cyl(0.131, 0.131, 0.03, 0, 0.25, -0.005, trim, 10); b.geo(new T.ConeGeometry(0.03, 0.28, 4), -0.04, 0.42, -0.08, -0.35, 0, 0.1, 0xc9a066); }
@@ -485,9 +488,14 @@
         el.add(b.mesh()); }
       { const b = B(); b.ao = 0.9; // at the ankle: an anklet; and the foot, bare, with a heel and toes
         if (rich) b.cyl(0.05 * bld.leg, 0.05 * bld.leg, 0.018, 0, -0.405, 0, GOLD, 12);
+        if (armour && !LITE) { b.geo(new T.CylinderGeometry(0.072 * bld.leg, 0.052 * bld.leg, 0.3, 8, 1, true, -PI * 0.5, PI), 0, -0.22, 0.004, 0, 0, 0, plate, G.shade(plate, 1.2)); b.cyl(0.074 * bld.leg, 0.074 * bld.leg, 0.02, 0, -0.08, 0.004, GOLD, 8); } // greaves
         const sk2 = G.shade(skin, 0.94); b.sph(0.045, 0, -0.455, -0.012, sk2, 0.9, 9, 0.95, 1.05); b.sph(0.05, 0, -0.47, 0.07, sk2, 0.62, 10, 0.92, 2.0); b.sph(0.042, 0, -0.478, 0.145, sk2, 0.5, 9, 1.05, 1.1);
         kn.add(b.mesh()); }
     }
+    if (sp.stage !== "child" && (armour || /^(turban|helmet|crest)$/.test(sp.headgear || ""))) { const b = B(); b.ao = 0.9; // a dagger in its sheath at the right hip
+      b.geo(new T.BoxGeometry(0.035, 0.2, 0.02), -0.2 * wide, -0.12, 0.07, 0.15, 0, 0.25, 0x5a3a22); b.geo(new T.BoxGeometry(0.02, 0.07, 0.02), -0.2 * wide + 0.022, 0.01, 0.085, 0.15, 0, 0.25, STEEL); b.sph(0.016, -0.2 * wide + 0.03, 0.05, 0.09, GOLD, 1, 5); b.sph(0.014, -0.2 * wide - 0.026, -0.215, 0.055, GOLD, 1, 5); hips.add(b.mesh()); }
+    if (opt.item === "bow" && sp.item !== "bow" && !gear.includes("quiver") && !gear.includes("quivers")) { const b = B(); b.ao = 0.9; // an archer's quiver, across the back
+      b.geo(new T.CylinderGeometry(0.05, 0.04, 0.42, 7), -0.08, 0.36, -0.17, 0, 0, 0.42, 0x6a4526); b.geo(new T.CylinderGeometry(0.054, 0.054, 0.03, 7), -0.165, 0.55, -0.17, 0, 0, 0.42, GOLD); for (let k = 0; k < 4; k++) b.geo(new T.BoxGeometry(0.012, 0.12, 0.012), -0.19 - k * 0.012, 0.62 + (k % 2) * 0.012, -0.17 + (k - 1.5) * 0.012, 0, 0, 0.42, k % 2 ? 0xc8402c : 0xe8e0d0); torso.add(b.mesh()); }
     const swB = new T.Group(); swB.position.set(0.2 * wide, 0.52, -0.13); torso.add(swB); f.j.sB = swB; // the end of the upper cloth, down the back
     const swF = new T.Group(); swF.position.set(0, 0.0, 0.13); hips.add(swF); f.j.sF = swF;                // the pleats in front
     const swS = new T.Group(); swS.position.set(0.17 * wide, 0.0, 0.09); hips.add(swS); f.j.sS = swS;      // the sash's ends at the hip

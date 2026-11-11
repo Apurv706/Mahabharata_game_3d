@@ -316,17 +316,28 @@
   // A horse: legs are pivots at the shoulder and hip, swung by G.gallop.
   G.horse = function (col, tack) {
     col = col == null ? HORSE_COLS[Math.floor(Math.random() * HORSE_COLS.length)] : col;
-    const g = new T.Group(), b = new Builder(), dark = G.shade(col, 0.7);
-    b.geo(new T.SphereGeometry(0.42, 8, 6).scale(1, 0.95, 2.0), 0, 1.25, 0, 0, 0, 0, col);
-    b.rod(0, 1.45, 0.72, 0, 2.05, 1.12, 0.2, col, 6, 0.14);
-    b.geo(new T.SphereGeometry(0.17, 6, 5).scale(1, 1, 1.9), 0, 2.1, 1.28, 0.5, 0, 0, col); b.box(0.06, 0.34, 0.5, 0, 1.75, 0.82, dark, 0, -0.6);
-    b.cone(0.04, 0.12, -0.08, 2.24, 1.12, dark, 4); b.cone(0.04, 0.12, 0.08, 2.24, 1.12, dark, 4);
-    b.rod(0, 1.35, -0.8, 0, 0.7, -1.15, 0.06, dark, 4, 0.02);
-    if (tack) { b.box(0.9, 0.06, 0.7, 0, 1.63, -0.05, tack); b.box(0.92, 0.5, 0.04, 0, 1.2, 0.5, tack); }
+    const g = new T.Group(), b = new Builder(), dark = G.shade(col, 0.62), GOLDH = 0xd9a53a;
+    b.geo(new T.SphereGeometry(0.42, 14, 9).scale(1, 0.95, 1.95), 0, 1.25, 0, 0, 0, 0, col);                    // the barrel
+    b.geo(new T.SphereGeometry(0.4, 12, 8).scale(1.02, 1.05, 0.9), 0, 1.3, 0.55, 0, 0, 0, col);                 // the chest and shoulders
+    b.geo(new T.SphereGeometry(0.41, 12, 8).scale(1.04, 1.02, 0.95), 0, 1.3, -0.5, 0, 0, 0, col);               // the quarters
+    b.rod(0, 1.42, 0.72, 0, 1.98, 1.08, 0.22, col, 9, 0.15);                                                     // the neck, arched
+    b.geo(new T.SphereGeometry(0.17, 10, 7).scale(1, 1.05, 1.5), 0, 2.08, 1.2, 0.55, 0, 0, col);                 // the head
+    b.geo(new T.SphereGeometry(0.11, 8, 6).scale(1, 0.95, 1.5), 0, 1.93, 1.43, 0.6, 0, 0, G.shade(col, 0.86));   // the muzzle
+    for (const sx of [-1, 1]) { b.cone(0.04, 0.13, sx * 0.085, 2.25, 1.1, dark, 5); b.sph(0.022, sx * 0.105, 2.1, 1.3, 0x140c08, 1, 5); }
+    for (let i = 0; i < 7; i++) b.geo(new T.BoxGeometry(0.05, 0.2 - i * 0.012, 0.13), 0, 2.08 - i * 0.085, 0.98 - i * 0.055, -0.62, 0, 0, dark); // the mane
+    b.sph(0.07, 0, 2.3, 1.14, dark, 1.2, 6);                                                                     // the forelock
+    b.rod(0, 1.42, -0.82, 0, 1.05, -1.08, 0.065, dark, 6, 0.04); b.rod(0, 1.05, -1.08, 0, 0.55, -1.12, 0.05, dark, 6, 0.015); // the tail
+    b.torus(0.115, 0.014, 0, 1.97, 1.36, 0x2a1a10, 0.6, 0, 0, 10); b.rod(0, 2.2, 1.17, 0, 1.99, 1.38, 0.012, 0x2a1a10, 4);   // the bridle
+    if (tack) { // a saddle cloth with a border, a band across the chest hung with a boss, a plume between the ears
+      b.geo(new T.SphereGeometry(0.435, 12, 6, 0, PI * 2, 0, PI * 0.5).scale(1.03, 0.9, 0.95), 0, 1.3, -0.05, 0, 0, 0, tack);
+      for (const sx of [-1, 1]) b.box(0.03, 0.05, 0.8, sx * 0.44, 1.22, -0.05, GOLDH);
+      b.torus(0.4, 0.035, 0, 1.36, 0.62, tack, 0.35, 0, 0, 14); b.sph(0.06, 0, 1.12, 0.93, GOLDH, 1, 7);
+      b.cone(0.045, 0.2, 0, 2.38, 1.1, tack, 6); b.sph(0.03, 0, 2.3, 1.1, GOLDH, 1, 5);
+    }
     g.add(b.mesh());
     g.userData.legs = [];
     for (const [x, z] of [[-0.2, 0.62], [0.2, 0.62], [-0.2, -0.62], [0.2, -0.62]]) {
-      const lb = new Builder(); lb.cyl(0.07, 0.1, 0.55, 0, -0.55, 0, col, 5); lb.cyl(0.05, 0.065, 0.5, 0, -1.03, 0, dark, 5); lb.cyl(0.075, 0.075, 0.08, 0, -1.1, 0, 0x2a1a10, 5);
+      const lb = new Builder(); lb.cyl(0.115, 0.075, 0.55, 0, -0.55, 0, col, 8); lb.sph(0.07, 0, -0.56, 0, col, 1, 6); lb.cyl(0.062, 0.05, 0.47, 0, -1.03, 0, dark, 7); lb.cyl(0.066, 0.08, 0.09, 0, -1.11, 0.01, 0x2a1a10, 7);
       const leg = lb.mesh(); leg.position.set(x, 1.1, z); g.add(leg); g.userData.legs.push(leg);
     }
     return g;
@@ -335,26 +346,43 @@
   // A war chariot: the car and pole in one piece, two wheels that turn, a team of horses, a standard.
   // o: { col, trim, horses (2), horseCol, flag: [bg, fg, device], canopy }
   G.chariot = function (o) {
-    o = o || {}; const col = o.col || 0x7a4e24, trim = o.trim || 0xd9a53a;
+    o = o || {}; const col = o.col || 0x7a4e24, trim = o.trim || 0xd9a53a, lite = G.shade(col, 1.22), deep = G.shade(col, 0.72), IRON = 0x3a342c;
     const g = new T.Group(), b = new Builder();
-    b.box(1.5, 0.14, 1.9, 0, 0.72, 0, col); b.box(1.5, 0.62, 0.1, 0, 0.86, 0.9, col, 0, 0, 0, G.shade(col, 1.2));
-    b.box(0.1, 0.5, 1.9, -0.72, 0.86, 0, col); b.box(0.1, 0.5, 1.9, 0.72, 0.86, 0, col);
-    b.box(1.56, 0.07, 0.14, 0, 1.46, 0.9, trim); b.box(0.14, 0.06, 1.9, -0.72, 1.34, 0, trim); b.box(0.14, 0.06, 1.9, 0.72, 1.34, 0, trim);
-    b.rod(0, 0.74, 0.9, 0, 0.95, 3.6, 0.06, 0x5a3a22); b.rod(-1.0, 1.02, 3.5, 1.0, 1.02, 3.5, 0.05, 0x5a3a22);
-    b.rod(-0.95, 0.72, -0.1, 0.95, 0.72, -0.1, 0.06, 0x3a2414);
-    if (o.canopy) { for (const sx of [-1, 1]) b.rod(sx * 0.66, 0.86, -0.85, sx * 0.66, 2.7, -0.85, 0.035, trim); b.geo(new T.SphereGeometry(1.0, 8, 4, 0, PI * 2, 0, PI / 2).scale(1, 0.4, 0.9), 0, 2.7, -0.4, 0, 0, 0, o.canopy); }
+    b.box(1.5, 0.12, 1.9, 0, 0.72, 0, deep);                                                                   // the floor
+    // The breastwork: a curved front, panelled, with a gold boss on each panel and a rail along its top; lower sides; open behind.
+    b.geo(new T.CylinderGeometry(0.75, 0.75, 0.66, 14, 1, true, -PI / 2, PI).scale(1, 1, 0.5), 0, 1.17, 0.58, 0, 0, 0, col, lite);
+    b.geo(new T.TorusGeometry(0.75, 0.04, 6, 14, PI).rotateX(PI / 2).scale(1, 1, 0.5), 0, 1.5, 0.58, 0, PI, 0, trim);
+    b.geo(new T.TorusGeometry(0.76, 0.03, 5, 14, PI).rotateX(PI / 2).scale(1, 1, 0.5), 0, 0.86, 0.58, 0, PI, 0, trim);
+    for (let i = -2; i <= 2; i++) { const a = i * 0.52; b.geo(new T.CylinderGeometry(0.075, 0.075, 0.03, 10).rotateX(PI / 2), Math.sin(a) * 0.76, 1.18, 0.58 + Math.cos(a) * 0.385, 0, a, 0, trim); b.sph(0.03, Math.sin(a) * 0.775, 1.18, 0.58 + Math.cos(a) * 0.395, 0xf4d67a, 1, 6); }
+    for (const sx of [-1, 1]) { b.box(0.08, 0.46, 1.5, sx * 0.72, 0.84, -0.2, col, 0, 0, 0, lite); b.box(0.1, 0.05, 1.54, sx * 0.72, 1.3, -0.2, trim);
+      for (let k = 0; k < 4; k++) b.cyl(0.03, 0.03, 0.5, sx * 0.72, 0.82, -0.86 + k * 0.42, deep, 6);
+      b.geo(new T.CylinderGeometry(0.06, 0.06, 0.035, 9).rotateZ(PI / 2), sx * 0.765, 1.06, -0.24, 0, 0, 0, trim); }
+    // A case of arrows on the right rail and a spare bow on the left; the pole, the yoke with its two saddles; the axle.
+    b.cyl(0.085, 0.07, 0.6, 0.6, 0.9, -0.62, 0x5a3a22, 8); for (let k = 0; k < 5; k++) b.rod(0.6 + (k - 2) * 0.025, 1.5, -0.62 + (k % 2) * 0.03, 0.6 + (k - 2) * 0.03, 1.72, -0.62 + (k % 2) * 0.03, 0.009, k % 2 ? 0xa3302a : 0xe8e0d0, 3);
+    b.geo(new T.TorusGeometry(0.42, 0.018, 4, 10, PI * 0.9).rotateY(PI / 2), -0.64, 1.25, -0.5, 0, 0, 0.5, 0x6a4a26);
+    b.rod(0, 0.76, 0.9, 0, 1.0, 3.62, 0.06, 0x5a3a22, 7); b.rod(-1.05, 1.06, 3.5, 1.05, 1.06, 3.5, 0.05, 0x5a3a22, 6); for (const sx of [-1, 1]) { b.sph(0.07, sx * 1.05, 1.06, 3.5, trim, 1, 6); b.torus(0.16, 0.03, sx * 0.5, 1.12, 3.5, 0x3a2414, 0, 0, 0, 8); }
+    b.rod(-1.0, 0.72, -0.1, 1.0, 0.72, -0.1, 0.06, IRON, 6);
+    for (const sx of [-1, 1]) b.rod(sx * 0.35, 1.5, 0.95, sx * 0.5, 1.98, 4.6, 0.008, 0x2a1a10, 3);                // the reins
+    if (o.canopy) { // the white umbrella of a king: ribs, a fringe round its edge, a gold finial
+      for (const sx of [-1, 1]) b.rod(sx * 0.66, 0.86, -0.85, sx * 0.66, 2.72, -0.85, 0.032, trim, 6);
+      b.geo(new T.SphereGeometry(1.0, 16, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.42, 0.9), 0, 2.7, -0.4, 0, 0, 0, o.canopy, G.shade(o.canopy, 0.86));
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * PI * 2; b.rod(0, 3.12, -0.4, Math.sin(a) * 1.0, 2.71, -0.4 + Math.cos(a) * 0.9, 0.012, trim, 3); }
+      b.geo(new T.TorusGeometry(1.0, 0.03, 5, 20).rotateX(PI / 2).scale(1, 1, 0.9), 0, 2.69, -0.4, 0, 0, 0, trim);
+      for (let k = 0; k < 16; k++) { const a = (k / 16) * PI * 2; b.sph(0.03, Math.sin(a) * 1.0, 2.62, -0.4 + Math.cos(a) * 0.9, k % 2 ? trim : 0xa3302a, 1.6, 4); }
+      b.sph(0.07, 0, 3.17, -0.4, trim, 1.3, 7);
+    }
     g.add(b.mesh());
     g.userData.wheels = [];
-    for (const sx of [-1, 1]) {
-      const wb = new Builder(); wb.torus(0.7, 0.07, 0, 0, 0, 0x3a2414, 0, PI / 2, 0, 16);
-      for (let i = 0; i < 4; i++) wb.geo(new T.BoxGeometry(0.05, 1.36, 0.06), 0, 0, 0, (i / 4) * PI, 0, 0, 0x8a6236);
-      wb.cyl(0.12, 0.12, 0.2, -0.1, 0, 0, trim, 6, 0, 0, PI / 2);
+    for (const sx of [-1, 1]) { // a wheel: eight spokes, a wooden felloe shod with iron, a nave capped in gold
+      const wb = new Builder(); wb.torus(0.68, 0.06, 0, 0, 0, 0x6a4a26, 0, PI / 2, 0, 22); wb.torus(0.73, 0.03, 0, 0, 0, IRON, 0, PI / 2, 0, 22);
+      for (let i = 0; i < 6; i++) wb.geo(new T.BoxGeometry(0.045, 1.34, 0.05), 0, 0, 0, (i / 6) * PI, 0, 0, 0x8a6236); for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; wb.sph(0.022, 0, Math.sin(a) * 0.705, Math.cos(a) * 0.705, trim, 1, 4); }
+      wb.cyl(0.14, 0.14, 0.2, -0.1, 0, 0, 0x5a3a22, 8, 0, 0, PI / 2); wb.cyl(0.09, 0.07, 0.07, sx * 0.13 - 0.035, 0, 0, trim, 8, 0, 0, PI / 2);
       const w = wb.mesh(); w.position.set(sx * 0.98, 0.72, -0.1); g.add(w); g.userData.wheels.push(w);
     }
     g.userData.horses = [];
     const n = o.horses == null ? 2 : o.horses;
     for (let i = 0; i < n; i++) { const h = G.horse(o.horseCol != null ? o.horseCol : undefined, o.tack || 0xa3302a); h.position.set((i - (n - 1) / 2) * 1.0, 0, 3.4); g.add(h); g.userData.horses.push(h); }
-    if (o.flag) { const f = G.banner(2.6, o.flag[0], o.flag[1], o.flag[2], 0.7); f.position.set(-0.6, 0.86, -0.85); g.add(f); g.userData.banner = f; }
+    if (o.flag) { const f = G.banner(2.9, o.flag[0], o.flag[1], o.flag[2], 0.7); f.position.set(-0.74, 0.86, -0.92); g.add(f); g.userData.banner = f; } // the standard, at the rear corner, clear of the one who rides
     g.userData.deck = 0.86;
     return g;
   };
@@ -362,19 +390,31 @@
   G.roll = function (ch, dist, t, speed) { for (const w of ch.userData.wheels || []) w.rotation.x = dist / 0.72; (ch.userData.horses || []).forEach((h, i) => G.gallop(h, t * 11 + i * 1.3, speed)); if (ch.userData.banner) G.wave(ch.userData.banner, t); };
   // A war elephant with a howdah; its legs and trunk are pivots.
   G.elephant = function (cloth) {
-    const g = new T.Group(), b = new Builder(), col = 0x7d7a76;
-    b.geo(new T.SphereGeometry(1.25, 10, 8).scale(1, 1.05, 1.55), 0, 2.5, 0, 0, 0, 0, col);
-    b.geo(new T.SphereGeometry(0.85, 9, 7).scale(1, 1.1, 1), 0, 3.0, 2.0, 0, 0, 0, col);
-    for (const sx of [-1, 1]) { b.geo(new T.SphereGeometry(0.75, 8, 5).scale(0.14, 1, 0.8), sx * 0.85, 3.05, 1.75, 0, sx * 0.4, 0, G.shade(col, 0.92)); b.rod(sx * 0.32, 2.5, 2.6, sx * 0.45, 2.0, 3.35, 0.08, 0xf4ecd6, 5, 0.02); }
-    b.box(2.3, 0.1, 2.8, 0, 3.72, -0.1, cloth || 0xa3302a); b.box(2.5, 1.2, 0.06, 0, 2.6, 1.0, cloth || 0xa3302a);
-    b.box(1.5, 0.5, 1.6, 0, 3.8, -0.2, 0x7a5232); for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.7, 4.3, -0.2 + sz * 0.75, sx * 0.7, 5.3, -0.2 + sz * 0.75, 0.035, 0xd9a53a);
-    b.geo(new T.SphereGeometry(1.1, 8, 4, 0, PI * 2, 0, PI / 2).scale(1, 0.35, 1.05), 0, 5.3, -0.2, 0, 0, 0, 0xd9a53a);
-    b.rod(0, 2.6, -1.9, 0, 1.4, -2.2, 0.06, G.shade(col, 0.8), 4, 0.02);
+    const g = new T.Group(), b = new Builder(), col = 0x7d7a76, dk = G.shade(col, 0.82), GOLDE = 0xd9a53a; cloth = cloth || 0xa3302a;
+    b.geo(new T.SphereGeometry(1.25, 16, 11).scale(1, 1.05, 1.55), 0, 2.5, 0, 0, 0, 0, col);                                  // the body
+    b.geo(new T.SphereGeometry(0.85, 14, 10).scale(1, 1.1, 1), 0, 3.0, 2.0, 0, 0, 0, col);                                   // the head, with its two domes
+    for (const sx of [-1, 1]) { b.sph(0.4, sx * 0.3, 3.72, 1.95, col, 0.8, 8);
+      b.geo(new T.SphereGeometry(0.78, 10, 7).scale(0.12, 1.05, 0.82), sx * 0.88, 3.0, 1.72, 0, sx * 0.45, 0, G.shade(col, 0.92)); b.geo(new T.SphereGeometry(0.6, 8, 6).scale(0.1, 0.9, 0.7), sx * 0.9, 2.95, 1.75, 0, sx * 0.45, 0, 0xb09a94); // the ears
+      b.rod(sx * 0.32, 2.5, 2.6, sx * 0.47, 2.0, 3.4, 0.085, 0xf4ecd6, 7, 0.022); b.torus(0.075, 0.02, sx * 0.4, 2.22, 3.05, GOLDE, 0.9, 0, 0, 8); b.torus(0.05, 0.016, sx * 0.44, 2.08, 3.27, GOLDE, 0.9, 0, 0, 8); // the tusks, ringed in gold
+      b.sph(0.05, sx * 0.5, 3.2, 2.62, 0x140c08, 1, 6); }
+    // Its trappings: a great cloth over the back with a gold border and tassels, a frontlet on the brow, a girth with a bell.
+    b.geo(new T.SphereGeometry(1.29, 16, 7, 0, PI * 2, 0, PI * 0.5).scale(1, 0.92, 1.25), 0, 2.66, -0.1, 0, 0, 0, cloth, G.shade(cloth, 0.8));
+    for (const sx of [-1, 1]) { b.box(0.05, 0.1, 3.0, sx * 1.27, 2.62, -0.1, GOLDE); for (let k = 0; k < 6; k++) b.sph(0.06, sx * 1.27, 2.5, -1.35 + k * 0.5, k % 2 ? GOLDE : 0xf4ecd6, 1.5, 5); }
+    b.geo(new T.SphereGeometry(0.87, 10, 5, 0, PI * 2, 0, PI * 0.42).scale(0.8, 1, 1), 0, 3.08, 2.02, 0.85, 0, 0, cloth); b.sph(0.12, 0, 3.5, 2.72, GOLDE, 1, 8); b.sph(0.07, 0, 3.25, 2.83, 0xb2432a, 1, 6);
+    b.torus(1.3, 0.05, 0, 2.5, 0.6, 0x5a3a22, 0, 0, 0, 18); b.sph(0.11, 0, 1.2, 0.6, GOLDE, 1.2, 7);
+    // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.
+    b.box(1.6, 0.14, 1.7, 0, 3.72, -0.2, 0x5a3a22); for (const sx of [-1, 1]) { b.box(0.07, 0.5, 1.7, sx * 0.78, 3.86, -0.2, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(0.09, 0.05, 1.74, sx * 0.78, 4.36, -0.2, GOLDE); }
+    for (const sz of [-1, 1]) { b.box(1.6, 0.5, 0.07, 0, 3.86, -0.2 + sz * 0.83, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(1.64, 0.05, 0.09, 0, 4.36, -0.2 + sz * 0.83, GOLDE); for (let k = -1; k <= 1; k++) b.sph(0.05, k * 0.5, 4.1, -0.2 + sz * 0.87, GOLDE, 1, 6); }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.72, 4.36, -0.2 + sz * 0.77, sx * 0.72, 5.32, -0.2 + sz * 0.77, 0.035, GOLDE, 6);
+    b.geo(new T.SphereGeometry(1.1, 14, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.38, 1.05), 0, 5.3, -0.2, 0, 0, 0, GOLDE, 0xf0cf70); b.sph(0.09, 0, 5.74, -0.2, GOLDE, 1.4, 7);
+    for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.sph(0.04, Math.sin(a) * 1.1, 5.24, -0.2 + Math.cos(a) * 1.15, k % 2 ? cloth : 0xf4ecd6, 1.6, 4); }
+    b.rod(0.35, 3.8, 1.2, 0.35, 4.7, 1.3, 0.02, 0x3a342c, 4); b.cone(0.05, 0.14, 0.35, 4.7, 1.3, 0x8a8a8a, 5);
+    b.rod(0, 2.7, -1.88, 0, 1.6, -2.18, 0.07, dk, 5, 0.03); b.sph(0.09, 0, 1.52, -2.2, 0x2a2420, 1.5, 5);                     // the tail
     g.add(b.mesh());
-    const tb = new Builder(); tb.rod(0, 0, 0, 0, -1.0, 0.25, 0.26, col, 7, 0.18); tb.rod(0, -1.0, 0.25, 0, -1.9, 0.55, 0.18, col, 7, 0.1);
+    const tb = new Builder(); tb.rod(0, 0, 0, 0, -1.0, 0.25, 0.27, col, 9, 0.19); tb.rod(0, -1.0, 0.25, 0, -1.9, 0.55, 0.19, col, 9, 0.1); tb.sph(0.11, 0, -1.92, 0.57, dk, 1, 6);
     const trunk = tb.mesh(); trunk.position.set(0, 2.85, 2.75); g.add(trunk); g.userData.trunk = trunk;
     g.userData.legs = [];
-    for (const [x, z] of [[-0.7, 1.2], [0.7, 1.2], [-0.7, -1.2], [0.7, -1.2]]) { const lb = new Builder(); lb.cyl(0.36, 0.4, 1.9, 0, -1.9, 0, col, 8); const leg = lb.mesh(); leg.position.set(x, 1.9, z); g.add(leg); g.userData.legs.push(leg); }
+    for (const [x, z] of [[-0.7, 1.2], [0.7, 1.2], [-0.7, -1.2], [0.7, -1.2]]) { const lb = new Builder(); lb.cyl(0.4, 0.34, 1.9, 0, -1.9, 0, col, 10); lb.cyl(0.36, 0.38, 0.14, 0, -1.9, 0, dk, 10); lb.torus(0.36, 0.035, 0, -1.55, 0, GOLDE, PI / 2, 0, 0, 12); for (let k = -1; k <= 1; k++) lb.sph(0.07, k * 0.16, -1.86, 0.33, 0xe8e0d0, 0.6, 5); const leg = lb.mesh(); leg.position.set(x, 1.9, z); g.add(leg); g.userData.legs.push(leg); }
     return g;
   };
   G.stomp = function (el, t, speed) { const L = el.userData.legs, a = 0.3 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[3].rotation.x = Math.sin(t) * a; L[1].rotation.x = -Math.sin(t) * a; L[2].rotation.x = -Math.sin(t) * a; el.userData.trunk.rotation.x = Math.sin(t * 0.7) * 0.25; el.children[0].position.y = Math.abs(Math.sin(t)) * 0.05; };
