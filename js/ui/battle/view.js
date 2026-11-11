@@ -98,7 +98,7 @@
     const enc = K.ENCOUNTERS[encId];
     let B = C.start(encId, null), R = R3.begin(B, { assist: U.assist() });
     const views = new Map(), offs = [], shots = new Map(), grounds = new Map();
-    let st = null, acc = 0, started = false, closed = false, hitStop = 0, lockRing = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
+    let st = null, acc = 0, started = false, closed = false, hitStop = 0, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
     let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null;
     const threatEls = [];
@@ -120,20 +120,59 @@
     function build() {
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
       st = G.setStage(key, { clear: 15 });
-      // The edge of the field: a ring worn into the ground, and spears with pennants round it.
-      const b = new G.Builder(), rad = R.rad;
-      for (let i = 0; i < 40; i++) { const a = (i / 40) * Math.PI * 2, x = Math.sin(a) * (rad + 0.35), z = Math.cos(a) * (rad + 0.35); b.box(1.5, 0.05, 0.22, x, 0.0, z, 0x5a4630, a + Math.PI / 2); }
-      if (!st.indoor) for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + 0.26, x = Math.sin(a) * (rad + 0.9), z = Math.cos(a) * (rad + 0.9); if (z > rad * 0.55) continue; b.rod(x, 0, z, x, 2.3, z, 0.03, 0x3a2414, 5); b.box(0.5, 0.26, 0.02, x + 0.27, 1.95, z, i % 2 ? 0xa3302a : 0xe2b55a); }
-      const m = b.mesh(); m.receiveShadow = true; st.group.add(m);
+      buildEdge(key);
       lockRing = new T.Mesh(new T.RingGeometry(0.62, 0.74, 30).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
       lockRing.position.y = 0.06; lockRing.visible = false; lockRing.renderOrder = 3; G.fxRoot.add(lockRing);
       if (R.goal) { goalMark = G.fx.mark("ring", { r: R.goal.r, col: 0x7fe08a }); goalMark.position.set(R.goal.x, 0.05, R.goal.z); goalMark.userData.set(1, false, false); st.flame(R.goal.x, 0, R.goal.z, 0.9, true); }
-      if (/night|cave|fire/.test(st.sky)) st.amb("embers", { r: rad, rate: 3 }); else st.amb("dust", { r: rad + 4, rate: 2 });
+      if (/night|cave|fire/.test(st.sky)) st.amb("embers", { r: R.rad, rate: 3 }); else st.amb("dust", { r: R.rad + 4, rate: 2 });
       sync();
       buildFar();
       camera(0, true);
     }
     // ---------- The battle beyond the ring ----------
+    // The edge of the field. It was a ring of dark bars lying on the ground. Now it is what would be there: on a war
+    // field, ground churned to dust and the wreck of the fighting (arrows standing in the earth, dropped shields, broken
+    // wheels, a spear left planted) under the standards of the two hosts; in a yard or a hall, the wrestlers' ring, a low
+    // bank of earth with a limed line inside it, posts and a rope; in the open, stones, tufts and fallen wood. The line
+    // you cannot cross shows itself only when you come close to it: a curve of light on the ground in front of you.
+    function buildEdge(key) {
+      const rad = R.rad, rnd = G.rand(G.hash(enc.id) + 3), b = new G.Builder(), PI = Math.PI, night = /night|cave|fire/.test(st.sky || "");
+      const kind = st.indoor || /training|yard|ring|swayamvara|arena|court|hall|corridor|drupada/.test(key) ? "yard" : /war|battlefield|chakravyuha|camp|carts|gate/.test(key) ? "war" : "wild";
+      // The worn band: darkest at the edge itself, fading inward and outward.
+      { const geo = new T.RingGeometry(rad - 2.2, rad + 2.4, 72, 4).rotateX(-PI / 2), pos = geo.attributes.position, col = new Float32Array(pos.count * 4), c = new T.Color(kind === "wild" ? 0x4a3c20 : 0x33230f);
+        for (let i = 0; i < pos.count; i++) { const r = Math.hypot(pos.getX(i), pos.getZ(i)), d = Math.abs(r - (rad + 0.3)) / 2.3, a = Math.max(0, 1 - d * d) * (kind === "yard" ? 0.24 : 0.32); col[i * 4] = c.r; col[i * 4 + 1] = c.g; col[i * 4 + 2] = c.b; col[i * 4 + 3] = a; }
+        geo.setAttribute("color", new T.BufferAttribute(col, 4));
+        const m = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false })); m.position.y = 0.03; m.renderOrder = 1; st.group.add(m); }
+      const at = (a, r) => [Math.sin(a) * r, Math.cos(a) * r];
+      if (kind === "yard") {
+        b.geo(new T.TorusGeometry(rad + 1.0, 0.22, 6, 56).rotateX(PI / 2).scale(1, 0.5, 1), 0, 0.02, 0, 0, 0, 0, 0x8a6a44, 0xa88458);                      // the bank of earth
+        b.geo(new T.RingGeometry(rad + 0.3, rad + 0.44, 72).rotateX(-PI / 2), 0, 0.035, 0, 0, 0, 0, 0xf0e8d4);                                             // the limed line
+        const n = 14; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + 0.22, [x, z] = at(a, rad + 1.0); if (z > rad * 0.62) continue;           // (none across the near side, where you look in)
+          b.cyl(0.06, 0.075, 1.15, x, 0.05, z, 0x5a3a1e, 8); b.sph(0.08, x, 1.22, z, i % 2 ? 0xa3302a : 0xd9a53a, 1, 8);
+          const a2 = ((i + 1) / n) * PI * 2 + 0.22, [x2, z2] = at(a2, rad + 1.0); if (z2 <= rad * 0.62) { const mx = (x + x2) / 2 * 0.995, mz = (z + z2) / 2 * 0.995; b.rod(x, 1.0, z, mx, 0.86, mz, 0.018, 0xc8b088, 5); b.rod(mx, 0.86, mz, x2, 1.0, z2, 0.018, 0xc8b088, 5); } // a rope, sagging
+          if ((night || st.indoor) && i % 2 === 0 && st.flame) st.flame(x, 1.3, z, 0.35, true); }
+      } else if (kind === "war") {
+        const n = 30; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + rnd() * 0.16, [x, z] = at(a, rad + 0.7 + rnd() * 2.0), k = Math.floor(rnd() * 7);
+          if (z > rad * 0.8 && k !== 0) continue;
+          if (k <= 1) G.arrowsStuck(b, x, z, 2 + Math.floor(rnd() * 4), 0.7, rnd);
+          else if (k === 2) { const ry = rnd() * 6.28; b.geo(new T.CylinderGeometry(0.4, 0.4, 0.05, 12), x, 0.07, z, 0.18 + rnd() * 0.3, ry, 0, i % 2 ? 0x2d5aa0 : 0xa3302a); b.geo(new T.CylinderGeometry(0.1, 0.1, 0.07, 8), x, 0.1, z, 0.18, ry, 0, 0xd9a53a); } // a shield, dropped
+          else if (k === 3) { const lean = 0.25 + rnd() * 0.5, ry = rnd() * 6.28, h = 1.7; b.rod(x, 0, z, x + Math.sin(ry) * Math.sin(lean) * h, Math.cos(lean) * h, z + Math.cos(ry) * Math.sin(lean) * h, 0.022, 0x4a3018, 5); }                                              // a spear left standing
+          else if (k === 4) { b.geo(new T.TorusGeometry(0.5, 0.05, 5, 12), x, 0.12, z, PI / 2 - 0.25 - rnd() * 0.3, rnd() * 6.28, 0, 0x5a3c20); b.geo(new T.CylinderGeometry(0.09, 0.09, 0.12, 6), x, 0.14, z, 0, 0, 0, 0x4a3018); }                                           // a wheel off its car
+          else if (k === 5 && i % 4 === 1 && G.wreck) G.wreck(b, x * 1.12, z * 1.12, rnd);
+          else G.rock(b, x, z, 0.22 + rnd() * 0.3, rnd, 0x7a6a54); }
+        for (let i = 0; i < 10; i++) { const a = (i / 10) * PI * 2 + 0.3, [x, z] = at(a, rad + 1.3); if (z > rad * 0.5) continue; const mine = x < 0, colr = mine ? 0x2d5aa0 : 0xa3302a; // the hosts' standards, yours to the left
+          b.rod(x, 0, z, x, 3.1, z, 0.035, 0x3a2414, 6); b.sph(0.06, x, 3.14, z, 0xd9a53a, 1.4, 6); b.box(0.74, 0.44, 0.02, x + 0.39, 2.55, z, colr); b.box(0.74, 0.07, 0.024, x + 0.39, 2.5, z, 0xd9a53a); b.geo(new T.ConeGeometry(0.22, 0.36, 3).rotateZ(-PI / 2), x + 0.92, 2.77, z, 0, 0, 0, colr); }
+      } else {
+        const n = 34; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + rnd() * 0.14, [x, z] = at(a, rad + 0.5 + rnd() * 1.5), k = Math.floor(rnd() * 6);
+          if (z > rad * 0.85 && k > 1) continue;
+          if (k <= 1) G.rock(b, x, z, 0.25 + rnd() * 0.5, rnd, 0x8a8478);
+          else if (k <= 3) G.reeds(b, x, z, 5 + Math.floor(rnd() * 5), rnd, 0x6f8a3a);
+          else if (k === 4) { const ry = a + PI / 2 + (rnd() - 0.5), l = 0.8 + rnd() * 0.9; b.rod(x - Math.sin(ry) * l, 0.13, z - Math.cos(ry) * l, x + Math.sin(ry) * l, 0.15, z + Math.cos(ry) * l, 0.13, 0x5a4026, 7); b.rod(x, 0.2, z, x + rnd() * 0.3, 0.55, z + 0.2, 0.035, 0x5a4026, 5); } // a fallen bough
+          else { G.rock(b, x, z, 0.18, rnd, 0x8a8478); G.reeds(b, x + 0.3, z + 0.1, 4, rnd, 0x7a9442); } }
+      }
+      const m = b.mesh(); m.castShadow = true; m.receiveShadow = true; st.group.add(m);
+      edgeGlow = new T.Mesh(new T.RingGeometry(rad + 0.12, rad + 0.5, 28, 1, -0.34, 0.68).rotateX(-PI / 2), new T.MeshBasicMaterial({ color: 0xffe2a0, transparent: true, opacity: 0, depthWrite: false, fog: false })); edgeGlow.position.y = 0.055; edgeGlow.renderOrder = 3; G.fxRoot.add(edgeGlow);
+    }
     // Where a line fights inside the field, the hosts behind it are fighting too: a few pairs at the ranks' edge trade
     // blows (no rules, only the look of it), and flights of arrows go over from one host to the other.
     const far = { pairs: [], arrows: [], next: 2.5, dir: 1 };
@@ -831,6 +870,7 @@
       for (const [n, m] of shots) if (!R.shots.some((s) => s.n === n)) { G.fxRoot.remove(m); G.dispose(m); shots.delete(n); }
       // The one you face.
       const tg = !R.over && started ? R3.target(R) : null;
+      if (edgeGlow) { const pp = C.player(), d = pp && pp.g ? R.rad - Math.hypot(pp.g.x, pp.g.z) : 9; edgeGlow.material.opacity += ((d < 2.4 ? Math.min(0.34, (2.4 - d) / 2.4 * 0.45) : 0) - edgeGlow.material.opacity) * 0.2; edgeGlow.visible = edgeGlow.material.opacity > 0.01; if (pp && pp.g) edgeGlow.rotation.y = Math.atan2(pp.g.x, pp.g.z) - Math.PI / 2; }
       if (tg && lockRing) { lockRing.visible = true; lockRing.position.set(tg.g.x, 0.06, tg.g.z); const s = (tg.g.rad / 0.42) * (1 + Math.sin(t * 5) * 0.05); lockRing.scale.set(s, 1, s); } else if (lockRing) lockRing.visible = false;
       for (const m of grounds.values()) m.rotation.y = t * 2;
       farFrame(dt, t);

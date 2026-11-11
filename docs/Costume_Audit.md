@@ -80,6 +80,14 @@ Read again for what sets each of the great ones apart (11 Nov), and what the fig
 | Ekalavya | Gives his right thumb to Drona (Adi CXXXIV). | Not shown: the figures' hands have no fingers. |
 | Already in place | Arjuna's diadem, dark skin and two quivers; Bhima the tallest and broadest, with the mace; Yudhishthira's spear; the twins' swords; Karna's mail and ear-rings until he gives them away; Bhishma all in white; Drona in white with the water-pot and thread; Ashwatthama's brow gem; Shakuni's dice; Gandhari's bandage; Dhritarashtra's blind eyes. | |
 
+## Faces
+
+Hair on the face follows the 2D portraits where a portrait exists: Arjuna stubble and a thin moustache; Bhima a heavy
+moustache over stubble; Yudhishthira a short dark beard; Drona a short white beard; Bhishma a long white beard;
+Dhrishtadyumna a moustache and chin tuft; Ghatotkacha stubble; Karna, Duryodhana and Kripa clean-shaven. Krishna and
+Balarama are clean-shaven, the twins and Ashwatthama have thin moustaches, Shakuni a pointed chin beard, soldiers a
+full moustache: these are the game's choices, since the text and the portraits are silent.
+
 ## Soldiers
 
 The epic names the heroes' gear and says little about the rank and file, so the line's foot soldiers follow a

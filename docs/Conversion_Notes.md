@@ -62,6 +62,14 @@ fight; the 2D game's tests brought over; every battle tuned.
   `sS`, `sB`, `sH`). Hands have a palm and thumb, feet a heel and toes, faces a jaw, nose, lips and ears; builds differ
   (`big`, `strong`, `slim` in `K.PUPPETS`). The rank and file and far-off figures are built plainer (`opt.lite`).
   Cost: a war battle draws about a quarter more triangles (about 460k, was 365k) in the same number of draw calls.
+- **The field's edge** was a ring of dark bars on the ground. `buildEdge` in `js/ui/battle/view.js` now makes what
+  would be there: on a war field, churned ground, arrows standing in the earth, dropped shields, wheels, planted spears
+  and the two hosts' standards; in a yard or hall, a bank of earth with a limed line, posts and a sagging rope; in the
+  open, stones, tufts and fallen boughs. The limit itself shows as a curve of light only when you come within a few steps.
+- **Sway** is a damped pendulum driven by how the body moved that frame (run, turn, sudden stop), with stops so cloth
+  cannot pass through the body; it was a clock-driven wobble.
+- **Faces:** long eyes with lids, and hair on the face per person (`whiskers`: clean, thin, stache, heavy, stubble;
+  `beard`: goatee, short, full, forked, long), matched to the 2D portraits where there is one.
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512

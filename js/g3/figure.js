@@ -232,18 +232,19 @@
     const jaw = she || sp.stage === "child" ? 0.86 : sp.big || sp.strong ? 1.08 : 1;
     b.sph(0.125, 0, 0.205, 0, skin, 1.1, LITE ? 9 : 18, 0.93, 1.0);                                           // the skull
     b.sph(0.092 * jaw, 0, 0.148, 0.022, skin, 0.86, LITE ? 8 : 14, 1.0, 1.02);                                  // the jaw, and under it the chin
-    b.sph(0.034 * jaw, 0, 0.098, 0.082, skin, 0.8, 9, 1.25, 0.9);
-    for (const sx of [-1, 1]) b.sph(0.034, sx * 0.064, 0.172, 0.066, skin, 0.9, 8, 1, 0.8);          // the cheeks
     b.geo(new T.SphereGeometry(0.134, LITE ? 9 : 18, LITE ? 6 : 10, 0, PI * 2, 0, PI * 0.5).scale(0.98, 1.1, 1.03), 0, 0.212, -0.02, -0.62, 0, 0, hair); // the hair, set back off the face
     const gearH = sp.gear || [];
     for (const sx of [-1, 1]) {
-      b.sph(0.026, sx * 0.047, 0.214, 0.099, 0xf6f0e4, 0.82, 6);                                  // the white of the eye
-      if (!sp.blind) b.sph(0.0145, sx * 0.047, 0.213, 0.1195, 0x140c08, 1, 6);                    // (a blind king's eyes are shown without)
+      b.sph(0.026, sx * 0.047, 0.212, 0.098, 0xf6f0e4, 0.62, 9, 1.08, 0.86);                       // the white of the eye, long rather than round
+      if (!sp.blind) { b.sph(0.0135, sx * 0.047, 0.212, 0.1165, 0x3a2412, 1, 8); b.sph(0.0075, sx * 0.047, 0.212, 0.125, 0x0c0806, 1, 6); b.sph(0.0035, sx * 0.047 + 0.005, 0.2165, 0.1295, 0xffffff, 1, 4); } // iris, pupil, a point of light (a blind king's eyes are shown without)
+      b.geo(new T.SphereGeometry(0.027, 9, 5, 0, PI * 2, 0, PI * 0.42).scale(1.08, 0.66, 0.9), sx * 0.047, 0.2125, 0.098, 0.3, 0, 0, G.shade(skin, 0.86)); // the upper lid
+      b.geo(new T.SphereGeometry(0.027, 8, 4).scale(1.05, 0.1, 0.5), sx * 0.047, 0.226, 0.112, 0.2, 0, sx * -0.06, 0x1a100a); // the lash line
       b.geo(new T.SphereGeometry(0.03, 8, 5).scale(1, 0.24, 0.42), sx * 0.048, 0.249, 0.107, 0, 0, sx * -0.16, sp.stage === "elder" ? hair : DARK); // the brow
       b.geo(new T.SphereGeometry(0.03, 8, 6).scale(0.42, 1.2, 0.8), sx * 0.123, 0.198, 0.0, 0, sx * 0.25, 0, skin); // the ear
     }
     b.geo(new T.SphereGeometry(0.02, 8, 6).scale(0.8, 1.7, 1), 0, 0.186, 0.118, -0.32, 0, 0, G.shade(skin, 0.96)); b.sph(0.02, 0, 0.165, 0.127, G.shade(skin, 0.93), 0.8, 8, 1.15, 0.9); // the nose: its bridge and its tip
-    if (!sp.beard) { b.sph(0.03, 0, 0.128, 0.104, 0x8a3526, 0.2, 8, 1, 0.5); b.sph(0.026, 0, 0.121, 0.103, 0x7a2f22, 0.22, 8, 1, 0.5); }                            // the mouth
+    const fh = sp.beard === true ? "full" : sp.beard || sp.whiskers || (!she && (sp.stage === "adult" || sp.stage === "elder" || !sp.stage) ? "stache" : "clean");
+    if (fh !== "long") { b.sph(0.03, 0, 0.128, 0.113, 0x8a3526, 0.2, 8, 1, 0.5); b.sph(0.026, 0, 0.121, 0.112, 0x7a2f22, 0.22, 8, 1, 0.5); } // the mouth
     if (sp.eye) b.box(0.06, 0.04, 0.02, 0.046, 0.2, 0.118, 0x140c08);
     if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
     // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
@@ -251,11 +252,21 @@
     if (sp.hair === "braid") b.sph(0.07, 0, 0.2, -0.125, hair, 1, 8);
     if (false) {}
     else if (sp.hair === "up") { for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.geo(new T.ConeGeometry(0.035, 0.2, 4), Math.sin(a) * 0.06, 0.4, Math.cos(a) * 0.06 - 0.02, Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35, hair); } b.geo(new T.ConeGeometry(0.04, 0.24, 4), 0, 0.44, -0.02, 0, 0, 0, hair); }
-    const beardCol = hair;
-    if (sp.beard === "long") { b.geo(new T.ConeGeometry(0.1, 0.36, 7).rotateX(PI), 0, 0.0, 0.07, 0.12, 0, 0, 0xf0ece2); b.sph(0.1, 0, 0.13, 0.05, 0xf0ece2, 0.7, 7, 1, 0.9); }
-    else if (sp.beard === "forked") { for (const sx of [-1, 1]) b.geo(new T.ConeGeometry(0.045, 0.22, 5).rotateX(PI), sx * 0.04, 0.03, 0.09, 0.1, 0, sx * 0.14, beardCol); b.sph(0.09, 0, 0.13, 0.05, beardCol, 0.6, 7, 1, 0.9); }
-    else if (sp.beard) { b.sph(0.095, 0, 0.125, 0.045, beardCol, 0.72, 7, 1, 0.92); }
-    else if (!she && sp.stage !== "child" && sp.stage !== "youth") b.box(0.07, 0.014, 0.02, 0, 0.142, 0.118, hair); // a moustache
+    // Hair on the face, as the 2D game's portraits have each man: a moustache (thin, full or heavy and drooping), stubble
+    // dark along the jaw, a tuft on the chin, a short beard, a full one, a forked one, or an elder's to the chest.
+    const beardCol = hair, shade = new T.Color(skin).lerp(new T.Color(DARK), 0.42).getHex(), jawR = 0.092 * (she || sp.stage === "child" ? 0.86 : sp.big || sp.strong ? 1.08 : 1);
+    const under = (k, col, deep) => b.geo(new T.SphereGeometry(jawR * k, LITE ? 8 : 14, 7, 0, PI * 2, PI * (deep || 0.52), PI * (1 - (deep || 0.52))).scale(1.0, 0.86, 1.02), 0, 0.148, 0.022, 0, 0, 0, col); // a layer over the jaw, from about the mouth down
+    b.sph(0.034 * jaw, 0, 0.098, 0.082, /^(full|short|long|forked|goatee)$/.test(fh) ? (fh === "long" ? 0xf0ece2 : beardCol) : /^(stubble|heavy)$/.test(fh) ? shade : skin, 0.8, 9, 1.25, 0.9); // the chin
+    const stache = (k, col, droop) => { for (const sx of [-1, 1]) { b.geo(new T.SphereGeometry(0.026 * k, 8, 5).scale(1, 0.3, 0.5), sx * 0.021 * k, 0.1425, 0.1195, 0, sx * 0.25, sx * -(0.22 + droop * 0.3), col); if (droop) b.geo(new T.SphereGeometry(0.014 * k, 6, 4).scale(0.7, 1.5, 0.7), sx * 0.047 * k, 0.127, 0.108, 0, 0, sx * -0.3, col); } };
+    if (fh === "long") { under(1.09, 0xf0ece2, 0.53); b.geo(new T.ConeGeometry(0.072, 0.3, LITE ? 7 : 12).rotateX(PI).scale(1, 1, 0.72), 0, -0.07, 0.07, 0.1, 0, 0, 0xf0ece2); b.sph(0.066, 0, 0.085, 0.062, 0xf0ece2, 1.0, 9, 1.12, 0.85); stache(1.3, 0xf0ece2, 1); b.sph(0.03, 0, 0.128, 0.113, 0x8a3526, 0.18, 8, 0.8, 0.5); }
+    else if (fh === "forked") { under(1.08, beardCol); for (const sx of [-1, 1]) b.geo(new T.ConeGeometry(0.042, 0.2, 7).rotateX(PI), sx * 0.036, 0.02, 0.09, 0.12, 0, sx * 0.16, beardCol); stache(1.2, beardCol, 1); }
+    else if (fh === "full") { under(1.1, beardCol, 0.48); b.sph(0.062, 0, 0.088, 0.066, beardCol, 0.95, 9, 1.05, 0.85); stache(1.2, beardCol, 1); }
+    else if (fh === "short") { under(1.055, beardCol, 0.5); b.sph(0.04, 0, 0.094, 0.08, beardCol, 0.8, 8, 1.2, 0.85); stache(1.05, beardCol, 0); }
+    else if (fh === "goatee") { b.geo(new T.ConeGeometry(0.034, 0.1, 7).rotateX(PI), 0, 0.045, 0.092, 0.2, 0, 0, beardCol); b.sph(0.034, 0, 0.097, 0.086, beardCol, 0.8, 8, 1.1, 0.85); stache(1.1, beardCol, 1); }
+    else if (fh === "stubble") { under(1.025, shade, 0.5); stache(0.85, G.shade(shade, 0.7), 0); }
+    else if (fh === "heavy") { under(1.025, shade, 0.5); stache(1.4, beardCol, 1); }
+    else if (fh === "thin") stache(0.8, beardCol, 0);
+    else if (fh === "stache") stache(1.1, beardCol, LITE ? 0 : 1);
     if (she) { b.sph(0.085, 0, 0.19, -0.13, hair, 1, 9); b.sph(0.016, 0, 0.255, 0.122, 0xc0392b); for (const sx of [-1, 1]) b.sph(0.022, sx * 0.13, 0.155, 0.0, GOLD); }
     if (she && sp.stage === "elder") { b.geo(new T.SphereGeometry(0.152, 10, 6, 0, PI * 2, 0, PI * 0.56).scale(1, 1.06, 1.1), 0, 0.2, -0.025, -0.3, 0, 0, cloth); b.box(0.25, 0.34, 0.04, 0, -0.16, -0.15, cloth); b.box(0.25, 0.03, 0.045, 0, -0.17, -0.15, trim); }
     const hg = sp.headgear, top = 0.33;
@@ -615,13 +626,25 @@
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
       f.root.rotation.y += d * (1 - Math.exp(-(f.turnRate || 12) * dt));
       apply();
-      { // What hangs, swings: it lags a stride, trails when you run, and stays near plumb when the body leans.
-        const j = f.j, w = Math.sin(t * 2.3 + f.phase), w2 = Math.sin(t * 3.1 + f.phase * 1.7), run = Math.min(1.4, f.speed / 3), st = Math.sin(f.phase), ks = 1 - Math.exp(-9 * dt), lean = j.T.rotation.x + j.P.rotation.x;
-        const to = (b, x, z) => { b.rotation.x += (x - b.rotation.x) * ks; b.rotation.z += (z - b.rotation.z) * ks; };
-        to(j.sB, -lean * 0.8 + run * 0.34 + w * 0.03 * (1 + run * 2), -j.T.rotation.z * 0.7 + w2 * 0.02 + st * run * 0.08);
-        to(j.sF, Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.82 - j.P.rotation.x * 0.6 + w * 0.02, w2 * 0.015 + st * run * 0.05);
-        to(j.sS, -j.P.rotation.x * 0.7 + run * 0.22 + w2 * 0.04 * (1 + run), w * 0.03 - st * run * 0.1);
-        to(j.sH, -(lean + j.H.rotation.x) * 0.7 + run * 0.26 + w * 0.02 * (1 + run), -j.H.rotation.z * 0.6 + w2 * 0.015);
+      { // What hangs, swings, as a weighted cloth does: it is driven by how the body really moved this frame (not by a
+        // clock), trails behind a run, is flung out by a turn, swings on past and settles, stays plumb when the body leans,
+        // and never passes through what it hangs against (a back cloth cannot swing into the back, nor pleats into the legs).
+        const j = f.j, sw = f.sway || (f.sway = { x: f.root.position.x, z: f.root.position.z, a: f.root.rotation.y, vf: 0, b: {} }), h = Math.min(dt, 1 / 30);
+        let vx = (f.root.position.x - sw.x) / Math.max(dt, 1e-3), vz = (f.root.position.z - sw.z) / Math.max(dt, 1e-3), yaw = f.root.rotation.y - sw.a; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw)) / Math.max(dt, 1e-3);
+        const sp2 = Math.hypot(vx, vz); if (sp2 > 9) { vx *= 9 / sp2; vz *= 9 / sp2; } // (being set down somewhere else is not a gust)
+        sw.x = f.root.position.x; sw.z = f.root.position.z; sw.a = f.root.rotation.y; yaw = Math.max(-6, Math.min(6, yaw));
+        const ca = Math.cos(f.root.rotation.y), sa = Math.sin(f.root.rotation.y), vf = vx * sa + vz * ca, vs = vx * ca - vz * sa, kick = Math.max(-4, Math.min(4, vf - sw.vf)); sw.vf = vf;
+        const lean = j.T.rotation.x + j.P.rotation.x, roll = j.T.rotation.z + j.P.rotation.z, air = Math.sin(t * 1.3 + f.phase) * 0.012;
+        const swing = (name, tx, tz, lo, hi, side, om, zeta, kx) => { const b = j[name], st = sw.b[name] || (sw.b[name] = { vx: 0, vz: 0 });
+          st.vx += kx * kick; st.vx += ((tx - b.rotation.x) * om * om - 2 * zeta * om * st.vx) * h; st.vz += ((tz - b.rotation.z) * om * om - 2 * zeta * om * st.vz) * h;
+          b.rotation.x += st.vx * h; b.rotation.z += st.vz * h;
+          if (b.rotation.x < lo) { b.rotation.x = lo; if (st.vx < 0) st.vx = 0; } else if (b.rotation.x > hi) { b.rotation.x = hi; if (st.vx > 0) st.vx = 0; }
+          if (b.rotation.z < -side) { b.rotation.z = -side; st.vz = 0; } else if (b.rotation.z > side) { b.rotation.z = side; st.vz = 0; } };
+        const trail = Math.max(-0.2, Math.min(0.62, vf * 0.1)), fling = Math.max(-0.3, Math.min(0.3, -vs * 0.07 + yaw * 0.045));
+        swing("sB", -lean * 0.9 + trail + air, -roll * 0.8 + fling, -0.03, 0.9, 0.34, 8.5, 0.5, 0.05);                                       // the upper cloth's end, down the back
+        swing("sF", Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.85 - j.P.rotation.x * 0.8 + Math.min(0, trail * -0.2), -j.P.rotation.z * 0.6 + fling * 0.5, -1.05, 0.05, 0.22, 11, 0.62, 0); // the pleats: the forward thigh carries them
+        swing("sS", -j.P.rotation.x * 0.9 + trail * 0.8 + air, -j.P.rotation.z * 0.8 + fling * 1.2, -0.45, 0.7, 0.4, 7.5, 0.42, 0.06);         // the sash's ends
+        swing("sH", -(lean + j.H.rotation.x) * 0.9 + trail * 0.75, -(roll + j.H.rotation.z) * 0.8 + fling * 0.8, -0.02, 0.75, 0.3, 10, 0.55, 0.04); // hair
       }
       if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
     };
