@@ -10,7 +10,7 @@
   const T = window.THREE, G = K.G3;
   if (!T) return;
   const V3 = T.Vector3, PI = Math.PI, D = PI / 180, B = () => new G.Builder();
-  const GOLD = 0xd9a53a, STEEL = 0xc9ccd2, WOOD = 0x6a4628, DARK = 0x1c120c;
+  const CREAM = 0xeee3c6, GOLD = 0xd9a53a, STEEL = 0xc9ccd2, WOOD = 0x6a4628, DARK = 0x1c120c;
 
   // ---------- Weapons and things held (grip at the origin, the weapon running out along +Z) ----------
   function held(kind, col) {
@@ -244,6 +244,7 @@
     if (sp.eye) b.box(0.06, 0.04, 0.02, 0.046, 0.2, 0.118, 0x140c08);
     if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
     // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
+    if (!sp.hair && !she && sp.stage !== "child") { b.geo(new T.BoxGeometry(0.2, 0.2, 0.05), 0, 0.1, -0.116, 0.1, 0, 0, hair); for (const sx of [-1, 1]) b.sph(0.045, sx * 0.1, 0.11, -0.08, hair, 1.3, 5); if (!/^(turban|helmet)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * 0.134, 0.15, 0.004, GOLD, 1, 5); }
     if (sp.hair === "long") b.geo(new T.BoxGeometry(0.21, 0.27, 0.05), 0, 0.07, -0.118, 0.14, 0, 0, hair);
     else if (sp.hair === "braid") { b.sph(0.07, 0, 0.2, -0.125, hair, 1, 6); b.rod(0, 0.14, -0.13, 0, -0.42, -0.17, 0.04, hair, 5, 0.022); b.sph(0.03, 0, -0.44, -0.17, 0xb2432a, 1, 5); }
     else if (sp.hair === "matted") { for (const sx of [-1, 0, 1]) b.rod(sx * 0.07, 0.2, -0.11, sx * 0.09, -0.08, -0.15, 0.032, hair, 5, 0.018); }
@@ -255,10 +256,9 @@
     else if (!she && sp.stage !== "child" && sp.stage !== "youth") b.box(0.07, 0.014, 0.02, 0, 0.142, 0.118, hair); // a moustache
     if (she) { b.sph(0.085, 0, 0.19, -0.13, hair, 1, 7); b.rod(0, 0.12, -0.13, 0, -0.34, -0.15, 0.04, hair, 5, 0.02); b.sph(0.016, 0, 0.255, 0.122, 0xc0392b); for (const sx of [-1, 1]) b.sph(0.022, sx * 0.13, 0.155, 0.0, GOLD); }
     if (she && sp.stage === "elder") { b.geo(new T.SphereGeometry(0.152, 10, 6, 0, PI * 2, 0, PI * 0.56).scale(1, 1.06, 1.1), 0, 0.2, -0.025, -0.3, 0, 0, cloth); b.box(0.25, 0.34, 0.04, 0, -0.16, -0.15, cloth); b.box(0.25, 0.03, 0.045, 0, -0.17, -0.15, trim); }
-    if (!she && /^(crown|kirita|mukuta)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.024, sx * 0.133, 0.155, 0.004, GOLD);
     const hg = sp.headgear, top = 0.33;
     if (hg === "crown" || hg === "kirita" || hg === "mukuta") {
-      const cr = sp.crown || {}, tall = (hg === "mukuta" ? 0.55 : 1) * (cr.tall || 1), gcol = cr.white ? 0xe8e8ee : GOLD, r = cr.broad ? 0.135 : 0.118;
+      const cr = sp.crown || {}, tall = (hg === "mukuta" ? 0.5 : 0.62) * (cr.tall || 1), gcol = cr.white ? 0xe8e8ee : GOLD, r = cr.broad ? 0.135 : 0.118;
       b.cyl(r * 1.02, r, 0.05, 0, 0.27, 0, cr.trim || trim, 10); b.cyl(r * 0.72, r, 0.2 * tall, 0, 0.31, 0, gcol, 10, 0, 0, 0, G.shade(gcol, 1.25));
       b.cone(r * 0.5, 0.12 * tall, 0, 0.31 + 0.2 * tall, 0, gcol, 8); b.sph(0.025, 0, 0.31 + 0.32 * tall, 0, Array.isArray(cr.gem) ? cr.gem[0] : cr.gem || 0xb2432a);
       const gems = Array.isArray(cr.gem) ? cr.gem : [cr.gem || 0xb2432a];
@@ -280,15 +280,16 @@
     if ((sp.gear || []).includes("browgem")) b.sph(0.022, 0, 0.262, 0.118, 0x9ad0ff);
     return b.mesh();
   }
-  function torsoMesh(sp, skin, cloth, trim, she, wide) {
+  function torsoMesh(sp, skin, cloth, trim, she, wide, accent) { // (cloth may be swapped for the host's colour below)
     const b = B(); b.ao = 0.86;
     const gear = sp.gear || [], armour = sp.armour || gear.includes("cuirass") || gear.includes("scale");
     const top = she || sp.stage === "child" && sp.pronoun === "she" ? cloth : skin;
-    const chest = armour ? (sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0x8a6a3a) : top;
+    const chest = armour ? (sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0xae8440) : top;
     b.geo(new T.CylinderGeometry(0.2 * wide, 0.165 * wide, 0.3, 10, 1).translate(0, 0.15, 0).scale(1, 1, 0.62), 0, 0.0, 0, 0, 0, 0, she ? skin : top);
     b.geo(new T.CylinderGeometry(0.235 * wide, 0.2 * wide, 0.28, 10, 1).translate(0, 0.14, 0).scale(1, 1, 0.66), 0, 0.27, 0, 0, 0, 0, chest, armour ? G.shade(chest, 1.25) : null);
     for (const sx of [-1, 1]) b.geo(new T.SphereGeometry(0.1, 7, 5).scale(1, 0.7, 1), sx * 0.25 * wide, 0.5, 0, 0, 0, 0, armour ? chest : skin);
     if (sp.armour) b.sph(0.07, 0, 0.42, 0.14, 0xfff0a0, 1, 8); // the sun on Karna's breastplate
+    else if (armour && !gear.includes("scale")) { b.geo(new T.CylinderGeometry(0.075, 0.075, 0.02, 12).rotateX(PI / 2), 0, 0.41, 0.156, 0, 0, 0, GOLD); b.sph(0.03, 0, 0.41, 0.165, 0xf4d67a, 1, 6); } // a boss on the breastplate
     if (armour) { // shoulder pieces, and the plates or scales in rows
       for (const sx of [-1, 1]) b.geo(new T.SphereGeometry(0.115, 7, 4, 0, PI * 2, 0, PI / 2).scale(1.1, 0.6, 1.05), sx * 0.26 * wide, 0.5, 0, 0, 0, sx * -0.3, G.shade(chest, 1.18));
       const rows = gear.includes("scale") ? 4 : 2; for (let i = 0; i < rows; i++) b.geo(new T.CylinderGeometry(0.238 * wide - i * 0.008, 0.236 * wide - i * 0.008, 0.012, 10, 1).scale(1, 1, 0.67), 0, 0.5 - (i + 0.5) * (0.24 / rows), 0, 0, 0, 0, G.shade(chest, 0.72));
@@ -299,16 +300,23 @@
       b.geo(new T.BoxGeometry(0.2, 0.68, 0.03), 0.045, 0.27, 0.148, 0, 0, 0.62, 0x9a6a3a); b.geo(new T.BoxGeometry(0.2, 0.68, 0.03), 0.045, 0.27, -0.148, 0, 0, -0.62, 0x8a5c30);
       for (const [dx, dy] of [[0.08, 0.4], [0.0, 0.3], [-0.07, 0.18], [0.05, 0.22]]) b.sph(0.02, dx, dy, 0.166, 0xe8dcc0, 0.4, 5);
     }
-    if (gear.includes("bands") && !armour) { for (const sgn of [1, -1]) { b.geo(new T.BoxGeometry(0.06, 0.62, 0.02), 0, 0.3, 0.15, 0, 0, sgn * 0.7, cloth); b.geo(new T.BoxGeometry(0.06, 0.62, 0.02), 0, 0.3, -0.15, 0, 0, -sgn * 0.7, cloth); } b.geo(new T.CylinderGeometry(0.2 * wide, 0.19 * wide, 0.06, 10, 1).scale(1, 1, 0.66), 0, 0.16, 0, 0, 0, 0, cloth); } // cloth bands crossed on the chest and bound at the waist
-    if (!armour && !she && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare")) { // the upper cloth, across from the left shoulder
-      b.geo(new T.BoxGeometry(0.11, 0.66, 0.03), 0.02, 0.27, 0.142, 0, 0, 0.66, cloth); b.geo(new T.BoxGeometry(0.11, 0.66, 0.03), 0.02, 0.27, -0.142, 0, 0, -0.66, cloth);
-      b.box(0.11, 0.03, 0.34, 0.2 * wide, 0.53, 0, cloth); b.geo(new T.BoxGeometry(0.12, 0.36, 0.028).translate(0, -0.18, 0), 0.2 * wide, 0.53, -0.165, -0.1, 0, 0.05, G.shade(cloth, 0.92)); b.box(0.12, 0.028, 0.03, 0.2 * wide, 0.18, -0.2, trim);
+    if (gear.includes("bands") && !armour) { for (const sgn of [1, -1]) { b.geo(new T.BoxGeometry(0.07, 0.62, 0.02), 0, 0.3, 0.15, 0, 0, sgn * 0.7, accent); b.geo(new T.BoxGeometry(0.07, 0.62, 0.02), 0, 0.3, -0.15, 0, 0, -sgn * 0.7, accent); } b.geo(new T.CylinderGeometry(0.2 * wide, 0.19 * wide, 0.06, 10, 1).scale(1, 1, 0.66), 0, 0.16, 0, 0, 0, 0, accent); } // cloth bands crossed on the chest and bound at the waist
+    if (!armour && !she && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare")) { // the upper cloth
+      if (gear.includes("thread")) { // a teacher's: folded and laid over the left shoulder, the chest bare
+        b.geo(new T.BoxGeometry(0.15, 0.5, 0.03).translate(0, -0.25, 0), 0.19 * wide, 0.55, 0.13, 0.08, 0, 0.03, cloth); b.geo(new T.BoxGeometry(0.15, 0.03, 0.032), 0.19 * wide, 0.06, 0.168, 0, 0, 0, accent);
+      } else { const cloth0 = cloth; if (/^(turban|helmet)$/.test(sp.headgear || "")) cloth = accent; // (a soldier's is his host's colour)
+        // everyone else's: broad across the chest from the left shoulder to the right hip, its border in the wearer's colour
+        for (const fz of [1, -1]) { b.geo(new T.BoxGeometry(0.25, 0.7, 0.03), 0.015, 0.27, fz * 0.146, 0, 0, fz * 0.62, cloth); b.geo(new T.BoxGeometry(0.045, 0.7, 0.034), 0.015 - 0.1 * Math.cos(0.62), 0.27 - fz * 0.1 * Math.sin(0.62) - 0.06, fz * 0.148, 0, 0, fz * 0.62, cloth === accent ? GOLD : accent); }
+      }
+      b.box(0.15, 0.035, 0.34, 0.2 * wide, 0.53, 0, cloth); b.geo(new T.BoxGeometry(0.16, 0.4, 0.028).translate(0, -0.2, 0), 0.2 * wide, 0.54, -0.165, -0.1, 0, 0.05, G.shade(cloth, 0.93)); b.box(0.16, 0.035, 0.03, 0.2 * wide, 0.13, -0.205, accent);
+      if (sp.stage === "elder" || /^(crown|kirita|mukuta)$/.test(sp.headgear || "")) b.sph(0.032, 0.18 * wide, 0.53, 0.13, GOLD, 1, 6); // pinned with a gold brooch
     }
-    if (she) { b.geo(new T.CylinderGeometry(0.238 * wide, 0.225 * wide, 0.035, 10, 1).scale(1, 1, 0.67), 0, 0.34, 0, 0, 0, 0, trim); b.geo(new T.BoxGeometry(0.15, 0.7, 0.03), 0.03, 0.26, 0.152, 0, 0, 0.62, G.shade(cloth, 1.12)); b.geo(new T.BoxGeometry(0.16, 0.56, 0.03).translate(0, -0.28, 0), 0.19 * wide, 0.54, -0.16, -0.08, 0, 0.04, G.shade(cloth, 1.12)); b.box(0.16, 0.03, 0.032, 0.19 * wide, -0.02, -0.21, trim); } // the breast-band, and her upper cloth over the left shoulder, its end down her back
+    if (she) { b.geo(new T.CylinderGeometry(0.238 * wide, 0.225 * wide, 0.035, 10, 1).scale(1, 1, 0.67), 0, 0.34, 0, 0, 0, 0, trim); b.geo(new T.BoxGeometry(0.2, 0.7, 0.03), 0.03, 0.26, 0.152, 0, 0, 0.62, accent); b.geo(new T.BoxGeometry(0.03, 0.7, 0.034), 0.03 - 0.085 * Math.cos(0.62), 0.2 - 0.085 * Math.sin(0.62), 0.154, 0, 0, 0.62, GOLD); b.box(0.2, 0.035, 0.34, 0.19 * wide, 0.53, 0, accent); b.geo(new T.BoxGeometry(0.2, 0.6, 0.03).translate(0, -0.3, 0), 0.19 * wide, 0.54, -0.16, -0.08, 0, 0.04, accent); b.box(0.2, 0.035, 0.032, 0.19 * wide, -0.07, -0.215, GOLD); } // the breast-band, and her upper cloth over the left shoulder, its end down her back
     if (!she || true) b.torus(0.105, 0.012, 0, 0.5, 0.045, trim, PI / 2.3, 0, 0, 12); // a necklace
     if (gear.includes("quivers") || sp.item === "bow") { b.geo(new T.CylinderGeometry(0.055, 0.045, 0.5, 6), -0.1, 0.36, -0.2, 0.25, 0, 0.25, 0x6a4628); for (let i = 0; i < 3; i++) b.box(0.012, 0.1, 0.05, -0.17 + i * 0.03, 0.6, -0.24, 0xc8402c); }
     if (gear.includes("waterpot")) b.sph(0.07, 0.2, 0.02, 0.08, 0xb5793a);
-    b.geo(new T.CylinderGeometry(0.175 * wide, 0.19 * wide, 0.1, 10, 1).scale(1, 1, 0.68), 0, 0.02, 0, 0, 0, 0, trim); // the waist band
+    b.geo(new T.CylinderGeometry(0.2 * wide, 0.222 * wide, 0.14, 10, 1).scale(1, 1, 0.76), 0, -0.03, 0, 0, 0, 0, accent, G.shade(accent, 1.15)); // the sash, broad at the waist
+    if (sp.stage !== "child") { b.geo(new T.CylinderGeometry(0.055, 0.055, 0.022, 12).rotateX(PI / 2), 0, 0.04, 0.162 * wide + 0.004, 0, 0, 0, GOLD); b.sph(0.022, 0, 0.04, 0.162 * wide + 0.018, 0xf4d67a, 1, 5); } // and its round clasp
     return b.mesh();
   }
   function limb(len, r0, r1, col, col2, extra) {
@@ -325,16 +333,19 @@
     const sp = Object.assign({ stage: "adult", pronoun: "he", palette: ["#c27a44", "#8a3a2a", "#e2b55a"] }, spec || {}); opt = opt || {};
     const [sc, headK] = STAGE[sp.stage] || STAGE.adult, she = sp.pronoun === "she";
     const size = sc * (sp.size || 1) * (sp.big ? 1.04 : 1), wide = (sp.big ? 1.2 : 1) * (she ? 0.88 : 1) * (sp.stage === "child" ? 0.92 : 1);
-    const skin = new T.Color(sp.palette[0]).getHex(), cloth = new T.Color(sp.palette[1]).getHex(), trim = new T.Color(sp.palette[2]).getHex();
+    const skin = new T.Color(sp.palette[0]).getHex(), accent = new T.Color(sp.palette[1]).getHex(), trim = new T.Color(sp.palette[2]).getHex();
+    // As the 2D game's paintings have it: cream handwoven cotton, bordered and sashed in the wearer's own colour, with gold. A
+    // few wear dyed cloth because the text says so (Krishna's yellow silk, Balarama's blue, Ekalavya's black) or as kings do.
+    const cloth = sp.dyed ? accent : CREAM;
     const hair = sp.hairCol ? new T.Color(sp.hairCol).getHex() : sp.stage === "elder" ? (sp.beard === "long" || sp.white || (sp.crown && sp.crown.white) ? 0xf0ece2 : HAIR.elder) : DARK;
     const f = { spec: sp, size, root: new T.Group(), j: {}, cur: blank(), tgt: blank(), base: "stand", speed: 0, phase: Math.random() * 6, fall: 0, fallTo: 0, fallDir: 1, action: null, talk: false, look: null, alive: true, rate: 10, spin: 0 };
     const body = new T.Group(); body.scale.setScalar(size); f.root.add(body); f.body = body;
     const tilt = new T.Group(); body.add(tilt); f.tilt = tilt; // falls and rolls turn here, about the feet
     const hips = new T.Group(); hips.position.y = 0.92; tilt.add(hips); f.j.P = hips;
     const torso = new T.Group(); hips.add(torso); f.j.T = torso;
-    torso.add(torsoMesh(sp, skin, cloth, trim, she, wide));
+    torso.add(torsoMesh(sp, skin, cloth, trim, she, wide, accent));
     const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK); torso.add(head); f.j.H = head;
-    head.add(headMesh(sp, skin, hair, cloth, trim, she));
+    head.add(headMesh(sp, skin, hair, accent, trim, she));
     // Dress. Nothing here is cut or sewn: the epic's people wear lengths of cloth. The lower cloth (antariya) is wound
     // round the hips, its pleats gathered in front; fighting men and working men draw it up between the legs to the
     // knee, kings, elders and brahmins let it fall to the calf, and women wear it to the ankle under a girdle. The chest
@@ -347,14 +358,14 @@
       const sh = new T.Group(); sh.position.set(sx * 0.255 * wide, 0.49, 0); torso.add(sh); f.j["a" + s] = sh;
       sh.add(limb(0.29, 0.07, 0.056, skin, null, (b) => { if (sp.stage !== "child") { b.cyl(0.064, 0.066, 0.034, 0, -0.15, 0, rich ? GOLD : trim, 8); if (rich) b.sph(0.024, 0, -0.13, 0.058, trim, 1, 5); } })); // the armlet (keyura)
       const el = new T.Group(); el.position.y = -0.29; sh.add(el); f.j["e" + s] = el;
-      el.add(limb(0.26, 0.056, 0.044, skin, null, (b) => { b.sph(0.054, 0, -0.3, 0, skin, 1.1, 6); if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(0.058, 0.05, 0.14, 0, -0.22, 0, trim, 7); else if (gear.includes("bangles")) { for (let i = 0; i < 3; i++) b.cyl(0.052, 0.052, 0.022, 0, -0.27 + i * 0.032, 0, i === 1 ? GOLD : 0xf6f0e4, 8); } else if (she) { for (let i = 0; i < 2; i++) b.cyl(0.05, 0.05, 0.02, 0, -0.262 + i * 0.03, 0, GOLD, 8); } else b.cyl(0.049, 0.049, 0.025, 0, -0.25, 0, rich ? GOLD : trim, 7); }));
+      el.add(limb(0.26, 0.056, 0.044, skin, null, (b) => { b.sph(0.054, 0, -0.3, 0, skin, 1.1, 6); if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(0.058, 0.05, 0.14, 0, -0.22, 0, trim, 7); else if (gear.includes("bangles")) { for (let i = 0; i < 3; i++) b.cyl(0.052, 0.052, 0.022, 0, -0.27 + i * 0.032, 0, i === 1 ? GOLD : 0xf6f0e4, 8); } else if (she) { for (let i = 0; i < 2; i++) b.cyl(0.05, 0.05, 0.02, 0, -0.262 + i * 0.03, 0, GOLD, 8); } else if (rich) b.cyl(0.054, 0.049, 0.09, 0, -0.27, 0, GOLD, 8); else b.cyl(0.049, 0.049, 0.025, 0, -0.25, 0, trim, 7); }));
       const ha = new T.Group(); ha.position.y = -0.3; el.add(ha); f.j["w" + s] = ha;
       const hip = new T.Group(); hip.position.set(sx * 0.1 * wide, 0, 0); hips.add(hip); f.j["l" + s] = hip;
-      hip.add(limb(0.45, hipR, garb === "wrap" ? hipR * 1.05 : garb === "long" ? 0.1 : 0.096, cloth, dim, (b) => { if (garb === "short") b.cyl(0.101, 0.101, 0.03, 0, -0.455, 0, trim, 8); })); // the cloth round the thigh; drawn up, its border sits at the knee
+      hip.add(limb(0.45, hipR, garb === "wrap" ? hipR * 1.05 : garb === "long" ? 0.1 : 0.096, cloth, dim, (b) => { if (garb === "short") { b.cyl(0.101, 0.101, 0.04, 0, -0.455, 0, accent, 8); b.cyl(0.102, 0.102, 0.01, 0, -0.418, 0, GOLD, 8); } })); // the cloth round the thigh; drawn up, its border sits at the knee
       const kn = new T.Group(); kn.position.y = -0.45; hip.add(kn); f.j["k" + s] = kn;
       kn.add(limb(0.42, 0.068, 0.047, skin, null, (b) => {
-        if (garb === "long") { b.cyl(0.097, 0.088, 0.25, 0, -0.25, 0, dim, 8, 0, 0, 0, cloth); b.cyl(0.091, 0.091, 0.028, 0, -0.262, 0, trim, 8); }
-        else if (garb === "wrap") { b.cyl(hipR * 1.05, hipR * 1.02, 0.38, 0, -0.38, 0, dim, 9, 0, 0, 0, cloth); b.cyl(hipR * 1.04, hipR * 1.04, 0.045, 0, -0.39, 0, trim, 9); }
+        if (garb === "long") { b.cyl(0.097, 0.088, 0.25, 0, -0.25, 0, dim, 8, 0, 0, 0, cloth); b.cyl(0.091, 0.091, 0.04, 0, -0.265, 0, accent, 8); b.cyl(0.092, 0.092, 0.01, 0, -0.228, 0, GOLD, 8); }
+        else if (garb === "wrap") { b.cyl(hipR * 1.05, hipR * 1.02, 0.38, 0, -0.38, 0, dim, 9, 0, 0, 0, cloth); b.cyl(hipR * 1.04, hipR * 1.04, 0.055, 0, -0.39, 0, accent, 9); b.cyl(hipR * 1.045, hipR * 1.045, 0.012, 0, -0.338, 0, GOLD, 9); }
         if (rich) b.cyl(0.053, 0.053, 0.02, 0, -0.41, 0, GOLD, 7); // an anklet
         b.box(0.085, 0.055, 0.22, 0, -0.47, 0.05, G.shade(skin, 0.92)); // feet are bare
       }));
@@ -363,10 +374,10 @@
       b.geo(new T.CylinderGeometry(0.19 * wide, 0.215 * wide * (she ? 1.07 : 1), 0.22, 10, 1).scale(1, 1, 0.74), 0, -0.07, 0, 0, 0, 0, cloth);
       const fall = garb === "short" ? 0.4 : garb === "long" ? 0.68 : 0.78; // the pleats, gathered at the front and falling between the legs
       for (const k of [-1, 0, 1]) b.geo(new T.BoxGeometry(0.05, fall, 0.026).translate(0, -fall / 2, 0), k * 0.036, 0.02, 0.128 + (k ? 0 : 0.014), 0.05, 0, k * 0.075, k ? G.shade(cloth, 1.04) : fold);
-      b.geo(new T.BoxGeometry(0.17 + fall * 0.14, 0.03, 0.03), 0, 0.02 - fall, 0.134 + fall * 0.05, 0.05, 0, 0, trim);
+      b.geo(new T.BoxGeometry(0.17 + fall * 0.14, 0.04, 0.03), 0, 0.02 - fall, 0.134 + fall * 0.05, 0.05, 0, 0, accent);
       if (garb === "short") b.box(0.09, 0.12, 0.03, 0, -0.1, -0.15, fold); // and the end tucked in behind
       if (she) { b.geo(new T.TorusGeometry(0.2 * wide, 0.016, 5, 14).rotateX(PI / 2).scale(1, 1, 0.76), 0, -0.03, 0, 0, 0, 0, GOLD); for (let i = -2; i <= 2; i++) b.sph(0.02, i * 0.05, -0.05 - (2 - Math.abs(i)) * 0.012, 0.155 * wide + 0.02, i % 2 ? trim : GOLD, 1, 5); } // her girdle (mekhala)
-      else if (sp.stage !== "child") { b.sph(0.045, 0.17 * wide, 0.0, 0.085, trim, 1, 6); for (const k of [0, 1]) b.geo(new T.BoxGeometry(0.045, 0.3 - k * 0.07, 0.02).translate(0, -(0.3 - k * 0.07) / 2, 0), 0.165 * wide + k * 0.03, -0.01, 0.1 - k * 0.02, 0.06, 0, -0.12 - k * 0.2, k ? G.shade(trim, 0.86) : trim); } // the sash knotted at the hip, its ends hanging
+      else if (sp.stage !== "child") { b.sph(0.045, 0.17 * wide, 0.0, 0.085, accent, 1, 6); for (const k of [0, 1]) b.geo(new T.BoxGeometry(0.045, 0.3 - k * 0.07, 0.02).translate(0, -(0.3 - k * 0.07) / 2, 0), 0.165 * wide + k * 0.03, -0.01, 0.1 - k * 0.02, 0.06, 0, -0.12 - k * 0.2, k ? G.shade(accent, 0.86) : accent); } // the sash knotted at the hip, its ends hanging
       if (gear.includes("sash")) b.box(0.08, 0.5, 0.03, 0.12, -0.6, 0.14, trim);
       hips.add(b.mesh()); }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
@@ -535,7 +546,7 @@
   const EXTRAS = {
     // (Draupadi: "her complexion was dark, and her locks were blue and curly"; Gandhari bandaged her own eyes; the king is blind.)
     draupadi: { pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
-    sairindhri: { pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
+    sairindhri: { dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
     kunti: { pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
     gandhari: { pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
     dhritarashtra: { pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },

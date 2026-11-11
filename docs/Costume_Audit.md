@@ -50,6 +50,19 @@ first build gave everyone trouser-like legs, and the women sleeves):
 - **Ornaments** in place of sleeves and shoes: armlets, bracelets or bangles, ear-rings for the crowned, anklets for
   the wealthy. Feet are bare.
 
+**The look is taken from the 2D game's own paintings** (`art/p_*.webp`), so the 3D figures and the portraits agree:
+
+- Cloth is cream handwoven cotton. Each person's own colour is the border of the cloth and the broad sash at the waist,
+  which is clasped with a round gold boss, as in the portraits of Arjuna, Bhima and Bhishma.
+- The upper cloth is broad, worn across the chest from the left shoulder; a teacher's is folded over the shoulder with
+  the chest bare (Drona); an elder's or a king's is pinned with a gold brooch (Bhishma).
+- Men's hair falls to the shoulders, with gold ear-rings; armlets and broad gold cuffs for the wealthy.
+- Armour is bronze with a boss on the breast (Karna, Dhrishtadyumna). Crowns are rounded gold diadems, not tall cones.
+- Dyed cloth is kept for those the text or the paintings give it to: Krishna's yellow silk, Balarama's blue,
+  Ekalavya's black, Duryodhana's maroon, Draupadi's black cloth in hiding, bark-brown in exile.
+- Soldiers wear the cream lower cloth with their host's colour in the turban, the upper cloth or crossed bands, and
+  the sash, so the two hosts can still be told apart.
+
 This follows the text's own words for dress (cloth, upper garment, ear-rings, armlets, garlands, girdle) and the general
 account of early Indian dress in the history cited below; no single passage describes the drape, so the cut of it is
 the game's reading.

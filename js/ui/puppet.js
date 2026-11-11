@@ -59,13 +59,13 @@
     arjuna: { pronoun: "he", palette: ["#7a4a2a", "#f2ead2", "#3b6fb0"], headgear: "crown", crown: { gem: "#f2c14a", tall: 1.05, trim: "#e2b55a" }, item: "bow", gear: ["gandiva", "quivers"], stance: "hero", size: 1.12, peer: true },
     bhima: { pronoun: "he", palette: ["#a8622f", "#6f3a24", "#e2b55a"], headgear: "crown", crown: { gem: "#b2432a", broad: true, trim: "#6f3a24" }, item: "mace", studs: ["#d9a53a"], stance: "broad", big: true, size: 1.25, peer: true },
     karna: { pronoun: "he", palette: ["#c9813f", "#d8a536", "#f3d27a"], headgear: "crown", crown: { gem: "#b2432a", tall: 1, trim: "#b2432a" }, item: "bow", armour: true, gear: ["earrings"], stance: "hero", size: 1.12, peer: true },
-    duryodhana: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], headgear: "crown", crown: { gem: ["#2f7d55", "#b2432a", "#2d5aa0", "#b2432a"], tall: 1.15, trim: "#7a1f2a" }, item: "mace", studs: ["#b2432a", "#2d5aa0", "#2f7d55", "#2d5aa0", "#b2432a"], stance: "haughty", size: 1.15, peer: true },
+    duryodhana: { dyed: true, pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], headgear: "crown", crown: { gem: ["#2f7d55", "#b2432a", "#2d5aa0", "#b2432a"], tall: 1.15, trim: "#7a1f2a" }, item: "mace", studs: ["#b2432a", "#2d5aa0", "#2f7d55", "#2d5aa0", "#b2432a"], stance: "haughty", size: 1.15, peer: true },
     dushasana: { pronoun: "he", palette: ["#b0683a", "#5e2430", "#c9a24e"], headgear: "mukuta", item: "mace", peer: true },
     // Drona, a brahmin, keeps his matted knot: a grey forked beard and a water-pot at his hip.
     // (The epic at the tournament: "dressed in white, with a white sacred thread, white locks, white beard, white garlands".)
     drona: { pronoun: "he", headgear: "jata", palette: ["#c9905a", "#f4efe2", "#c9a24e"], beard: "forked", white: true, hair: "matted", stage: "elder", item: "bow", gear: ["waterpot", "thread", "garland"], stance: "sage", size: 1.12 },
     kripa: { pronoun: "he", headgear: "jata", palette: ["#c48a55", "#e7dcc0", "#b49054"], beard: true, stage: "elder", item: "bow", gear: ["thread"] },
-    balarama: { pronoun: "he", palette: ["#e9d9b8", "#2c4c86", "#e2b55a"], headgear: "kirita", item: "mace", big: true, stage: "adult" }, // the master of the mace, who teaches it to Bhima and Duryodhana
+    balarama: { dyed: true, pronoun: "he", palette: ["#e9d9b8", "#2c4c86", "#e2b55a"], headgear: "kirita", item: "mace", big: true, stage: "adult" }, // the master of the mace, who teaches it to Bhima and Duryodhana
     mauni: { pronoun: "he", headgear: "jata", palette: ["#b88352", "#c7a46c", "#8a6a3a"], beard: true, stage: "elder", item: "staff" },
     vidura: { pronoun: "he", headgear: "jata", palette: ["#c08a56", "#f0e8d6", "#9b8a6a"], beard: true, stage: "elder", item: "scroll" },
     // The sutradhara, who holds the strings of the story and opens each act.
@@ -91,11 +91,11 @@
     nakula: { pronoun: "he", palette: ["#c27a44", "#3f6b3a", "#e2b55a"], headgear: "mukuta", item: "sword", stance: "hero", peer: true },
     sahadeva: { pronoun: "he", palette: ["#b8743f", "#4b5a73", "#e2b55a"], headgear: "mukuta", item: "sword", stance: "hero", peer: true },
     // (The epic's Krishna is "dark as the lapis lazuli", "robed in yellow silk", and wears a diadem; the peacock feather is later art.)
-    krishna: { pronoun: "he", palette: ["#33416f", "#e6b22c", "#e2b55a"], headgear: "crown", crown: { gem: "#b2432a", tall: 0.9, trim: "#e2b55a" }, stance: "hero", size: 1.12, stage: "adult" },
+    krishna: { dyed: true, pronoun: "he", palette: ["#33416f", "#e6b22c", "#e2b55a"], headgear: "crown", crown: { gem: "#b2432a", tall: 0.9, trim: "#e2b55a" }, stance: "hero", size: 1.12, stage: "adult" },
     drupada: { pronoun: "he", palette: ["#c08a56", "#b2432a", "#e2b55a"], headgear: "crown", crown: { gem: "#b2432a", tall: 0.9, trim: "#e2b55a" }, beard: true, item: "bow", size: 1.1, stage: "adult" },
     jayadratha: { pronoun: "he", palette: ["#b8703b", "#3a5a6a", "#c9a24e"], headgear: "crown", crown: { gem: "#2d5aa0", tall: 1, trim: "#3a5a6a" }, item: "bow", stance: "haughty", size: 1.1, stage: "adult" },
     // ("The Nishada of dark hue, of body besmeared with filth, dressed in black and bearing matted locks on head.")
-    ekalavya: { pronoun: "he", palette: ["#6a4026", "#2a2622", "#8a7a5a"], headgear: "jata", hair: "matted", item: "bow", stance: "archer", peer: true },
+    ekalavya: { dyed: true, pronoun: "he", palette: ["#6a4026", "#2a2622", "#8a7a5a"], headgear: "jata", hair: "matted", item: "bow", stance: "archer", peer: true },
     shalya: { pronoun: "he", palette: ["#b8703b", "#6a4a2a", "#e2b55a"], headgear: "crown", crown: { gem: "#c9a24e", broad: true, trim: "#6a4a2a" }, beard: true, item: "mace", stance: "broad", size: 1.12, stage: "adult" },
     shikhandi: { pronoun: "he", palette: ["#c27a44", "#8a2a3a", "#e2b55a"], headgear: "mukuta", item: "bow", stance: "archer", stage: "adult" },
     // ("Stiff hair rising upwards", "a diadem on his head", huge; he fights with a gold-decked mace.)
@@ -121,7 +121,7 @@
   U.puppetFor = function (id, S = K.S) {
     const p = K.PUPPETS[id] || K.PUPPETS.guard, out = Object.assign({ stage: p.peer && S ? K.puppetStage(S.age || 10) : "adult" }, p), when = K.puppetPeriod(S);
     if (id === "karna" && when === "war") { out.armour = false; out.gear = (p.gear || []).filter((g) => g !== "earrings").concat(["cuirass"]); }
-    if (PANDAVA.has(id) && when === "exile") { out.headgear = "jata"; out.crown = null; out.hair = "matted"; out.palette = [p.palette[0], "#8a6a3e", "#b39255"]; out.gear = (p.gear || []).filter((g) => g !== "gandiva").concat(["deerskin"]); }
+    if (PANDAVA.has(id) && when === "exile") { out.headgear = "jata"; out.crown = null; out.hair = "matted"; out.palette = [p.palette[0], "#8a6a3e", "#b39255"]; out.gear = (p.gear || []).filter((g) => g !== "gandiva").concat(["deerskin"]); out.dyed = true; }
     return out;
   };
 
