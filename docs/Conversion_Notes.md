@@ -26,5 +26,7 @@ lighter crowds on phones.
 Checked: `npm test` (72 fights, 0 errors, bot win rate 94%); fights opened from the 2D game in headless Chrome,
 desktop and phone size, to a settled outcome. Not checked: real devices and GPUs, a person playing fights by hand at
 length, gamepad, sound. The 2D game's own regression tests were not carried over or re-run against this build.
-Known leftovers: the 2D menu's "Fights: turn-based" switch no longer changes anything while WebGL is available; the
-practice ground's bouts still use the 2D screens.
+Tests in 3D (`js/ui/tests3d`): all 23 kinds open and take input without errors in headless Chrome; none has been
+played to its end by a person, and several are simpler than their 2D versions (escape, herd, formation, array; the
+board and dice games are a board drawn over the 3D hall). The 2D tests remain as the fallback without WebGL.
+Known leftovers: the 2D menu's "Fights: turn-based" switch no longer changes anything while WebGL is available.

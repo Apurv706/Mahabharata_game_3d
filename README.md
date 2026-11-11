@@ -2,9 +2,9 @@
 
 [Kurukshetra: A Life](https://github.com/Apurv706/Mahabharata-game) with every battle fought in real-time 3D.
 
-The story pages, the map, the tests, the menus, the saves and the Hindi are the 2D game's own, unchanged: its paintings
-and shadow puppets tell the story better than a 3D stage did. A fight is different. When a choice leads to one, the
-page gives way to a 3D field built on that fight's own ground, and you fight it yourself.
+Reading is 2D; playing is 3D. The story pages, the map, the menus, the saves and the Hindi are the 2D game's own,
+unchanged: its paintings and shadow puppets tell the story better than a 3D stage did. Wherever the game asks you to
+act, the page gives way to a 3D scene: every fight, every practice bout, and all 23 kinds of test.
 
 **Play:** serve the folder (`npm start`) or turn on GitHub Pages. No build step.
 
@@ -34,7 +34,8 @@ js/vendor/three.min.js      three.js r187
 js/g3/                      the 3D kit: renderer, textures, builder and props, figures, effects, places
 js/ui/battle/sim.js         the fight's rules on open ground (no drawing; rides on the 2D combat engine)
 js/ui/battle/view.js        what you see and what your hands do
-js/ui/battle/bridge.js      opens the 3D layer for a fight and hands back to the 2D page
+js/ui/battle/bridge.js      opens the 3D layer for a fight or a test and hands back to the 2D page
+js/ui/tests3d/              the 23 kinds of test in 3D: frame.js (card, HUD, outcome), games.js (each kind's play)
 css/battle3d.css            the fight's HUD
 tests/fights.js             every fight, played by a bot on every path (npm test)
 ```

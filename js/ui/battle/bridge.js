@@ -8,6 +8,7 @@
   U.headless = () => !!K.headless || /jsdom/i.test(navigator.userAgent || "");
   U.startBattle2D = U.startBattle; // the 2D game's own fights: the fallback
   const B = (U.b3d = { ready: false, failed: false });
+  B.can = () => !B.failed && !U.headless() && !!window.THREE;
   B.on = function () {
     if (B.failed || U.headless() || !window.THREE) return false;
     document.body.classList.add("in3d");

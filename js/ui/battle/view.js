@@ -60,8 +60,8 @@
   const SQUAD = [[0, 0.3], [-0.66, -0.34], [0.66, -0.34]];
 
   U.startBattle = function (encId, onEnd) {
-    // The 2D game's own screens where there is no 3D (its tests, a browser without WebGL), and for its practice bouts.
-    if (!K.ENCOUNTERS[encId] || encId === "x_practice" || !U.b3d.on()) return U.startBattle2D(encId, onEnd);
+    // The 2D game's own screens where there is no 3D (its tests, a browser without WebGL).
+    if (!K.ENCOUNTERS[encId] || !U.b3d.on()) return U.startBattle2D(encId, onEnd);
     open(encId, onEnd);
   };
 
