@@ -48,7 +48,8 @@ const CASES = {
     await page.evaluate(() => { window.K.UI.startBattle("e_day1", (o) => { window.__out = o; }); });
     check(await until(() => page.evaluate(() => document.body.classList.contains("in3d")), 6000), "the fight opens in 3D");
     check(await until(() => page.evaluate(() => !!document.querySelector(".b-intro.in")), 6000), "it opens on the opening shots");
-    const colours = await drawn(page); check(colours > 40, "the scene is drawn (" + colours + " shades on the screen)");
+    let colours = 0; for (let i = 0; i < 16 && colours <= 40; i++) { colours = await drawn(page); if (colours <= 40) await page.waitForTimeout(500); } // (the first frame of a war field takes a moment on a software renderer)
+    check(colours > 40, "the scene is drawn (" + colours + " shades on the screen)");
     const head0 = await page.evaluate(() => (document.querySelector(".b-intro h2") || {}).textContent || "");
     let moved = false;
     for (let i = 0; i < 8 && !(await page.evaluate(() => !!document.getElementById("battle-go"))); i++) { await page.mouse.click(400, 220); await sleep(400); const h = await page.evaluate(() => (document.querySelector(".b-intro h2") || {}).textContent || ""); if (h && h !== head0) moved = true; }

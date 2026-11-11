@@ -144,7 +144,7 @@
       for (let i = 0; i < n; i++) {
         const a = Math.PI + (((i + 0.2 + rnd() * 0.6) / n) * 2 - 1) * 1.75, r = rad + 2.8 + rnd() * 3.2, x = Math.sin(a) * r, z = Math.cos(a) * r, ry = rnd() * 6.28;
         const two = [mine, theirs].map((col, k) => {
-          const w = rnd() < 0.5 ? "sword" : "spear", f = G.figure(Object.assign({}, base, { palette: [base.palette[0], col, base.palette[2]] }), { item: w });
+          const w = rnd() < 0.5 ? "sword" : "spear", f = G.figure(Object.assign({}, base, { palette: [base.palette[0], col, base.palette[2]] }), { item: w, lite: true }); // (far off: a plainer figure)
           f.setShield(true); f.place(x + Math.sin(ry) * (k ? 0.85 : -0.85), z + Math.cos(ry) * (k ? 0.85 : -0.85), ry + (k ? Math.PI : 0)); f.pose(w === "spear" ? "readySpear" : "ready", true); f.w = w;
           G.actors.add(f.root); return f;
         });
@@ -192,7 +192,7 @@
           v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
-          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car });
+          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
           f.trails = true; // the streak of a weapon through its blow
           const plainMan = !(u.hero || u.person) && u.side !== "player" && !NAMED.some(([re]) => re.test(String(u.src || u.name)));
           if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined, plainMan ? "hide" : undefined);

@@ -54,6 +54,14 @@ fight; the 2D game's tests brought over; every battle tuned.
 - **Kept in step with the 2D game.** The 2D repo's changes after the copy are carried over as patches (11 Nov: its
   change 104, the path screen asks "Which path do you choose?" and each tile names what the path fights with; 2D
   commit c6a8ef5). To do it again: `git diff <last carried commit> origin/main -- game` in the 2D repo, applied here with `-p2`.
+- **The figures are one skin over the skeleton** (11 Nov; they were jointed dolls of separate rigid pieces and read as
+  boxy). The joints the poses turn are unchanged, so every move is as tuned. Over them `Skin` in `js/g3/figure.js`
+  builds one smooth surface (trunk, arms, legs, and the cloth wound on them), each point held by the joints near it:
+  elbows and knees bend, and a lower cloth let fall is one length round both legs that stretches with a stride. The
+  pleats, the sash ends, the end of the upper cloth and hanging hair are on joints of their own that sway (`f.j.sF`,
+  `sS`, `sB`, `sH`). Hands have a palm and thumb, feet a heel and toes, faces a jaw, nose, lips and ears; builds differ
+  (`big`, `strong`, `slim` in `K.PUPPETS`). The rank and file and far-off figures are built plainer (`opt.lite`).
+  Cost: a war battle draws about a quarter more triangles (about 460k, was 365k) in the same number of draw calls.
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512
@@ -77,7 +85,7 @@ phone; the dream; all 23 kinds of test opening in 3D and ending; and the 2D scre
 The two built parts were walked through as a phone (the opening, a sparring bout, the war's first day, Act V from a
 save code) with no missing file, and a 3D fight was fought to its end on each, in English and with Hindi loaded.
 
-Not checked: whether a person finds the new sneak yard and the three watches fair (they were run for errors and for losing when played badly, not played well by hand); the published pages themselves (they cannot be opened from the build machine; what was tested is the
+Not checked: the frame rate of the new figures on a real phone (on the test machine's software renderer a war battle ran about a quarter slower, which says little about a GPU); whether a person finds the new sneak yard and the three watches fair (they were run for errors and for losing when played badly, not played well by hand); the published pages themselves (they cannot be opened from the build machine; what was tested is the
 same files served locally); real devices and GPUs; a person playing a fight by hand to its end in any view; frame rate with the line
 on a phone; gamepad; sound; the full test tier (playthroughs, layout on every device, visual baselines), whose
 baselines will show the puppets' corrected colours. The moves were checked against written technique from still

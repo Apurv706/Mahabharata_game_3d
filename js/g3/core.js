@@ -220,6 +220,7 @@
   function dispose(root) {
     root.traverse((o) => {
       if (o.geometry && !o.geometry.userData.keep) o.geometry.dispose();
+      if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose();
       const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
       for (const m of ms) { if (m.userData.keep) continue; if (m.map && !m.map.userData.keep) m.map.dispose(); m.dispose(); }
     });

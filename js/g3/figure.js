@@ -229,33 +229,34 @@
   const HAIR = { child: DARK, youth: DARK, adult: DARK, elder: 0xb8b2a6 };
   function headMesh(sp, skin, hair, cloth, trim, she) {
     const b = B(); b.ao = 0.9;
-    b.cyl(0.055, 0.065, 0.1, 0, 0, 0, skin, 7);
-    b.sph(0.125, 0, 0.2, 0, skin, 1.12, 10, 0.95, 1.0);
-    b.geo(new T.SphereGeometry(0.134, 10, 7, 0, PI * 2, 0, PI * 0.5).scale(0.98, 1.1, 1.03), 0, 0.212, -0.02, -0.62, 0, 0, hair); // the hair, set back off the face
+    const jaw = she || sp.stage === "child" ? 0.86 : sp.big || sp.strong ? 1.08 : 1;
+    b.sph(0.125, 0, 0.205, 0, skin, 1.1, LITE ? 9 : 18, 0.93, 1.0);                                           // the skull
+    b.sph(0.092 * jaw, 0, 0.148, 0.022, skin, 0.86, LITE ? 8 : 14, 1.0, 1.02);                                  // the jaw, and under it the chin
+    b.sph(0.034 * jaw, 0, 0.098, 0.082, skin, 0.8, 9, 1.25, 0.9);
+    for (const sx of [-1, 1]) b.sph(0.034, sx * 0.064, 0.172, 0.066, skin, 0.9, 8, 1, 0.8);          // the cheeks
+    b.geo(new T.SphereGeometry(0.134, LITE ? 9 : 18, LITE ? 6 : 10, 0, PI * 2, 0, PI * 0.5).scale(0.98, 1.1, 1.03), 0, 0.212, -0.02, -0.62, 0, 0, hair); // the hair, set back off the face
     const gearH = sp.gear || [];
     for (const sx of [-1, 1]) {
       b.sph(0.026, sx * 0.047, 0.214, 0.099, 0xf6f0e4, 0.82, 6);                                  // the white of the eye
       if (!sp.blind) b.sph(0.0145, sx * 0.047, 0.213, 0.1195, 0x140c08, 1, 6);                    // (a blind king's eyes are shown without)
-      b.geo(new T.BoxGeometry(0.054, 0.012, 0.02), sx * 0.048, 0.249, 0.106, 0, 0, sx * -0.14, sp.stage === "elder" ? hair : DARK); // the brow
-      b.sph(0.03, sx * 0.122, 0.2, 0.0, skin, 1.2);
+      b.geo(new T.SphereGeometry(0.03, 8, 5).scale(1, 0.24, 0.42), sx * 0.048, 0.249, 0.107, 0, 0, sx * -0.16, sp.stage === "elder" ? hair : DARK); // the brow
+      b.geo(new T.SphereGeometry(0.03, 8, 6).scale(0.42, 1.2, 0.8), sx * 0.123, 0.198, 0.0, 0, sx * 0.25, 0, skin); // the ear
     }
-    b.box(0.026, 0.045, 0.03, 0, 0.165, 0.118, G.shade(skin, 0.93));
-    if (!sp.beard) b.box(0.052, 0.011, 0.02, 0, 0.126, 0.108, 0x7a2f22);                            // the mouth
+    b.geo(new T.SphereGeometry(0.02, 8, 6).scale(0.8, 1.7, 1), 0, 0.186, 0.118, -0.32, 0, 0, G.shade(skin, 0.96)); b.sph(0.02, 0, 0.165, 0.127, G.shade(skin, 0.93), 0.8, 8, 1.15, 0.9); // the nose: its bridge and its tip
+    if (!sp.beard) { b.sph(0.03, 0, 0.128, 0.104, 0x8a3526, 0.2, 8, 1, 0.5); b.sph(0.026, 0, 0.121, 0.103, 0x7a2f22, 0.22, 8, 1, 0.5); }                            // the mouth
     if (sp.eye) b.box(0.06, 0.04, 0.02, 0.046, 0.2, 0.118, 0x140c08);
     if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
     // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
-    if (!sp.hair && !she && sp.stage !== "child") { b.geo(new T.BoxGeometry(0.2, 0.2, 0.05), 0, 0.1, -0.116, 0.1, 0, 0, hair); for (const sx of [-1, 1]) b.sph(0.045, sx * 0.1, 0.11, -0.08, hair, 1.3, 5); if (!/^(turban|helmet)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * 0.134, 0.15, 0.004, GOLD, 1, 5); }
-    if (sp.hair === "loose") { b.geo(new T.BoxGeometry(0.25, 0.46, 0.06), 0, -0.02, -0.12, 0.12, 0, 0, hair); for (const sx of [-1, 1]) b.geo(new T.BoxGeometry(0.06, 0.34, 0.07), sx * 0.125, 0.04, -0.03, 0, 0, sx * 0.1, hair); }
-    if (sp.hair === "long") b.geo(new T.BoxGeometry(0.21, 0.27, 0.05), 0, 0.07, -0.118, 0.14, 0, 0, hair);
-    else if (sp.hair === "braid") { b.sph(0.07, 0, 0.2, -0.125, hair, 1, 6); b.rod(0, 0.14, -0.13, 0, -0.42, -0.17, 0.04, hair, 5, 0.022); b.sph(0.03, 0, -0.44, -0.17, 0xb2432a, 1, 5); }
-    else if (sp.hair === "matted") { for (const sx of [-1, 0, 1]) b.rod(sx * 0.07, 0.2, -0.11, sx * 0.09, -0.08, -0.15, 0.032, hair, 5, 0.018); }
+    if (!sp.hair && !she && sp.stage !== "child" && !/^(turban|helmet)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * 0.134, 0.15, 0.004, GOLD, 1, 6);
+    if (sp.hair === "braid") b.sph(0.07, 0, 0.2, -0.125, hair, 1, 8);
+    if (false) {}
     else if (sp.hair === "up") { for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.geo(new T.ConeGeometry(0.035, 0.2, 4), Math.sin(a) * 0.06, 0.4, Math.cos(a) * 0.06 - 0.02, Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35, hair); } b.geo(new T.ConeGeometry(0.04, 0.24, 4), 0, 0.44, -0.02, 0, 0, 0, hair); }
     const beardCol = hair;
     if (sp.beard === "long") { b.geo(new T.ConeGeometry(0.1, 0.36, 7).rotateX(PI), 0, 0.0, 0.07, 0.12, 0, 0, 0xf0ece2); b.sph(0.1, 0, 0.13, 0.05, 0xf0ece2, 0.7, 7, 1, 0.9); }
     else if (sp.beard === "forked") { for (const sx of [-1, 1]) b.geo(new T.ConeGeometry(0.045, 0.22, 5).rotateX(PI), sx * 0.04, 0.03, 0.09, 0.1, 0, sx * 0.14, beardCol); b.sph(0.09, 0, 0.13, 0.05, beardCol, 0.6, 7, 1, 0.9); }
     else if (sp.beard) { b.sph(0.095, 0, 0.125, 0.045, beardCol, 0.72, 7, 1, 0.92); }
     else if (!she && sp.stage !== "child" && sp.stage !== "youth") b.box(0.07, 0.014, 0.02, 0, 0.142, 0.118, hair); // a moustache
-    if (she) { b.sph(0.085, 0, 0.19, -0.13, hair, 1, 7); b.rod(0, 0.12, -0.13, 0, -0.34, -0.15, 0.04, hair, 5, 0.02); b.sph(0.016, 0, 0.255, 0.122, 0xc0392b); for (const sx of [-1, 1]) b.sph(0.022, sx * 0.13, 0.155, 0.0, GOLD); }
+    if (she) { b.sph(0.085, 0, 0.19, -0.13, hair, 1, 9); b.sph(0.016, 0, 0.255, 0.122, 0xc0392b); for (const sx of [-1, 1]) b.sph(0.022, sx * 0.13, 0.155, 0.0, GOLD); }
     if (she && sp.stage === "elder") { b.geo(new T.SphereGeometry(0.152, 10, 6, 0, PI * 2, 0, PI * 0.56).scale(1, 1.06, 1.1), 0, 0.2, -0.025, -0.3, 0, 0, cloth); b.box(0.25, 0.34, 0.04, 0, -0.16, -0.15, cloth); b.box(0.25, 0.03, 0.045, 0, -0.17, -0.15, trim); }
     const hg = sp.headgear, top = 0.33;
     if (hg === "crown" || hg === "kirita" || hg === "mukuta") {
@@ -286,9 +287,7 @@
     const gear = sp.gear || [], armour = sp.armour || gear.includes("cuirass") || gear.includes("scale");
     const top = she || sp.stage === "child" && sp.pronoun === "she" ? cloth : skin;
     const chest = armour ? (sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0xae8440) : top;
-    b.geo(new T.CylinderGeometry(0.2 * wide, 0.165 * wide, 0.3, 10, 1).translate(0, 0.15, 0).scale(1, 1, 0.62), 0, 0.0, 0, 0, 0, 0, she ? skin : top);
-    b.geo(new T.CylinderGeometry(0.235 * wide, 0.2 * wide, 0.28, 10, 1).translate(0, 0.14, 0).scale(1, 1, 0.66), 0, 0.27, 0, 0, 0, 0, chest, armour ? G.shade(chest, 1.25) : null);
-    for (const sx of [-1, 1]) b.geo(new T.SphereGeometry(0.1, 7, 5).scale(1, 0.7, 1), sx * 0.25 * wide, 0.5, 0, 0, 0, 0, armour ? chest : skin);
+    // (the trunk itself, the shoulders and the upper cloth are in the skin: see G.figure. Here, what is worn on it.)
     if (sp.armour) b.sph(0.07, 0, 0.42, 0.14, 0xfff0a0, 1, 8); // the sun on Karna's breastplate
     else if (armour && !gear.includes("scale")) { b.geo(new T.CylinderGeometry(0.075, 0.075, 0.02, 12).rotateX(PI / 2), 0, 0.41, 0.156, 0, 0, 0, GOLD); b.sph(0.03, 0, 0.41, 0.165, 0xf4d67a, 1, 6); } // a boss on the breastplate
     if (armour) { // shoulder pieces, and the plates or scales in rows
@@ -302,17 +301,7 @@
       for (const [dx, dy] of [[0.08, 0.4], [0.0, 0.3], [-0.07, 0.18], [0.05, 0.22]]) b.sph(0.02, dx, dy, 0.166, 0xe8dcc0, 0.4, 5);
     }
     if (gear.includes("bands") && !armour) { for (const sgn of [1, -1]) { b.geo(new T.BoxGeometry(0.07, 0.62, 0.02), 0, 0.3, 0.15, 0, 0, sgn * 0.7, accent); b.geo(new T.BoxGeometry(0.07, 0.62, 0.02), 0, 0.3, -0.15, 0, 0, -sgn * 0.7, accent); } b.geo(new T.CylinderGeometry(0.2 * wide, 0.19 * wide, 0.06, 10, 1).scale(1, 1, 0.66), 0, 0.16, 0, 0, 0, 0, accent); } // cloth bands crossed on the chest and bound at the waist
-    if (!armour && !she && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare")) { // the upper cloth
-      if (gear.includes("thread")) { // a teacher's: folded and laid over the left shoulder, the chest bare
-        b.geo(new T.BoxGeometry(0.15, 0.5, 0.03).translate(0, -0.25, 0), 0.19 * wide, 0.55, 0.13, 0.08, 0, 0.03, cloth); b.geo(new T.BoxGeometry(0.15, 0.03, 0.032), 0.19 * wide, 0.06, 0.168, 0, 0, 0, accent);
-      } else { const cloth0 = cloth; if (/^(turban|helmet)$/.test(sp.headgear || "")) cloth = accent; // (a soldier's is his host's colour)
-        // everyone else's: broad across the chest from the left shoulder to the right hip, its border in the wearer's colour
-        for (const fz of [1, -1]) { b.geo(new T.BoxGeometry(0.25, 0.7, 0.03), 0.015, 0.27, fz * (0.134 + 0.028 * wide), 0, 0, fz * 0.62, cloth); b.geo(new T.BoxGeometry(0.045, 0.7, 0.034), 0.015 - 0.1 * Math.cos(0.62), 0.27 - fz * 0.1 * Math.sin(0.62) - 0.06, fz * (0.136 + 0.028 * wide), 0, 0, fz * 0.62, cloth === accent ? GOLD : accent); }
-      }
-      b.box(0.15, 0.035, 0.34, 0.2 * wide, 0.53, 0, cloth); b.geo(new T.BoxGeometry(0.16, 0.4, 0.028).translate(0, -0.2, 0), 0.2 * wide, 0.54, -0.165, -0.1, 0, 0.05, G.shade(cloth, 0.93)); b.box(0.16, 0.035, 0.03, 0.2 * wide, 0.13, -0.205, accent);
-      if (sp.stage === "elder" || /^(crown|kirita|mukuta)$/.test(sp.headgear || "")) b.sph(0.032, 0.18 * wide, 0.53, 0.13, GOLD, 1, 6); // pinned with a gold brooch
-    }
-    if (she) { b.geo(new T.CylinderGeometry(0.238 * wide, 0.225 * wide, 0.035, 10, 1).scale(1, 1, 0.67), 0, 0.34, 0, 0, 0, 0, trim); b.geo(new T.BoxGeometry(0.2, 0.7, 0.03), 0.03, 0.26, 0.152, 0, 0, 0.62, accent); b.geo(new T.BoxGeometry(0.03, 0.7, 0.034), 0.03 - 0.085 * Math.cos(0.62), 0.2 - 0.085 * Math.sin(0.62), 0.154, 0, 0, 0.62, GOLD); b.box(0.2, 0.035, 0.34, 0.19 * wide, 0.53, 0, accent); b.geo(new T.BoxGeometry(0.2, 0.6, 0.03).translate(0, -0.3, 0), 0.19 * wide, 0.54, -0.16, -0.08, 0, 0.04, accent); b.box(0.2, 0.035, 0.032, 0.19 * wide, -0.07, -0.215, GOLD); } // the breast-band, and her upper cloth over the left shoulder, its end down her back
+    if (!armour && !she && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare") && (sp.stage === "elder" || /^(crown|kirita|mukuta)$/.test(sp.headgear || ""))) b.sph(0.03, 0.17 * wide, 0.535, 0.125, GOLD, 1, 8); // the upper cloth is pinned with a gold brooch
     if (!she || true) b.torus(0.105, 0.012, 0, 0.5, 0.045, trim, PI / 2.3, 0, 0, 12); // a necklace
     if (gear.includes("quivers") || sp.item === "bow") { b.geo(new T.CylinderGeometry(0.055, 0.045, 0.5, 6), -0.1, 0.36, -0.2, 0.25, 0, 0.25, 0x6a4628); for (let i = 0; i < 3; i++) b.box(0.012, 0.1, 0.05, -0.17 + i * 0.03, 0.6, -0.24, 0xc8402c); }
     if (gear.includes("waterpot")) b.sph(0.07, 0.2, 0.02, 0.08, 0xb5793a);
@@ -321,6 +310,50 @@
     b.geo(new T.CylinderGeometry(0.2 * wide, 0.222 * wide, 0.14, 10, 1).scale(1, 1, 0.76), 0, -0.03, 0, 0, 0, 0, accent, G.shade(accent, 1.15)); // the sash, broad at the waist
     if (sp.stage !== "child") { b.geo(new T.CylinderGeometry(0.055, 0.055, 0.022, 12).rotateX(PI / 2), 0, 0.04, 0.162 * wide + 0.004, 0, 0, 0, GOLD); b.sph(0.022, 0, 0.04, 0.162 * wide + 0.018, 0xf4d67a, 1, 5); } // and its round clasp
     return b.mesh();
+  }
+  // A surface held by joints. v(): one point, its colour, and the joints that hold it ([[joint, share], ...]; the four
+  // largest are kept). tube(): rings of points one under another, joined into a closed skin. sheet(): a grid of points,
+  // for cloth. geometry(): the finished thing, smooth-shaded.
+  let LITE = false; // (set while a plainer figure is being built: the rank and file, and those far off)
+  function Skin() { this.p = []; this.c = []; this.si = []; this.sw = []; this.ix = []; }
+  const _sc = new T.Color();
+  Skin.prototype.v = function (x, y, z, col, w) {
+    const i = this.p.length / 3; this.p.push(x, y, z); _sc.set(col); this.c.push(_sc.r, _sc.g, _sc.b);
+    const ws = w.filter((a) => a[1] > 0.002).sort((a, b) => b[1] - a[1]).slice(0, 4); let sum = 0; for (const a of ws) sum += a[1];
+    for (let k = 0; k < 4; k++) { this.si.push(ws[k] ? ws[k][0] : 0); this.sw.push(ws[k] ? ws[k][1] / sum : 0); }
+    return i;
+  };
+  Skin.prototype.tube = function (rings, seg, capTop, capBot) {
+    const rows = [];
+    for (const r of rings) { const row = [];
+      for (let k = 0; k < seg; k++) { const a = (k / seg) * PI * 2, px = r.x + Math.sin(a) * r.rx, pz = (r.z || 0) + Math.cos(a) * r.rz; row.push(this.v(px, r.y, pz, typeof r.col === "function" ? r.col(a) : r.col, r.wf ? r.wf(px, pz, a) : r.w)); }
+      rows.push(row); }
+    for (let i = 0; i < rows.length - 1; i++) for (let k = 0; k < seg; k++) { const k2 = (k + 1) % seg; this.ix.push(rows[i][k], rows[i + 1][k], rows[i + 1][k2], rows[i][k], rows[i + 1][k2], rows[i][k2]); }
+    const cap = (r, row, flip) => { const c = this.v(r.x, r.y, r.z || 0, typeof r.col === "function" ? r.col(0) : r.col, r.wf ? r.wf(r.x, r.z || 0, 0) : r.w); for (let k = 0; k < seg; k++) { const k2 = (k + 1) % seg; if (flip) this.ix.push(c, row[k2], row[k]); else this.ix.push(c, row[k], row[k2]); } };
+    if (capTop) cap(rings[0], rows[0], false);
+    if (capBot) cap(rings[rings.length - 1], rows[rows.length - 1], true);
+  };
+  Skin.prototype.sheet = function (grid, flip) {
+    const rows = grid.map((row) => row.map((q) => this.v(q[0], q[1], q[2], q[3], q[4])));
+    for (let i = 0; i < rows.length - 1; i++) for (let k = 0; k < rows[i].length - 1; k++) { const a = rows[i][k], b = rows[i + 1][k], c = rows[i + 1][k + 1], d = rows[i][k + 1]; if (flip) this.ix.push(a, c, b, a, d, c); else this.ix.push(a, b, c, a, c, d); }
+  };
+  Skin.prototype.geometry = function () {
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(this.p, 3)); g.setAttribute("color", new T.Float32BufferAttribute(this.c, 3));
+    g.setAttribute("skinIndex", new T.Uint16BufferAttribute(this.si, 4)); g.setAttribute("skinWeight", new T.Float32BufferAttribute(this.sw, 4));
+    g.setIndex(this.ix); g.computeVertexNormals(); return g;
+  };
+  // The hair that hangs below the nape (on a joint of its own, so it swings): to the shoulders on a grown man, long and
+  // loose, a braid, or matted locks. Rounded, not slabs. (Hair standing up, or under a turban, has nothing hanging.)
+  function hairFall(sp, hair, she) {
+    const b = B(); b.ao = 0.9; let any = true;
+    if (sp.hair === "loose") { b.sph(0.13, 0, -0.2, -0.03, hair, 1.9, 10, 0.98, 0.34); for (const sx of [-1, 1]) b.sph(0.045, sx * 0.118, -0.12, 0.05, hair, 3.4, 8, 0.8, 0.9); }
+    else if (sp.hair === "long") b.sph(0.115, 0, -0.1, -0.035, hair, 1.35, 10, 0.95, 0.34);
+    else if (sp.hair === "braid" || (she && !sp.hair)) { b.rod(0, 0.0, -0.045, 0, -0.5, -0.07, 0.036, hair, 7, 0.02); for (let i = 0; i < 5; i++) b.sph(0.034 - i * 0.003, 0, -0.06 - i * 0.095, -0.047 - i * 0.004, hair, 1.25, 7); b.sph(0.026, 0, -0.52, -0.07, 0xb2432a, 1, 6); }
+    else if (sp.hair === "matted") { for (const sx of [-1, 0, 1]) b.rod(sx * 0.07, 0.05, -0.02, sx * 0.095, -0.24, -0.06, 0.03, hair, 6, 0.016); }
+    else if (!sp.hair && !she && sp.stage !== "child") { b.sph(0.108, 0, -0.035, -0.03, hair, 1.0, 10, 0.98, 0.36); for (const sx of [-1, 1]) b.sph(0.04, sx * 0.1, -0.04, 0.005, hair, 1.5, 7, 0.8, 0.9); }
+    else any = false;
+    return any ? b.mesh() : null;
   }
   function limb(len, r0, r1, col, col2, extra) {
     const b = B(); b.ao = 0.9;
@@ -334,7 +367,7 @@
   const TRAIL_N = 9;
   G.figure = function (spec, opt) {
     const sp = Object.assign({ stage: "adult", pronoun: "he", palette: ["#c27a44", "#8a3a2a", "#e2b55a"] }, spec || {}); opt = opt || {};
-    const [sc, headK] = STAGE[sp.stage] || STAGE.adult, she = sp.pronoun === "she";
+    const [sc, headK] = STAGE[sp.stage] || STAGE.adult, she = sp.pronoun === "she"; LITE = !!opt.lite;
     const size = sc * (sp.size || 1) * (sp.big ? 1.04 : 1), wide = (sp.big ? 1.2 : 1) * (she ? 0.88 : 1) * (sp.stage === "child" ? 0.92 : 1);
     const skin = new T.Color(sp.palette[0]).getHex(), accent = new T.Color(sp.palette[1]).getHex(), trim = new T.Color(sp.palette[2]).getHex();
     // As the 2D game's paintings have it: cream handwoven cotton, bordered and sashed in the wearer's own colour, with gold. A
@@ -356,33 +389,110 @@
     const gear = sp.gear || [], crowned = /^(crown|kirita|mukuta)$/.test(sp.headgear || "");
     const garb = sp.garb || (she ? "wrap" : sp.stage === "child" ? "short" : sp.stage === "elder" || crowned || sp.headgear === "jata" || gear.includes("thread") ? "long" : "short");
     const rich = crowned || she || !!sp.rich, hipR = 0.108 * (she ? 1.16 : 1), fold = G.shade(cloth, 1.14), dim = G.shade(cloth, 0.86);
-    for (const s of ["L", "R"]) {
-      const sx = s === "L" ? 1 : -1;
-      const sh = new T.Group(); sh.position.set(sx * 0.255 * wide, 0.49, 0); torso.add(sh); f.j["a" + s] = sh;
-      sh.add(limb(0.29, 0.07, 0.056, skin, null, (b) => { if (sp.stage !== "child") { b.cyl(0.064, 0.066, 0.034, 0, -0.15, 0, rich ? GOLD : trim, 8); if (rich) b.sph(0.024, 0, -0.13, 0.058, trim, 1, 5); } })); // the armlet (keyura)
-      const el = new T.Group(); el.position.y = -0.29; sh.add(el); f.j["e" + s] = el;
-      el.add(limb(0.26, 0.056, 0.044, skin, null, (b) => { b.sph(0.054, 0, -0.3, 0, skin, 1.1, 6); if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(0.058, 0.05, 0.14, 0, -0.22, 0, trim, 7); else if (gear.includes("bangles")) { for (let i = 0; i < 3; i++) b.cyl(0.052, 0.052, 0.022, 0, -0.27 + i * 0.032, 0, i === 1 ? GOLD : 0xf6f0e4, 8); } else if (she) { for (let i = 0; i < 2; i++) b.cyl(0.05, 0.05, 0.02, 0, -0.262 + i * 0.03, 0, GOLD, 8); } else if (rich) b.cyl(0.054, 0.049, 0.09, 0, -0.27, 0, GOLD, 8); else b.cyl(0.049, 0.049, 0.025, 0, -0.25, 0, trim, 7); }));
-      const ha = new T.Group(); ha.position.y = -0.3; el.add(ha); f.j["w" + s] = ha;
-      const hip = new T.Group(); hip.position.set(sx * 0.1 * wide, 0, 0); hips.add(hip); f.j["l" + s] = hip;
-      hip.add(limb(0.45, hipR, garb === "wrap" ? hipR * 1.05 : garb === "long" ? 0.1 : 0.096, cloth, dim, (b) => { if (garb === "short") { b.cyl(0.101, 0.101, 0.04, 0, -0.455, 0, accent, 8); b.cyl(0.102, 0.102, 0.01, 0, -0.418, 0, GOLD, 8); } })); // the cloth round the thigh; drawn up, its border sits at the knee
-      const kn = new T.Group(); kn.position.y = -0.45; hip.add(kn); f.j["k" + s] = kn;
-      kn.add(limb(0.42, 0.068, 0.047, skin, null, (b) => {
-        if (garb === "long") { b.cyl(0.097, 0.088, 0.25, 0, -0.25, 0, dim, 8, 0, 0, 0, cloth); b.cyl(0.091, 0.091, 0.04, 0, -0.265, 0, accent, 8); b.cyl(0.092, 0.092, 0.01, 0, -0.228, 0, GOLD, 8); }
-        else if (garb === "wrap") { b.cyl(hipR * 1.05, hipR * 1.02, 0.38, 0, -0.38, 0, dim, 9, 0, 0, 0, cloth); b.cyl(hipR * 1.04, hipR * 1.04, 0.055, 0, -0.39, 0, accent, 9); b.cyl(hipR * 1.045, hipR * 1.045, 0.012, 0, -0.338, 0, GOLD, 9); }
-        if (rich) b.cyl(0.053, 0.053, 0.02, 0, -0.41, 0, GOLD, 7); // an anklet
-        b.box(0.085, 0.055, 0.22, 0, -0.47, 0.05, G.shade(skin, 0.92)); // feet are bare
-      }));
+    // ---- The body: one skin over the skeleton -------------------------------------------------------------------
+    // The joints are the same ones the poses turn. Over them lies a single smooth surface (arms, legs, trunk and the
+    // cloth wound on them), each point of it held by the joints near it, so an elbow or a knee bends as flesh does and
+    // a lower cloth stretches with a stride instead of two stiff pipes swinging. Ornaments, hands, feet, the head and
+    // whatever is carried stay rigid on their joints. Cloth ends and hair hang from joints of their own, which sway.
+    const bld = { arm: (sp.big ? 1.3 : sp.strong ? 1.14 : sp.slim ? 0.9 : 1) * (she ? 0.84 : 1) * (sp.stage === "elder" ? 0.92 : 1) * (sp.stage === "child" ? 0.95 : 1), leg: (sp.big ? 1.16 : sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * (she ? 0.94 : 1),
+      chest: (sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * wide, waist: (sp.big ? 1.12 : sp.slim ? 0.92 : she ? 0.9 : 1) * wide, hip: wide * (she ? 1.1 : 1) };
+    const armour = sp.armour || gear.includes("cuirass") || gear.includes("scale"), plate = sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0xae8440;
+    const HY = 0.92, SHX = 0.255 * wide, HPX = 0.1 * wide, B_ = { P: 0, T: 1, H: 2, aL: 3, eL: 4, aR: 5, eR: 6, lL: 7, kL: 8, lR: 9, kR: 10, sB: 11, sF: 12, sS: 13 };
+    for (const sd of ["L", "R"]) {
+      const sx = sd === "L" ? 1 : -1;
+      const sh = new T.Group(); sh.position.set(sx * SHX, 0.49, 0); torso.add(sh); f.j["a" + sd] = sh;
+      const el = new T.Group(); el.position.y = -0.29; sh.add(el); f.j["e" + sd] = el;
+      const ha = new T.Group(); ha.position.y = -0.3; el.add(ha); f.j["w" + sd] = ha;
+      const hip = new T.Group(); hip.position.set(sx * HPX, 0, 0); hips.add(hip); f.j["l" + sd] = hip;
+      const kn = new T.Group(); kn.position.y = -0.45; hip.add(kn); f.j["k" + sd] = kn;
+      { const b = B(); b.ao = 0.94; const ra = 0.066 * bld.arm; // on the upper arm: the armlet (keyura)
+        if (sp.stage !== "child") { b.cyl(ra + 0.004, ra + 0.006, 0.036, 0, -0.16, 0, rich ? GOLD : trim, 14); if (rich) b.sph(0.022, 0, -0.14, ra + 0.004, trim, 1, 6); }
+        sh.add(b.mesh()); }
+      { const b = B(); b.ao = 0.94; const rw = 0.043 * bld.arm; // on the forearm: cuffs and bangles; and the hand
+        if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(rw + 0.012, rw + 0.004, 0.14, 0, -0.25, 0, trim, 12);
+        else if (gear.includes("bangles")) { for (let k = 0; k < 3; k++) b.cyl(rw + 0.006, rw + 0.006, 0.02, 0, -0.275 + k * 0.03, 0, k === 1 ? GOLD : 0xf6f0e4, 12); }
+        else if (she) { for (let k = 0; k < 2; k++) b.cyl(rw + 0.005, rw + 0.005, 0.018, 0, -0.268 + k * 0.028, 0, GOLD, 12); }
+        else if (rich) b.cyl(rw + 0.008, rw + 0.004, 0.085, 0, -0.275, 0, GOLD, 12); else b.cyl(rw + 0.004, rw + 0.004, 0.022, 0, -0.255, 0, trim, 10);
+        const hk = bld.arm > 1.1 ? 1.12 : 1; // the hand: a palm, the fingers curled as one, a thumb
+        b.sph(0.043 * hk, 0, -0.325, 0.004, skin, 1.15, 10, 0.62, 0.95); b.sph(0.036 * hk, 0, -0.372, 0.014, skin, 0.95, 9, 0.66, 0.9); b.sph(0.017 * hk, -sx * 0.012, -0.335, 0.04, skin, 1.5, 7, 1, 1);
+        el.add(b.mesh()); }
+      { const b = B(); b.ao = 0.9; // at the ankle: an anklet; and the foot, bare, with a heel and toes
+        if (rich) b.cyl(0.05 * bld.leg, 0.05 * bld.leg, 0.018, 0, -0.405, 0, GOLD, 12);
+        const sk2 = G.shade(skin, 0.94); b.sph(0.045, 0, -0.455, -0.012, sk2, 0.9, 9, 0.95, 1.05); b.sph(0.05, 0, -0.47, 0.07, sk2, 0.62, 10, 0.92, 2.0); b.sph(0.042, 0, -0.478, 0.145, sk2, 0.5, 9, 1.05, 1.1);
+        kn.add(b.mesh()); }
     }
-    { const b = B(); b.ao = 0.9;
-      b.geo(new T.CylinderGeometry(0.19 * wide, 0.215 * wide * (she ? 1.07 : 1), 0.22, 10, 1).scale(1, 1, 0.74), 0, -0.07, 0, 0, 0, 0, cloth);
-      const fall = garb === "short" ? 0.4 : garb === "long" ? 0.68 : 0.78; // the pleats, gathered at the front and falling between the legs
-      for (const k of [-1, 0, 1]) b.geo(new T.BoxGeometry(0.05, fall, 0.026).translate(0, -fall / 2, 0), k * 0.036, 0.02, 0.128 + (k ? 0 : 0.014), 0.05, 0, k * 0.075, k ? G.shade(cloth, 1.04) : fold);
-      b.geo(new T.BoxGeometry(0.17 + fall * 0.14, 0.04, 0.03), 0, 0.02 - fall, 0.134 + fall * 0.05, 0.05, 0, 0, accent);
-      if (garb === "short") b.box(0.09, 0.12, 0.03, 0, -0.1, -0.15, fold); // and the end tucked in behind
-      if (she) { b.geo(new T.TorusGeometry(0.2 * wide, 0.016, 5, 14).rotateX(PI / 2).scale(1, 1, 0.76), 0, -0.03, 0, 0, 0, 0, GOLD); for (let i = -2; i <= 2; i++) b.sph(0.02, i * 0.05, -0.05 - (2 - Math.abs(i)) * 0.012, 0.155 * wide + 0.02, i % 2 ? trim : GOLD, 1, 5); } // her girdle (mekhala)
-      else if (sp.stage !== "child") { b.sph(0.045, 0.17 * wide, 0.0, 0.085, accent, 1, 6); for (const k of [0, 1]) b.geo(new T.BoxGeometry(0.045, 0.3 - k * 0.07, 0.02).translate(0, -(0.3 - k * 0.07) / 2, 0), 0.165 * wide + k * 0.03, -0.01, 0.1 - k * 0.02, 0.06, 0, -0.12 - k * 0.2, k ? G.shade(accent, 0.86) : accent); } // the sash knotted at the hip, its ends hanging
-      if (gear.includes("sash")) b.box(0.08, 0.5, 0.03, 0.12, -0.6, 0.14, trim);
-      hips.add(b.mesh()); }
+    const swB = new T.Group(); swB.position.set(0.2 * wide, 0.52, -0.13); torso.add(swB); f.j.sB = swB; // the end of the upper cloth, down the back
+    const swF = new T.Group(); swF.position.set(0, 0.0, 0.13); hips.add(swF); f.j.sF = swF;                // the pleats in front
+    const swS = new T.Group(); swS.position.set(0.17 * wide, 0.0, 0.09); hips.add(swS); f.j.sS = swS;      // the sash's ends at the hip
+    const swH = new T.Group(); swH.position.set(0, 0.15, -0.085); head.add(swH); f.j.sH = swH;             // hair below the nape
+    { const hf = hairFall(sp, hair, she); if (hf) swH.add(hf); }
+    {
+      const K_ = new Skin(), sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+      const SEG = LITE ? 8 : 14, skinD = G.shade(skin, 0.9);
+      // The trunk, crotch to neck. Each ring: height above the hips, half-width, half-depth.
+      const cst = armour ? 0.008 : 0, TR = [[-0.19, 0.1 * bld.hip, 0.085], [-0.12, 0.19 * bld.hip, 0.132], [-0.03, 0.2 * bld.hip, 0.136], [0.06, 0.186 * bld.waist, 0.126], [0.15, 0.178 * bld.waist, 0.12], [0.24, 0.2 * bld.chest, 0.134],
+        [0.33, 0.224 * bld.chest + cst, 0.146 + cst], [0.42, 0.236 * bld.chest + cst, 0.15 + cst], [0.485, 0.222 * bld.chest + cst, 0.136 + cst], [0.525, 0.16 * wide, 0.105], [0.548, 0.1 * wide, 0.08], [0.565, 0.07, 0.066], [0.6, 0.056, 0.058], [0.66, 0.052, 0.054]];
+      const tor = (y) => { for (let k = 0; k < TR.length - 1; k++) if (y <= TR[k + 1][0]) { const a = TR[k], b = TR[k + 1], u = Math.max(0, (y - a[0]) / (b[0] - a[0])); return [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; } return [TR[TR.length - 1][1], TR[TR.length - 1][2]]; };
+      const wT = (y) => { const t = sm(-0.02, 0.15, y), h = sm(0.585, 0.64, y); return [[B_.P, 1 - t], [B_.T, t * (1 - h)], [B_.H, t * h]]; };
+      const tcol = (y) => (y < 0.02 ? cloth : armour && y > 0.19 && y < 0.53 ? (y > 0.4 ? G.shade(plate, 1.12) : plate) : she && y > 0.3 && y < 0.5 ? cloth : y < 0.12 ? skinD : skin);
+      K_.tube(TR.map(([y, rx, rz]) => ({ x: 0, y: HY + y, z: 0, rx, rz, col: tcol(y), w: wT(y) })), SEG + 2, true, true);
+      // The arms: shoulder to wrist, the elbow shared between the two bones.
+      for (const sd of ["L", "R"]) { const sx = sd === "L" ? 1 : -1, a = bld.arm, A = B_["a" + sd], E = B_["e" + sd], Y0 = HY + 0.49;
+        const AR = [[0.062, 0.03], [0.04, 0.062], [0.0, 0.076], [-0.07, 0.072], [-0.15, 0.064], [-0.22, 0.058], [-0.265, 0.055], [-0.29, 0.056], [-0.315, 0.055], [-0.37, 0.058], [-0.44, 0.052], [-0.52, 0.045], [-0.585, 0.04]];
+        K_.tube(AR.map(([y, r]) => { const e = sm(-0.235, -0.345, y), cap = armour && y > -0.02; return { x: sx * (SHX + (y > 0 ? -y * 0.25 : 0)), y: Y0 + y, z: 0, rx: r * a, rz: r * a * (y < -0.3 && y > -0.5 ? 1.06 : 1), col: cap ? plate : y < -0.5 ? skinD : skin, w: [[A, 1 - e], [E, e]] }; }), SEG - 2, true, true); }
+      // The legs, bare, hip to ankle.
+      for (const sd of ["L", "R"]) { const sx = sd === "L" ? 1 : -1, g = bld.leg, Lg = B_["l" + sd], Kn = B_["k" + sd];
+        const LR = [[0.03, 0.07], [-0.02, 0.098], [-0.14, 0.096], [-0.28, 0.082], [-0.39, 0.068], [-0.45, 0.066], [-0.5, 0.062], [-0.57, 0.066], [-0.65, 0.064], [-0.76, 0.05], [-0.86, 0.043]];
+        K_.tube(LR.map(([y, r]) => { const k = sm(-0.385, -0.515, y), top = sm(-0.06, 0.03, y); return { x: sx * HPX, y: HY + y, z: y < -0.5 && y > -0.75 ? -0.008 : 0, rx: r * g, rz: r * g * (y < -0.5 && y > -0.72 ? 1.1 : 1), col: y > (garb === "short" ? -0.44 : garb === "wrap" ? -0.78 : -0.6) ? dim : y < -0.7 ? skinD : skin, w: [[B_.P, top * 0.5], [Lg, (1 - k) * (1 - top * 0.5)], [Kn, k]] }; }), SEG - 2, false, true); }
+      // The lower cloth. Drawn up between the legs it wraps each thigh to the knee; let fall, it is one length round both
+      // legs, to the calf or the ankle, each side of it going with its own leg and the front and back stretching between.
+      const hemCol = (u, base) => (u > 0.93 ? accent : u > 0.9 ? GOLD : base);
+      if (garb === "short") {
+        for (const sd of ["L", "R"]) { const sx = sd === "L" ? 1 : -1, g = bld.leg, Lg = B_["l" + sd];
+          const CR = [[0.02, 0.1], [-0.05, 0.116], [-0.18, 0.114], [-0.32, 0.106], [-0.4, 0.103], [-0.415, 0.104], [-0.43, 0.104], [-0.47, 0.105], [-0.474, 0.09]];
+          K_.tube(CR.map(([y, r], n) => { const top = sm(-0.1, 0.02, y); return { x: sx * (HPX + 0.004), y: HY + y, z: 0, rx: r * g, rz: r * g * 1.04, col: n >= 6 ? accent : n === 5 ? GOLD : n % 2 ? cloth : dim, w: [[B_.P, top * 0.6], [Lg, 1 - top * 0.6]] }; }), SEG, false, false); }
+      } else {
+        const end = garb === "wrap" ? -0.83 : -0.66, n = 11, ring = [];
+        for (let k = 0; k <= n; k++) { const u = k / n, y = 0.0 + end * u, flare = garb === "wrap" ? 1 + 0.1 * u * u : 1;
+          const rx = (0.205 * bld.hip + 0.012) * (1 - 0.1 * sm(0.15, 0.75, u)) * flare, rz = (0.142 + 0.006) * (1 - 0.12 * sm(0.1, 0.7, u)) * flare;
+          ring.push({ x: 0, y: HY + y, z: 0.004, rx, rz, col: (a) => hemCol(u, Math.round(a * 9 / PI) % 2 ? cloth : dim),
+            wf: (px) => { const side = sm(-HPX * 0.9, HPX * 0.9, px), up = 1 - sm(-0.02, -0.26, -(-y)) , hipW = 1 - sm(0.02, 0.3, u * -end), k2 = sm(0.36, 0.56, -y); return [[B_.P, hipW], [B_.lL, (1 - hipW) * side * (1 - k2)], [B_.kL, (1 - hipW) * side * k2], [B_.lR, (1 - hipW) * (1 - side) * (1 - k2)], [B_.kR, (1 - hipW) * (1 - side) * k2]]; } }); }
+        K_.tube(ring, LITE ? 10 : SEG + 6, false, false);
+      }
+      // The pleats, gathered at the waist in front and falling free: a fan of folds on a joint of its own.
+      { const fall = garb === "short" ? 0.4 : garb === "long" ? 0.64 : 0.74, cols = 9, rows = 6, grid = [], y0 = HY - 0.0, z0 = tor(-0.02)[1] + 0.022;
+        for (let r = 0; r <= rows; r++) { const u = r / rows, row = []; for (let c = 0; c < cols; c++) { const v = c / (cols - 1) - 0.5, wdt = 0.11 + 0.1 * u;
+          row.push([v * wdt, y0 - fall * u, z0 + 0.012 * u + (c % 2 ? 0.014 : 0) * (0.3 + u) - Math.abs(v) * 0.03, u > 0.93 ? accent : u > 0.89 ? GOLD : c % 2 ? fold : cloth, [[B_.P, 1 - sm(0.05, 0.35, u)], [B_.sF, sm(0.05, 0.35, u)]]]); } grid.push(row); }
+        K_.sheet(grid); }
+      // The sash's two ends, hanging from its knot at the left hip.
+      if (!she && sp.stage !== "child") for (const k of [0, 1]) { const len = 0.3 - k * 0.07, grid = [];
+        for (let r = 0; r <= 4; r++) { const u = r / 4, row = []; for (let c = 0; c < 3; c++) row.push([0.17 * wide + k * 0.032 + (c - 1) * 0.024 + u * 0.02 * (k ? 1 : -0.4), HY - 0.01 - len * u, 0.105 - k * 0.02 + (c === 1 ? 0.008 : 0) + u * 0.012, u > 0.86 ? GOLD : k ? G.shade(accent, 0.86) : accent, [[B_.P, 1 - sm(0, 0.4, u)], [B_.sS, sm(0, 0.4, u)]]]); grid.push(row); }
+        K_.sheet(grid); }
+      // The upper cloth. On most it lies broad across the chest from the left shoulder to the right hip and round the
+      // back; a teacher's is folded over the shoulder; a woman's goes over her shoulder from her waist. Its end hangs
+      // down the back from the shoulder and swings.
+      const worn = !armour && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare");
+      if (worn) {
+        const soldier = /^(turban|helmet)$/.test(sp.headgear || ""), uc = she || soldier ? accent : cloth, edge = uc === accent ? GOLD : accent, folded = gear.includes("thread") && !she;
+        const wY = (y) => [[B_.P, 1 - sm(0.0, 0.15, y)], [B_.T, sm(0.0, 0.15, y)]];
+        const surf = (x, y, side, lift) => { const [rx, rz] = tor(y), q = Math.max(-0.98, Math.min(0.98, x / rx)); return [x, HY + y, side * (rz * Math.sqrt(1 - q * q) + lift)]; };
+        if (!folded) for (const side of [1, -1]) { // front, then back
+          const rows = 9, half = she ? 0.085 : 0.115, grid = [];
+          for (let r = 0; r <= rows; r++) { const u = r / rows, y = 0.535 - 0.5 * u, xc = 0.185 * wide - 0.34 * wide * u, row = [];
+            for (let c = 0; c < 6; c++) { const v = c / 5 - 0.5, x = xc + v * 2 * half * 0.86, yy = y + v * 2 * half * 0.5 * (1 - u * 0.3), p = surf(x, Math.min(0.53, Math.max(0.03, yy)), side, 0.012 + (c % 2) * 0.004);
+              row.push([p[0], p[1], p[2], c === 0 ? edge : c % 2 ? uc : G.shade(uc, 0.93), wY(yy)]); } grid.push(row); }
+          K_.sheet(grid, side < 0);
+        } else { const grid = []; for (let r = 0; r <= 6; r++) { const u = r / 6, y = 0.535 - 0.46 * u, row = []; for (let c = 0; c < 4; c++) { const x = 0.19 * wide + (c - 1.5) * 0.045, p = surf(x, y, 1, 0.014 + (c % 2) * 0.006 + u * 0.01); row.push([p[0], p[1], p[2], u > 0.9 ? accent : c % 2 ? uc : G.shade(uc, 0.93), wY(y)]); } grid.push(row); } K_.sheet(grid); }
+        { const grid = []; for (let r = 0; r <= 4; r++) { const a = (r / 4) * PI, row = []; for (let c = 0; c < 4; c++) row.push([0.2 * wide + (c - 1.5) * 0.05, HY + 0.515 + Math.sin(a) * 0.035, Math.cos(a) * 0.135, c % 2 ? uc : G.shade(uc, 0.93), [[B_.T, 1]]]); grid.push(row); } K_.sheet(grid); } // over the shoulder
+        { const len = she ? 0.62 : 0.42, grid = []; for (let r = 0; r <= 6; r++) { const u = r / 6, row = []; for (let c = 0; c < 5; c++) { const v = c / 4 - 0.5;
+            row.push([0.2 * wide + v * (0.17 + 0.05 * u), HY + 0.52 - len * u, -0.135 - 0.03 * sm(0, 0.3, u) - (c % 2 ? 0.012 : 0) * u, u > 0.9 ? edge : c % 2 ? uc : G.shade(uc, 0.92), [[B_.T, 1 - sm(0.05, 0.4, u)], [B_.sB, sm(0.05, 0.4, u)]]]); } grid.push(row); }
+          K_.sheet(grid, true); } // its end, down the back
+      }
+      const bones = Object.keys(B_).sort((a, b) => B_[a] - B_[b]).map((k) => f.j[k]);
+      f.root.updateMatrixWorld(true);
+      const mesh = new T.SkinnedMesh(K_.geometry(), G.mat.vcDouble); mesh.frustumCulled = false; body.add(mesh); mesh.updateMatrixWorld(true);
+      f.skeleton = new T.Skeleton(bones); mesh.bind(f.skeleton, mesh.matrixWorld); f.skin = mesh;
+    }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
     if (!opt.noBlob) { // a soft dark patch under the feet: it holds the figure to the ground whether or not the sun casts shadows
       f.blob = new T.Mesh(BLOB_GEO || (BLOB_GEO = G.keep(new T.CircleGeometry(0.62, 14).rotateX(-PI / 2))), BLOB_MAT || (BLOB_MAT = G.keep(new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false, fog: false }))));
@@ -505,6 +615,14 @@
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
       f.root.rotation.y += d * (1 - Math.exp(-(f.turnRate || 12) * dt));
       apply();
+      { // What hangs, swings: it lags a stride, trails when you run, and stays near plumb when the body leans.
+        const j = f.j, w = Math.sin(t * 2.3 + f.phase), w2 = Math.sin(t * 3.1 + f.phase * 1.7), run = Math.min(1.4, f.speed / 3), st = Math.sin(f.phase), ks = 1 - Math.exp(-9 * dt), lean = j.T.rotation.x + j.P.rotation.x;
+        const to = (b, x, z) => { b.rotation.x += (x - b.rotation.x) * ks; b.rotation.z += (z - b.rotation.z) * ks; };
+        to(j.sB, -lean * 0.8 + run * 0.34 + w * 0.03 * (1 + run * 2), -j.T.rotation.z * 0.7 + w2 * 0.02 + st * run * 0.08);
+        to(j.sF, Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.82 - j.P.rotation.x * 0.6 + w * 0.02, w2 * 0.015 + st * run * 0.05);
+        to(j.sS, -j.P.rotation.x * 0.7 + run * 0.22 + w2 * 0.04 * (1 + run), w * 0.03 - st * run * 0.1);
+        to(j.sH, -(lean + j.H.rotation.x) * 0.7 + run * 0.26 + w * 0.02 * (1 + run), -j.H.rotation.z * 0.6 + w2 * 0.015);
+      }
       if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
     };
     // The streak of a weapon through its blow: a ribbon between where the weapon was and where it is, fading behind it.
@@ -531,7 +649,7 @@
       if (!live && !on) tr.pts.length = 0;
       tr.n = tr.pts.length; tr.m.visible = tr.n > 1; P.needsUpdate = true; Cc.needsUpdate = true;
     }
-    f.dispose = function () { if (f.trail) { G.fxRoot.remove(f.trail.m); f.trail.m.geometry.dispose(); f.trail = null; } if (f.root.parent) f.root.parent.remove(f.root); G.dispose(f.root); };
+    f.dispose = function () { if (f.skeleton) { f.skeleton.dispose(); f.skeleton = null; } if (f.trail) { G.fxRoot.remove(f.trail.m); f.trail.m.geometry.dispose(); f.trail = null; } if (f.root.parent) f.root.parent.remove(f.root); G.dispose(f.root); };
     apply();
     return f;
   };
