@@ -428,7 +428,11 @@
       const sp = g.speed * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
       move(R, p, mx * sp * dt, mz * sp * dt, false);
       g.moving = Math.min(1, l) * (R.block ? P.blockWalk : 1);
-      if (R.block) faceThreat(R); else g.a = Math.atan2(mx, mz);
+      if (R.block) faceThreat(R);
+      else if (a.strafe) { // the close views: you keep your face to the one you fight, and step round him
+        const f = R.through && R.goal ? null : R3.target(R);
+        g.a = turnTo(g.a, f && dist(f, p) < 18 ? angTo(p, f) : a.look != null ? a.look : Math.atan2(mx, mz), 12 * dt);
+      } else g.a = Math.atan2(mx, mz);
     } else if (R.block) faceThreat(R);
     else if (g.busy <= 0) { const f = R3.target(R); if (f && dist(f, p) < 9) g.a = turnTo(g.a, angTo(p, f), 9 * dt); }
     if (R.through && R.goal && Math.hypot(g.x - R.goal.x, g.z - R.goal.z) <= R.goal.r && !B.enc.cannot) { B.progress = B.enc.reach || 1; R.reached = true; }
