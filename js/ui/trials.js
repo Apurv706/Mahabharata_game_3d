@@ -44,7 +44,7 @@
     const play = PLAY[kind];
     const offs = [], timers = [], things = [], figs = [];
     let finished = false, stop = null, act = null, actUp = null, phase = "intro";
-    const hud = U.el('<div class="trial3d trial-' + kind + '"><header class="t-head"><span class="t-name">' + U.t(K.val(c.t)) + '</span><span class="t-score"></span></header><div class="t-mid"></div><p class="t-prompt"></p><div class="t-btns"></div></div>');
+    const hud = U.el('<div class="trial3d trial-' + kind + '"><header class="t-head"><span class="t-name">' + U.t(K.val(c.t)) + '</span><span class="t-score"></span></header><div class="t-mid"></div><div class="t-foot"><p class="t-prompt"></p><div class="t-btns"></div></div></div>');
     const head = hud.querySelector(".t-head"), scoreEl = hud.querySelector(".t-score"), promptEl = hud.querySelector(".t-prompt"), btns = hud.querySelector(".t-btns"), mid = hud.querySelector(".t-mid");
     const clock = makeClock(head);
     const onKey = (e) => { if (document.querySelector(".scrim")) return; if ((e.key === " " || e.key === "Enter") && act) { e.preventDefault(); e.stopPropagation(); if (!e.repeat) act(); } else if (ctx.keys && ctx.keys(e, true)) { e.preventDefault(); e.stopPropagation(); } };

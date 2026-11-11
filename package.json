@@ -1,0 +1,11 @@
+{
+  "name": "kurukshetra-a-life-3d",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kurukshetra: A Life, in 3D. A narrative RPG inside the Mahabharata with real-time battles. No build step.",
+  "scripts": {
+    "start": "node -e \"require('./tools/serve.js')(8080).then(s=>console.log(s.url))\"",
+    "test": "node tests/fights.js 6 47",
+    "smoke": "node tools/play.js --steps 1500 --every 250"
+  }
+}
