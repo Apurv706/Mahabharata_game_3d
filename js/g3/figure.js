@@ -49,10 +49,13 @@
     const sg = new T.BufferGeometry().setFromPoints([pts[0].clone(), new V3(0, 0.0, 0), pts[10].clone()]);
     const str = new T.Line(sg, G.keep(new T.LineBasicMaterial({ color: 0xf2e6c8 })));
     g.add(str); g.userData.string = str; g.userData.ends = [pts[0].clone(), pts[10].clone()];
+    const ar = G.arrowMesh(1.0); ar.rotation.x = PI / 2; ar.visible = false; g.add(ar); g.userData.arrow = ar; // the arrow on the string, seen while it is drawn
+    g.scale.setScalar(1.2); // the long bow of the epic's archers: as tall as the man, its arrow drawn back to the ear
     return g;
   }
-  // Pull the string back by d (0 at rest … 1 at the ear).
-  function drawBow(bw, d) { const P = bw.userData.string.geometry.attributes.position; P.setXYZ(1, 0, 0.0 + d * 0.62, 0); P.needsUpdate = true; }
+  // Pull the string back by d (0 at rest … 1 at the ear); an arrow lies on it while it is drawn.
+  function drawBow(bw, d) { if (bw.userData.d === d) return; bw.userData.d = d; const P = bw.userData.string.geometry.attributes.position; P.setXYZ(1, 0, d * PULL, 0); P.needsUpdate = true; const a = bw.userData.arrow; if (a) { a.visible = d > 0.04; a.position.set(0, d * PULL - 0.47, 0); } }
+  const PULL = 0.68;
   function shield(col, trim) {
     const b = B(); b.ao = 0.85;
     b.geo(new T.SphereGeometry(0.42, 12, 5, 0, PI * 2, 0, PI / 2.6).rotateZ(-PI / 2).scale(0.42, 1, 1), 0.05, 0, 0, 0, 0, 0, col || 0x7a3a2a, G.shade(col || 0x7a3a2a, 1.3));
@@ -75,13 +78,16 @@
   const REST = { P: [0, 0, 0], T: [0, 0, 0], H: [0, 0, 0], aL: [0, 0, 7], aR: [0, 0, -7], eL: -10, eR: -10, wL: [0, 0, 0], wR: [0, 0, 0], lL: [0, 0, 0], lR: [0, 0, 0], kL: 0, kR: 0, y: 0 };
   const POSES = {
     stand: {},
-    ready: { P: [0, -22, 0], T: [8, 8, 0], lL: [-20, 0, 4], kL: 18, lR: [16, 0, -4], kR: 22, y: -0.05, aR: [-38, 0, -22], eR: -72, aL: [-28, 0, 14], eL: -55 },
+    // On guard: the left foot leads (the shield side), knees bent, weight a little back, the weapon hand by the hip with the blade up and forward.
+    ready: { P: [0, -24, 0], T: [8, 10, 0], H: [0, 14, 0], lL: [-26, 0, 6], kL: 30, lR: [18, 0, -8], kR: 34, y: -0.1, aR: [-30, 0, -20], eR: -86, wR: [26, 0, 0], aL: [-42, 0, 10], eL: -62 },
+    // The mace at rest: its head up over the right shoulder, the left hand ready to join the right on the haft.
+    readyMace: { P: [0, -22, 0], T: [6, 8, 0], H: [0, 14, 0], lL: [-24, 0, 8], kL: 30, lR: [18, 0, -10], kR: 34, y: -0.11, aR: [-48, 0, -14], eR: -108, wR: [-22, 0, 0], aL: [-46, 0, -16], eL: -84 },
     readyBow: { P: [0, -18, 0], T: [4, 6, 0], lL: [-16, 0, 4], kL: 12, lR: [12, 0, -4], kR: 14, y: -0.03, aL: [-42, 0, 8], eL: -30, aR: [-20, 0, -12], eR: -60 },
     readySpear: { P: [0, -24, 0], T: [10, 10, 0], lL: [-22, 0, 4], kL: 20, lR: [18, 0, -4], kR: 24, y: -0.06, aR: [-18, 0, -20], eR: -78, wR: [62, 0, 0], aL: [-48, 0, 6], eL: -40 },
     readyFist: { P: [0, -16, 0], T: [12, 6, 0], lL: [-20, 0, 6], kL: 22, lR: [14, 0, -6], kR: 26, y: -0.07, aR: [-52, 0, -18], eR: -105, aL: [-58, 0, 16], eL: -100 },
-    block: { P: [0, -26, 0], T: [10, 16, 0], lL: [-24, 0, 4], kL: 26, lR: [18, 0, -4], kR: 30, y: -0.09, aL: [-78, -34, 0], eL: -88, aR: [-10, 0, -24], eR: -60, H: [6, 0, 0] },
-    aim: { P: [0, -30, 0], T: [0, -22, 0], H: [0, 34, 0], lL: [-14, 0, 6], kL: 8, lR: [10, 0, -6], kR: 10, aL: [-88, 0, 4], eL: -4, aR: [-82, 0, -30], eR: -128 },
-    aimLoose: { P: [0, -30, 0], T: [0, -22, 0], H: [0, 34, 0], lL: [-14, 0, 6], kL: 8, lR: [10, 0, -6], kR: 10, aL: [-88, 0, 4], eL: -4, aR: [-70, 0, -48], eR: -50 },
+    block: { P: [0, -30, 0], T: [14, 18, 0], lL: [-30, 0, 6], kL: 40, lR: [20, 0, -8], kR: 42, y: -0.16, aL: [-58, -84, 0], eL: -104, aR: [-16, 0, -26], eR: -70, wR: [20, 0, 0], H: [10, 12, 0] },
+    aim: { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-42, 32, -111], eR: -143 },
+    aimLoose: { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-50, -7, -119], eR: -137 },
     throwBack: { P: [0, -30, 0], T: [-12, -30, 0], lL: [-18, 0, 4], kL: 10, lR: [14, 0, -4], kR: 16, aR: [-150, 0, -30], eR: -85, aL: [-70, 0, 10], eL: -20 },
     sit: { y: -0.66, lL: [-84, 0, 44], kL: 138, lR: [-84, 0, -44], kR: 138, T: [4, 0, 0], aL: [-28, 0, 16], eL: -52, aR: [-28, 0, -16], eR: -52 },
     sitThink: { y: -0.66, lL: [-84, 0, 44], kL: 138, lR: [-84, 0, -44], kR: 138, T: [10, 0, 0], H: [12, 0, 0], aL: [-28, 0, 16], eL: -52, aR: [-46, 0, -6], eR: -132 },
@@ -117,30 +123,96 @@
     write: { y: -0.66, lL: [-84, 0, 44], kL: 138, lR: [-84, 0, -44], kR: 138, T: [24, 0, 0], H: [22, 0, 0], aL: [-40, 0, 6], eL: -50, aR: [-50, 0, 6], eR: -60 }
   };
   G.POSES = POSES;
-  // One-shot actions: [phase, pose] keys over 0..1; the blow lands at `land`. Legs keep whatever they were doing.
+  // One-shot actions. A blow is three poses: coiled (the wind-up, held while the mark on the ground fills), landed, and
+  // carried through. Its timing is worked out when it starts (f.act): however long the wind-up, the strike itself is a
+  // short, accelerating snap that ends exactly on the moment the rules say the blow lands. The body does what a body
+  // does (checked against written technique, docs/Fighting_Moves.md): the hips wind back and then turn into the blow,
+  // the weapon moves first and the lead foot lunges under it, the rear leg straightens to drive, and the arm carries
+  // through before the guard comes back. `land` is the share of the whole act at which it lands; `strike` its seconds.
+  const GUARD = { aL: [-30, -80, 0], eL: [-96, 0, 0] }, STANCES = new Set(["ready", "readyMace", "readySpear"]);
+  const LUNGE = { lL: [-46, 0, 5], kL: 54, lR: [30, 0, -6], kR: 6, y: -0.13, z: 0.2 }, BACK = { lL: [-24, 0, 6], kL: 16, lR: [10, 0, -8], kR: 40, y: -0.09, z: -0.05 };
+  const W = (a, b) => Object.assign({}, a, b);
   const ACTS = {
-    slash: { land: 0.5, keys: [[0, { aR: [-150, 0, -34], eR: -64, T: [-6, -26, 0], wR: [-20, 0, 0] }], [0.5, { aR: [-52, 0, 26], eR: -14, T: [18, 30, 0], wR: [44, 0, 0] }], [1, { aR: [-20, 0, 14], eR: -40, T: [10, 14, 0], wR: [20, 0, 0] }]] },
-    slash2: { land: 0.5, keys: [[0, { aR: [-78, 0, 58], eR: -72, T: [4, 34, 0], wR: [10, 0, 0] }], [0.5, { aR: [-62, 0, -52], eR: -10, T: [12, -30, 0], wR: [48, 0, 0] }], [1, { aR: [-36, 0, -30], eR: -50, T: [8, -12, 0], wR: [10, 0, 0] }]] },
-    heavy: { land: 0.55, keys: [[0, { aR: [-172, 0, -16], eR: -40, aL: [-150, 0, 16], eL: -60, T: [-16, 0, 0], y: 0.02, wR: [-30, 0, 0] }], [0.55, { aR: [-40, 0, 8], eR: -6, aL: [-36, 0, -6], eL: -14, T: [34, 0, 0], y: -0.1, wR: [58, 0, 0] }], [1, { aR: [-24, 0, 0], eR: -30, aL: [-20, 0, 6], eL: -30, T: [16, 0, 0], y: -0.05, wR: [20, 0, 0] }]] },
-    thrust: { land: 0.5, keys: [[0, { aR: [26, 0, -20], eR: -104, T: [2, -32, 0], wR: [78, 0, 0], aL: [-58, 0, 8], eL: -30 }], [0.5, { aR: [-84, 0, 2], eR: -4, T: [16, 26, 0], wR: [84, 0, 0], aL: [-10, 0, 14], eL: -40, y: -0.06 }], [1, { aR: [-30, 0, -16], eR: -70, T: [10, 6, 0], wR: [66, 0, 0], aL: [-40, 0, 8], eL: -36 }]] },
-    smash: { land: 0.56, keys: [[0, { aR: [-176, 0, -10], eR: -44, T: [-18, 0, 0], y: 0.03, wR: [-36, 0, 0], aL: [-120, 0, 20], eL: -70 }], [0.56, { aR: [-34, 0, 4], eR: -6, T: [38, 0, 0], y: -0.12, wR: [64, 0, 0], aL: [-20, 0, 10], eL: -30 }], [1, { aR: [-26, 0, -6], eR: -36, T: [16, 0, 0], y: -0.05, wR: [24, 0, 0], aL: [-24, 0, 10], eL: -40 }]] },
-    sweep: { land: 0.52, keys: [[0, { aR: [-66, 0, -98], eR: -22, T: [6, -52, 0], wR: [40, 0, 0], aL: [-40, 0, 20], eL: -50 }], [0.52, { aR: [-72, 0, 42], eR: -8, T: [10, 46, 0], wR: [60, 0, 0], aL: [-10, 0, 30], eL: -40 }], [1, { aR: [-40, 0, 20], eR: -40, T: [8, 18, 0], wR: [30, 0, 0], aL: [-24, 0, 14], eL: -44 }]] },
-    stab: { land: 0.45, keys: [[0, { aR: [-16, 0, -14], eR: -116, T: [4, -18, 0], wR: [70, 0, 0] }], [0.45, { aR: [-78, 0, 6], eR: -8, T: [12, 20, 0], wR: [80, 0, 0] }], [1, { aR: [-40, 0, -14], eR: -76, T: [8, 4, 0], wR: [40, 0, 0] }]] },
-    punch: { land: 0.45, keys: [[0, { aR: [-30, 0, -20], eR: -120, T: [6, -22, 0] }], [0.45, { aR: [-82, 0, 8], eR: -6, T: [14, 24, 0] }], [1, { aR: [-52, 0, -16], eR: -100, T: [10, 4, 0] }]] },
+    // A descending cut from the right shoulder, the hips turning it in (the forehand).
+    slash: { land: 0.5, strike: 0.12,
+      coil: W(BACK, { P: [0, -40, 0], T: [-4, -24, 0], H: [0, 40, 0], aR: [-84, 0, -30], eR: -122, wR: [66, 0, 0], aL: [-52, 0, 4], eL: -58 }),
+      hit: W(LUNGE, { P: [0, 20, 0], T: [14, 26, 0], H: [0, -26, 0], aR: [-64, 0, 30], eR: -10, wR: [50, 0, 0], aL: [-20, 0, 22], eL: -76 }),
+      follow: W(LUNGE, { P: [0, 30, 0], T: [20, 36, 0], H: [0, -34, 0], aR: [-34, 0, 40], eR: -20, wR: [68, 0, 0], aL: [-14, 0, 26], eL: -80, y: -0.15 }) },
+    // The backhand that answers it, from the left shoulder across to the right.
+    slash2: { land: 0.5, strike: 0.12,
+      coil: W(BACK, { P: [0, 16, 0], T: [2, 30, 0], H: [0, -20, 0], aR: [-76, 0, 60], eR: -116, wR: [18, 0, 0], aL: [-30, 0, 20], eL: -70, y: -0.08, z: 0 }),
+      hit: W(LUNGE, { P: [0, -20, 0], T: [12, -26, 0], H: [0, 30, 0], aR: [-70, 0, -46], eR: -8, wR: [48, 0, 0], aL: [-36, 0, 14], eL: -64, kL: 44, y: -0.1, z: 0.14 }),
+      follow: W(LUNGE, { P: [0, -30, 0], T: [14, -36, 0], H: [0, 40, 0], aR: [-44, 0, -62], eR: -22, wR: [62, 0, 0], aL: [-40, 0, 10], eL: -60, kL: 46, y: -0.11, z: 0.15 }) },
+    // The heavy blow: both hands above the head, the whole body dropping into the cut.
+    heavy: { land: 0.55, strike: 0.14,
+      coil: W(BACK, { P: [0, -12, 0], T: [-16, -6, 0], H: [8, 12, 0], aR: [-166, 0, 12], eR: -64, wR: [-18, 0, 0], aL: [-166, 0, -12], eL: -64, y: -0.03, z: -0.07 }),
+      hit: W(LUNGE, { P: [0, 6, 0], T: [32, 6, 0], H: [-14, -6, 0], aR: [-60, 0, 12], eR: -8, wR: [52, 0, 0], aL: [-60, 0, -12], eL: -10, kL: 60, y: -0.18, z: 0.22 }),
+      follow: W(LUNGE, { P: [0, 8, 0], T: [40, 8, 0], H: [-18, -8, 0], aR: [-40, 0, 10], eR: -10, wR: [66, 0, 0], aL: [-40, 0, -10], eL: -12, kL: 64, y: -0.21, z: 0.23 }) },
+    // A spear thrust: the point goes first, the body follows, the lead foot lands last.
+    thrust: { land: 0.5, strike: 0.13,
+      coil: W(BACK, { P: [0, -36, 0], T: [4, -22, 0], H: [0, 44, 0], aR: [30, 0, -18], eR: -104, wR: [76, 0, 0], aL: [-54, 0, 4], eL: -32 }),
+      hit: W(LUNGE, { P: [0, 12, 0], T: [18, 24, 0], H: [-6, -28, 0], aR: [-80, 0, 6], eR: -4, wR: [84, 0, 0], aL: [-72, 0, -6], eL: -28, kL: 62, y: -0.16, z: 0.27 }),
+      follow: W(LUNGE, { P: [0, 8, 0], T: [16, 18, 0], H: [-6, -22, 0], aR: [-62, 0, 2], eR: -34, wR: [86, 0, 0], aL: [-64, 0, -2], eL: -36, kL: 56, y: -0.15, z: 0.22 }) },
+    // The mace brought over from behind the back, both hands on the haft, the knees sinking under it.
+    smash: { land: 0.56, strike: 0.15,
+      coil: W(BACK, { P: [0, -14, 0], T: [-18, -10, 0], H: [10, 16, 0], aR: [-152, 0, 6], eR: -104, wR: [-34, 0, 0], aL: [-150, 0, -16], eL: -98, y: -0.02, z: -0.08 }),
+      hit: W(LUNGE, { P: [0, 4, 0], T: [36, 4, 0], H: [-16, -4, 0], aR: [-58, 0, 10], eR: -6, wR: [58, 0, 0], aL: [-58, 0, -12], eL: -10, lL: [-48, 0, 8], kL: 66, lR: [28, 0, -10], kR: 14, y: -0.22, z: 0.18 }),
+      follow: W(LUNGE, { P: [0, 4, 0], T: [44, 4, 0], H: [-20, -4, 0], aR: [-40, 0, 8], eR: -8, wR: [68, 0, 0], aL: [-40, 0, -10], eL: -12, lL: [-48, 0, 8], kL: 70, lR: [28, 0, -10], kR: 16, y: -0.25, z: 0.19 }) },
+    // The mace swung level from the right, the hips throwing it round through everyone in reach.
+    sweep: { land: 0.52, strike: 0.15,
+      coil: { P: [0, -38, 0], T: [2, -34, 0], H: [0, 62, 0], aR: [0, 0, -88], eR: -40, wR: [90, 0, 0], aL: [-56, 0, -30], eL: -64, lL: [-22, 0, 12], kL: 26, lR: [12, 0, -14], kR: 36, y: -0.12, z: -0.03 },
+      hit: { P: [0, 6, 0], T: [8, 8, 0], H: [0, -12, 0], aR: [0, 88, -84], eR: -8, wR: [86, 0, 0], aL: [-44, 0, 40], eL: -52, lL: [-34, 0, 14], kL: 44, lR: [24, 0, -14], kR: 18, y: -0.16, z: 0.1 },
+      follow: { P: [0, 30, 0], T: [10, 34, 0], H: [0, -56, 0], aR: [0, 128, -80], eR: -18, wR: [74, 0, 0], aL: [-40, 0, 48], eL: -56, lL: [-34, 0, 14], kL: 46, lR: [26, 0, -14], kR: 20, y: -0.17, z: 0.1 } },
+    // A dagger's quick straight stab.
+    stab: { land: 0.45, strike: 0.09,
+      coil: W(BACK, { P: [0, -32, 0], T: [4, -18, 0], H: [0, 36, 0], aR: [-8, 0, -12], eR: -120, wR: [66, 0, 0], aL: [-50, 0, 6], eL: -70, y: -0.1 }),
+      hit: W(LUNGE, { P: [0, 10, 0], T: [14, 22, 0], H: [0, -22, 0], aR: [-80, 0, 8], eR: -6, wR: [82, 0, 0], aL: [-24, 0, 20], eL: -84, kL: 46, y: -0.11, z: 0.15 }),
+      follow: W(LUNGE, { P: [0, 6, 0], T: [12, 14, 0], H: [0, -14, 0], aR: [-58, 0, 2], eR: -40, wR: [78, 0, 0], aL: [-30, 0, 18], eL: -80, kL: 42, y: -0.1, z: 0.12 }) },
+    // A straight right hand, thrown from the hips.
+    punch: { land: 0.45, strike: 0.09,
+      coil: W(BACK, { P: [0, -30, 0], T: [6, -22, 0], H: [0, 40, 0], aR: [-26, 0, -18], eR: -126, aL: [-62, 0, 14], eL: -98, y: -0.11 }),
+      hit: W(LUNGE, { P: [0, 16, 0], T: [14, 30, 0], H: [0, -34, 0], aR: [-84, 0, 10], eR: -4, aL: [-40, 0, 20], eL: -118, kL: 44, y: -0.12, z: 0.14 }),
+      follow: W(LUNGE, { P: [0, 10, 0], T: [12, 18, 0], H: [0, -20, 0], aR: [-60, 0, 0], eR: -70, aL: [-52, 0, 18], eL: -104, kL: 40, y: -0.11, z: 0.11 }) },
+    hammer: { land: 0.5, strike: 0.12,
+      coil: { aR: [-150, 0, -10], eR: -74, wR: [-10, 0, 0], T: [-8, 0, 0] }, hit: { aR: [-50, 0, 0], eR: -18, wR: [40, 0, 0], T: [22, 0, 0], y: -0.06 }, follow: { aR: [-44, 0, 0], eR: -22, wR: [46, 0, 0], T: [24, 0, 0], y: -0.07 } },
+    throw: { land: 0.55, strike: 0.11,
+      coil: W(BACK, { P: [0, -40, 0], T: [-12, -30, 0], H: [0, 50, 0], aR: [-150, 0, -30], eR: -88, aL: [-70, 0, 10], eL: -24 }), hit: W(LUNGE, { P: [0, 20, 0], T: [18, 28, 0], H: [0, -30, 0], aR: [-72, 0, 14], eR: -6, aL: [-10, 0, 20], eL: -50 }), follow: W(LUNGE, { P: [0, 30, 0], T: [26, 36, 0], H: [0, -36, 0], aR: [-30, 0, 24], eR: -16, aL: [0, 0, 22], eL: -50 }) },
+    // The shot whole (written shot cycle: nock, raise, draw to the corner of the mouth with the elbow high, hold,
+    // loose, and the string hand carried back under the ear while the bow arm stays up): phases of the whole act.
+    shoot: { land: 0.88, bow: [0.3, 0.72], keys: [
+      [0, { P: [0, -30, 0], T: [2, -16, 0], H: [0, 44, 0], lL: [-8, 0, 10], kL: 8, lR: [6, 0, -10], kR: 10, y: -0.02, aL: [-21, -41, 29], eL: -68, wL: [0, 0, 0], aR: [-144, 36, -40], eR: -93 }],
+      [0.24, { P: [0, -30, 0], T: [2, -16, 0], H: [0, 44, 0], lL: [-8, 0, 10], kL: 8, lR: [6, 0, -10], kR: 10, y: -0.02, aL: [-21, -41, 29], eL: -68, wL: [0, 0, 0], aR: [-89, 41, 45], eR: -21 }],
+      [0.36, { P: [0, -40, 0], T: [0, -30, 0], H: [0, 66, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [-6, -12, 76], eL: -14, wL: [0, 70, 0], aR: [-70, 38, -40], eR: -60 }],
+      [0.72, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-42, 32, -111], eR: -143 }],
+      [0.88, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-43, 30, -112], eR: -144 }],
+      [0.93, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -4, 88], eL: -2, wL: [0, 90, 0], aR: [-50, -7, -119], eR: -137 }],
+      [1, { P: [0, -44, 0], T: [0, -34, 0], H: [0, 72, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -6, 82], eL: -6, wL: [0, 90, 0], aR: [-50, -10, -112], eR: -128 }]] },
+    // A quick shot, the arrow already on the string.
+    loose: { land: 0.62, bow: [0, 0.5], keys: [
+      [0, { P: [0, -40, 0], T: [0, -30, 0], H: [0, 66, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [-6, -12, 76], eL: -14, wL: [0, 70, 0], aR: [-70, 38, -40], eR: -60 }],
+      [0.5, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-42, 32, -111], eR: -143 }],
+      [0.62, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -2, 90], eL: 0, wL: [0, 90, 0], aR: [-43, 30, -112], eR: -144 }],
+      [0.72, { P: [0, -48, 0], T: [0, -40, 0], H: [0, 80, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [0, -4, 88], eL: -2, wL: [0, 90, 0], aR: [-50, -7, -119], eR: -137 }],
+      [1, { P: [0, -40, 0], T: [0, -28, 0], H: [0, 62, 0], lL: [-4, 0, 13], kL: 6, lR: [2, 0, -13], kR: 8, y: -0.02, aL: [-4, -10, 74], eL: -12, wL: [0, 80, 0], aR: [-60, 10, -80], eR: -110 }]] },
     grab: { land: 0.5, keys: [[0, { aR: [-60, 0, -40], eR: -50, aL: [-60, 0, 40], eL: -50, T: [10, 0, 0] }], [0.5, { aR: [-80, 0, 16], eR: -24, aL: [-80, 0, -16], eL: -24, T: [26, 0, 0], y: -0.1 }], [1, { aR: [-60, 0, -8], eR: -60, aL: [-60, 0, 8], eL: -60, T: [14, 0, 0] }]] },
-    loose: { land: 0.62, keys: [[0, { aL: [-70, 0, 6], eL: -20, aR: [-74, 0, -10], eR: -60, T: [0, -10, 0], P: [0, -30, 0], H: [0, 34, 0] }], [0.5, { aL: [-88, 0, 4], eL: -4, aR: [-82, 0, -30], eR: -128, T: [0, -22, 0], P: [0, -30, 0], H: [0, 34, 0] }], [0.62, { aL: [-88, 0, 4], eL: -4, aR: [-82, 0, -30], eR: -128, T: [0, -22, 0], P: [0, -30, 0], H: [0, 34, 0] }], [0.72, { aL: [-88, 0, 4], eL: -4, aR: [-64, 0, -52], eR: -44, T: [0, -24, 0], P: [0, -30, 0], H: [0, 34, 0] }], [1, { aL: [-60, 0, 8], eL: -24, aR: [-30, 0, -20], eR: -60, T: [2, -10, 0], P: [0, -24, 0], H: [0, 20, 0] }]] },
-    parry: { land: 0.3, keys: [[0, { aR: [-70, 0, 20], eR: -90, T: [4, 10, 0], wR: [-10, 0, 0] }], [0.3, { aR: [-104, 0, 36], eR: -70, T: [-4, 24, 0], wR: [-30, 0, 40] }], [1, { aR: [-50, 0, -10], eR: -74, T: [6, 6, 0], wR: [0, 0, 0] }]] },
-    hit: { land: 0.2, keys: [[0, { T: [0, 0, 0], H: [0, 0, 0] }], [0.2, { T: [-22, 0, 10], H: [-18, 0, 0] }], [1, { T: [0, 0, 0], H: [0, 0, 0] }]] },
-    throw: { land: 0.55, keys: [[0, { aR: [-150, 0, -30], eR: -85, T: [-12, -30, 0] }], [0.55, { aR: [-70, 0, 14], eR: -8, T: [16, 26, 0] }], [1, { aR: [-20, 0, 4], eR: -30, T: [8, 8, 0] }]] },
-    hammer: { land: 0.5, keys: [[0, { aR: [-150, 0, -10], eR: -70, T: [-6, 0, 0] }], [0.5, { aR: [-48, 0, 0], eR: -20, T: [22, 0, 0] }], [1, { aR: [-70, 0, -4], eR: -60, T: [10, 0, 0] }]] },
+    // The weapon thrown up across the body to meet a blow, the weight sinking under it.
+    parry: { land: 0.3, keys: [[0, { aR: [-70, 0, 20], eR: -90, T: [4, 10, 0], wR: [-10, 0, 0], y: 0 }], [0.3, { aR: [-112, 0, 40], eR: -74, T: [-6, 26, 0], wR: [-34, 0, 44], y: -0.07 }], [1, { aR: [-50, 0, -10], eR: -74, T: [6, 6, 0], wR: [0, 0, 0], y: 0 }]] },
+    // Struck: the trunk and head thrown back, the arms flung open, the knees giving for a moment.
+    hit: { land: 0.2, keys: [[0, { T: [0, 0, 0], H: [0, 0, 0], y: 0 }], [0.2, { T: [-24, 0, 12], H: [-22, 0, 8], y: -0.07 }], [0.5, { T: [-12, 0, 6], H: [-8, 0, 2], y: -0.04 }], [1, { T: [0, 0, 0], H: [0, 0, 0], y: 0 }]] },
     nod: { land: 0.4, keys: [[0, { H: [0, 0, 0] }], [0.4, { H: [22, 0, 0] }], [1, { H: [0, 0, 0] }]] },
-    wave: { land: 0.5, keys: [[0, { aR: [-150, 0, -30], eR: -30 }], [0.25, { aR: [-150, 0, -10], eR: -50 }], [0.5, { aR: [-150, 0, -40], eR: -20 }], [0.75, { aR: [-150, 0, -10], eR: -50 }], [1, { aR: [-150, 0, -30], eR: -30 }]] }
+    wave: { land: 0.5, keys: [[0, { aR: [-150, 0, -30], eR: -30 }], [0.25, { aR: [-150, 0, -10], eR: -50 }], [0.5, { aR: [-150, 0, -40], eR: -20 }], [0.75, { aR: [-150, 0, -10], eR: -50 }], [1, { aR: [-150, 0, -30], eR: -30 }]] },
+    // The weapon raised and shaken at the foe: a challenge.
+    taunt: { land: 0.5, keys: [[0, { aR: [-60, 0, -20], eR: -80, T: [0, 0, 0], H: [0, 0, 0] }], [0.3, { aR: [-160, 0, -24], eR: -30, wR: [-20, 0, 0], T: [-10, 0, 0], H: [-12, 0, 0] }], [0.5, { aR: [-166, 0, -10], eR: -44, wR: [-30, 0, 0], T: [-12, 0, 0], H: [-14, 0, 0] }], [0.7, { aR: [-160, 0, -28], eR: -26, wR: [-16, 0, 0], T: [-10, 0, 0], H: [-12, 0, 0] }], [1, { aR: [-60, 0, -20], eR: -80, T: [0, 0, 0], H: [0, 0, 0] }]] }
   };
   G.ACTS = ACTS;
   const JOINTS = ["P", "T", "H", "aL", "aR", "eL", "eR", "wL", "wR", "lL", "lR", "kL", "kR"];
   const vec = (v) => (typeof v === "number" ? [v, 0, 0] : v);
-  function fillPose(out, src) { for (const k of JOINTS) { const v = vec(src[k] != null ? src[k] : REST[k]); const o = out[k]; o[0] = v[0]; o[1] = v[1]; o[2] = v[2]; } out.y = src.y != null ? src.y : 0; return out; }
-  const blank = () => { const o = { y: 0 }; for (const k of JOINTS) o[k] = [0, 0, 0]; return o; };
+  function fillPose(out, src) { for (const k of JOINTS) { const v = vec(src[k] != null ? src[k] : REST[k]); const o = out[k]; o[0] = v[0]; o[1] = v[1]; o[2] = v[2]; } out.y = src.y != null ? src.y : 0; out.z = src.z || 0; return out; }
+  const blank = () => { const o = { y: 0, z: 0 }; for (const k of JOINTS) o[k] = [0, 0, 0]; return o; };
+  // A whole pose from a base and the joints a blow names (y and z as they are given).
+  function overlay(out, base, part) { fillPose(out, base); for (const k in part) { if (k === "y" || k === "z") out[k] = part[k]; else { const v = vec(part[k]), o = out[k]; o[0] = v[0]; o[1] = v[1]; o[2] = v[2]; } } return out; }
+  function copyPose(a, b) { for (const k of JOINTS) { a[k][0] = b[k][0]; a[k][1] = b[k][1]; a[k][2] = b[k][2]; } a.y = b.y; a.z = b.z; return a; }
+  function mixPose(out, a, b, u) { for (const k of JOINTS) { const o = out[k], x = a[k], y = b[k]; o[0] = x[0] + (y[0] - x[0]) * u; o[1] = x[1] + (y[1] - x[1]) * u; o[2] = x[2] + (y[2] - x[2]) * u; } out.y = a.y + (b.y - a.y) * u; out.z = a.z + (b.z - a.z) * u; return out; }
 
   // ---------- The body ----------
   const STAGE = { child: [0.62, 1.4], youth: [0.9, 1.16], adult: [1, 1.1], elder: [0.97, 1.1] };
@@ -243,7 +315,7 @@
       if (f.item) { f.item.parent.remove(f.item); G.dispose(f.item); f.item = null; }
       if (f.bow) { f.bow.parent.remove(f.bow); G.dispose(f.bow); f.bow = null; }
       f.itemKind = item || null;
-      if (item === "bow") { f.bow = bow(); f.bow.position.set(0, -0.02, 0.03); f.j.wL.add(f.bow); }
+      if (item === "bow") { f.bow = bow(); f.bow.position.set(0, 0.25, 0.03); f.bow.rotation.set(0.12, 0, 0.16); f.j.wL.add(f.bow); }
       else { const m = held(item, sp.maceCol); if (m) { m.position.set(0, -0.03, 0.02); m.castShadow = true; f.j.wR.add(m); f.item = m; } }
       return f;
     };
@@ -252,7 +324,7 @@
       if (on) { f.shield = shield(col || cloth, trim); f.shield.position.set(0.07, -0.16, 0); f.shield.castShadow = true; f.j.eL.add(f.shield); }
       return f;
     };
-    f.drawBow = (d) => { if (f.bow) drawBow(f.bow, d); };
+    f.drawBow = (d) => { if (f.bow) { f.autoDraw = false; drawBow(f.bow, d); } };
     // Where the weapon's tip (or the bow hand) is in the world, for arrows, sparks and trails.
     f.tip = function (out) { out = out || new V3(); if (f.item) { out.set(0, 0, f.item.userData.tip); f.item.localToWorld(out); } else if (f.bow) { out.set(0, 0, 0); f.bow.localToWorld(out); } else { out.set(0, -0.06, 0); f.j.wR.localToWorld(out); } return out; };
     f.headPos = function (out) { out = out || new V3(); out.set(0, 0.22, 0); f.j.H.localToWorld(out); return out; };
@@ -262,7 +334,17 @@
 
     f.pose = function (name, snap) { f.base = POSES[name] ? name : "stand"; if (snap) { compute(0, 0); copyTo(f.cur, f.tgt); apply(); } return f; };
     // A one-shot: name, how long it lasts (s), and optionally how far through it starts.
-    f.act = function (name, dur, from) { const A = ACTS[name]; if (!A) return f; f.action = { A, name, t: (from || 0) * dur, dur: Math.max(0.05, dur) }; return f; };
+    f.act = function (name, dur, from) {
+      const A = ACTS[name]; if (!A) return f;
+      const a = (f.action = { A, name, t: (from || 0) * dur, dur: Math.max(0.05, dur) });
+      if (A.coil) { // a blow: the coil is reached early and held; the strike is a short snap that ends on the landing
+        const base = POSES[f.base] || POSES.stand;
+        a.tL = A.land * a.dur; a.tS = a.tL - Math.min(A.strike || 0.13, a.tL * 0.62); a.tC = Math.min(a.tS * 0.72, 0.3); a.tF = Math.min(a.dur, a.tL + Math.min(0.15, (a.dur - a.tL) * 0.55));
+        const sh = f.shield ? GUARD : null; // (a shield stays across the front: the blow is the right arm's)
+        a.snap = copyPose(blank(), f.cur); a.coil = overlay(blank(), base, sh ? W(A.coil, sh) : A.coil); a.hit = overlay(blank(), base, sh ? W(A.hit, sh) : A.hit); a.follow = overlay(blank(), base, sh ? W(A.follow || A.hit, sh) : A.follow || A.hit);
+      }
+      return f;
+    };
     f.acting = () => !!f.action;
     f.place = function (x, z, ry) { f.root.position.set(x, f.root.position.y, z); if (ry != null) { f.root.rotation.y = ry; f.face = ry; } return f; };
     f.face = 0;
@@ -272,10 +354,11 @@
     f.drop = function (on, dir) { f.fallTo = on ? 1 : 0; if (dir) f.fallDir = dir; return f; };
 
     const k1 = blank(), k2 = blank();
-    function copyTo(a, b) { for (const k of JOINTS) { a[k][0] = b[k][0]; a[k][1] = b[k][1]; a[k][2] = b[k][2]; } a.y = b.y; }
+    function copyTo(a, b) { copyPose(a, b); }
     function compute(dt, t) {
       const tg = f.tgt;
       fillPose(tg, POSES[f.base] || POSES.stand);
+      if (f.shield && STANCES.has(f.base)) { tg.aL[0] = GUARD.aL[0]; tg.aL[1] = GUARD.aL[1]; tg.aL[2] = GUARD.aL[2]; tg.eL[0] = GUARD.eL[0]; }
       // The walk: legs and (when the hands are free) arms ride on the distance covered.
       const sp2 = Math.min(1, f.speed / 3.2), moving = f.speed > 0.15 && f.fall < 0.2;
       if (moving) {
@@ -289,9 +372,26 @@
       } else if (f.fall < 0.2) { const br = Math.sin(t * 1.6 + f.phase); tg.T[0] += br * 1.2; tg.aL[2] += br * 0.8; tg.aR[2] -= br * 0.8; }
       if (f.talk && f.fall < 0.2) { const w = Math.sin(t * 2.6 + f.phase), w2 = Math.sin(t * 1.7 + f.phase * 2); if (f.base === "stand" || f.base === "talk") { tg.aR[0] = -36 + w * 10; tg.aR[2] = -14 + w2 * 8; tg.eR[0] = -74 + w * 22; tg.H[0] += w2 * 4; tg.T[0] += 3; } else tg.H[0] += w2 * 5; }
       if (f.look && f.fall < 0.2) { const a = Math.atan2(f.look.x - f.root.position.x, f.look.z - f.root.position.z) - f.root.rotation.y, d = Math.atan2(Math.sin(a), Math.cos(a)) / D; tg.H[1] += G.clamp(d, -62, 62) * 0.8; }
-      if (f.action) {
+      // Going down: the knees give first, the body folds, and only then does it go over.
+      if (f.fall > 0) { const b = Math.sin(Math.min(1, f.fall * 1.5) * PI), dn = POSES.down, m = Math.min(1, f.fall * 1.6); overlay(k1, dn, {}); mixPose(tg, tg, k1, m); tg.kL[0] += 64 * b; tg.kR[0] += 48 * b; tg.lL[0] -= 30 * b; tg.lR[0] -= 18 * b; tg.y -= 0.24 * b; tg.T[0] += 22 * b * f.fallDir; tg.H[0] += 16 * b * f.fallDir; }
+      f.exact = false;
+      let drawn = f.base === "aim" ? 1 : 0;
+      if (f.action && f.action.A.coil) {
+        const a = f.action; a.t += dt;
+        if (a.t >= a.dur) f.action = null;
+        else {
+          const t2 = a.t; let u;
+          if (t2 < a.tC) { u = t2 / Math.max(1e-3, a.tC); mixPose(tg, a.snap, a.coil, 1 - (1 - u) * (1 - u)); }
+          else if (t2 < a.tS) { u = (t2 - a.tC) / Math.max(1e-3, a.tS - a.tC); copyPose(tg, a.coil); const w = Math.sin(u * PI) * 2.2; tg.T[0] -= w; tg.aR[0] -= w * 1.5; tg.y -= 0.012 * u; } // held, tightening
+          else if (t2 < a.tL) { u = (t2 - a.tS) / Math.max(1e-3, a.tL - a.tS); mixPose(tg, a.coil, a.hit, u * u * u); }               // the snap, gathering speed
+          else if (t2 < a.tF) { u = (t2 - a.tL) / Math.max(1e-3, a.tF - a.tL); mixPose(tg, a.hit, a.follow, 1 - (1 - u) * (1 - u)); }
+          else { u = (t2 - a.tF) / Math.max(1e-3, a.dur - a.tF); copyPose(k2, tg); mixPose(tg, a.follow, k2, u * u * (3 - 2 * u)); }
+          f.exact = true;
+        }
+      } else if (f.action) {
         const a = f.action; a.t += dt;
         const p = a.t / a.dur, ks = a.A.keys;
+        if (a.A.bow && p < 1) drawn = p < a.A.bow[0] ? 0 : p < a.A.bow[1] ? (p - a.A.bow[0]) / (a.A.bow[1] - a.A.bow[0]) : p < a.A.land ? 1 : 0;
         if (p >= 1) f.action = null;
         else {
           let i = 0; while (i < ks.length - 2 && p > ks[i + 1][0]) i++;
@@ -305,20 +405,22 @@
           }
         }
       }
+      if (f.bow && f.autoDraw !== false) drawBow(f.bow, drawn);
     }
     function apply() {
       const c = f.cur, j = f.j;
       for (const k of JOINTS) j[k].rotation.set(c[k][0] * D, c[k][1] * D, c[k][2] * D);
-      j.P.position.y = 0.92 + c.y;
-      // Going down: the whole body turns about the feet until it lies along the ground.
-      const fl = f.fall; tilt.rotation.x = -fl * (PI / 2) * f.fallDir + f.spin; tilt.position.y = fl * 0.11 + (f.spin ? 0.5 * Math.abs(Math.sin(f.spin / 2)) * 1.1 : 0);
+      j.P.position.y = 0.92 + c.y; j.P.position.z = c.z;
+      // Going down: once the knees have given, the whole body goes over about the feet until it lies along the ground.
+      const fl = f.fall, over = fl < 0.3 ? 0 : (fl - 0.3) / 0.7, go = over * over * (3 - 2 * over);
+      tilt.rotation.x = -go * (PI / 2) * f.fallDir + f.spin; tilt.position.y = go * 0.11 + (f.spin ? 0.5 * Math.abs(Math.sin(f.spin / 2)) * 1.1 : 0);
     }
     f.update = function (dt, t) {
       compute(dt, t);
-      const k = 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
+      const k = f.exact ? 1 : 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
       for (const key of JOINTS) { const a = c[key], b = tg[key]; a[0] += (b[0] - a[0]) * k; a[1] += (b[1] - a[1]) * k; a[2] += (b[2] - a[2]) * k; }
-      c.y += (tg.y - c.y) * k;
-      if (f.fall !== f.fallTo) f.fall = f.fallTo > f.fall ? Math.min(f.fallTo, f.fall + dt * 2.6) : Math.max(f.fallTo, f.fall - dt * 2.2);
+      c.y += (tg.y - c.y) * k; c.z += (tg.z - c.z) * k;
+      if (f.fall !== f.fallTo) f.fall = f.fallTo > f.fall ? Math.min(f.fallTo, f.fall + dt * 1.7) : Math.max(f.fallTo, f.fall - dt * 2.2);
       // Turn toward the facing asked for, the short way round.
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
       f.root.rotation.y += d * (1 - Math.exp(-(f.turnRate || 12) * dt));

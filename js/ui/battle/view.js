@@ -56,7 +56,7 @@
   const STANDARD = { arjuna: ["#2d5aa0", "#f2d27a", "ape"], bhishma: ["#efe6cf", "#c9a24e", "palm"], karna: ["#a3302a", "#f2d27a", "girth"], drona: ["#d98a3a", "#f2ead2", "pot"], abhimanyu: ["#2d5aa0", "#f2d27a", "tree"], duryodhana: ["#7a1f2a", "#e2b55a", "serpent"],
     bhima: ["#2d5aa0", "#f2d27a", "lion"], jayadratha: ["#5a4a6a", "#e8e8e8", "boar"], yudhishthira: ["#2d5aa0", "#f2ead2", "moon"], ashwatthama: ["#3a2a3a", "#c9a24e", "lion"], kripa: ["#8a5a2a", "#f2ead2", "wheel"] };
   const itemOf = (w) => (w === "fist" || w === "tusk" || w === "fire" ? null : w);
-  const READY = { bow: "readyBow", spear: "readySpear", staff: "readySpear", fist: "readyFist" };
+  const READY = { bow: "readyBow", spear: "readySpear", staff: "readySpear", fist: "readyFist", mace: "readyMace" };
   const SQUAD = [[0, 0.3], [-0.66, -0.34], [0.66, -0.34]];
 
   U.startBattle = function (encId, onEnd) {
@@ -173,20 +173,19 @@
         if (u.side === "player") {
           f.spin = R.roll > 0 && !R.dash ? Math.PI * 2 * (1 - R.roll / R3.P.roll) : 0;
           if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
-          if (R.block) pose = "block"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
+          if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
         } else {
           if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
-          else if (g.atk && g.atk.ranged) pose = "aim";
           f.drop(g.down > 0);
-          if (f.bow) f.drawBow(g.atk && g.atk.ranged ? clamp((R.t - g.atk.t0) / Math.max(0.1, g.atk.land - g.atk.t0), 0, 1) : 0);
         }
         if (f.base !== pose) f.pose(pose);
         f.update(dt, t);
       });
     }
     // The blow a foe is winding up, shown by its body: the act is timed so the weapon comes down when the blow lands.
-    function actFor(u, a) { const w = u.g.weapon; return a.ranged ? null : a.arc === "smash" ? "smash" : a.arc === "sweep" ? "sweep" : a.area ? "smash" : w === "spear" || w === "staff" ? "thrust" : w === "fist" ? "punch" : w === "dagger" ? "stab" : a.heavy ? "heavy" : "slash"; }
+    // (A shot is the whole cycle: quiver, nock, draw to the ear, loose; a hurried one starts with the arrow on the string.)
+    function actFor(u, a) { const w = u.g.weapon; return a.ranged ? (w === "bow" || u.g.archer ? (a.land - a.t0 < 0.75 ? "loose" : "shoot") : "throw") : a.arc === "smash" ? "smash" : a.arc === "sweep" ? "sweep" : a.area ? "smash" : w === "spear" || w === "staff" ? "thrust" : w === "fist" ? "punch" : w === "dagger" ? "stab" : a.heavy ? "heavy" : "slash"; }
     function windups(t) {
       for (const v of views.values()) {
         const u = v.u, a = u.hp > 0 ? u.g.atk : null;
@@ -236,7 +235,7 @@
             break; }
           case "windup": if (!tips.mark && v && v.u.side === "enemy" && C.player() && (R3.threats(R).length)) tip("mark", "A mark on the ground shows where a blow will land. Step or roll out of it before it fills."); break;
           case "swing": if (e.area && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); if (v && v.kind === "light") { G.fx.beam(at, new T.Vector3(e.x, 28, e.z), 0xfff0b0, 0.9, 0.7); G.fx.flash("rgba(255,240,200,.35)", 300); } G.fx.ring(at, 0xffb060, 0.4, e.r || 3, 0.5); G.fx.burst("dust", at, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } break;
-          case "shot": sfx("tap"); if (f && e.uid !== p.uid) for (const x of v.figs) x.act("loose", 0.32, 0.5); break;
+          case "shot": sfx("tap"); if (f && e.uid !== p.uid) for (const x of v.figs) if (!x.action || !G.ACTS[x.action.name].bow) x.act("loose", 0.4, 0.55); break;
           case "arrive": { const s = shots.get(e.shot.n); if (s) { if (e.uid != null) G.fx.burst("spark", s.position, { n: 4 }); G.fxRoot.remove(s); G.dispose(s); shots.delete(e.shot.n); } break; }
           case "parry": { const at = posOf(e.uid, 1.3); if (at && pf) { at.lerp(pf.root.position.clone().setY(1.3), 0.5); G.fx.burst("spark", at, { n: 16, s: 1.4 }); } if (pf) pf.act("parry", 0.3); sfx("clang"); if (!e.part) { toast(U.tr("Parried!"), "good"); G.fx.flash("rgba(255,255,255,.25)", 260); } break; }
           case "parried": if (pf) pf.act("hit", 0.3); sfx("clang"); toast(U.tr("Parried")); break;
