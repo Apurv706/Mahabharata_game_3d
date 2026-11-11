@@ -118,3 +118,15 @@ points or three standard errors, the mean within 6), and `--accept` records a ne
 
 These are a bot's numbers. No person has played these fights by hand to check that the rates feel right, and the bot
 plays only the view from above (the close views change what you can see, not the rules).
+
+## 11 November: after the 2D game's Build D
+
+The 2D game's new rules (traits, tiers, boons, gifts, archers among the packs, a harder crossing, Bhadra's fights) are in
+these fights too, and every fight was replayed 28 times and the baseline recorded again. Three fights carry their own 3D
+numbers, because three men round you in a field are harder than three in a line:
+
+| Fight | 2D numbers | 3D numbers | Bot wins (2D) |
+|---|---|---|---|
+| The crossing (`cross_e_escape`) | health ×0.6, blows ×1.62 | health ×0.6, blows ×1.38 | 64% (69%) |
+| The border road (`e_bhadra_road`) | ×1.3, ×1.5 | ×1.25, ×1.3 | 86% (about 89%) |
+| Bhadra's bout (`e_bhadra`) | ×1.5, ×2.4 | ×1.3, ×1.5 | 79% |

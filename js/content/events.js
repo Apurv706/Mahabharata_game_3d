@@ -178,7 +178,8 @@
   ]);
 
   K.encounter({
-    id: "e_bandits", title: "Bandits on the road", art: "ev_bandits", caption: "Farm tools against your weapon", lethal: false,
+    id: "e_bandits", mix: false, title: "Bandits on the road", // (no archer among them, row 47: starving men with farm tools; the checks' standard bout)
+    art: "ev_bandits", caption: "Farm tools against your weapon", lethal: false,
     intro: "They come at you all at once, badly.",
     enemies: [K.foe("Hungry bandit", 2, { hp: 24 }), K.foe("Hungry bandit", 1, { hp: 20 })],
     win: { fx: { rep: { common: -1 } }, text: "They scatter into the trees. The last one to run is no older than sixteen." },

@@ -247,14 +247,15 @@
   // The first morning: out of your own line (owner, 10 November: "Make it a fight"). The men either side of you, with
   // the captain of your file shouting at them; from the tents, the tent guards. Not deadly: beaten, you are dragged back.
   K.encounter({
-    id: "cross_e_escape", title: "Out of the line", art: "fight_between_lines", caption: "Your own side at your back", lethal: false,
+    id: "cross_e_escape", mix: false, title: "Out of the line", art: "fight_between_lines", caption: "Your own side at your back", lethal: false,
     allies: [], flee: null,
     callHelp: () => ({ text: "You shout for help. It is your own side holding you back, and the Pandava line is too far away to hear." }),
-    intro: (S) => (fromTents(S) ? "Two of the tent guards run out after you. \"Back! Nobody leaves the tents!\""
-      : "The captain of your file is shouting. The men either side of you turn their spears on you."),
+    // Three of them (owner, 10 November, 23:05: "Harder crossing fight"; with two the bot crossed 95% of the time).
+    intro: (S) => (fromTents(S) ? "Three of the tent guards run out after you. \"Back! Nobody leaves the tents!\""
+      : "The captain of your file is shouting. The men either side of you and the one behind turn their spears on you."),
     enemies: (S) => (fromTents(S)
-      ? [K.foe("Tent guard", 2), K.foe("Tent guard", 2)]
-      : [K.foe("Kaurava spearman", 3), K.foe("Kaurava spearman", 2)]),
+      ? [K.foe("Tent guard", 2), K.foe("Tent guard", 2), K.foe("Tent guard", 2)]
+      : [K.foe("Kaurava spearman", 3), K.foe("Kaurava spearman", 2), K.foe("Kaurava spearman", 2)]),
     win: { fx: (S) => crossFx(S), text: crossText },
     lose: { fx: dragged, text: (S) => (fromTents(S) ? "The guards drag you back to the tents by the arms. From now on one of them sits at the door while you work."
       : "They drag you back into the line by the arms. The captain puts you in the front rank, with a spearman at your back.") }

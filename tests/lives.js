@@ -40,6 +40,9 @@ const same = (a, b) => JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 const unitName = (u, S) => { const x = typeof u === "string" && K.UNITS && K.UNITS[u] ? K.UNITS[u](S) : u; return x && (x.person || x.name); };
 
 let lives = 0, ended = 0;
+// Your tier by act (Build D stage 3, Fight_Traits_Draft.md 1.3): of the lives that reach each act, how many are a captain or a
+// great champion there. The draft's targets at the war (Act VI): about 60% captain, 20-30% great champion.
+const tierN = {};
 for (let i = 0; i < N; i++) {
   K.seed(SEED * 100003 + i * 7);
   const S = (K.S = K.newLife());
@@ -50,8 +53,10 @@ for (let i = 0; i < N; i++) {
   K.apply(K.ORIGINS[S.origin].fx); K.apply(K.TEMPERAMENTS[S.temperament].fx); K.apply(K.HEIRLOOMS[S.heirloom].fx);
   K.apply({ flag: ["origin_" + S.origin, "temper_" + S.temperament, "heir_" + S.heirloom] });
   lives++;
+  const tierAt = {};
   try { K.go(K.FIRST_SCENE); } catch (e) { add("throws", "start: " + e.message); continue; }
   for (let steps = 0; steps < 700; steps++) {
+    if (K.S.act) tierAt[K.S.act] = Math.max(tierAt[K.S.act] || 0, K.S.tier || 0);
     const sc = K.SCENES[K.S.scene];
     // Save and Continue at this scene: the cleaned copy is the same life, and it resumes here.
     const saved = JSON.parse(JSON.stringify(K.S));
@@ -112,7 +117,9 @@ for (let i = 0; i < N; i++) {
     if (!K.S.alive) next = "end_death";
     try { K.go(next); } catch (e) { add("throws", sc.id + ":" + c.id + " -> " + next + ": " + e.message); break; }
   }
+  for (const [a, t] of Object.entries(tierAt)) { const r = (tierN[a] = tierN[a] || { n: 0, 0: 0, 1: 0, 2: 0 }); r.n++; r[Math.min(2, t)]++; }
 }
+if (Object.keys(tierN).length) console.log("  tier by act (captain or above / great champion): " + Object.keys(tierN).sort().map((a) => ["", "I", "II", "III", "IV", "V", "VI", "VII"][a] + " " + Math.round((tierN[a][1] + tierN[a][2]) / tierN[a].n * 100) + "% / " + Math.round(tierN[a][2] / tierN[a].n * 100) + "%").join(", "));
 if (RTM && process.env.RTSTATS && Object.keys(rtPath).length) console.log("  real-time by path: " + Object.entries(rtPath).sort().map(([k, v]) => k + " " + Math.round(v[0] / v[1] * 100) + "%").join(", "));
 if (RTM && process.env.RTJSON) require("fs").writeFileSync(process.env.RTJSON, JSON.stringify({ rt: rtStats, tb: tbStats }));
 if (RTM && process.env.RTSTATS) {

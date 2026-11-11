@@ -47,7 +47,7 @@
   // Each fight's own tuning in 3D, on top of the 2D game's (RT.TUNE). Set against the bot on all seven paths, with the line
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
-  R3.TUNE = { e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.5 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
+  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.38 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.5 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
     oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.9 }, wc_e_reach: { atk: 0.86 },
     e_wheel: { hp: 0.9, atk: 0.9 }, e_day16: { hp: 0.9, atk: 0.84 }, e_road: { atk: 1.05 }, oath_king_hold: { atk: 0.88 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.15, atk: 1.4 },
     hold_duryodhana: { atk: 0.92 } };
@@ -104,7 +104,7 @@
     if (mine < L.mine && L.sent[0] < L.more[0]) { L.sent[0]++; addLine(R, "ally"); }
   }
   // The engine's roll without the line: what the story reads when the fight is settled.
-  function settle(R, out, rounds) { const B = R.B; if (R.line && !R.lineOff) { R.lineOff = B.units.filter((u) => u.line); B.units = B.units.filter((u) => !u.line); } if (!B.over) C.settle(out, rounds); }
+  function settle(R, out, rounds) { const B = R.B; clearDecoys(B); if (R.line && !R.lineOff) { R.lineOff = B.units.filter((u) => u.line); B.units = B.units.filter((u) => !u.line); } if (!B.over) C.settle(out, rounds); }
 
   // ---------- Who each unit is, on the ground ----------
   function kindOf(u) {
@@ -121,7 +121,7 @@
     u.maxHp = Math.max(1, Math.round(u.maxHp * k)); u.hp = Math.max(0, Math.round(u.hp * k));
     if (u.line) { u.maxHp = u.hp = u.lineHp; if (foe) u.atk = Math.round(u.atk * P.atkFoe * 10) / 10; }
     else if (foe) {
-      const t2 = Object.assign({}, RT.IDS.has(B.enc.id) ? RT.TUNE[B.enc.id] : null, R3.TUNE[B.enc.id] || {}), ft = K.S && K.S.fighter ? RT.FIGHTER[B.enc.id] : null;
+      const t2 = Object.assign({}, RT.IDS.has(B.enc.id) || B.enc.realtime === true ? RT.TUNE[B.enc.id] : null, R3.TUNE[B.enc.id] || {}), ft = K.S && K.S.fighter ? RT.FIGHTER[B.enc.id] : null;
       if (ft) { t2.hp = (t2.hp || 1) * ft; t2.atk = (t2.atk || 1) * ft; }
       if (t2.hp && !(B.enc.hold && u.hero)) { u.maxHp = Math.max(1, Math.round(u.maxHp * t2.hp)); u.hp = Math.max(0, Math.round(u.hp * t2.hp)); }
       u.atk = Math.round(u.atk * P.atkFoe * (t2.atk || 1) * R.D.atk * 10) / 10;
@@ -224,6 +224,7 @@
       case "strike": return !R.noStrike;
       case "herbs": return R.kneel <= 0 && (R.herbCd || 0) <= 0 && p.abilities.includes("herbs") && (K.S.items.herbs || 0) > 0 && p.hp < p.maxHp && !swinging(p);
       case "call": return p.abilities.includes("call") && ready("call");
+      case "vanish": return !!(RT.vanishOffer && RT.vanishOffer(R)) && !!K.vanishReady(K.S) && !(R.unseen > 0) && R.kneel <= 0 && R.frozen <= 0;
       case "withdraw": return C.canFlee();
       case "cover": return p.abilities.includes("cover") && ready("cover");
       case "layDown": return p.abilities.includes("lay_down") && !R.B.laidDown;
@@ -298,11 +299,15 @@
     if (a.roll && R3.can(R, "roll")) {
       let dx = a.mx || 0, dz = a.mz || 0; const l = Math.hypot(dx, dz);
       if (l < 0.2) { dx = -Math.sin(g.a); dz = -Math.cos(g.a); } else { dx /= l; dz /= l; } // no direction: straight back
-      R.roll = P.roll; R.rollT = R.t; R.breath -= P.rollCost; R.stats.rolls++; R.rdx = dx; R.rdz = dz;
+      R.roll = P.roll; R.rollT = R.t; R.breath -= P.rollCost * tireCost(); R.stats.rolls++; R.rdx = dx; R.rdz = dz; R.readN = 0;
       g.busy = 0; g.blow = null; R.buffer = false; R.combo = 0; R.kneel = 0; if (R.block) lowerShield(R);
       R.fx.push({ k: "roll", dx, dz });
     }
-    if (a.herbs && R.roll <= 0 && !R.block && R3.can(R, "herbs")) { R.kneel = 1.1; R.buffer = false; R.fx.push({ k: "kneel" }); }
+    if (a.vanish && R3.can(R, "vanish")) { // Antardhana (a boon): two seconds unseen, and the first blow out of it lands half again as hard; once an act, shared with the stories
+      K.S.vanishedAct = K.S.act; R.unseen = 2; R.boonBlow = 1.5; R.fx.push({ k: "unseen" }); R.B.tell("You speak the Gandharva's word and are gone from their eyes.");
+      living(R.B, "enemy").forEach((e) => { if (e.g && e.g.atk && e.g.atk.on === p.uid) cancel(e); });
+    }
+    if (a.herbs && R.roll <= 0 && !R.block && R3.can(R, "herbs")) { R.kneel = RT.kneelT ? RT.kneelT() : 1.1; R.buffer = false; R.fx.push({ k: "kneel" }); }
     if (R.noStrike) return;
     if (a.skill && R3.can(R, "skill") && R.roll <= 0 && !R.block && g.busy <= 0.05) skill(R);
     if (a.strike && R.roll <= 0 && R.kneel <= 0 && !R.block) {
@@ -318,18 +323,61 @@
     if (left < -STEP || left > win) return false;
     return inside(fanOf(e, a), p, 0.1) && Math.abs(adiff(angTo(p, e), p.g.a)) < 1.9;
   };
+  // ---------- The 2D game's Build D, in these fights (its engine/realtime.js is the reference) ----------
+  // The champions' own traits, the tier you have climbed to, your boons and each divine weapon's lasting gift. What changes a
+  // blow's weight is in the shared engine (C.traitDmg, C.traitCap) and so is here already; what changes timing, parries,
+  // who is struck and what a figure does is mirrored below, with distances in place of the 2D line.
+  const who = (u) => (RT.who ? RT.who(u) : null);
+  const boon = (b) => !!(RT.boon && RT.boon(b)), kept = (id) => !!(RT.kept && RT.kept(id));
+  const indra = () => boon("astra") && !(K.S.astra && K.S.astra.broken);
+  const tireCost = () => (boon("bala") ? 0.75 : 1);
+  const steady = (t) => who(t) === "kripa" && t.hp < t.maxHp * 0.5; // Kripa does not reel below half his strength
+  const tip = (R, key) => { if (RT.traitTip) RT.traitTip(R, key); };
+  const traitRest = (R, e) => { const w = who(e); return w === "arjuna" && e.g.archer ? 0.75 : w === "ashwatthama" ? (R.B.enc.id === "e_raid" ? 0.64 : 0.8) : w === "satyaki" ? 0.85 : 1; };
+  // Your heavy blow, landed: Agni's fire burns him 2 s; the sleep slows his next wind-up; the coil binds his feet 1.5 s.
+  function giftsOnHeavy(R, t, d) {
+    if (!t || t.hp <= 0 || !t.g) return;
+    if (kept("agneya")) { t.g.burnUntil = R.t + 2; t.g.burnPer = Math.max(1, d) * 0.15; R.fx.push({ k: "burn", uid: t.uid }); }
+    if (kept("sammohana")) t.g.slowNext = 1.3;
+    if (kept("nagapasha")) t.g.boundUntil = R.t + 1.5;
+  }
+  // A false Ghatotkacha, struck or his six seconds over, is gone.
+  function vanishDecoy(R, d) { const i = R.B.units.indexOf(d); if (i < 0) return; R.B.units.splice(i, 1); R.fx.push({ k: "vanish", uid: d.uid }); }
+  const clearDecoys = (B) => { for (let i = B.units.length - 1; i >= 0; i--) if (B.units[i].decoy) B.units.splice(i, 1); };
+  // Abhimanyu's blows sweep the next one too, at 0.6.
+  function sweepNext(R, e, t) {
+    const t2 = R.B.units.filter((x) => x !== t && x.hp > 0 && !x.spared && !x.decoy && x.g && x.g.entered !== false && (x.side === "enemy") === (t.side === "enemy") && dist(x, e) <= e.g.reach + P.lunge + x.g.rad && Math.abs(adiff(angTo(e, x), e.g.a)) < 1.3).sort((x, y) => dist(x, e) - dist(y, e))[0];
+    if (!t2) return;
+    const before = t2.hp; R.B.hit(e, t2, 0.6); hitFx(R, t2, before - t2.hp, false, e, true, false); tip(R, "abhimanyu");
+  }
+  // Traits that act on their own: Karna's wheel sinks on the seventeenth day below a third of his strength (he stops 3 s to
+  // free it; a blow of yours then is remembered); Ghatotkacha, once a fight below two thirds, becomes three for 6 s.
+  function traitStep(R, e) {
+    const w = who(e), g = e.g;
+    if (w === "karna" && !g.wheeled && RT.warDay && RT.warDay() === 17 && e.hp < e.maxHp / 3 && e.hp > 0) { g.wheeled = true; g.wheelUntil = R.t + 3; if (g.atk) cancel(e); R.fx.push({ k: "wheel", uid: e.uid }); tip(R, "karnaWheel"); }
+    if (w === "ghatotkacha" && !g.maya && e.hp < e.maxHp * 0.67 && e.hp > 0 && g.entered !== false) {
+      g.maya = true; tip(R, "ghatotkachaMaya");
+      for (const sd of [-1, 1]) {
+        const d = Object.assign({}, e, { uid: e.uid + (sd < 0 ? "a" : "b"), decoy: R.t + 6, real: e.uid, status: {}, abilities: [], hp: e.hp, cds: {} }); delete d._tb;
+        const a = g.a + sd * Math.PI / 2;
+        d.g = Object.assign({}, g, { x: clamp(g.x + Math.sin(a) * 2.2, -R.rad + 1, R.rad - 1), z: clamp(g.z + Math.cos(a) * 2.2, -R.rad + 1, R.rad - 1), atk: null, hits: [], cd: {}, maya: true, stag: 0, down: 0, vx: 0, vz: 0 });
+        R.B.units.push(d); R.fx.push({ k: "maya", uid: d.uid, from: e.uid });
+      }
+    }
+  }
+  R3.gifts = () => (RT.gifts ? RT.gifts() : []);
   function parry(R) {
     const p = C.player();
     if (!PARRY_WITH.has(p.g.weapon) || swinging(p)) return false;
-    const win = P.parry * R.D.perfect + STEP;
-    const e = living(R.B, "enemy").filter((x) => R3.parryable(R, x, win)).sort((x, y) => x.g.atk.land - y.g.atk.land)[0];
+    const win = P.parry * (indra() ? 1.2 : 1) * R.D.perfect + STEP;
+    const e = living(R.B, "enemy").filter((x) => who(x) !== "supratika" && R3.parryable(R, x, win)).sort((x, y) => x.g.atk.land - y.g.atk.land)[0];
     if (!e) return false;
     const a = e.g.atk;
     p.g.a = angTo(p, e); p.g.busy = 0.3; R.combo = 0; R.buffer = false;
     if (LIGHT.has(p.g.weapon) && (a.heavy || a.arc === "smash")) { a.part = P.parryPart; R.fx.push({ k: "parry", uid: e.uid, part: true }); return true; }
     R.stats.parries++;
     cancel(e);
-    e.g.stag = Math.max(e.g.stag, p.g.weapon === "mace" ? P.parryStagMace : P.parryStag); e.g.rec = 0;
+    if (!steady(e)) e.g.stag = Math.max(e.g.stag, p.g.weapon === "mace" ? P.parryStagMace : P.parryStag); e.g.rec = 0;
     R.slow = Math.max(R.slow, 0.6);
     R.fx.push({ k: "parry", uid: e.uid });
     return true;
@@ -338,8 +386,14 @@
     const p = C.player();
     if (!(t.hero || t.person) || t.g.atk || t.g.stag > 0 || t.g.down > 0 || t.g.beaten || t.still || t.g.kind !== "man") return false;
     if (R.t < (t.g.openUntil || 0) || !PARRY_WITH.has(t.g.weapon) || t.g.weapon === "fist" || t.g.archer) return false;
-    if (R.t - (t.g.parriedAt || -99) < P.parryFoeCd || Math.abs(adiff(angTo(t, p), t.g.a)) > 1.2) return false;
-    if (K.rng() >= (R.D.parryFoe || 0) * (heavy ? 0.5 : 1)) return false;
+    // Drona reads the same combo used three times running, Kripa four, and meets the next for sure; Duryodhana, Balarama's
+    // pupil, meets a mace twice as often; Satyaki a sword or a spear half as often again.
+    const w = who(t), read = w === "drona" ? 3 : w === "kripa" ? 4 : 0, sure = read > 0 && (R.readN || 0) >= read;
+    if (!sure && R.t - (t.g.parriedAt || -99) < P.parryFoeCd) return false;
+    if (Math.abs(adiff(angTo(t, p), t.g.a)) > 1.2) return false;
+    const pw = p.g.weapon, more = w === "duryodhana" && pw === "mace" ? 2 : w === "satyaki" && (pw === "sword" || pw === "spear") ? 1.5 : 1;
+    if (!sure && K.rng() >= (R.D.parryFoe || 0) * more * (heavy ? 0.5 : 1)) return false;
+    if (sure) { R.readN = 0; tip(R, w); } else if (more > 1) tip(R, w);
     t.g.parriedAt = R.t; R.stats.parried++;
     p.g.busy = Math.max(p.g.busy, P.parriedBusy); R.combo = 0; R.buffer = false;
     t.g.cool = Math.min(t.g.cool, 0.25);
@@ -359,7 +413,8 @@
     return heavy ? P.fblockHeavy : P.fblockLight;
   }
   function shieldTakes(R, u, pts) {
-    const mine = u.side === "player", before = mine ? R.sp : u.sp == null ? P.shieldPts : u.sp, after = Math.max(0, before - pts);
+    const mine = u.side === "player"; if (mine && boon("charm_shield")) return; // the charmed shield cannot be broken
+    const before = mine ? R.sp : u.sp == null ? P.shieldPts : u.sp, after = Math.max(0, before - pts);
     if (mine) R.sp = after; else u.sp = after;
     if (after <= 0) {
       if (mine) { R.broken = true; R.spOff = P.shieldBack; if (R.block) lowerShield(R); }
@@ -369,8 +424,10 @@
   }
   function blow(R) {
     const p = C.player(), g = p.g, list = R3.comboOf();
-    if (R.t - R.comboT > 0.6 || R.combo >= list.length) R.combo = 0;
+    if (R.t - R.comboT > 0.6 || R.combo >= list.length) { if (R.combo !== 0) R.readN = 0; R.combo = 0; }
+    if (R.combo === 0 && R.t - (R.comboEnd || -9) > 1.0) R.readN = 0; // a pause between combos, and Drona cannot read you
     const c = list[R.combo], t = R3.target(R);
+    if (R.combo === 0) { R.readN = (R.readN || 0) + 1; R.comboEnd = R.t + c.len; } // a whole combo, the same again
     // You turn to the one you face when he is near enough to matter, and step in if he is just out of reach.
     if (t && (c.shot || dist(t, p) <= g.reach + 3.2)) g.a = angTo(p, t);
     if (c.shot) return bowShot(R, c, list, t);
@@ -390,15 +447,16 @@
     R.combo = (R.combo + 1) % list.length; R.comboT = R.t + c.len;
     R.fx.push({ k: "blow", n: R.combo, shot: true, land: c.land, len: c.len, heavy: !!c.heavy });
   }
-  function raiseShield(R) { const p = C.player(); R.block = true; R.blockT = R.t; R.stats.blocks++; p.g.blow = null; p.g.busy = 0; R.buffer = false; R.combo = 0; faceThreat(R); R.fx.push({ k: "shield", up: true }); }
+  function raiseShield(R) { const p = C.player(); R.block = true; R.blockT = R.t; R.stats.blocks++; R.readN = 0; p.g.blow = null; p.g.busy = 0; R.buffer = false; R.combo = 0; faceThreat(R); R.fx.push({ k: "shield", up: true }); }
   function lowerShield(R, winded) { R.block = false; if (winded) { R.winded = true; R.fx.push({ k: "winded" }); } R.fx.push({ k: "shield", up: false }); }
   function faceThreat(R) {
     const p = C.player(), th = R3.threats(R)[0], f = th ? null : R3.target(R);
     if (th) p.g.a = Math.atan2(th.x - p.g.x, th.z - p.g.z); else if (f) p.g.a = angTo(p, f);
   }
   function floored(R, t, d, m) {
-    if (!(d > 0) || !t || t.hp <= 0 || !t.maxHp || R.t < P.wornAfter || t.hero || t.person) return d;
-    const f = Math.round(t.maxHp * P.wornFloor * m);
+    const tn = (RT.TUNE || {})[R.B.enc.id] || {}; // (a fight may say sooner: the crossing's three tire after a minute)
+    if (!(d > 0) || !t || t.hp <= 0 || !t.maxHp || R.t < (tn.worn || P.wornAfter) || t.hero || t.person) return d;
+    const f = Math.round(t.maxHp * (tn.wornFloor || P.wornFloor) * m);
     if (d >= f) return d;
     if (!R.worn) { R.worn = true; R.fx.push({ k: "toast", s: "They are tiring: your blows tell more now." }); }
     const more = Math.min(t.hp, f - d); t.hp -= more; return d + more;
@@ -412,16 +470,22 @@
     // A mace's sweep carries through everyone in its arc (the first at full weight); every other blow is one man's.
     const ts = b.c.arc === "sweep" ? cands.slice(0, 3) : [cands[0]];
     ts.forEach((t, i) => {
+      if (t.decoy) { vanishDecoy(R, t); return; } // only an illusion
       if (i === 0 && foeParries(R, t, b.c.heavy)) return;
+      if (t.g.wheelUntil > R.t && !R.struckWheel) { // Karna at his sunken wheel: the story remembers it
+        R.struckWheel = true; K.apply({ flag: "struck_karna_wheel", duty: { conscience: -2 }, journal: "On the seventeenth day you struck Karna while he bent to free his sunken wheel." }); if (K.breakTags) K.breakTags(["strike_unarmed"]); }
       let m = b.c.m * (i ? 0.6 : 1);
       if (R.double) { m *= 2; R.double = false; }
+      if (R.boonBlow) { m *= R.boonBlow; R.boonBlow = 0; } // the first blow out of Antardhana
       const caught = foeBlocks(R, t, b.c.heavy, false, RT.shieldHit(p, g.weapon, b.c.heavy && !b.c.arc));
       m *= caught;
       const d = floored(R, t, B.hit(p, t, m), m);
       R.stats.hits++;
       hitFx(R, t, d, b.c.heavy, p, true, caught < 1);
+      if (b.c.heavy && caught === 1) giftsOnHeavy(R, t, d);
       if (b.c.knock && t.hp > 0) knock(R, t, angTo(p, t), b.c.knock, false);
-      if (b.c.stag && t.hp > 0 && !t.g.atk) t.g.stag = Math.max(t.g.stag, b.c.stag);
+      if (steady(t)) { if (b.c.stag || b.c.heavy) tip(R, "kripaSteady"); }
+      else if (b.c.stag && t.hp > 0 && !t.g.atk) t.g.stag = Math.max(t.g.stag, b.c.stag);
       else if (!b.c.heavy && caught === 1 && t.hp > 0 && !t.g.atk && K.rng() < RT.STRENGTH.flinch[RT.tierOf(t)]) t.g.stag = Math.max(t.g.stag, P.lightStag);
       t.g.hits.push(R.t);
     });
@@ -436,6 +500,15 @@
     else if (A.id === "agneya") { us.forEach((u) => { knock(R, u, angTo(p, u), 0.9, false); u.g.stag = Math.max(u.g.stag || 0, 0.9); }); R.fires = us.map((u) => ({ x: u.g.x, z: u.g.z, t: 7 })); R.fx.push({ k: "fires", at: R.fires.map((f) => [f.x, f.z]), secs: 7 }); }
     else us.forEach((u) => { knock(R, u, angTo(p, u), 2.4, true); u.g.down = Math.max(u.g.down, 2.2); });
   }
+  // Agni's gift, on a foe your heavy blow struck: 0.15 of that blow a second, for 2 s. (Bhishma keeps his tenth before the tenth day.)
+  function burnStep(R, dt) {
+    for (const u of R.B.units) {
+      if (!u.g || !(u.g.burnUntil > R.t - dt) || u.hp <= 0) continue;
+      u.g.burnAcc = (u.g.burnAcc || 0) + u.g.burnPer * Math.min(dt, u.g.burnUntil - (R.t - dt));
+      if (u.g.burnAcc >= 1) { const n = Math.min(u.hp - (who(u) === "bhishma" && RT.warDay && RT.warDay() < 10 ? Math.round(u.maxHp * 0.1) : 0), Math.floor(u.g.burnAcc)); u.g.burnAcc -= Math.floor(u.g.burnAcc); if (n > 0) { u.hp -= n; R.fx.push({ k: "burnt", uid: u.uid, n }); } }
+      if (u.g.burnUntil <= R.t) { u.g.burnUntil = 0; u.g.burnAcc = 0; }
+    }
+  }
   function fireStep(R, dt) {
     if (!R.fires || !R.fires.length) return;
     for (const f of R.fires) f.t -= dt;
@@ -448,7 +521,7 @@
     if (down && u.g.atk) cancel(u);
     const k = u.hero || u.person ? 0.6 : 1;
     u.g.vx += Math.sin(ang) * d * 5 * k; u.g.vz += Math.cos(ang) * d * 5 * k;
-    if (!u.g.atk) u.g.stag = Math.max(u.g.stag, 0.3);
+    if (!u.g.atk && !steady(u)) u.g.stag = Math.max(u.g.stag, 0.3);
     if (down) u.g.down = Math.max(u.g.down, 1.2);
   }
   function hitFx(R, t, d, heavy, by, melee, blocked) {
@@ -489,17 +562,17 @@
     g.moving = 0;
     if (R.roll > 0) {
       R.roll -= dt;
-      move(R, p, R.rdx * (P.rollDist / P.roll) * dt, R.rdz * (P.rollDist / P.roll) * dt, true);
+      { const far = R.dash ? 1 : RT.rollMul ? RT.rollMul() : 1; move(R, p, R.rdx * (P.rollDist * far / P.roll) * dt, R.rdz * (P.rollDist * far / P.roll) * dt, true); } // (Vayu's gift: a roll carries a fifth further)
       if (R.roll <= 0) R.dash = false;
-    } else if (R.block) { R.breath -= P.blockDrain * dt; if (R.breath <= 0) { R.breath = 0; lowerShield(R, true); } }
-    else { R.breath = Math.min(P.breathMax, R.breath + P.breathRegen * dt); if (R.winded && R.breath >= P.rollMin) R.winded = false; }
+    } else if (R.block) { R.breath -= P.blockDrain * tireCost() * dt; if (R.breath <= 0) { R.breath = 0; lowerShield(R, true); } }
+    else { R.breath = Math.min(P.breathMax, R.breath + P.breathRegen * (boon("bala") ? 1.5 : 1) * (kept("varuna") ? 1.2 : 1) * dt); if (R.winded && R.breath >= P.rollMin) R.winded = false; }
     if (R.unseen > 0) R.unseen -= dt;
     if (R.kneelPose > 0) R.kneelPose -= dt;
     if (R.broken) { if (R.spOff > 0) { R.spOff -= dt; if (R.spOff <= 0) { const gd = { id: ++R.gid, x: clamp(g.x + rr(-3, 3), -R.rad + 2, R.rad - 2), z: R.rad * 0.55, at: R.t + 0.6 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
       const gd = R.ground.find((o) => R.t >= o.at && Math.hypot(o.x - g.x, o.z - g.z) <= P.pickup); if (gd && !held(p)) { R.ground.splice(R.ground.indexOf(gd), 1); R.broken = false; R.spOff = 0; R.sp = P.shieldPts; R.fx.push({ k: "shieldup", id: gd.id }); } }
     if (R.skillCd > 0) R.skillCd -= dt;
     if (R.herbCd > 0) R.herbCd -= dt;
-    if (R.kneel > 0) { R.kneel -= dt; if (R.kneel <= 0) { C.core.use(p, "herbs", p.uid); delete p.cds.herbs; R.herbCd = 2 * ROUND; R.fx.push({ k: "heal", uid: p.uid }); } return; }
+    if (R.kneel > 0) { R.kneel -= dt; if (R.kneel <= 0) { const h0 = p.hp; C.core.use(p, "herbs", p.uid); if (boon("sanjivani") && (K.S.charges || {}).sanjivani && p.hp > h0) p.hp = Math.min(p.maxHp, p.hp + Math.round((p.hp - h0) * 0.5)); delete p.cds.herbs; R.herbCd = 2 * ROUND; R.fx.push({ k: "heal", uid: p.uid }); } return; }
     if (R.salve && R.t >= R.salve.next) { living(B, "friends").filter((u) => !u.still && dist(u, p) <= 5.5).forEach((u) => B.heal(p, u, Math.max(1, Math.round(u.maxHp * 0.28 / 3)))); R.fx.push({ k: "heal", uid: p.uid }); R.salve.left--; R.salve.next = R.t + 1; if (!R.salve.left) R.salve = null; }
     if (g.stepT > 0) { g.stepT -= dt; move(R, p, g.stepX * dt, g.stepZ * dt, false); }
     if (g.blow && R.t >= g.blow.at) landBlow(R);
@@ -508,7 +581,7 @@
     let mx = a.mx || 0, mz = a.mz || 0; const l = Math.hypot(mx, mz);
     if (l > 0.12 && g.busy <= 0) {
       if (l > 1) { mx /= l; mz /= l; }
-      const sp = g.speed * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
+      const sp = g.speed * (RT.walkMul ? RT.walkMul() : 1) * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
       move(R, p, mx * sp * dt, mz * sp * dt, false);
       g.moving = Math.min(1, l) * (R.block ? P.blockWalk : 1);
       if (R.block) faceThreat(R);
@@ -550,7 +623,8 @@
     const all = living(R.B, "friends").filter((f) => targetable(R, f));
     // A soldier of the line takes the nearest man of the other line; with none left standing he turns on you and yours.
     if (e.line) { const man = all.filter((f) => f.line).sort((a, b) => dist(a, e) - dist(b, e))[0]; if (man) return man; }
-    const fr = e.line ? all : all.filter((f) => !f.line);
+    const fr = (e.line ? all : all.filter((f) => !f.line)).filter((f) => !(who(e) === "bhishma" && /shikhandi/i.test(String(f.name || "")))); // (Bhishma will not strike Shikhandi)
+    const cry = fr.find((f) => f.g && f.g.cryUntil > R.t); if (cry) return cry; // Bhima's war cry draws every blow
     const taunt = fr.find((f) => f.status.taunt); if (taunt) return taunt;
     const cart = R.escort && fr.find((f) => f.still); if (cart && K.rng() < 0.4) return cart;
     const p = fr.find((f) => f.side === "player");
@@ -588,6 +662,8 @@
     if (arc) wind = Math.max(wind, arc === "smash" ? P.maceSmash : P.maceSweep);
     if (g.kind === "elephant") wind = Math.max(wind, 1.1);
     if (light) wind = 1.5;
+    if (who(e) === "satyaki" && !ranged) wind *= 0.85; // a quick blade
+    if (g.slowNext) { wind *= g.slowNext; g.slowNext = 0; } // heavy eyes (the sleep's gift): once
     if (ranged && g.archer && t.side === "player" && dist(e, t) <= t.g.reach * 1.15) wind += 0.45; // caught close, he draws slowly
     g.a = angTo(e, t);
     g.atk = { id, on: t.uid, t0: R.t, land: R.t + Math.max(0.3, wind), ranged, area, dir: g.a, locked: false, heavy: HEAVY.has(id) || area || arc === "smash" || g.kind === "elephant", arc,
@@ -623,10 +699,11 @@
   function myShot(R, p, s, t) {
     const B = R.B;
     R.fx.push({ k: "arrive", shot: s, uid: t.uid });
+    if (t.decoy) { vanishDecoy(R, t); return; }
     if (s.m) {
-      const mine = p.side === "player", caught = mine ? foeBlocks(R, t, s.heavy, true) : 1;
-      const d = mine ? floored(R, t, B.hit(p, t, s.m * caught), s.m * caught) : B.hit(p, t, s.m);
-      if (mine) R.stats.hits++;
+      const mine = p.side === "player", caught = mine ? foeBlocks(R, t, s.heavy, true) : 1, bb = mine && R.boonBlow ? R.boonBlow : 1; if (mine) R.boonBlow = 0;
+      const d = mine ? floored(R, t, B.hit(p, t, s.m * caught * bb), s.m * caught * bb) : B.hit(p, t, s.m);
+      if (mine) { R.stats.hits++; if (s.heavy && caught === 1) giftsOnHeavy(R, t, d); }
       hitFx(R, t, d, s.heavy, p, false, caught < 1); t.g.hits.push(R.t);
       if (s.knock && t.hp > 0) knock(R, t, s.a, s.knock, false);
       else if (mine && t.hp > 0 && d > 0) knock(R, t, s.a, P.arrowPush, false);
@@ -638,8 +715,9 @@
     const a = e.g.atk, ab = K.ABILITIES[a.id], g = e.g, m = fanOf(e, a);
     g.atk = null;
     if (ab.cd && a.id !== "arrows") g.cd[a.id] = ab.cd * ROUND;
-    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 : 1) * (g.kind === "light" ? 0.7 : 1);
-    const open = (RT.OPEN[g.weapon] != null ? RT.OPEN[g.weapon] : 0.35) + (a.heavy && g.weapon !== "mace" ? 0.15 : 0);
+    const tr = traitRest(R, e); if (tr < 1) tip(R, who(e));
+    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 : 1) * (g.kind === "light" ? 0.7 : 1) * tr;
+    const open = ((RT.OPEN[g.weapon] != null ? RT.OPEN[g.weapon] : 0.35) + (a.heavy && g.weapon !== "mace" ? 0.15 : 0)) * (who(e) === "duryodhana" && g.weapon === "mace" ? 0.85 : 1);
     g.rec = open; g.openUntil = R.t + open;
     R.fx.push({ k: "swing", uid: e.uid, id: a.id, arc: a.arc, area: a.area, x: m.x, z: m.z, r: m.r });
     if (a.ranged) return loose(R, e, a);
@@ -659,7 +737,7 @@
   function dodged(R, e) {
     R.stats.dodged++;
     R.B.tell("You dodge {a}'s blow.", { a: e });
-    if (R.t - R.rollT <= P.perfect * R.D.perfect + STEP && R.t - R.rollT >= 0) { R.slow = 1.2; R.stats.perfect++; R.fx.push({ k: "perfect" }); }
+    if (R.t - R.rollT <= P.perfect * R.D.perfect + STEP && R.t - R.rollT >= 0) { R.slow = 1.2; R.stats.perfect++; if (indra()) R.breath = Math.min(P.breathMax, R.breath + P.rollCost * tireCost() * 0.25); R.fx.push({ k: "perfect" }); }
     R.fx.push({ k: "miss", uid: C.player().uid });
   }
   // One blow arriving on one of your side: your roll, your shield, your soldiers' shields, then the hit itself.
@@ -678,7 +756,7 @@
       const breaker = a.id === "breaker";
       sh = perfectBlock ? 0 : (breaker ? P.blockBreaker : a.heavy ? P.blockHeavy : P.blockThrough) * STR.through[tier];
       R.breath -= (perfectBlock ? 0.5 : 1) * (a.heavy || breaker ? P.blockHitHeavy : P.blockHit) * (breaker ? 1.5 : 1) * (a.ranged ? 0.35 : 1) * STR.breath[tier];
-      if (perfectBlock) { R.stats.perfectBlocks++; if (!a.ranged) { e.g.stag = Math.max(e.g.stag, P.blockStag); e.g.rec = 0; } R.fx.push({ k: "perfectblock", uid: e.uid }); }
+      if (perfectBlock) { R.stats.perfectBlocks++; if (indra()) R.breath = Math.min(P.breathMax, R.breath + P.blockMin * tireCost() * 0.25); if (!a.ranged && !steady(e)) { e.g.stag = Math.max(e.g.stag, P.blockStag); e.g.rec = 0; } R.fx.push({ k: "perfectblock", uid: e.uid }); }
       if (!a.ranged) { const pts = RT.shieldHit(e, e.g.weapon, a.heavy && !a.arc) * (perfectBlock ? 0.5 : 1); if (pts > 0) shieldTakes(R, p, pts); }
       if (R.breath <= 0 && R.block) { R.breath = 0; lowerShield(R, true); }
     } else if (t !== p && isSoldiers(t) && R.orders.soldiers === "defend" && a.on === t.uid) sh = P.shieldSoldiers;
@@ -690,12 +768,19 @@
     const doHit = () => { if (a.id === "arrows") B.hit(e, t, 1, { verb: "Arrows rain on {t} for {n}." }); else ab.use(B, e, ab.target === "enemies" ? [t] : t); };
     if (sh > 0) { if (sh !== 1) { const atk = e.atk; e.atk = Math.round(atk * sh * 10) / 10; try { doHit(); } finally { e.atk = atk; } } else doHit(); }
     hitFx(R, t, before - t.hp, a.heavy, e, !a.ranged, blocked);
-    if (t === p && before > t.hp) { R.stats.taken += before - t.hp; R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } }
+    { const w = who(e); // after a champion's blow: Bhurishravas's heavy blow knocks you down; Abhimanyu's sweeps the next one too
+      if (w === "bhurishravas" && a.heavy && t === p && before > t.hp && !blocked && !perfectBlock) { p.g.busy = Math.max(p.g.busy, 0.6); p.g.blow = null; R.fx.push({ k: "knocked", uid: p.uid }); tip(R, "bhurishravas"); }
+      if (w === "abhimanyu" && !a.ranged && t.hp >= 0) sweepNext(R, e, t); }
+    if (t === p && before > t.hp) { R.stats.taken += before - t.hp; R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked && (!RT.P.strength || tier >= RT.tierOf(p))) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } } // (only one of your tier or above staggers you)
     // A mace's sweep, an elephant, a heavy blow from a champion: thrown back.
     if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged))) { const d = (e.g.kind === "elephant" ? 2.6 : P.maceShove) * (blocked ? 0.5 : 1) * STR.knock[tier]; t.g.vx += Math.sin(from + Math.PI) * d * 5; t.g.vz += Math.cos(from + Math.PI) * d * 5; }
   }
   function foeStep(R, e, dt) {
     const B = R.B, p = C.player(), g = e.g;
+    if (e.decoy) { if (R.t >= e.decoy || !B.units.some((x) => x.uid === e.real && x.hp > 0)) vanishDecoy(R, e); else if (p && p.g) g.a = turnTo(g.a, angTo(e, p), 6 * dt); return; } // a false Ghatotkacha only stands and looks at you
+    traitStep(R, e);
+    if (g.wheelUntil > R.t) return; // Karna frees his sunken wheel
+    if (g.boundUntil > R.t && !g.atk) { g.moving = 0; if (g.cool > 0) g.cool -= dt; return; } // the serpent's coil: his feet are held
     for (const k of Object.keys(g.cd)) if (g.cd[k] > 0) g.cd[k] -= dt;
     if (g.cool > 0 && !g.atk) g.cool -= dt;
     g.moving = 0;
@@ -766,6 +851,7 @@
   function allyStep(R, a, dt) {
     const B = R.B, p = C.player(), g = a.g;
     g.moving = 0;
+    if (who(a) === "bhima" && a.hp > 0 && R.t >= (g.cryNext || 4)) { g.cryUntil = R.t + 3; g.cryNext = R.t + 15; R.fx.push({ k: "cry", uid: a.uid }); tip(R, "bhima"); } // his war cry, every 15 s, turns every foe on him for 3 s
     if (a.still) return;
     if (g.down > 0) { g.down -= dt; return; }
     if (held(a)) { g.atk = null; return; }
@@ -779,7 +865,7 @@
         const ab = K.ABILITIES[id];
         if (shot && t) { const s = { by: a.uid, side: a.side, m: order === "allout" ? 1.25 : 1, on: t.uid, x: g.x, z: g.z, a: angTo(a, t), t0: R.t, v: P.myArrow, n: ++R.shotN, homing: true, life: 1 }; R.shots.push(s); R.fx.push({ k: "shot", uid: a.uid, shot: s }); }
         else if (ab.target === "ally") { ab.use(B, a, t); R.fx.push({ k: "heal", uid: t && t.uid }); }
-        else if (t && dist(a, t) <= g.reach * 1.25 + P.lunge + t.g.rad) { const before = t.hp; if (order === "allout" && id === "strike") B.hit(a, t, 1.25); else ab.use(B, a, ab.target === "enemies" ? [t] : t); hitFx(R, t, before - t.hp, false, a, MELEE.has(id)); R.fx.push({ k: "swing", uid: a.uid, id }); }
+        else if (t && dist(a, t) <= g.reach * 1.25 + P.lunge + t.g.rad) { const before = t.hp; if (order === "allout" && id === "strike") B.hit(a, t, 1.25); else ab.use(B, a, ab.target === "enemies" ? [t] : t); hitFx(R, t, before - t.hp, false, a, MELEE.has(id)); if (who(a) === "abhimanyu" && MELEE.has(id)) sweepNext(R, a, t); R.fx.push({ k: "swing", uid: a.uid, id }); }
       }
       return;
     }
@@ -901,7 +987,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
-    lineStep(R); joined(R); fireStep(R, STEP);
+    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);

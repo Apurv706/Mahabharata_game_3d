@@ -44,10 +44,16 @@
     // A divine weapon's condition, named by the one who gave it.
     const g = S.astra && K.ASTRA_GIVERS[S.astra.from];
     const astraNote = g ? '<p class="sub">' + (S.astra.broken ? U.tr(g.takes ? "You broke {who}'s condition, and the weapon was taken back." : "You broke the condition. The mantra will fail you at the worst hour.", { who: K.tr(g.who) })
-      : U.tr("Your Indrastra was given by {who}, on one condition: “{cond}”", { who: K.tr(g.who), cond: K.tr(g.cond) }) + (K.astraLeft ? " " + U.tr("{n} of 3 uses left", { n: K.astraLeft("astra", S) }) : "")) + "</p>" : "";
+      : U.tr("Your Indrastra was given by {who}, on one condition: “{cond}”", { who: K.tr(g.who), cond: K.tr(g.cond) }) + (K.astraLeft ? " " + U.tr("{n} of 3 uses left", { n: K.astraLeft("astra", S) }) : "") + (K.INDRA && K.INDRA.gift ? " " + U.tr(K.INDRA.gift) : "")) + "</p>" : "";
+    // Your strength (Build D stage 3): the tier you have reached and what it does in a fight.
+    const TIER_NOTE = [["A soldier's strength", "You rise by your might and your weapon, by what you do, and by the boons of strength."],
+      ["A captain's strength", "Your blows wear a shield down faster, and a soldier's heavy blow no longer staggers you."],
+      ["A great champion", "Your blows break shields as a champion's do. Only a champion's heavy blow can stagger you now."]];
+    const tn = TIER_NOTE[Math.max(0, Math.min(2, S.tier || 0))];
+    const strength = "<h2>" + U.tr("Strength") + '</h2><p class="sub"><b>' + U.tr(tn[0]) + "</b> · " + U.tr(tn[1]) + "</p>";
     // Tapas (§18.8), the named weapons and their conditions, and the charges of magic and shields (§18.7).
     const tapas = (S.tapas || 0) > 0 || (S.vows && S.vows.length) ? meter(K.tr("Tapas"), S.tapas || 0, "tapas", 20) + '<p class="sub">' + U.tr("Spiritual merit: earned by vows kept through an act, penance and hard right choices; spent on the mantras and rites of the sages.") + "</p>" : "";
-    const weapons = (S.astras || []).map((a) => { const A = K.ASTRAS[a.id], g = K.ASTRA_GIVERS[a.from] || {}; return '<div class="vowcard' + (a.broken ? " broken" : "") + '">' + U.thumb("path_archer", "emblem") + "<b>" + U.tr(A.name) + "</b><small>" + U.tr(A.mantra) + (g.cond ? "<br>" + U.tr("Given by {who}, on one condition: “{cond}”", { who: K.tr(g.who), cond: K.tr(g.cond) }) : "") + (K.astraLeft ? "<br>" + U.tr("{n} of 3 uses left", { n: K.astraLeft(a.id, S) }) : "") + "</small></div>"; }).join("");
+    const weapons = (S.astras || []).map((a) => { const A = K.ASTRAS[a.id], g = K.ASTRA_GIVERS[a.from] || {}; return '<div class="vowcard' + (a.broken ? " broken" : "") + '">' + U.thumb("path_archer", "emblem") + "<b>" + U.tr(A.name) + "</b><small>" + U.tr(A.mantra) + (A.gift && !a.broken ? "<br>" + U.tr(A.gift) : "") + (g.cond ? "<br>" + U.tr("Given by {who}, on one condition: “{cond}”", { who: K.tr(g.who), cond: K.tr(g.cond) }) : "") + (K.astraLeft ? "<br>" + U.tr("{n} of 3 uses left", { n: K.astraLeft(a.id, S) }) : "") + "</small></div>"; }).join("");
     const ch = S.charges || {};
     const charges = [ch.sanjivani ? U.tr("The sanjivani root: one death, still unspent.") : "", ch.kavacha ? U.tr("The kavacha: one killing blow, still unspent.") : "", ch.raksha ? U.tr("The raksha sutra: still tied.") : "",
       S.boons.includes("antardhana") ? (K.vanishReady(S) ? U.tr("Antardhana: ready this act.") : U.tr("Antardhana: used this act.")) : "", S.blessed > S.log.length ? U.tr("An elder's blessing is on you today.") : "", S.soma ? (S.soma.down ? U.tr("The Soma's hangover: -1 for a day.") : U.tr("The Soma in you: +2 for a day.")) : ""].filter(Boolean);
@@ -69,6 +75,7 @@
       "<h2>" + U.tr("Obligations") + '</h2><p class="sub">' + U.tr("Choices pull these against each other. There is no good or evil bar.") + "</p>" + duties +
       "<h2>" + U.tr("Bonds") + "</h2>" + bonds +
       "<h2>" + U.tr("Vows ({n} / {max})", { n: K.vowsHeld(), max: K.MAX_VOWS }) + "</h2>" + vows +
+      strength +
       (chips.length ? "<h2>" + U.tr("Boons, curses and wounds") + '</h2><div class="chips">' + chips.join("") + "</div>" + astraNote : "") +
       (weapons ? "<h2>" + U.tr("Divine weapons") + "</h2>" + weapons : "") +
       (charges.length ? '<ul class="secrets">' + charges.map((x) => "<li>" + x + "</li>").join("") + "</ul>" : "") +

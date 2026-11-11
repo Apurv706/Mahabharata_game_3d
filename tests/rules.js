@@ -731,8 +731,8 @@ K.UI = K.UI || { esc: (x) => x }; require(G + "ui/map.js");
   ok(/Breaks vow: Never to retreat/.test(pv) && /Ends your friendship with Duryodhana/.test(pv), "the crossing says first that it is a retreat and ends a friend for life there: " + pv);
   // Out of the line is a fight now (owner, 10 November): the men beside you, not deadly, no one to call.
   { const E = K.ENCOUNTERS.cross_e_escape, foes = K.val(E.enemies, S);
-    ok(cross.combat === "cross_e_escape" && !cross.fx && !E.lethal && foes.length === 2 && foes.every((u) => /Kaurava spearman/.test(u.name)) && !K.val(E.allies, S).length && /your own side/.test(E.callHelp(S).text),
-      "crossing is a fight with two spearmen of your own line, not deadly, with no one to call"); }
+    ok(cross.combat === "cross_e_escape" && !cross.fx && !E.lethal && foes.length === 3 && foes.every((u) => /Kaurava spearman/.test(u.name)) && !K.val(E.allies, S).length && /your own side/.test(E.callHelp(S).text),
+      "crossing is a fight with three spearmen of your own line (owner, 10 November: harder), not deadly, with no one to call"); }
   r = K.choose(sc, cross);
   ok(r.combat === "cross_e_escape" && S.side === "kaurava", "choosing to cross starts the fight, and nothing changes until it is won");
   K.combatOutcome("cross_e_escape", "win", "a6_day1");
@@ -817,7 +817,7 @@ ok(sceneNext() === "cross_spy", "the fourth night: a spy in the camp, and you ar
   S.alive = false; ok(K.composeEnding(S).telling.some((l) => /never trusted/.test(JSON.stringify(l))), "and the telling says the Pandavas never trusted you"); }
 S = fresh({ act: 6, age: 44, side: "kaurava" }); S.flags.push("role_healer");
 K.go("a6_day1"); K.choose(K.SCENES.cross_call, K.choiceList(K.SCENES.cross_call).find((x) => x.c.id === "cross").c);
-ok(K.val(K.ENCOUNTERS.cross_e_escape.enemies, S).every((u) => /Tent guard/.test(u.name)) && /tent guards/.test(K.val(K.ENCOUNTERS.cross_e_escape.intro, S)), "from the tents, the tent guards try to stop you");
+ok(K.val(K.ENCOUNTERS.cross_e_escape.enemies, S).length === 3 && K.val(K.ENCOUNTERS.cross_e_escape.enemies, S).every((u) => /Tent guard/.test(u.name)) && /tent guards/.test(K.val(K.ENCOUNTERS.cross_e_escape.intro, S)), "from the tents, three tent guards try to stop you");
 K.combatOutcome("cross_e_escape", "win", "a6_day1");
 ok(S.flags.includes("role_healer") && !S.flags.includes("role_front"), "a healer who crosses keeps to the tents");
 // 80d. Beaten by your own line: dragged back, still a Kaurava, marked; not dead

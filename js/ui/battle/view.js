@@ -98,7 +98,7 @@
     const enc = K.ENCOUNTERS[encId];
     let B = C.start(encId, null), R = R3.begin(B, { assist: U.assist() });
     const views = new Map(), offs = [], shots = new Map(), grounds = new Map();
-    let st = null, acc = 0, started = false, closed = false, hitStop = 0, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
+    let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
     let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null;
     const threatEls = [];
@@ -135,6 +135,31 @@
     // wheels, a spear left planted) under the standards of the two hosts; in a yard or a hall, the wrestlers' ring, a low
     // bank of earth with a limed line inside it, posts and a rope; in the open, stones, tufts and fallen wood. The line
     // you cannot cross shows itself only when you come close to it: a curve of light on the ground in front of you.
+    const GIFT_MARK = { bala: "✊︎", kavacha: "⛨︎", charm_shield: "◈", foresight: "◉", healing_hands: "✚︎", sanjivani: "❦", antardhana: "◌", agneya: "✺", varuna: "≈", vayavya: "➶", sammohana: "☾︎", nagapasha: "§", indra: "✧" };
+    // A field event or a fight's scripted beat is said in its line and also happens on the field, beyond the fighting or
+    // across it, for a few seconds (the 2D game draws these over its painting; here they are in the world). The kind is read
+    // from the line's words by the 2D game's own reader, so every event has one.
+    function fieldEvent(key) {
+      if (!U.fieldKind || closed) return;
+      const s0 = Array.isArray(key) ? String(key[0]) : String(key || ""), kind = U.fieldKind(s0), mine = /behind your line|your line|your name|your side|behind you/i.test(s0);
+      const rad = R.rad, F = G.fx, V3 = T.Vector3, dirX = mine ? 1 : -1, rs = (a) => (Math.random() - 0.5) * 2 * a, secs = 2.8;
+      const ride = (obj, y, tick) => { obj.traverse((m) => { if (m.isMesh) m.castShadow = true; }); obj.rotation.y = dirX > 0 ? Math.PI / 2 : -Math.PI / 2; G.actors.add(obj); let t = 0; const z = -rad - 3.5, x0 = -dirX * (rad + 9), x1 = dirX * (rad + 9);
+        F.run((dt, cut) => { t += dt; const k = t / (secs + 0.6); obj.position.set(x0 + (x1 - x0) * k, y, z); if (tick) tick(t, (x1 - x0) * k); if (Math.random() < dt * 14) F.burst("dust", obj.position.clone().setY(0.1), { n: 2 }); if (k >= 1 || cut) { G.actors.remove(obj); G.dispose(obj); return true; } return false; }); };
+      if (kind === "horse") { for (let i = 0; i < 3; i++) { const h = G.horse([0x6a4a2a, 0x3a2a1c, 0xd8d0c0][i], 0xa3302a); h.position.z = i * 1.6; const g = new T.Group(); g.add(h); setTimeout(() => { if (!closed) ride(g, 0, (t) => G.gallop(h, t * 12 + i, 1)); }, i * 160); } sfx("drum"); }
+      else if (kind === "chariot") { const c = G.chariot({ col: 0x6e3a1e, trim: 0xe2b55a, flag: [mine ? "#2d5aa0" : "#a3302a", "#f2ead2", "sun"], horses: 2 }); ride(c, 0, (t, d) => G.roll(c, d, t, 1)); sfx("drum"); }
+      else if (kind === "elephant") { const el = G.elephant(mine ? 0x2d5aa0 : 0xa3302a); ride(el, 0, (t) => { G.stomp(el, t * 5, 1); if (Math.floor(t * 2.5) !== Math.floor((t - 0.016) * 2.5)) G.shake(0.18, 0.2); }); sfx("gong"); }
+      else if (kind === "arrows") { for (let i = 0; i < 16; i++) setTimeout(() => { if (closed) return; const to = new V3(rs(rad * 0.9), 0.05, -rad * 0.2 - Math.random() * rad * 0.9), from = new V3(to.x - dirX * (14 + Math.random() * 6), 15 + Math.random() * 4, to.z - 6); F.arrow(from, to, 0.75, 3, () => F.burst("dust", to, { n: 2 })); }, i * 70); sfx("tap"); }
+      else if (kind === "fire" || kind === "glow") { F.flash(kind === "glow" ? "rgba(255,236,170,.4)" : "rgba(255,140,50,.22)", 900); for (let i = 0; i < 9; i++) setTimeout(() => { if (closed) return; const at = new V3(-dirX * rad * 0.9 + dirX * i * rad * 0.22 + rs(0.8), 0.1, -rad - 1.5 + rs(1.2)); if (kind === "glow") F.burst("light", at.clone().setY(3 + Math.random() * 3), { n: 14, col: 0xfff0a0 }); else F.fall(at, 0xff7a2a, 0.3, "fire", () => { F.burst("ember", at, { n: 12, s: 1.6 }); F.burst("smoke", at, { n: 3 }); }); }, i * 130); sfx("gong"); }
+      else if (kind === "dark") { F.flash("rgba(4,6,22,.6)", 2800); }
+      else if (kind === "wind") { let t = 0; F.run((dt, cut) => { t += dt; for (let i = 0; i < 6; i++) F.haze(-dirX * (rad + 4) + dirX * (t / secs) * (rad * 2 + 8) + rs(3), 0.3 + Math.random() * 3.2, rs(rad), dirX * 9, 0.4, rs(1), 0xd8c8a0, 0.3, 1.2 + Math.random(), 0.7, 0, 1.4, 0.6); return t > secs || cut; }); }
+      else if (kind === "serpent") { let t = 0; F.run((dt, cut) => { t += dt; const k = t / secs, x = -dirX * (rad + 8) + dirX * k * (rad * 2 + 16); for (let i = 0; i < 4; i++) F.glow(x - dirX * i * 0.5, 9 + Math.sin(k * 14 + i * 0.3) * 1.6, -rad - 4, 0, 0, 0, i ? 0x6ae08a : 0xe8ffd0, 0.9, 0.5, 0.9, 0, -0.3, 0); return k > 1 || cut; }); sfx("gong"); }
+      else if (kind === "giant") { F.flash("rgba(10,6,20,.5)", 2400); let t = 0; F.run((dt, cut) => { t += dt; for (const sx of [-1, 1]) if (Math.random() < dt * 30) F.glow(sx * 1.3 + rs(0.1), 13 + rs(0.1), -rad - 9, 0, 0, 0, 0xff5a20, 0.95, 0.9, 0.25, 0, 0, 0); if (Math.random() < dt * 8) F.haze(rs(5), 4 + Math.random() * 9, -rad - 9, 0, 0.4, 0, 0x140a14, 0.5, 4, 1.2, 0, 1, 0.5); return t > secs || cut; }); sfx("gong"); }
+      else if (kind === "banner") { const bn = G.banner(4.6, 0xf2ead2, 0x2f7d55, "palm", 1.4); ride(bn, 0, (t) => G.wave(bn, t * 3)); }
+      else if (kind === "conch") { const at = new V3(-dirX * (rad + 2), 0.08, -rad * 0.3); for (let i = 0; i < 4; i++) setTimeout(() => { if (!closed) F.ring(at, 0xfff0c8, 0.5, rad * (0.8 + i * 0.35), 1.1); }, i * 200); sfx("conch"); }
+      else if (kind === "water") { let t = 0; F.run((dt, cut) => { t += dt; const k = t / secs, at = new V3(-rad + k * rad * 2, 0.1, rad * 0.75); if (Math.random() < dt * 9) { F.burst("splash", at, { n: 5, s: 0.8 }); F.ring(at, 0x8fd0f8, 0.2, 0.9, 0.5); } return k > 1 || cut; }); }
+      else { for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2 + rs(0.2); setTimeout(() => { if (!closed) F.burst("dust", new V3(Math.sin(a) * (rad + 1.5), 0.1, Math.cos(a) * (rad + 1.5)), { n: 6, s: 1.4 }); }, i * 60); } sfx("drum"); }
+    }
+    U.fieldEvent3d = fieldEvent; // (so a check can ask for each kind)
     function buildEdge(key) {
       const rad = R.rad, rnd = G.rand(G.hash(enc.id) + 3), b = new G.Builder(), PI = Math.PI, night = /night|cave|fire/.test(st.sky || "");
       const kind = st.indoor || /training|yard|ring|swayamvara|arena|court|hall|corridor|drupada/.test(key) ? "yard" : /war|battlefield|chakravyuha|camp|carts|gate/.test(key) ? "war" : "wild";
@@ -231,7 +256,7 @@
           v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
-          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
+          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
           f.trails = true; // the streak of a weapon through its blow
           const plainMan = !(u.hero || u.person) && u.side !== "player" && !NAMED.some(([re]) => re.test(String(u.src || u.name)));
           if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined, plainMan ? "hide" : undefined);
@@ -396,8 +421,18 @@
           case "dot": { const at = posOf(e.uid, 1.4); if (at) { float(at, String(e.n), v.u.side === "enemy" ? "foe" : "mine"); G.fx.burst(e.s === "burn" ? "ember" : "hit", at, { n: 5 }); } break; }
           case "leave": if (v) { G.fx.burst("dust", posOf(e.uid, 0.5), { n: 14, s: 2 }); dropView(v, "now"); } break;
           case "fall": if (v) { if (!v.u.line || Math.hypot(v.u.g.x - p.g.x, v.u.g.z - p.g.z) < 7) sfx(v.u.side === "enemy" ? "fall" : "friendFalls"); if (v.mark) { v.mark.userData.free(); v.mark = null; } if (v.bar) v.bar.classList.add("gone"); if (v.kind === "cart") G.fx.burst("smoke", posOf(e.uid, 0.6), { n: 14, s: 2 }); } break;
-          case "event": { const row = B.log[e.at]; if (row) { banner(C.line(row)); sfx("drumCall"); } break; }
+          case "event": { const row = B.log[e.at]; if (row) { banner(C.line(row)); sfx("drumCall"); if (!row.shown3d) { row.shown3d = true; fieldEvent(row.key); } } break; }
           case "toast": toast(U.tr(e.s)); break;
+          // The champions' traits, your boons and the divine weapons' gifts (the 2D game's Build D): said once, and shown.
+          case "trait": if (RT.TRAIT_TIP && RT.TRAIT_TIP[e.who] && !tips["trait_" + e.who]) { tips["trait_" + e.who] = true; toast(U.tr(RT.TRAIT_TIP[e.who]), "tip"); } break;
+          case "wheel": { const at = posOf(e.uid, 2.2); if (at) { float(at, U.tr("The wheel sinks!"), "foe big"); G.fx.burst("dust", at.clone().setY(0.2), { n: 18, s: 1.6 }); G.shake(0.25, 0.3); sfx("drum"); } break; }
+          case "cry": { const at = posOf(e.uid, 2.1); if (at) { float(at, U.tr("War cry!"), "mine"); for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xffe2a0, 0.4, 7 + i * 2, 0.7); }, i * 140); G.shake(0.2, 0.25); sfx("drumCall"); } break; }
+          case "knocked": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Knocked down"), "me"); G.shake(0.3, 0.3); break; }
+          case "maya": { const at = posOf(e.uid, 1); if (at) { G.fx.burst("smoke", at, { n: 8 }); G.fx.burst("light", at, { n: 10, col: 0xb090ff }); } sfx("gong"); break; }
+          case "vanish": { const v = views.get(e.uid); if (v) { const at = v.figs[0] ? v.figs[0].root.position.clone().setY(1) : null; if (at) { G.fx.burst("smoke", at, { n: 10 }); G.fx.burst("light", at, { n: 8, col: 0xb090ff }); } dropView(v, "now"); } break; }
+          case "unseen": { toast(U.tr("Antardhana! Unseen"), "good"); const at = posOf(C.player().uid, 1); if (at) { G.fx.burst("smoke", at, { n: 10 }); G.fx.ring(at.clone().setY(0.06), 0xcfe0ff, 0.3, 2.4, 0.6); } sfx("tap"); break; }
+          case "burn": { const uid = e.uid; let n = 0; const iv = setInterval(() => { const at = closed ? null : posOf(uid, 1); if (!at || ++n > 10) { clearInterval(iv); return; } G.fx.burst("ember", at, { n: 6, s: 1.1 }); }, 200); break; }
+          case "burnt": { const at = posOf(e.uid, 1.7); if (at) float(at, String(e.n), "foe"); break; }
           case "laydown": if (pf) pf.pose("kneel"); toast(U.tr(K.ABILITIES.lay_down.name)); break;
           case "cover": sfx("tap"); break;
           case "lock": break;
@@ -407,7 +442,7 @@
         }
       }
       // A line the fight itself spoke (the engine's log) that no event carried: the story beats.
-      for (; lastLog < B.log.length; lastLog++) { const row = B.log[lastLog]; if (row && (row.raw || row.ev) && started && lastLog > 0) banner(C.line(row)); }
+      for (; lastLog < B.log.length; lastLog++) { const row = B.log[lastLog]; if (row && (row.raw || row.ev) && started && lastLog > 0) { banner(C.line(row)); if (row.ev && !row.shown3d) { row.shown3d = true; fieldEvent(row.key); } } }
     }
     // Each divine weapon comes in its own way. Indra's falls as forked lightning, one man after another, out of a sky gone
     // dark. Fire goes up as one burning arrow and comes down in a line that walks toward them, and stays on the ground.
@@ -575,7 +610,7 @@
       if (!down || e.repeat) { if ([" ", "j", "l", "e", "q", "tab"].includes(k)) e.preventDefault(); return; }
       if (k === "escape" || k === "p") { e.preventDefault(); pause(!paused); return; }
       if (paused) return;
-      const map = { j: "strike", " ": "roll", l: "skill", e: "skill", q: "lock", tab: "lock", h: "herbs", c: "call", v: "cover", y: "layDown" };
+      const map = { j: "strike", " ": "roll", l: "skill", e: "skill", q: "lock", tab: "lock", h: "herbs", c: "call", v: "cover", y: "layDown", g: "vanish" };
       if (map[k]) { e.preventDefault(); tap(map[k]); if (k === " ") tapRollDir(); return; }
       if (k === "f") { const s = R3.spareable(R)[0]; if (s) tap("spare", s.uid); return; }
       if (k === "x") { withdraw(); return; }
@@ -636,7 +671,7 @@
     let stickEl, knob, btnEls = {}, me = {};
     function buildHud() {
       hud.innerHTML = '<div class="b-top"><b class="b-title"></b><span class="b-goal"></span></div><p class="b-line"></p><div class="b-toasts"></div><p class="b-tip" hidden></p>' +
-        '<div class="b-me"><div class="b-name"></div><div class="b-bar hp"><i></i><span></span></div><div class="b-bar breath"><i></i></div><div class="b-status"></div></div>' +
+        '<div class="b-me"><div class="b-name"></div><div class="b-bar hp"><i></i><span></span></div><div class="b-bar breath"><i></i></div><div class="b-status"></div><div class="b-gifts" hidden></div></div>' +
         '<div class="b-stick"><i></i></div><div class="b-acts"></div><div class="b-side"></div>';
       hud.querySelector(".b-title").textContent = K.text(K.val(enc.title) || "A fight");
       stickEl = hud.querySelector(".b-stick"); knob = stickEl.querySelector("i");
@@ -655,6 +690,7 @@
       const p = C.player();
       if (p.abilities.includes("herbs")) mk(side, "herbs", "Herbs", "H", () => tap("herbs"));
       if (p.abilities.includes("call")) mk(side, "call", "Call for help", "C", () => tap("call"));
+      if (RT.vanishOffer && RT.vanishOffer(R)) mk(side, "vanish", "Vanish", "G", () => { if (R3.can(R, "vanish")) tap("vanish"); else toast(U.tr("Used this act")); }); // Antardhana (a boon): two seconds unseen
       if (p.abilities.includes("cover")) mk(side, "cover", K.ABILITIES.cover.name, "V", () => tap("cover"));
       if (p.abilities.includes("lay_down")) mk(side, "layDown", K.ABILITIES.lay_down.name, "Y", () => tap("layDown"));
       R3.astras(R).forEach((row, i) => { if (i < 3) mk(side, "astra" + i, row.name || K.ABILITIES[row.id].name, String(i + 1), () => { const r2 = R3.astras(R)[i]; if (r2 && !r2.why) tap("astra", r2.id); else if (r2) toast(U.esc(r2.why)); }); });
@@ -687,6 +723,8 @@
       set("roll", R3.can(R, "roll"), 0);
       set("block", R3.can(R, "block") || R.block, R.broken ? 1 : 0); if (btnEls.block) btnEls.block.classList.toggle("on", !!R.block);
       if (R.skill) set("skill", R3.can(R, "skill"), R.skillCd / (RT.RECHARGE[R.skill] || 10));
+      set("vanish", R3.can(R, "vanish"));
+      { const gl = R3.gifts(), key = gl.map((x) => x.id).join(","); if (key !== giftKey) { giftKey = key; const el = hud.querySelector(".b-gifts"); if (el) { el.hidden = !gl.length; el.innerHTML = gl.map((x) => '<i title="' + U.esc(K.tr(x.name)) + '">' + (GIFT_MARK[x.id] || "✧") + "</i>").join(""); el.onclick = () => toast(gl.map((x) => K.tr(x.name)).join(" · ")); } } }
       set("herbs", R3.can(R, "herbs"), (R.herbCd || 0) / 8); if (btnEls.herbs) { const n = K.S.items.herbs || 0, k = btnEls.herbs.querySelector("kbd"); if (k) k.textContent = "×" + n; }
       set("call", R3.can(R, "call"), 0); set("cover", R3.can(R, "cover"), 0); set("layDown", R3.can(R, "layDown"), 0, !R3.can(R, "layDown") && !B.laidDown ? null : null);
       const ast = R3.astras(R); ast.forEach((row, i) => set("astra" + i, !row.why, 0));
@@ -750,7 +788,7 @@
       const bh = boss.g.kind === "elephant" ? 3.2 : boss.g.car ? 2.2 : 1.38, bd = boss.g.kind === "elephant" ? 9 : boss.g.car ? 6.6 : boss.g.kind === "squad" ? 4.4 : 3.2;
       const rest = tally(every.filter((u) => u !== boss)), more = every.some((u) => u.g.entered === false) || (enc.rounds && !enc.hold && every.length > foes.length);
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
-        text: (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
+        text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         shots.push({ secs: 2.0, a: [[ax + (ax >= px ? 3.2 : -3.2), 1.75, az - 3.6], [ax, 1.25, az], 40], b: [[ax + (ax >= px ? 2.3 : -2.3), 1.62, az - 3.0], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }

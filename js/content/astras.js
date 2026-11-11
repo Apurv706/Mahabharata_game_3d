@@ -21,12 +21,14 @@
   // ---------- The weapons ----------
   // The plain astra (boon "astra": from the teacher, the penance or Mauni) has a name too: Indra's thunder (owner, 9 Nov).
   K.INDRA = { name: "Indrastra", mantra: "The mantra of thunder: Indra, who rides the storm and splits the clouds open." };
+  // Each weapon's lasting gift while you keep it (Build D stage 3, Fight_Traits_Draft.md 3.2; engine/realtime.js RT.GIFTS).
+  K.INDRA.gift = "Indra's gift, the teacher's eye: your parry window is wider, and a perfect block or roll gives back breath.";
   K.ASTRAS = {
-    agneya: { name: "Agneyastra", mantra: "The mantra of fire: Agni, who eats everything and is never full.", kind: "agneya" },
-    varuna: { name: "Varunastra", mantra: "The mantra of water: Varuna, who holds the oceans in a cupped hand.", kind: "varuna" },
-    vayavya: { name: "Vayavyastra", mantra: "The mantra of wind: Vayu, who is never seen and never still.", kind: "vayavya" },
-    sammohana: { name: "Sammohana", mantra: "The mantra of sleep: the one Arjuna spoke over the Kaurava host at Virata's border.", kind: "sammohana" },
-    nagapasha: { name: "Nagapasha", mantra: "The serpent-noose: the mantra of the naga folk, who bind and do not kill.", kind: "nagapasha" }
+    agneya: { name: "Agneyastra", mantra: "The mantra of fire: Agni, who eats everything and is never full.", kind: "agneya", gift: "Agni's gift: your heavy blows set a foe burning." },
+    varuna: { name: "Varunastra", mantra: "The mantra of water: Varuna, who holds the oceans in a cupped hand.", kind: "varuna", gift: "Varuna's gift: burning, bleeding and curses leave you twice as fast, and your breath comes back quicker." },
+    vayavya: { name: "Vayavyastra", mantra: "The mantra of wind: Vayu, who is never seen and never still.", kind: "vayavya", gift: "Vayu's gift: light feet. You walk faster, and your roll carries further." },
+    sammohana: { name: "Sammohana", mantra: "The mantra of sleep: the one Arjuna spoke over the Kaurava host at Virata's border.", kind: "sammohana", gift: "The gift of sleep: a foe your heavy blow strikes winds up his next blow slower." },
+    nagapasha: { name: "Nagapasha", mantra: "The serpent-noose: the mantra of the naga folk, who bind and do not kill.", kind: "nagapasha", gift: "The nagas' gift: your heavy blow binds a foe's feet, so he cannot step back." }
   };
   // Who gives each one, and on what condition (core.js K.astraBreaksFor: tag is the choice tag that breaks it).
   Object.assign(K.ASTRA_GIVERS, {

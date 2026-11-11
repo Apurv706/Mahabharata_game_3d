@@ -1,7 +1,7 @@
 {
  "runs": 28,
  "seed": 21,
- "mean": 92,
+ "mean": 91,
  "fights": {
   "e_dream": {
    "win": 0,
@@ -50,7 +50,7 @@
   },
   "e_sudatta": {
    "win": 100,
-   "secs": 28,
+   "secs": 29,
    "capped": 0
   },
   "e_cattle": {
@@ -84,8 +84,8 @@
    "capped": 0
   },
   "e_last_stand": {
-   "win": 68,
-   "secs": 57,
+   "win": 61,
+   "secs": 59,
    "capped": 0
   },
   "e_ring": {
@@ -115,7 +115,7 @@
   },
   "e_dushasana": {
    "win": 100,
-   "secs": 40,
+   "secs": 41,
    "capped": 0
   },
   "e_day16": {
@@ -144,12 +144,12 @@
    "capped": 0
   },
   "hold_duryodhana": {
-   "win": 89,
-   "secs": 63,
+   "win": 96,
+   "secs": 64,
    "capped": 0
   },
   "hold_arjuna": {
-   "win": 100,
+   "win": 96,
    "secs": 48,
    "capped": 0
   },
@@ -169,13 +169,23 @@
    "capped": 0
   },
   "e_ep_carts": {
-   "win": 68,
-   "secs": 50,
+   "win": 82,
+   "secs": 52,
    "capped": 0
   },
   "e_ep_ugra": {
    "win": 100,
    "secs": 46,
+   "capped": 0
+  },
+  "e_bhadra": {
+   "win": 79,
+   "secs": 43,
+   "capped": 0
+  },
+  "e_bhadra_road": {
+   "win": 86,
+   "secs": 51,
    "capped": 0
   },
   "wc_e_child_line": {
@@ -184,8 +194,8 @@
    "capped": 0
   },
   "wc_e_ghost": {
-   "win": 93,
-   "secs": 40,
+   "win": 75,
+   "secs": 38,
    "capped": 0
   },
   "wc_e_reach": {
@@ -199,8 +209,8 @@
    "capped": 0
   },
   "e_kb_hold": {
-   "win": 89,
-   "secs": 47,
+   "win": 96,
+   "secs": 48,
    "capped": 0
   },
   "e_kb_guard": {
@@ -239,13 +249,13 @@
    "capped": 0
   },
   "oath_arjuna_12": {
-   "win": 100,
-   "secs": 58,
+   "win": 86,
+   "secs": 62,
    "capped": 0
   },
   "oath_arjuna_16": {
-   "win": 79,
-   "secs": 63,
+   "win": 86,
+   "secs": 62,
    "capped": 0
   },
   "oath_king_hold": {
@@ -259,8 +269,8 @@
    "capped": 0
   },
   "cross_e_escape": {
-   "win": 100,
-   "secs": 33,
+   "win": 64,
+   "secs": 35,
    "capped": 0
   },
   "cross_e_duel": {

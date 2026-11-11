@@ -93,6 +93,35 @@
   // A foe who fights with a sword or a spear carries the round shield too (owner, 6 November: "let's add shields to foes as
   // well"), the named among them: not an archer, a mace, a club or bare hands, nor a thing (a cart, an elephant, the
   // Narayana weapon) or the Gandharvas. The weapon is the one he fights with (RT.weaponOf, which the screens draw).
+  // ---------- Mixed packs and more archers (Build D, feedback row 47) ----------
+  // From Act III, in a life's story fights (not the young fighter's ladder, a dream, a bout, a storm, an escort or a
+  // break-through, or a fight that says mix: false), most packs bring an archer who holds the back and shoots: one of the
+  // pack's plain soldiers (not a named fighter, a rider, a champion, a host) is his side's archer instead, while at least one
+  // stands to fight hand to hand. In the war a pack of three or more may bring two. Drawn from the fight's own dice, so the
+  // same fight from the same moment plays the same way (replays, the recorded lives); fights already bringing an archer keep theirs.
+  C.MIX = { from: 3, one: 0.7, two: 0.35, twoFrom: 6 };
+  const PLAIN = (u) => u.side === "enemy" && !u.person && !u.hero && !u.plural && !u.still && !u.item && !u.vowTag && !u.mixed &&
+    /\s/.test(u.src || "") && !/\{/.test(u.src || "") && (u.abilities || []).some((a) => a === "strike" || a === "heavy") && !(u.abilities || []).some((a) => /arrows|aimed|pin|volley/.test(a)) &&
+    !/archer|bow|rider|horse|chariot|elephant|champion|helmet|veteran|captain|torch|scout|gandharva|naga|rakshasa|ghost|host|charioteer|lord|king|prince|brother|son\b/i.test(u.src || "");
+  const turnArcher = (u) => {
+    const nm = String(u.src).replace(/\s+\S+$/, "") + " archer";
+    u.src = nm; u.name = K.fmt(nm); u.abilities = ["strike", "arrows"]; u.shield = false; u.shieldDrawn = false; u.mixed = true;
+  };
+  C.mixFoes = function (B, S) {
+    const enc = B.enc;
+    if (!S || S.fighter || (S.act || 0) < C.MIX.from || enc.dream || enc.bout || enc.mix === false || B.rule || B.kind) return;
+    const foes = B.units.filter((u) => u.side === "enemy"), packs = {};
+    foes.forEach((u) => { const k = u.pack || 0; (packs[k] = packs[k] || []).push(u); });
+    const keys = Object.keys(packs).map(Number).sort((a, b) => a - b);
+    keys.forEach((k) => {
+      const pk = packs[k], plain = pk.filter(PLAIN), shooting = pk.filter((u) => (u.abilities || []).some((a) => /arrows|aimed|pin|volley/.test(a))).length;
+      if (shooting || plain.length < 1 || pk.length - 1 < 1) return; // an archer already, or no one plain, or he would stand alone
+      let want = K.rng() < C.MIX.one ? 1 : 0;
+      if (want && plain.length >= 3 && (S.act || 0) >= C.MIX.twoFrom && K.rng() < C.MIX.two) want = 2;
+      want = Math.min(want, pk.length - 1, plain.length);
+      plain.slice(plain.length - want).forEach(turnArcher); // the hindmost of them
+    });
+  };
   C.foeShielded = function (def) {
     const n = String(def.src || def.name || "");
     if (/archer|bow|Gandharva|elephant|\bcart$|Narayana|charioteer/i.test(n) || !K.RT || !K.RT.weaponOf) return false;
@@ -181,7 +210,9 @@
       let crit = false;
       if (u.status.crit || K.rng() < 0.08) { crit = true; dmg *= 1.5; delete u.status.crit; }
       if (t.status.guard) { dmg *= o.breaks ? 0.85 : 0.5; delete t.status.guard; }
+      if (B.rt && C.traitDmg) dmg *= C.traitDmg(B, u, t); // a champion's trait, in a real-time fight or a clash (engine/realtime.js)
       dmg = Math.max(1, Math.round(dmg));
+      if (B.rt && C.traitCap) dmg = C.traitCap(B, t, dmg);
       // A holding fight (enc.hold): the champion is held, never killed. He is never brought below a tenth.
       if (B.enc.hold && t.hero) dmg = Math.min(dmg, Math.max(0, t.hp - Math.round(t.maxHp * 0.1)));
       // A sage's kavacha: one blow that would have killed you, in the whole war, leaves you standing (§18.7).
@@ -242,6 +273,7 @@
       order.forEach((list, k) => list.forEach((i) => { const u = foes[i]; if (u) { u.pack = k; if (k) u.away = true; } }));
       B.packs = order.length; B.packNow = 0;
     }
+    if (C.mixFoes) C.mixFoes(B, S); // from Act III, archers among the packs (Build D, row 47)
     if (S.boons.includes("healing_hands") && (S.items.herbs || 0) < 2) S.items.herbs = 2;
     B.pulled = {};
     // The screen asks for step mode (each blow aimed at you met in time); with timed moments off the
@@ -411,6 +443,12 @@
       if (extra > 0 && K.hasVow && K.hasVow("spare_unarmed", K.S)) K.S.spared = (K.S.spared || 0) + extra;
     }
     if (K.friendAfter) K.friendAfter(B);
+    // A captain-tier foe brought down (fallen, or spared at your mercy) in a real fight you won, grown (18 or more): a
+    // Captain's milestone (the captain's arc, owner 11 November; core.js K.CLIMB). Not a dream, a bout or the ladder.
+    if ((outcome === "win" || outcome === "spare") && !B.enc.dream && !B.enc.bout && !K.S.fighter && (K.S.age || 0) >= 18 && K.RT && K.RT.tierOf && !K.S.flags.includes("felled_captain")) {
+      const cap = B.units.find((u) => u.side === "enemy" && (u.hp <= 0 || u.spared || outcome === "spare") && K.RT.tierOf(u) >= 1);
+      if (cap) { K.lastFelled = cap.src || cap.name; K.apply({ flag: "felled_captain" }); }
+    }
     // A fight won on your last legs can leave a mark for life: any wound in a deadly fight, a scar in
     // any other.
     if (outcome === "win" && !B.enc.lethal && p.hp <= p.maxHp * 0.2 && K.rng() < 0.35 && !K.S.injuries.includes("scar")) {

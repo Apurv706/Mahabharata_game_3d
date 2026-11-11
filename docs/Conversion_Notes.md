@@ -52,7 +52,7 @@ fight; the 2D game's tests brought over; every battle tuned.
   off together; a whirlwind that scatters them; a hush that puts them to sleep; serpents that run to each and wind round.
 - **Dress.** The figures wear wound cloth, not trousers and sleeves (see `Costume_Audit.md`, "How everyone is dressed").
 - **Kept in step with the 2D game.** The 2D repo's changes after the copy are carried over as patches (11 Nov: its
-  change 104, the path screen asks "Which path do you choose?" and each tile names what the path fights with; 2D
+  change 104, then 105 to 113; the path screen asks "Which path do you choose?" and each tile names what the path fights with; 2D
   commit c6a8ef5). To do it again: `git diff <last carried commit> origin/main -- game` in the 2D repo, applied here with `-p2`.
 - **The figures are one skin over the skeleton** (11 Nov; they were jointed dolls of separate rigid pieces and read as
   boxy). The joints the poses turn are unchanged, so every move is as tuned. Over them `Skin` in `js/g3/figure.js`
@@ -70,6 +70,21 @@ fight; the 2D game's tests brought over; every battle tuned.
   cannot pass through the body; it was a clock-driven wobble.
 - **Faces:** long eyes with lids, and hair on the face per person (`whiskers`: clean, thin, stache, heavy, stubble;
   `beard`: goatee, short, full, forked, long), matched to the 2D portraits where there is one.
+- **Heads** are one shaped surface from chin to crown (they were two balls, and the join showed as torn patches). The
+  shape is the person's: `FACES` in `js/g3/figure.js` (oval, square, long, round, heart, broad, gaunt, hawk) sets jaw,
+  chin, cheek, the length of the lower face, the brows and the nose; `face:` in the look data names one, and the rest
+  are told apart by build. Hair, stubble and a short beard are colour on that surface; longer beards hang from the chin;
+  Gandhari's bandage and an elder woman's head-cloth are fitted to it. To see them: the close-up sheets.
+- **Caught up with the 2D game to its commit b1216f5 (11 Nov; its changes 105 to 113).** The shared files came over as
+  patches. What the 2D game does in its own real-time rules is mirrored in `js/ui/battle/sim.js` ("The 2D game's Build D"):
+  the champions' traits (Drona and Kripa read a repeated combo; Duryodhana and Satyaki parry more; Karna's wheel;
+  Ghatotkacha's two false figures, which cast no shadow; Bhima's war cry; Abhimanyu's sweep; Bhurishravas's knock-down;
+  Supratika's charge), the tier you have climbed to (only your tier or above staggers you), boons (Bala, the charmed
+  shield, healing hands, sanjivani, Antardhana as a Vanish button, key G), and each divine weapon's lasting gift. Blow
+  weights, the climb itself, archers among the packs and Bhadra's three scenes are in the shared engine and needed nothing.
+  Field events are not drawn over a painting here: `fieldEvent` in `view.js` makes them happen on the field (riders,
+  a chariot or an elephant crossing beyond the edge, arrows falling, fire, dark, dust, a serpent of light, rings from a
+  conch). Three fights are tuned apart for 3D, where being surrounded is harder: Bhadra's bout, the border road, the crossing.
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512

@@ -93,6 +93,7 @@
       return s;
     }
     if (u.person === "ugra") return Object.assign(U.puppetFor("ugra"), { item: "club" }); // Ugra grown, at the war: the club he strikes with
+    if (u.person === "bhadra") return SPECIAL.rider; // Bhadra, captain of the gate guard: a crested veteran with a sword (RT.weaponOf: a sword)
     if (u.person && K.PUPPETS[u.person]) return U.puppetFor(u.person);
     const n = String(u.src || u.name);
     if (/Ketan/.test(n)) return Object.assign(U.puppetFor("boy"), { item: "woodsword" }); // the sparring bout: blunted weapons
@@ -782,6 +783,8 @@
     body.innerHTML = (roundsLine ? '<p class="holdline">' + roundsLine + "</p>" : "") + '<div class="sides"><div class="side"><span class="lbl">' + U.tr("Your side") + "</span>" + friends.map((u) => unitCard(u, B)).join("") +
       '</div><div class="side"><span class="lbl">' + U.tr(B.kind === "weather" ? "Against you" : C.canMark && C.canMark() ? "Against you · tap to mark" : "Against you · tap to target") + "</span>" + enemies.map((u) => unitCard(u, B)).join("") + "</div></div>" +
       '<div id="battle-actions"></div><ol class="blog" id="blog" aria-live="polite">' + B.log.slice(-8).map((l) => "<li" + (l.ev ? ' class="ev"' : "") + ">" + U.esc(C.line(l)) + "</li>").join("") + "</ol>";
+    // A field event is drawn across the field as well as said (row 38: ui/fx.js U.fieldFx).
+    if (B.log.length > lastLogLen && U.fieldFx) { const ev = B.log.slice(lastLogLen).filter((l) => l.ev).pop(); if (ev) U.fieldFx(U.$("arena"), ev.key); }
     // Blows are heard as well as seen.
     if (K.Sound && B.log.length !== lastLogLen) {
       const fresh = B.log.slice(lastLogLen);
@@ -982,7 +985,8 @@
     B.units.forEach((u) => { if (u.side === "enemy" && (u.person || u.hero) && u.hp > 0) seen.add(u.uid); });
     const full = K.text(h.src || h.name), cut = full.indexOf(","), name = cut > 0 ? full.slice(0, cut) : full, title = cut > 0 ? full.slice(cut + 1).trim() : K.tr("A champion takes the field");
     const old = document.querySelector(".b-champ"); if (old) old.remove();
-    const el = U.el('<div class="b-champ" aria-live="assertive"><b>' + U.esc(name) + "</b><small>" + U.esc(title) + "</small></div>");
+    const trait = K.RT && K.RT.traitLine ? K.RT.traitLine(h) : null; // his trait (stage 2)
+    const el = U.el('<div class="b-champ" aria-live="assertive"><b>' + U.esc(name) + "</b><small>" + U.esc(title) + "</small>" + (trait ? "<em>" + U.esc(K.tr(trait)) + "</em>" : "") + "</div>");
     document.body.appendChild(el); // over the arena, which is drawn again as the turns go
     if (K.Sound) K.Sound.play("drumCall");
     const a = document.querySelector('#arena .actor[data-uid="' + h.uid + '"]'); if (a) { a.classList.remove("champ-in"); void a.offsetWidth; a.classList.add("champ-in"); }

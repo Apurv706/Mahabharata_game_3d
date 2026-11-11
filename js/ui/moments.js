@@ -39,7 +39,7 @@
       case "astra": {
         const g = (K.ASTRA_GIVERS || {})[m.from] || {}, A = (m.which ? K.ASTRAS && K.ASTRAS[m.which] : K.INDRA) || K.INDRA; // the plain astra: the Indrastra
         return { theme: "astra", title: A ? ["The {name}", { name: A.name }] : "A divine weapon", line: g.cond ? ["Given by {who}, on one condition: “{cond}”", { who: g.who, cond: g.cond }] : "The mantra is yours now, and so is every place it lands.",
-          sub: A ? A.mantra : "The mantra is yours now, and so is every place it lands.", art: "moment_astra", astra: true };
+          sub: A ? A.mantra : "The mantra is yours now, and so is every place it lands.", gift: A && A.gift ? A.gift : null, art: "moment_astra", astra: true };
       }
       case "vow": {
         const V = K.VOWS[m.id] || {};
@@ -48,6 +48,11 @@
           art: null, place: V.place || "scene_vow", emblem: "vow_" + m.id }; // a vow may bring its own painting and theme (the Samshaptakas' oath)
       }
       case "crossed": return { theme: "crossed", title: "The one who crossed", line: "Yudhishthira's call was still in the air when you walked into it.", art: "scene_yuyutsu_crossing" };
+      // Your strength rises a tier (Build D stage 3, Fight_Traits_Draft.md 1.3): over an existing painting (no new art).
+      case "tier": return m.tier >= 2 ? { theme: "milestone", title: "A great champion", line: "Your blows break shields as a champion's do. Only a champion's heavy blow can stagger you now.", art: "fight_war_chariot" }
+        : m.via === "helmet" ? { theme: "milestone", title: "Bhadra's helmet", line: "Men will look to it now. Your blows wear a shield down faster, and a soldier's heavy blow no longer staggers you.", art: "scene_duel_ground" }
+        : m.via === "felled" && m.foe ? { theme: "milestone", title: "A captain's strength", line: ["{foe} is down, and the men around you saw who did it. A soldier's heavy blow no longer staggers you.", { foe: K.text(m.foe, null, S) }], art: "scene_duel_ground" }
+        : { theme: "milestone", title: "A captain's strength", line: "Your blows wear a shield down faster, and a soldier's heavy blow no longer staggers you.", art: "scene_duel_ground" };
       case "company": return { theme: "milestone", title: "A company of your own", line: "They are yours to command, and yours to bring home.", art: "scene_command_banner", place: null, emblem: null };
       default: return K.MOMENT_KINDS && K.MOMENT_KINDS[m.kind] ? K.MOMENT_KINDS[m.kind](m, S) : null; // kinds the content adds (war_child.js)
     }
@@ -105,7 +110,7 @@
       '<div class="mo-figs">' + (me && (info.with || info.astra) ? '<span class="mo-l">' + me + "</span>" : "") + (friend ? '<span class="mo-r">' + friend + "</span>" : "") + (info.astra ? emblem : "") + "</div>" + (info.astra ? "" : emblem) +
       '<div class="mo-text"><span class="mo-orn" aria-hidden="true"></span><b class="mo-title">' + tx(info.title) + "</b>" + (info.line ? '<p class="mo-line">' + tx(info.line) + "</p>" : "") +
       (info.watch ? '<p class="mo-sub">' + tx(info.watch) + "</p>" : "") + (info.price ? '<p class="mo-sub down">' + tx(info.price) + "</p>" : "") +
-      (info.astra && info.sub && info.line !== info.sub ? '<p class="mo-sub">' + U.t(info.sub) + "</p>" : "") + "</div>" +
+      (info.astra && info.sub && info.line !== info.sub ? '<p class="mo-sub">' + U.t(info.sub) + "</p>" : "") + (info.gift ? '<p class="mo-sub gift">' + tx(info.gift) + "</p>" : "") + "</div>" +
       '<span class="mo-tap">' + U.tr("Tap to go on") + "</span></div>");
     const before = document.activeElement;
     document.body.appendChild(el);

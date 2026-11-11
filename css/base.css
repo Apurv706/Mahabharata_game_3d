@@ -395,3 +395,7 @@ body.inscene .ledger { position: fixed; z-index: 40; top: calc(max(8px, var(--sa
 /* The frame-rate counter (Menu: Show frame rate) */
 .fps-meter { position: fixed; z-index: 9999; left: calc(6px + env(safe-area-inset-left, 0px)); bottom: calc(6px + env(safe-area-inset-bottom, 0px)); padding: 3px 7px; border-radius: 6px; background: rgba(0, 0, 0, .72); color: #9fe39a; font: 700 12px/1.2 ui-monospace, Menlo, monospace; pointer-events: none; }
 .fps-meter.bad { color: #ff9a7a; }
+
+/* A field event drawn across the field (Build D, row 38; ui/fx.js U.fieldFx): over the painting, under the figures and the lines. */
+.field-fx { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.field-fx canvas { width: 100%; height: 100%; display: block; }

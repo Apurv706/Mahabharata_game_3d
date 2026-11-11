@@ -542,11 +542,78 @@
 
   Object.assign(K.COMMAND_FIGHT_BG = K.COMMAND_FIGHT_BG || {}, { e_ep_ugra: "fight_war_chariot" }); // its ground, and the tall one on a phone (ui/battle.js FIGHT_BG)
 
+  // ---------- The captain's arc: Bhadra, an old soldier (owner, 11 November: "a more interesting captain arc") ----------
+  // Three scenes, all optional and side-free. Act III: Bhadra, captain of the gate guard, takes your measure in a bout. Late
+  // Act III: his company is caught on the border road and he falls; you hold the road over him, lead his men up the bank,
+  // or carry him out. Act V, the thirteenth year: dying, he gives you his helmet, dented above the left eye, the helmet of
+  // the dream at six. Worn, it makes you a Captain (core.js K.tierNow), and on the thirteenth day of the war you remember
+  // the dream. No new paintings: the training ground, the border village, the sickbed lamp (each in both parts).
+  const bhadraMark = (S) => ["bhadra_held", "bhadra_led", "bhadra_carried"].some((f) => S.flags.includes(f));
+  K.scenes([
+    {
+      id: "ep_bhadra_bout", act: 3, age: 26, away: true, when: (S) => !!S.path && !S.fighter && !S.flags.includes("bhadra_met"), skipTo: "a3_court", next: "a3_court",
+      art: "stage_training_ground", place: "The gate guard's yard", caption: "Bhadra, captain of the gate guard",
+      title: "The old soldier",
+      body: ["Bhadra, captain of the gate guard, has watched you train all season. \"Show me,\" he says, and takes up a shield."],
+      choices: [
+        { id: "spar", t: "Spar with him", combat: "e_bhadra", hint: "A bout, not to the death" },
+        { id: "decline", t: "Not today", fx: { flag: "bhadra_met" }, text: "\"Another day, then.\" He goes back to his gate, and you feel him watching you train." }
+      ]
+    },
+    {
+      id: "ep_bhadra_road", act: 3, age: 28, away: true, when: (S) => S.flags.includes("bhadra_met") && !S.fighter, skipTo: "a3_rajasuya", next: "a3_rajasuya",
+      art: "stage_border_village", place: "The border road", caption: "Bhadra's company",
+      title: "His men",
+      body: ["You ride out with Bhadra's company to clear raiders off the border road. In a cutting they come down both banks, and an arrow takes Bhadra in the thigh."],
+      choices: [
+        { id: "hold", t: "Stand over him and hold the road", combat: "e_bhadra_road" },
+        { id: "lead", t: "Take his men up the bank", check: { attr: "command", skill: "statecraft", dc: 7,
+          pass: { fx: { flag: "bhadra_led", bond: { bhadra: 2 }, attr: { command: 1 }, journal: "On the border road you took Bhadra's men up the bank when he fell, and they followed you." }, text: "They wait one breath, then follow you up the bank. The raiders scatter. Bhadra, white-faced, says only, \"Good.\"" },
+          fail: { fx: { bond: { bhadra: 1 } }, text: "They look at Bhadra, not at you. By the time he shouts the order himself, the raiders are gone." } }, hint: "A test of command" },
+        { id: "carry", t: "Carry him out of the cutting", fx: { flag: "bhadra_carried", bond: { bhadra: 3 }, journal: "On the border road you carried Bhadra out under the raiders' arrows." },
+          text: "You get him across your shoulders and out under the arrows. He does not forget who carried him." }
+      ]
+    },
+    {
+      id: "ep_bhadra_helmet", act: 5, age: 42, away: true, when: (S) => S.alive && !S.fighter && bhadraMark(S) && !S.dead.includes("bhadra"), skipTo: "a5_matsya", next: "a5_matsya",
+      art: "ev_teacher", place: "Bhadra's house", caption: "A lamp by a sickbed",
+      title: "The helmet",
+      body: ["Bhadra is dying, and has sent for you. He has kept one thing back: his helmet, dented above the left eye.",
+        { memory: "You have seen that dent before: at six, in a dream, on a warrior who came at you through the dust." }],
+      choices: [
+        { id: "wear", t: "Put it on", fx: { flag: "bhadra_helmet", die: "bhadra", journal: "Bhadra gave you his dented helmet, and died the same night." },
+          text: "It fits. Bhadra laughs, which costs him. \"Men will look to it now. Let them.\" He dies before morning." },
+        { id: "keep", t: "Thank him, and wrap it in cloth", fx: { flag: "bhadra_helmet_kept", die: "bhadra", journal: "Bhadra left you his dented helmet. You have never worn it." },
+          text: "You do not put it on. Some dreams you would rather not walk into. He dies before morning, and does not ask why." }
+      ]
+    }
+  ]);
+  K.encounter({
+    id: "e_bhadra", title: "The old soldier", art: "stage_training_ground", caption: "Blunted spears, a captain's shield", lethal: false, bout: true, realtime: true, mix: false,
+    intro: "Bhadra sets his shield and waits for you to come to him.",
+    enemies: [K.foe("Bhadra, an old soldier", 4, { person: "bhadra", shield: true, abilities: ["strike", "guard", "heavy"] })],
+    win: { fx: { flag: ["bhadra_met", "bhadra_bout_won"], bond: { bhadra: 2 }, journal: "You beat Bhadra, captain of the gate guard, in a bout." }, text: "He gets up slowly. \"Good. Come back when you've seen blood.\"" },
+    lose: { fx: { flag: "bhadra_met", bond: { bhadra: 1 } }, text: "He helps you up. \"Not bad. Come back when you've seen blood.\"" }
+  });
+  K.encounter({
+    id: "e_bhadra_road", title: "His men", art: "stage_border_village", caption: "Raiders on both banks", lethal: false, realtime: true,
+    intro: "Bhadra is down behind you, and the raiders know it.",
+    enemies: [K.foe("Border raider", 2), K.foe("Border raider", 1), K.foe("Raiders' archer", 1, { abilities: ["strike", "arrows"] })], // lighter on the turns (owner, 11 Nov); real time tuned back up (RT.TUNE)
+    win: { fx: { flag: "bhadra_held", bond: { bhadra: 2 }, journal: "On the border road you stood over Bhadra and held it." }, text: "The raiders break on you and go back up the banks. Bhadra, white-faced, says only, \"Good.\"" },
+    lose: { fx: { bond: { bhadra: 1 } }, text: "Bhadra's men drag you both out of the cutting. He says nothing about it, then or after." }
+  });
+  Object.assign(K.COMMAND_FIGHT_BG, { e_bhadra: "stage_training_ground", e_bhadra_road: "fight_border_road" });
+  // The thirteenth day, the day of the dream: one who wears Bhadra's helmet remembers it.
+  { const d13 = K.SCENES.a6_day13, b0 = d13.body;
+    d13.body = (S) => { const b = [].concat(K.val(b0, S) || []); if (S.flags.includes("bhadra_helmet")) b.unshift({ memory: "You fasten Bhadra's dented helmet. Somewhere, you think, a child of six is dreaming of you." }); return b; }; }
+
   // ---------- Where the scenes come ----------
   const before = (id, list) => { K.BEFORE[id] = (K.BEFORE[id] || []).concat(list); };
   before("a1_first", ["ep_sibling"]);
   before("a2_tournament", ["ep_ugra_tournament"]);
-  before("a3_rajasuya", ["ep_mentor_vidura"]);
+  before("a3_court", ["ep_bhadra_bout"]);
+  before("a3_rajasuya", ["ep_bhadra_road", "ep_mentor_vidura"]); // (Bhadra's road, at 28, before Vidura's ask at 29)
+  before("a5_matsya", ["ep_bhadra_helmet"]);
   before("a4_hall", ["ep_mentor_kripa"]);
   before("a5_yaksha", ["ep_storm"]);
   before("a5_yaksha_again", ["ep_lake_charu"]);

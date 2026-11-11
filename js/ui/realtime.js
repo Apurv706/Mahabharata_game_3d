@@ -88,11 +88,12 @@
   // a drum; then on. Once a champion a fight; quieter under Calm motion.
   function champCheck(R) {
     const seen = V.champSeen || (V.champSeen = new Set());
-    const h = R.B.units.find((u) => u.side === "enemy" && (u.person || u.hero) && u.hp > 0 && u.rt && u.rt.entered && !seen.has(u.uid));
+    const h = R.B.units.find((u) => u.side === "enemy" && (u.person || u.hero) && !u.decoy && u.hp > 0 && u.rt && u.rt.entered && !seen.has(u.uid));
     if (!h) return;
     R.B.units.forEach((u) => { if (u.side === "enemy" && (u.person || u.hero) && u.rt && u.rt.entered) seen.add(u.uid); });
     const full = K.text(h.src || h.name), cut = full.indexOf(","), name = cut > 0 ? full.slice(0, cut) : full, title = cut > 0 ? full.slice(cut + 1).trim() : T("A champion takes the field");
-    const el = U.el('<div class="rt-champ" aria-live="assertive"><b>' + U.esc(name) + "</b><small>" + U.esc(title) + "</small></div>");
+    const trait = RT.traitLine && RT.traitLine(h); // his trait (stage 2), under his title
+    const el = U.el('<div class="rt-champ" aria-live="assertive"><b>' + U.esc(name) + "</b><small>" + U.esc(title) + "</small>" + (trait ? "<em>" + U.esc(T(trait)) + "</em>" : "") + "</div>");
     const ha = V.actors.get(h.uid); if (ha) setTimeout(() => nameTag(ha, 3), 300); // and over him, so you know which he is
     V.stage.appendChild(el); V.stage.classList.add("champ");
     if (K.Sound) K.Sound.play("drumCall");
@@ -316,12 +317,24 @@
   // Life below a fifth (owner, 6 November: "when my life gets less than 10%, create a warning"; then 20%: played like a
   // person, a blow of 15-25% of your life could skip the tenth): the edges of the field pulse red, your bar flashes, a
   // heartbeat every few seconds, and a line says what you can do, for as long as it lasts.
+  // Your boons and the divine weapons' gifts at work in this fight (stage 3): a small mark each under your bars; a tap names them.
+  const GIFT_MARK = { bala: "✊\uFE0E", kavacha: "⛨\uFE0E", charm_shield: "◈", foresight: "◉", healing_hands: "✚\uFE0E", sanjivani: "❦", antardhana: "◌", agneya: "✺", varuna: "≈", vayavya: "➶", sammohana: "☾\uFE0E", nagapasha: "§", indra: "✧" }; // (text, not emoji, on a phone)
+  function giftIcons() {
+    const g = RT.gifts(), key = g.map((x) => x.id).join(",");
+    if (key === V.giftKey) return;
+    V.giftKey = key;
+    const el = $(".gifts", V.stage); if (!el) return;
+    el.hidden = !g.length;
+    el.innerHTML = g.map((x) => '<i class="gf gf-' + x.id + '" title="' + U.esc(K.tr(x.name)) + '">' + GIFT_MARK[x.id] + "</i>").join("");
+    el.setAttribute("aria-label", g.map((x) => K.tr(x.name)).join(", "));
+    el.onclick = () => toast(g.map((x) => K.tr(x.name)).join(" · "));
+  }
   function lowLife(p) {
     const low = p.hp > 0 && p.hp < p.maxHp * K.LOW_LIFE;
     if (low !== !!V.low) {
       V.low = low; V.el.classList.toggle("lowlife", low);
       const w = $(".lowwarn", V.stage);
-      if (w) { if (low) w.querySelector("span").textContent = T(lowHint()); w.hidden = !low; }
+      if (w) { if (low) w.querySelector("span").textContent = T(lowHint()) + (K.S && K.S.boons.includes("raksha") && (K.S.charges || {}).raksha ? " " + T("The raksha sutra glows on your wrist.") : ""); w.hidden = !low; }
       if (low) V.beatAt = -9;
     }
     if (low && K.Sound && V.R.t - V.beatAt > 2.4) { V.beatAt = V.R.t; K.Sound.play("heartbeat"); }
@@ -373,6 +386,7 @@
     if (R.over === "retry") RT.accept(R);
     // Your shield broken and none taken up: the company hands you a fresh one at the orders (owner, 7 November).
     if (R.blocker && R.broken && R.over !== "lose") B.say("Your shield was broken: your company hands you a fresh one.");
+    RT.clearDecoys(B); // (Ghatotkacha's false figures: only in the clash)
     B.status = c.status; B.rt = null; B.round = c.round; // the real-time rounds inside the clash do not count as the war day's rounds
     (c.stilled || []).forEach((u) => { u.still = false; });
     RT.unscale(B); // health and blows back on the turns' scale
@@ -394,7 +408,7 @@
         '<div class="hud"><div class="bars">' +
           '<div class="bar hp"><span>' + T("You") + '</span><i><b id="b-hp"></b></i></div>' +
           '<div class="bar br"><span>' + T("Breath") + '</span><i><b id="b-br"></b></i></div>' +
-          '<div class="bar fr" hidden><span id="b-frn"></span><i><b id="b-fr"></b></i></div></div>' +
+          '<div class="bar fr" hidden><span id="b-frn"></span><i><b id="b-fr"></b></i></div><div class="gifts" hidden></div></div>' +
         '<div class="hud-r"><div class="fname"><b>' + title + '</b><small class="packn"></small></div>' +
           '<div class="hud-btns"><button type="button" class="hb orders" data-act="orders" aria-haspopup="dialog">' + T("Orders") + " ▾" + kb("O") + "</button>" +
           '<button type="button" class="hb withdraw" data-act="withdraw">' + T("Withdraw") + "</button>" +
@@ -512,7 +526,8 @@
     let a = V.actors.get(u.uid);
     if (a) return a;
     const foe = u.side === "enemy", spec = specFor(u);
-    const el = U.el('<div class="actor ' + (u.side === "player" ? "me" : foe ? "foe" : "ally") + '" data-uid="' + u.uid + '" data-id="' + u.uid + '"><span class="shadow"></span><div class="fl">' +
+    // (Ghatotkacha's false figures cast no shadow: that is how the real one is found. Stage 2.)
+    const el = U.el('<div class="actor ' + (u.side === "player" ? "me" : foe ? "foe" : "ally") + (u.decoy ? " decoy" : "") + '" data-uid="' + u.uid + '" data-id="' + u.uid + '">' + (u.decoy ? "" : '<span class="shadow"></span>') + '<div class="fl">' +
       U.puppet(spec, { pose: U.motion() ? "live" : u.side === "player" ? "brace" : "stand", h: 200 }) + "</div>" + (u.side === "player" ? "" : '<span class="mini"><b></b></span>') + "</div>");
     V.world.appendChild(el);
     // The health bar sits above the head: higher for a tall figure, and higher still over a crown (it crossed Ashwatthama's face).
@@ -750,7 +765,7 @@
   }
 
   // ---------- Input ----------
-  const KEY = { KeyJ: "strike", KeyK: "roll", Space: "roll", KeyL: "skill", KeyH: "herbs", KeyC: "call", KeyU: "astra", KeyO: "orders", KeyP: "pause", Escape: "pause", KeyE: "spare" };
+  const KEY = { KeyJ: "strike", KeyK: "roll", Space: "roll", KeyL: "skill", KeyH: "herbs", KeyC: "call", KeyV: "vanish", KeyU: "astra", KeyO: "orders", KeyP: "pause", Escape: "pause", KeyE: "spare" };
   function onKey(e) {
     if (!V || V.tracing) return; // (a mantra being traced has the keys: ui/fx.js U.mantra)
     if (V.written) { if (e.code === "Enter" || e.code === "Space" || e.code === "KeyJ") V.written(e); else { e.preventDefault(); e.stopPropagation(); } return; }
@@ -791,6 +806,7 @@
     if (a === "skill" && R.skill && !RT.can(R, "skill")) toast(K.tr("Not ready yet"));
     if (a === "herbs" && !RT.can(R, "herbsSoon")) toast(K.tr((K.S.items.herbs || 0) > 0 ? "Not now" : "No herbs left"));
     if (a === "call" && !RT.can(R, "call")) toast(K.tr("Used this battle"));
+    if (a === "vanish") { if (!RT.vanishOffer(R)) return; if (!RT.can(R, "vanish")) { toast(K.tr("Used this act")); return; } }
     V.queue[a] = true;
   }
   // A divine weapon: its mantra traced first (ui/fx.js U.mantra), the fight standing still meanwhile. Traced, the weapon is
@@ -844,8 +860,10 @@
       const it = (k, label, note, off, key) => '<button type="button" data-aid="' + k + '"' + (off ? ' disabled aria-disabled="true"' : "") + "><b>" + U.esc(label) + "</b><small>" + U.esc(note) + "</small><kbd>" + key + "</kbd></button>";
       el.innerHTML = it("herbs", K.tr("Herbs"), K.tr("{n} left", { n: K.S.items.herbs || 0 }), !RT.can(R, "herbsSoon"), "H") +
         (K.S && K.S.fighter ? "" : ast.filter((x) => !x.why).length > 1 ? ast.filter((x) => x.id !== "astra" || !x.why).map((x) => it("astra:" + x.id, K.tr(x.name), x.why ? x.short || K.astraShort(x.why) : anote(x), !!x.why, "")).join("") : it("astra", K.tr(aReady ? aReady.name : "Divine weapon"), aReady ? anote(aReady) : ast[0] ? (B_used(ast) ? K.tr("used") : ast[0].short || K.astraShort(ast[0].why) || "") : K.tr("not given"), !aReady, "U")) + // two or more ready: one row each (item 12)
-        (p.abilities.includes("call") ? it("call", K.tr("Call for help"), RT.can(R, "call") ? K.tr("once a fight") : K.tr("called"), !RT.can(R, "call"), "C") : "");
+        (p.abilities.includes("call") ? it("call", K.tr("Call for help"), RT.can(R, "call") ? K.tr("once a fight") : K.tr("called"), !RT.can(R, "call"), "C") : "") +
+        (RT.vanishOffer(R) ? it("vanish", K.tr("Vanish"), RT.can(R, "vanish") ? K.tr("Antardhana, 2 s") : K.tr("used this act"), !RT.can(R, "vanish"), "V") : ""); // (stage 3)
       el.querySelectorAll("[data-aid]").forEach((b) => (b.onclick = () => { closeSheet(); act(b.dataset.aid); }));
+      el.classList.toggle("many", el.querySelectorAll("[data-aid]").length >= 4); // (Antardhana makes a fourth: two rows on a phone)
       resumeBtn(el); el.classList.add("compact"); placeDrop(el, $(".hb.aid")); dropTimer(el);
     } else {
       const el = $(".pause-sheet");
@@ -1057,7 +1075,7 @@
       if (u.rt.atk && u.side === "enemy" && !a.warned) a.warned = u.rt.atk;
       a.el.classList.toggle("windup", !!u.rt.atk && u.side === "enemy" && a.warned === u.rt.atk);
       // The parry's moment (RT.P.parryCue before it lands): the blade coming down on you is lit white; Strike then meets it.
-      if (u.side === "enemy") { const cue = canParry && u.hp > 0 && RT.parryable(R, u, RT.P.parryCue); if (cue !== !!a.cue) { a.cue = cue; a.el.classList.toggle("parry-cue", cue); if (cue) parryTip(); } bladeGlint(a, cue); }
+      if (u.side === "enemy") { const cue = canParry && u.hp > 0 && RT.parryable(R, u, RT.cueLead()); if (cue !== !!a.cue) { a.cue = cue; a.el.classList.toggle("parry-cue", cue); if (cue) parryTip(); } bladeGlint(a, cue); }
       // Foes' blows drawn on time (the strike and defence study, 8 November: the swing began only when the blow had landed
       // in the rules, so the weapon reached you about 0.1 s after it counted): the swing starts IMPACT ms before it lands,
       // as your own do, and in the 140 ms before that the wind-up coils a little further back, the moment to react to.
@@ -1120,6 +1138,7 @@
     const w = (id, v) => { const e = V.el.querySelector("#" + id); if (e) e.style.width = clamp(v, 0, 100) + "%"; };
     w("b-hp", p.hp / p.maxHp * 100); w("b-br", R.breath / RT.P.breathMax * 100);
     lowLife(p);
+    giftIcons();
     const fr = B.units.find((u) => u.side === "ally" && u.hp > 0 && !u.still && (u.called || u.person)) || B.units.find((u) => u.side === "ally" && u.hp > 0 && !u.still);
     $(".bar.fr").hidden = !fr;
     if (fr) { $("#b-frn").textContent = K.text(fr.src || fr.name).split(",")[0]; w("b-fr", fr.hp / fr.maxHp * 100); }
@@ -1154,7 +1173,7 @@
     $(".edgefx.r").classList.toggle("on", !!R.pushing && p.rt.face > 0);
     $(".slowtint").classList.toggle("on", R.slow > 0);
     V.el.classList.toggle("frozen", R.frozen > 0);
-    while (V.logAt < B.log.length) { const e = B.log[V.logAt++]; if (e && (e.raw || e.ev)) toast(C.line(e)); }
+    while (V.logAt < B.log.length) { const e = B.log[V.logAt++]; if (e && (e.raw || e.ev)) toast(C.line(e)); if (e && e.ev && U.fieldFx) U.fieldFx(V.stage, e.key); } // (row 38: drawn on the field too)
   }
   // Marks: a ground mark under the one a blow is coming at, filling as it comes; an arrow's lane a thin dashed line.
   function marks() {
@@ -1257,6 +1276,16 @@
       case "feint": { const a = A(f.uid); if (a && a.u.hp > 0) { pop(a, K.tr("Feint!"), "feint"); pose(a, "guard", 300, 0.4); if (a.rig) a.rig.kick({ armF: 260, item: -220, rot: 60 }); a.warned = false; } break; } // the wind-up stops short (item 19): it comes again; a hitch in the weapon as it drops (the study, 8 November), and its wind-up lit again when it comes
       case "parry": parried(A(f.uid), me, f.part, false); break; // your blade met his (owner, 6 November)
       case "parried": parried(me, A(f.uid), false, true); break; // a champion met yours
+      // The champions' traits (stage 2): the one-time tip, and what each looks like.
+      case "trait": if (RT.TRAIT_TIP[f.who]) tipOnce("tipTrait_" + f.who, RT.TRAIT_TIP[f.who]); break;
+      case "wheel": { const a = A(f.uid); if (a) { pop(a, K.tr("The wheel sinks!"), "feint"); pose(a, "strain", 3000, 0.5); nameTag(a, 3); } break; }
+      case "cry": { const a = A(f.uid); if (a && a.u.hp > 0) { pop(a, K.tr("War cry!"), "feint"); pose(a, "guard", 600, 0.4); if (K.Sound) K.Sound.play("drumCall"); } break; }
+      case "knocked": { if (me) { pop(me, K.tr("Knocked down"), "miss"); pose(me, "strain", 600, 0.5); } break; }
+      case "maya": { const a = A(f.uid); if (a) a.el.classList.add("maya-in"); break; }
+      case "unseen": toast(K.tr("Antardhana! Unseen")); if (K.Sound) K.Sound.play("tap"); break;
+      case "burn": { const a = A(f.uid); if (a) { a.el.classList.add("burning"); clearTimeout(a.burnT); a.burnT = setTimeout(() => a.el.classList.remove("burning"), 2000); } break; }
+      case "burnt": { const a = A(f.uid); if (a) pop(a, String(f.n), "burnt"); break; }
+      case "vanish": { const a = V.actors.get(f.uid); if (a) { a.el.classList.add("vanish"); V.actors.delete(f.uid); setTimeout(() => a.el.remove(), 420); } break; }
       case "perfect": toast(K.tr("Perfect roll")); break;
       case "perfectblock": { toast(K.tr("Perfect block")); const a = A(f.uid); if (a && a.u.hp > 0) { setTimeout(() => { if (V && a.u.hp > 0) { pose(a, "strain", 700, 0.45); if (a.rig) a.rig.kick({ rot: 160 * (a.u.rt ? -a.u.rt.face : 1), tx: 20 }); home(a, 900); } }, 120); } break; } // the one who struck staggers back off the shield
       case "winded": if (blocker()) toast(K.tr("Winded")); break;

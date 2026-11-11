@@ -448,6 +448,8 @@
     if (outcome === "win" || outcome === "spare") { rec.won = (rec.won || 0) + 1; rec.last = "won"; }
     else if (outcome === "lose") { rec.lost = (rec.lost || 0) + 1; rec.last = "lost"; }
     else rec.last = "fled";
+    // A deadly fight won from Act IV on: a Captain's milestone (Build D stage 3, core.js K.tierNow).
+    if ((outcome === "win" || outcome === "spare") && enc.lethal && !enc.dream && (S.act || 0) >= 4 && !S.fighter && !S.flags.includes("deadly_won_late")) K.apply({ flag: "deadly_won_late" });
     // A vow never to strike the unarmed: a foe you spared may one day pull you out of a deadly fight.
     if (outcome === "spare" && K.hasVow("spare_unarmed", S)) S.spared = (S.spared || 0) + 1;
     let saved = null;

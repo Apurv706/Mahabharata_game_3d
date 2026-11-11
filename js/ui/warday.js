@@ -751,7 +751,7 @@
       setTimeout(() => champion(), 1000);
     }
     // Lines of the story (a field event, a friend's arrival) as a toast.
-    while (V.logAt < B.log.length) { const e = B.log[V.logAt++]; if (e && (e.raw || e.ev)) toast(C.line(e)); }
+    while (V.logAt < B.log.length) { const e = B.log[V.logAt++]; if (e && (e.raw || e.ev)) toast(C.line(e)); if (e && e.ev && U.fieldFx) U.fieldFx(V.stage, e.key); } // (row 38: drawn on the field too)
     B.units.forEach((u) => { V.hp[u.uid] = u.hp; });
     // Life below a fifth (owner, 6 November: first a tenth, then 20%; K.LOW_LIFE): the edges of the
     // field pulse red, a heartbeat, and a line says what you can do (in the clash the real-time screen says it).
@@ -857,7 +857,8 @@
     if (K.Sound) K.Sound.play("drumCall");
     V.champSeen.add(h.uid);
     const c = $(".wd-champ", V.stage); if (!c) return;
-    c.innerHTML = "<b>" + esc(K.text(h.src || h.name).split(",")[0]) + "</b><small>" + esc(T("A champion comes at the line")) + "</small>";
+    const trait = K.RT && K.RT.traitLine ? K.RT.traitLine(h) : null; // his trait (stage 2), under the line
+    c.innerHTML = "<b>" + esc(K.text(h.src || h.name).split(",")[0]) + "</b><small>" + esc(T("A champion comes at the line")) + "</small>" + (trait ? "<em>" + esc(T(trait)) + "</em>" : "");
     V.stage.classList.remove("champ"); void V.stage.offsetWidth; V.stage.classList.add("champ");
     figsFriends().forEach((f, i) => setTimeout(() => { if (!V) return; pose(f, "guard", 800, 0.55); home(f, 1300); }, 120 + i * 60));
     sparkle(figsFriends(), 200);

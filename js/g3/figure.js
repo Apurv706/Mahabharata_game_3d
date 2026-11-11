@@ -227,51 +227,106 @@
   // ---------- The body ----------
   const STAGE = { child: [0.62, 1.4], youth: [0.9, 1.16], adult: [1, 1.1], elder: [0.97, 1.1] };
   const HAIR = { child: DARK, youth: DARK, adult: DARK, elder: 0xb8b2a6 };
+  // ---------- The head ----------
+  // One shaped surface from chin to crown (it was a ball for the skull and a ball for the jaw, and where the two met the
+  // face looked torn). Its shape is the person's: FACES gives the width of jaw, chin and cheek, how long the lower face is,
+  // how the brows sit and how strong the nose is. Hair, stubble and a short beard are the colour of that surface where
+  // they grow, so a hairline or a jawline is an edge on the skin and not two shapes fighting.
+  const FACES = {
+    oval: { jaw: 1.0, chin: 1.0, cheek: 1.0, long: 1.0, brow: 0.05, nose: 1.0 },
+    square: { jaw: 1.2, chin: 1.45, cheek: 1.03, long: 0.97, brow: 0.12, nose: 1.05 },
+    long: { jaw: 0.93, chin: 0.95, cheek: 0.94, long: 1.16, brow: 0.03, nose: 1.1 },
+    round: { jaw: 1.12, chin: 1.25, cheek: 1.09, long: 0.9, brow: 0.0, nose: 0.88 },
+    heart: { jaw: 0.84, chin: 0.72, cheek: 1.04, long: 1.0, brow: 0.0, nose: 0.86 },
+    broad: { jaw: 1.26, chin: 1.55, cheek: 1.11, long: 0.94, brow: 0.15, nose: 1.18 },
+    gaunt: { jaw: 0.88, chin: 0.85, cheek: 0.95, long: 1.12, brow: 0.08, nose: 1.15, hollow: 0.9 },
+    hawk: { jaw: 0.86, chin: 0.7, cheek: 0.93, long: 1.1, brow: 0.15, nose: 1.3, hook: 1 }
+  };
+  const FACE_ANY = ["oval", "square", "long", "round", "oval", "broad"];
+  G.FACES = FACES;
+  function faceOf(sp, she) {
+    if (sp.face && FACES[sp.face]) return FACES[sp.face];
+    if (she) return sp.stage === "elder" ? FACES.oval : FACES.heart;
+    if (sp.stage === "child" || sp.stage === "youth") return FACES.round;
+    if (sp.big) return FACES.broad; if (sp.strong) return FACES.square; if (sp.slim) return FACES.long;
+    return FACES[FACE_ANY[G.hash(String(sp.palette) + (sp.headgear || "") + (sp.item || "")) % FACE_ANY.length]];
+  }
   function headMesh(sp, skin, hair, cloth, trim, she) {
     const b = B(); b.ao = 0.9;
-    const jaw = she || sp.stage === "child" ? 0.86 : sp.big || sp.strong ? 1.08 : 1;
-    b.sph(0.125, 0, 0.205, 0, skin, 1.1, LITE ? 9 : 18, 0.93, 1.0);                                           // the skull
-    b.sph(0.092 * jaw, 0, 0.148, 0.022, skin, 0.86, LITE ? 8 : 14, 1.0, 1.02);                                  // the jaw, and under it the chin
-    b.geo(new T.SphereGeometry(0.134, LITE ? 9 : 18, LITE ? 6 : 10, 0, PI * 2, 0, PI * 0.5).scale(0.98, 1.1, 1.03), 0, 0.212, -0.02, -0.62, 0, 0, hair); // the hair, set back off the face
-    const gearH = sp.gear || [];
-    for (const sx of [-1, 1]) {
-      b.sph(0.026, sx * 0.047, 0.212, 0.098, 0xf6f0e4, 0.62, 9, 1.08, 0.86);                       // the white of the eye, long rather than round
-      if (!sp.blind) { b.sph(0.0135, sx * 0.047, 0.212, 0.1165, 0x3a2412, 1, 8); b.sph(0.0075, sx * 0.047, 0.212, 0.125, 0x0c0806, 1, 6); b.sph(0.0035, sx * 0.047 + 0.005, 0.2165, 0.1295, 0xffffff, 1, 4); } // iris, pupil, a point of light (a blind king's eyes are shown without)
-      b.geo(new T.SphereGeometry(0.027, 9, 5, 0, PI * 2, 0, PI * 0.42).scale(1.08, 0.66, 0.9), sx * 0.047, 0.2125, 0.098, 0.3, 0, 0, G.shade(skin, 0.86)); // the upper lid
-      b.geo(new T.SphereGeometry(0.027, 8, 4).scale(1.05, 0.1, 0.5), sx * 0.047, 0.226, 0.112, 0.2, 0, sx * -0.06, 0x1a100a); // the lash line
-      b.geo(new T.SphereGeometry(0.03, 8, 5).scale(1, 0.24, 0.42), sx * 0.048, 0.249, 0.107, 0, 0, sx * -0.16, sp.stage === "elder" ? hair : DARK); // the brow
-      b.geo(new T.SphereGeometry(0.03, 8, 6).scale(0.42, 1.2, 0.8), sx * 0.123, 0.198, 0.0, 0, sx * 0.25, 0, skin); // the ear
-    }
-    b.geo(new T.SphereGeometry(0.02, 8, 6).scale(0.8, 1.7, 1), 0, 0.186, 0.118, -0.32, 0, 0, G.shade(skin, 0.96)); b.sph(0.02, 0, 0.165, 0.127, G.shade(skin, 0.93), 0.8, 8, 1.15, 0.9); // the nose: its bridge and its tip
+    const F = faceOf(sp, she), kid = sp.stage === "child" || sp.stage === "youth", gearH = sp.gear || [], EYE = 0.212;
+    const Y = (y) => (y < EYE ? EYE + (y - EYE) * F.long : y); // the lower face is longer or shorter by the person
+    // Rings from under the chin to the crown: height, half-width, depth to the front, depth to the back.
+    const hol = F.hollow || 1, RINGS = [[0.064, 0.026 * F.chin, 0.084, 0.02], [0.077, 0.044 * F.chin, 0.103, 0.04], [0.099, 0.066 * (F.jaw * 0.6 + F.chin * 0.4), 0.115, 0.062], [0.125, 0.085 * F.jaw * hol, 0.12, 0.082],
+      [0.152, 0.098 * (F.jaw * 0.5 + F.cheek * 0.5) * hol, 0.122, 0.102], [0.18, 0.109 * F.cheek, 0.1235, 0.116], [EYE, 0.112 * (0.5 + F.cheek * 0.5), 0.123, 0.124], [0.245, 0.111, 0.121, 0.126],
+      [0.275, 0.106, 0.114, 0.122], [0.303, 0.092, 0.098, 0.108], [0.325, 0.068, 0.072, 0.082], [0.34, 0.036, 0.038, 0.044]];
+    const ringAt = (y0) => { for (let k = 0; k < RINGS.length - 1; k++) if (y0 <= RINGS[k + 1][0]) { const a = RINGS[k], c = RINGS[k + 1], u = Math.max(0, (y0 - a[0]) / (c[0] - a[0])); return [y0, a[1] + (c[1] - a[1]) * u, a[2] + (c[2] - a[2]) * u, a[3] + (c[3] - a[3]) * u]; } return RINGS[RINGS.length - 1]; };
+    const front = (x, y0, lift) => { const r = ringAt(y0), q = Math.max(-0.96, Math.min(0.96, x / r[1])); return r[2] * Math.sqrt(1 - q * q) + (lift || 0); }; // where the face's surface is, in front, at (x, height)
     const fh = sp.beard === true ? "full" : sp.beard || sp.whiskers || (!she && (sp.stage === "adult" || sp.stage === "elder" || !sp.stage) ? "stache" : "clean");
-    if (fh !== "long") { b.sph(0.03, 0, 0.128, 0.113, 0x8a3526, 0.2, 8, 1, 0.5); b.sph(0.026, 0, 0.121, 0.112, 0x7a2f22, 0.22, 8, 1, 0.5); } // the mouth
+    const beardCol = fh === "long" ? 0xf0ece2 : hair, shade = new T.Color(skin).lerp(new T.Color(DARK), 0.4).getHex(), bearded = /^(full|short|long|forked)$/.test(fh), rough = fh === "stubble" || fh === "heavy";
+    const hairline = sp.stage === "elder" && !she ? 0.3 : 0.287, covered = /^(turban|helmet|crest|scarf|capfeather)$/.test(sp.headgear || "");
+    // What grows where. a is the angle round the head from the front (0) to the back (PI).
+    const growth = (y0, a) => { const f = Math.abs(a > PI ? a - PI * 2 : a);
+      if (y0 > (f < 0.95 ? hairline : f < 1.75 ? 0.222 - (f - 0.95) * 0.03 : 0.105)) return "hair";
+      if ((bearded || rough) && f < 1.8 && y0 < (f < 0.5 ? 0.112 : f < 1.2 ? 0.146 : 0.19 - (1.8 - f) * 0.06)) return "beard";
+      if (fh === "goatee" && f < 0.42 && y0 < 0.106) return "beard";
+      return "skin"; };
+    const SEG = LITE ? 12 : 26, pos = [], col = [], idx = [], c0 = new T.Color();
+    const surface = (rings, puff, colour, keep) => { // a closed-over skin of rings; puff lifts it off the head; keep leaves quads out
+      const base = pos.length / 3, n = rings.length;
+      rings.forEach((r) => { for (let k = 0; k < SEG; k++) { const a = (k / SEG) * PI * 2, sn = Math.sin(a), cs = Math.cos(a), g = growth(r[0], a), pf = typeof puff === "function" ? puff(g, r[0], a) : puff;
+        pos.push((r[1] + pf) * sn, Y(r[0]), (cs >= 0 ? r[2] + pf : r[3] + pf) * cs); c0.set(colour(g, r[0], a)); col.push(c0.r, c0.g, c0.b); } });
+      for (let r = 0; r < n - 1; r++) for (let k = 0; k < SEG; k++) { const k2 = (k + 1) % SEG, a = ((k + 0.5) / SEG) * PI * 2, ym = (rings[r][0] + rings[r + 1][0]) / 2; if (keep && !keep(ym, a)) continue; const p0 = base + r * SEG + k, p1 = base + (r + 1) * SEG + k, p2 = base + (r + 1) * SEG + k2, p3 = base + r * SEG + k2; idx.push(p0, p2, p1, p0, p3, p2); }
+      return base; };
+    const cap = (base, n, y0, colr) => { const c = pos.length / 3; pos.push(0, Y(y0), 0); c0.set(colr); col.push(c0.r, c0.g, c0.b); for (let k = 0; k < SEG; k++) { const k2 = (k + 1) % SEG; idx.push(c, base + (n - 1) * SEG + k2, base + (n - 1) * SEG + k); } };
+    { const base = surface(RINGS, (g) => (g === "hair" ? 0.007 : g === "beard" && bearded ? (fh === "short" ? 0.005 : 0.012) : 0), (g) => (g === "hair" ? hair : g === "beard" ? (rough ? shade : beardCol) : skin));
+      cap(base, RINGS.length, 0.347, covered ? hair : hair);
+      const c = pos.length / 3; pos.push(0, Y(0.058), 0.03); c0.set(bearded ? beardCol : rough ? shade : skin); col.push(c0.r, c0.g, c0.b); for (let k = 0; k < SEG; k++) { const k2 = (k + 1) % SEG; idx.push(c, base + k, base + k2); } } // under the chin
+    // Cloth on the head made the same way, so it lies on the head: Gandhari's bandage over her eyes, an elder woman's cloth drawn over her hair.
+    if (gearH.includes("blindfold")) surface([ringAt(0.19), ringAt(0.2), ringAt(0.224), ringAt(0.236)], (g, y0) => (y0 < 0.195 || y0 > 0.23 ? 0.004 : 0.011), () => 0xf2ece0);
+    if (she && sp.stage === "elder") { const vr = [ringAt(0.1), ringAt(0.14), ringAt(0.18), ringAt(EYE), ringAt(0.245), ringAt(0.272), ringAt(0.303), ringAt(0.325), ringAt(0.34)], vb = surface(vr, 0.014, (g, y0) => (y0 < 0.11 ? trim : cloth), (ym, a) => { const f = Math.abs(a > PI ? a - PI * 2 : a); return !(f < 1.25 && ym < 0.268); }); cap(vb, vr.length, 0.362, cloth); }
+    // Beards with length are their own shapes, hung from the chin: a full beard's mass, an elder's to the chest, a forked one, a tuft.
+    const hang = (x, len, w, d, colr, lean) => { const rows = 6, base = pos.length / 3, top = Y(0.082); for (let r = 0; r <= rows; r++) { const u = r / rows, tw = w * (1 - u * 0.55 - u * u * 0.4), td = d * (1 - u * 0.5 - u * u * 0.42); for (let k = 0; k < SEG; k++) { const a = (k / SEG) * PI * 2; pos.push(x + Math.sin(a) * tw, top - len * u, 0.062 + u * (lean || 0) + Math.cos(a) * td); c0.set(colr); col.push(c0.r, c0.g, c0.b); } }
+      for (let r = 0; r < rows; r++) for (let k = 0; k < SEG; k++) { const k2 = (k + 1) % SEG, p0 = base + r * SEG + k, p1 = base + (r + 1) * SEG + k, p2 = base + (r + 1) * SEG + k2, p3 = base + r * SEG + k2; idx.push(p0, p1, p2, p0, p2, p3); } };
+    if (fh === "full") hang(0, 0.085, 0.07 * F.jaw, 0.056, beardCol, 0.004);
+    else if (fh === "long") hang(0, 0.27, 0.068 * F.jaw, 0.05, beardCol, 0.03);
+    else if (fh === "forked") { for (const sx of [-1, 1]) hang(sx * 0.03, 0.17, 0.034, 0.03, beardCol, 0.02); }
+    else if (fh === "goatee") hang(0, 0.058, 0.026, 0.024, beardCol, 0.012);
+    const hg0 = new T.BufferGeometry(); hg0.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); hg0.setAttribute("color", new T.Float32BufferAttribute(col, 3)); hg0.setIndex(idx); hg0.computeVertexNormals();
+    // ---- the features, set on that surface ----
+    const ex = 0.046 * (0.6 + F.cheek * 0.4), ez = front(ex, EYE) - 0.0125, lidCol = G.shade(skin, 0.88);
+    for (const sx of [-1, 1]) {
+      const ry = sx * 0.36, cz = Math.cos(ry), sn = Math.sin(ry), fwd = (d) => [sx * ex + sn * d, ez + cz * d]; // each eye is turned a little outward, to lie on the curve of the face
+      b.geo(new T.SphereGeometry(0.0215, 10, 7).scale(1.12, 0.6, 0.6), sx * ex, EYE, ez, 0, ry, 0, 0xf6f0e4);                       // the white of the eye, long rather than round
+      if (!sp.blind) { const i1 = fwd(0.0062), i2 = fwd(0.0118), i3 = fwd(0.0165); b.sph(0.0115, i1[0], EYE - 0.0005, i1[1], 0x3a2412, 1, 9); b.sph(0.0064, i2[0], EYE - 0.0005, i2[1], 0x0c0806, 1, 7); b.sph(0.0028, i3[0] + 0.004, EYE + 0.004, i3[1], 0xffffff, 1, 5); } // iris, pupil, a point of light (a blind king's eyes are shown without)
+      b.geo(new T.SphereGeometry(0.0226, 10, 5, 0, PI * 2, 0, PI * 0.36).scale(1.14, 0.62, 0.66), sx * ex, EYE, ez, 0.12, ry, 0, lidCol); // the upper lid: the top third only
+      { const l = fwd(0.0075); b.geo(new T.SphereGeometry(0.0232, 9, 4).scale(1.14, 0.075, 0.34), l[0], EYE + 0.0088, l[1], 0.1, ry, sx * 0.07, 0x1a100a); } // the lash line, lifting a little at the outer corner
+      const bt = sp.stage === "elder" ? 0.8 : F.brow > 0.1 ? 1.25 : she ? 0.75 : 1; // brows: level on a calm face, drawn down toward the nose on a stern one
+      b.geo(new T.SphereGeometry(0.029, 9, 5).scale(1.05, 0.2 * bt, 0.36), sx * (ex + 0.002), 0.2445 - F.brow * 0.03, front(ex, 0.2445) - 0.006, 0.1, 0, sx * F.brow, sp.stage === "elder" ? hair : DARK);
+      const er = ringAt(0.2)[1];
+      if (sp.ears === "pointed") b.geo(new T.ConeGeometry(0.02, 0.085, 5), sx * (er + 0.012), 0.222, -0.004, 0, 0, sx * -0.45, skin); // (a rakshasa's)
+      b.geo(new T.SphereGeometry(0.03, 9, 7).scale(0.4, 1.15, 0.78), sx * (er + 0.004), 0.198, -0.004, 0, sx * 0.3, 0, skin); // the ear
+    }
+    { const n = F.nose, ny = Y(0.166), nz = front(0, 0.166), sk2 = G.shade(skin, 0.95); // the nose: a bridge down from the brow, a tip, and its wings
+      b.geo(new T.SphereGeometry(0.016, 8, 6).scale(0.72 * n, 2.0, 0.9 * n), 0, (ny + 0.235) / 2, front(0, 0.2) - 0.004 + (F.hook ? 0.004 : 0), -0.2, 0, 0, sk2);
+      b.sph(0.0185 * n, 0, ny - (F.hook ? 0.006 : 0), nz + 0.008 * n, G.shade(skin, 0.93), 0.82, 9, 1.12, 0.95);
+      for (const sx of [-1, 1]) b.sph(0.0105 * n, sx * 0.0145 * n, ny - 0.004, nz + 0.0005, G.shade(skin, 0.9), 0.8, 7, 1, 0.9); }
+    { const my = Y(0.1265), mz = front(0, 0.1265), mw = she ? 0.9 : 1; // the mouth: an upper lip and a fuller lower one
+      if (fh !== "long") { b.sph(0.028 * mw, 0, my + 0.0045, mz - 0.001, 0x8a3526, 0.2, 9, 1, 0.42); b.sph(0.024 * mw, 0, my - 0.0035, mz - 0.0015, she ? 0xa84232 : 0x9a4a36, 0.24, 9, 1, 0.46); } }
     if (sp.eye) b.box(0.06, 0.04, 0.02, 0.046, 0.2, 0.118, 0x140c08);
-    if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
-    // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
-    if (!sp.hair && !she && sp.stage !== "child" && !/^(turban|helmet)$/.test(sp.headgear || "") && !(sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * 0.134, 0.15, 0.004, GOLD, 1, 6);
+    // Ear-rings on a grown man; hair standing stiff.
+    if (!sp.hair && !she && sp.stage !== "child" && !/^(turban|helmet)$/.test(sp.headgear || "") && !gearH.includes("earrings")) for (const sx of [-1, 1]) b.sph(0.02, sx * (ringAt(0.15)[1] + 0.028), Y(0.152), 0.002, GOLD, 1, 6);
     if (sp.hair === "braid") b.sph(0.07, 0, 0.2, -0.125, hair, 1, 8);
-    if (false) {}
-    else if (sp.hair === "up") { for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.geo(new T.ConeGeometry(0.035, 0.2, 4), Math.sin(a) * 0.06, 0.4, Math.cos(a) * 0.06 - 0.02, Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35, hair); } b.geo(new T.ConeGeometry(0.04, 0.24, 4), 0, 0.44, -0.02, 0, 0, 0, hair); }
-    // Hair on the face, as the 2D game's portraits have each man: a moustache (thin, full or heavy and drooping), stubble
-    // dark along the jaw, a tuft on the chin, a short beard, a full one, a forked one, or an elder's to the chest.
-    const beardCol = hair, shade = new T.Color(skin).lerp(new T.Color(DARK), 0.42).getHex(), jawR = 0.092 * (she || sp.stage === "child" ? 0.86 : sp.big || sp.strong ? 1.08 : 1);
-    const under = (k, col, deep) => b.geo(new T.SphereGeometry(jawR * k, LITE ? 8 : 14, 7, 0, PI * 2, PI * (deep || 0.52), PI * (1 - (deep || 0.52))).scale(1.0, 0.86, 1.02), 0, 0.148, 0.022, 0, 0, 0, col); // a layer over the jaw, from about the mouth down
-    b.sph(0.034 * jaw, 0, 0.098, 0.082, /^(full|short|long|forked|goatee)$/.test(fh) ? (fh === "long" ? 0xf0ece2 : beardCol) : /^(stubble|heavy)$/.test(fh) ? shade : skin, 0.8, 9, 1.25, 0.9); // the chin
-    const stache = (k, col, droop) => { for (const sx of [-1, 1]) { b.geo(new T.SphereGeometry(0.026 * k, 8, 5).scale(1, 0.3, 0.5), sx * 0.021 * k, 0.1425, 0.1195, 0, sx * 0.25, sx * -(0.22 + droop * 0.3), col); if (droop) b.geo(new T.SphereGeometry(0.014 * k, 6, 4).scale(0.7, 1.5, 0.7), sx * 0.047 * k, 0.127, 0.108, 0, 0, sx * -0.3, col); } };
-    if (fh === "long") { under(1.09, 0xf0ece2, 0.53); b.geo(new T.ConeGeometry(0.072, 0.3, LITE ? 7 : 12).rotateX(PI).scale(1, 1, 0.72), 0, -0.07, 0.07, 0.1, 0, 0, 0xf0ece2); b.sph(0.066, 0, 0.085, 0.062, 0xf0ece2, 1.0, 9, 1.12, 0.85); stache(1.3, 0xf0ece2, 1); b.sph(0.03, 0, 0.128, 0.113, 0x8a3526, 0.18, 8, 0.8, 0.5); }
-    else if (fh === "forked") { under(1.08, beardCol); for (const sx of [-1, 1]) b.geo(new T.ConeGeometry(0.042, 0.2, 7).rotateX(PI), sx * 0.036, 0.02, 0.09, 0.12, 0, sx * 0.16, beardCol); stache(1.2, beardCol, 1); }
-    else if (fh === "full") { under(1.1, beardCol, 0.48); b.sph(0.062, 0, 0.088, 0.066, beardCol, 0.95, 9, 1.05, 0.85); stache(1.2, beardCol, 1); }
-    else if (fh === "short") { under(1.055, beardCol, 0.5); b.sph(0.04, 0, 0.094, 0.08, beardCol, 0.8, 8, 1.2, 0.85); stache(1.05, beardCol, 0); }
-    else if (fh === "goatee") { b.geo(new T.ConeGeometry(0.034, 0.1, 7).rotateX(PI), 0, 0.045, 0.092, 0.2, 0, 0, beardCol); b.sph(0.034, 0, 0.097, 0.086, beardCol, 0.8, 8, 1.1, 0.85); stache(1.1, beardCol, 1); }
-    else if (fh === "stubble") { under(1.025, shade, 0.5); stache(0.85, G.shade(shade, 0.7), 0); }
-    else if (fh === "heavy") { under(1.025, shade, 0.5); stache(1.4, beardCol, 1); }
-    else if (fh === "thin") stache(0.8, beardCol, 0);
-    else if (fh === "stache") stache(1.1, beardCol, LITE ? 0 : 1);
-    if (she) { b.sph(0.085, 0, 0.19, -0.13, hair, 1, 9); b.sph(0.016, 0, 0.255, 0.122, 0xc0392b); for (const sx of [-1, 1]) b.sph(0.022, sx * 0.13, 0.155, 0.0, GOLD); }
-    if (she && sp.stage === "elder") { b.geo(new T.SphereGeometry(0.152, 10, 6, 0, PI * 2, 0, PI * 0.56).scale(1, 1.06, 1.1), 0, 0.2, -0.025, -0.3, 0, 0, cloth); b.box(0.25, 0.34, 0.04, 0, -0.16, -0.15, cloth); b.box(0.25, 0.03, 0.045, 0, -0.17, -0.15, trim); }
+    if (sp.hair === "up") { for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.geo(new T.ConeGeometry(0.035, 0.2, 4), Math.sin(a) * 0.06, 0.4, Math.cos(a) * 0.06 - 0.02, Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35, hair); } b.geo(new T.ConeGeometry(0.04, 0.24, 4), 0, 0.44, -0.02, 0, 0, 0, hair); }
+    // A moustache: thin, full, or heavy and drooping past the corners of the mouth.
+    const sy = Y(0.1425), sz = front(0, 0.1425) + 0.0015;
+    const stache = (k, colr, droop) => { for (const sx of [-1, 1]) { b.geo(new T.SphereGeometry(0.025 * k, 8, 5).scale(1, 0.3, 0.42), sx * 0.0205 * k, sy, sz - 0.002, 0, sx * 0.3, sx * -(0.2 + droop * 0.3), colr); if (droop) b.geo(new T.SphereGeometry(0.013 * k, 6, 4).scale(0.7, 1.5, 0.6), sx * 0.045 * k, sy - 0.016, front(0.045 * k, 0.127) - 0.004, 0, 0, sx * -0.3, colr); } };
+    if (fh === "long" || fh === "heavy") stache(1.35, beardCol, 1); else if (fh === "full" || fh === "forked") stache(1.2, beardCol, 1); else if (fh === "goatee") stache(1.1, beardCol, 1);
+    else if (fh === "short") stache(1.05, beardCol, 0); else if (fh === "stubble") stache(0.85, G.shade(shade, 0.72), 0); else if (fh === "thin") stache(0.8, beardCol, 0); else if (fh === "stache") stache(1.1, beardCol, LITE ? 0 : 1);
+    if (she) { b.sph(0.08, 0, 0.19, -0.125, hair, 1, 9); b.sph(0.0125, 0, 0.258, front(0, 0.258) + 0.002, 0xc0392b, 1, 7, 1, 0.5); for (const sx of [-1, 1]) b.sph(0.022, sx * (ringAt(0.15)[1] + 0.03), Y(0.152), 0.0, GOLD); }
+    if (she && sp.stage === "elder") { b.box(0.25, 0.34, 0.04, 0, -0.16, -0.15, cloth); b.box(0.25, 0.03, 0.045, 0, -0.17, -0.15, trim); } // the end of her head-cloth, down her back
     const hg = sp.headgear, top = 0.33;
     if (hg === "crown" || hg === "kirita" || hg === "mukuta") {
-      const cr = sp.crown || {}, tall = (hg === "mukuta" ? 0.5 : 0.62) * (cr.tall || 1), gcol = cr.white ? 0xe8e8ee : GOLD, r = cr.broad ? 0.135 : 0.118;
+      const cr = sp.crown || {}, tall = (hg === "mukuta" ? 0.5 : 0.62) * (cr.tall || 1), gcol = cr.white ? 0xe8e8ee : GOLD, r = cr.broad ? 0.142 : 0.131;
       b.cyl(r * 1.02, r, 0.05, 0, 0.27, 0, cr.trim || trim, 10); b.cyl(r * 0.72, r, 0.2 * tall, 0, 0.31, 0, gcol, 10, 0, 0, 0, G.shade(gcol, 1.25));
       b.cone(r * 0.5, 0.12 * tall, 0, 0.31 + 0.2 * tall, 0, gcol, 8); b.sph(0.025, 0, 0.31 + 0.32 * tall, 0, Array.isArray(cr.gem) ? cr.gem[0] : cr.gem || 0xb2432a);
       const gems = Array.isArray(cr.gem) ? cr.gem : [cr.gem || 0xb2432a];
@@ -291,7 +346,8 @@
     else if (hg === "scarf") { b.geo(new T.SphereGeometry(0.142, 9, 6, 0, PI * 2, 0, PI * 0.6).scale(1, 1.05, 1.03), 0, 0.2, -0.008, -0.2, 0, 0, sp.hat || 0x7a4a2a); }
     if ((sp.gear || []).includes("earrings")) for (const sx of [-1, 1]) b.sph(0.034, sx * 0.135, 0.15, 0.005, GOLD);
     if ((sp.gear || []).includes("browgem")) b.sph(0.022, 0, 0.262, 0.118, 0x9ad0ff);
-    return b.mesh();
+    const hgp = new T.Group(), hm = new T.Mesh(hg0, G.mat.vc); hgp.add(hm); hgp.add(b.mesh());
+    return hgp;
   }
   function torsoMesh(sp, skin, cloth, trim, she, wide, accent) { // (cloth may be swapped for the host's colour below)
     const b = B(); b.ao = 0.86;
@@ -691,29 +747,29 @@
   // People the story names who have no look of their own in the 2D game, and the ordinary folk of every scene.
   const EXTRAS = {
     // (Draupadi: "her complexion was dark, and her locks were blue and curly"; Gandhari bandaged her own eyes; the king is blind.)
-    draupadi: { pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
-    sairindhri: { dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
-    kunti: { pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
-    gandhari: { pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
-    dhritarashtra: { pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },
+    draupadi: { face: "heart", pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
+    sairindhri: { face: "heart", dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
+    kunti: { face: "oval", pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
+    gandhari: { face: "long", pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
+    dhritarashtra: { face: "square", pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },
     // Arjuna in the year of hiding: "decked in the ornaments of women, and wearing large ear-rings and beautiful
     // conch-bracelets overlaid with gold", "a braid to hang down from my head". Bhima at the bride-choice, as a brahmin.
-    brihannala: { pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
-    bhima_brahmin: { pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
-    bhurishravas: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
-    kritavarma: { pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
-    vrishasena: { pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
-    iravan: { pronoun: "he", palette: ["#7a5a3a", "#2a4a3a", "#c9d27a"], stage: "youth", headgear: "mukuta", item: "sword" },
+    brihannala: { face: "oval", pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
+    bhima_brahmin: { face: "broad", pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
+    bhurishravas: { face: "gaunt", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
+    kritavarma: { face: "square", pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
+    vrishasena: { face: "long", pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
+    iravan: { face: "heart", pronoun: "he", palette: ["#7a5a3a", "#2a4a3a", "#c9d27a"], stage: "youth", headgear: "mukuta", item: "sword" },
     yudhamanyu: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
     uttamaujas: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "sword" },
     // The foot soldier of the line: bare to the waist under crossed bands of cloth, a thick coiled turban tied under the chin.
     footman: { pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], headgear: "turban", chin: true, gear: ["bands"], item: "spear", stage: "adult" },
-    virata: { pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "elder", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, beard: true },
+    virata: { face: "round", pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "elder", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, beard: true },
     uttara: { pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "youth", headgear: "mukuta", item: "bow" },
     vikarna: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "mukuta", item: "sword" },
     madhavi: { pronoun: "she", palette: ["#b47a4a", "#3f6b5a", "#e2b55a"], stage: "adult" },
     revat: { pronoun: "he", palette: ["#b06c3c", "#7a5232", "#d8b77a"], stage: "adult", headgear: "band", item: "whip" },
-    bhadra: { pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], stage: "elder", headgear: "helmet", gear: ["cuirass"], item: "spear", beard: true },
+    bhadra: { face: "square", pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], stage: "elder", headgear: "crest", hat: "#a3302a", gear: ["cuirass"], item: "sword", beard: "short", strong: true }, // captain of the gate guard: a crested veteran, with the sword he strikes with
     sudatta: { pronoun: "he", palette: ["#c9905a", "#d79a2b", "#8a3a2a"], stage: "elder", headgear: "turban", hat: "#d79a2b", big: true },
     haridatta: { pronoun: "he", palette: ["#b47a48", "#d9c9a6", "#a3302a"], stage: "elder", headgear: "turban", hat: "#a3302a", beard: true },
     sage: { pronoun: "he", palette: ["#b88352", "#d98a3a", "#8a6a3a"], stage: "elder", headgear: "jata", beard: "long", item: "staff" },

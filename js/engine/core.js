@@ -414,7 +414,37 @@
     K.momentQueue.push(m);
     d.moment = m.kind;
   }
+  // ---------- How you climb the tiers (Build D stage 3; Fight_Traits_Draft.md section 1.3, built as drafted: owner, 10 November) ----------
+  // You start a Soldier (S.tier 0). Your floor follows your Might and your path's weapon skill (9 or more: a Captain, 1; 11 or
+  // more: a great champion, 2). Milestones lift you above it: your teacher's test passed, or a deadly fight won from Act IV,
+  // makes you a Captain; two of a strength boon (Bala, the kavacha, any divine weapon), a contest won (the tournament bout, the
+  // games at Kampilya), a great champion held through a war day's hold, or a feat of your war storyline make you a great
+  // champion. You never drop a tier, and only Bhima holds the fourth. Each rise is a full-screen moment (ui/moments.js "tier").
+  K.CLIMB = {
+    // A Captain (owner, 11 November: "Teacher test to captain doesn't sit right"; the teacher's test is a point toward the
+    // floor instead): Bhadra's helmet, worn (content/episodes.js, the captain's arc); a captain-tier foe brought down in a
+    // real fight, grown (combat.js); a deadly fight won from Act IV.
+    captain: ["bhadra_helmet", "felled_captain", "deadly_won_late"], trialPoint: 0, // (the teacher's test counts through the skill it already teaches; an extra point made half of lives Captains at sixteen)
+    contest: ["ugra_tournament_won", "won_kampilya"],
+    held: ["held_karna", "held_arjuna", "held_bhima", "held_duryodhana", "held_for_shikhandi"],
+    feat: ["kd_stood", "kd_guard_held", "proven_duel", "lifted_wheel", "kb_held_full", "held_the_gate", "held_the_ring", "held_wheel", "bh_held_line", "held_ring_open"]
+  };
+  K.strengthBoon = (S = K.S) => S.boons.includes("bala") || S.boons.includes("kavacha") || (S.boons.includes("astra") && !(S.astra && S.astra.broken)) || (S.astras || []).some((a) => !a.broken);
+  K.tierNow = function (S = K.S) {
+    if (!S || !S.path || S.fighter) return (S && S.tier) || 0;
+    const has = (f) => S.flags.includes(f), any = (l) => l.some(has);
+    const P = (K.PATHS || {})[S.path] || {}, sum = (S.attrs.might || 0) + ((P.skill && S.skills[P.skill]) || 0) + (has("teacher_trial_won") ? (K.CLIMB.trialPoint || 0) : 0);
+    let t = sum >= 11 ? 2 : sum >= 9 ? 1 : 0;
+    if (K.CLIMB.captain.some(has)) t = Math.max(t, 1);
+    if ((K.strengthBoon(S) ? 1 : 0) + (any(K.CLIMB.contest) ? 1 : 0) + (any(K.CLIMB.held) ? 1 : 0) + (any(K.CLIMB.feat) ? 1 : 0) >= 2) t = 2;
+    return Math.max(S.tier || 0, Math.min(2, t));
+  };
   function after(b, S, d) {
+    { const t1 = K.tierNow(S); if (t1 > (S.tier || 0)) {
+      // What lifted you, for the moment's line: the helmet, the captain you brought down (named), or the rest.
+      const via = t1 >= 2 ? null : S.flags.includes("bhadra_helmet") ? "helmet" : S.flags.includes("felled_captain") ? "felled" : null;
+      S.tier = t1; d.tier = t1; moment(S, d, Object.assign({ kind: "tier", tier: t1 }, via ? { via } : {}, via === "felled" && K.lastFelled ? { foe: K.lastFelled } : {}));
+    } }
     // Telling who taught you breaks Mauni's condition.
     if (!b.hermit && S.flags.includes("betrayed_hermit") && S.astra && S.astra.from === "mauni") FX.astraBreak(true, S, d);
     if (S.friend && S.friend !== b.friend && !(S.friend === "charu" && TWICE.some((f) => S.flags.includes(f)))) moment(S, d, { kind: "friend", who: S.friend });

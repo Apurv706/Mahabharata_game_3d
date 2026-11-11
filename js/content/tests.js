@@ -22,6 +22,8 @@
   K.retryWhen = (id, keys) => (S) => keys.some((k) => S.flags.includes(againFlag(id, k)));
 
   // d: { id, scene: {...}, tests: { key: variant }, next, retry: { id, scene: {...}, letGo, letText } }
+  // Every teacher's test, passed, also marks the training complete (Build D stage 3: a Captain's milestone, engine/core.js K.tierNow).
+  const trained = (T) => { for (const t of Object.values(T)) if (t.win && t.win.fx && typeof t.win.fx === "object") t.win.fx.flag = [].concat(t.win.fx.flag || [], "teacher_trial_won"); return T; };
   K.trialScenes = function (d) {
     const keys = Object.keys(d.tests);
     const main = Object.assign({}, d.scene, { id: d.id, choices: keys.map((k) => K.testChoice(d.id, k, d.tests[k])), next: d.retry ? d.retry.id : d.next });
@@ -548,7 +550,7 @@
 
   K.scenes([].concat(
     K.trialScenes({
-      id: "a2_trial", next: "a2_ekalavya", tests: TEACHER, back: { scene: "a2_teacher", then: "a2_trial" },
+      id: "a2_trial", next: "a2_ekalavya", tests: trained(TEACHER), back: { scene: "a2_teacher", then: "a2_trial" },
       scene: { act: 2, age: 16, art: "scene_teacher", place: (S) => (S.teacher === "hermit" ? "Mauni's clearing" : S.teacher === "self" ? "A clearing at night" : "Your teacher's school"), caption: "The end of the second year",
         title: "Your teacher's test",
         body: (S) => [S.teacher === "self" ? "Two years alone. Tonight you test yourself." : "Two years on, {teacher} tests you."] },
