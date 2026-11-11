@@ -16,8 +16,14 @@
     return Math.min(3, 1 + top - Math.max(...vals.filter((v) => v < top)));
   };
   K.fitStars = fitStars;
+  // What each path fights with, on its tile under the name (owner, 10 November: the screen asked for a weapon,
+  // though four of the seven are not weapons, and the sword and spear were nowhere on it). As engine/realtime.js
+  // PATH_WEAPON has it; the strategist chooses next (a2_weapon). tests/traits.js "path-arms" keeps the two together.
+  const ARMS = { archer: "Bow", mace: "Mace and shield", charioteer: "Spear and shield", strategist: "Sword or spear",
+    healer: "Dagger", spy: "Dagger", bard: "Dagger" };
+  K.PATH_ARMS = ARMS;
   const pathChoice = (id, t, extra = {}) => ({
-    id, t, img: "path_" + id, fx: Object.assign({ set: { path: id }, skill: { [K.PATHS[id].skill]: 2 }, journal: "You chose the path of the {path!}." }, extra),
+    id, t, sub: ARMS[id], img: "path_" + id, fx: Object.assign({ set: { path: id }, skill: { [K.PATHS[id].skill]: 2 }, journal: "You chose the path of the {path!}." }, extra),
     hint: (S) => (suits(id, S) ? SUITS[id] : ""),
     stars: (S) => fitStars(id, S)
   });
@@ -72,9 +78,7 @@
     {
       id: "a2_path", act: 2, age: 15, place: (S) => (S.teacher === "hermit" ? "Mauni's clearing" : S.teacher === "self" ? "A clearing at night" : "Your teacher's school"), art: "scene_armoury", plate: ["#3e8c72", "#d4a84b"], caption: "The armoury",
       title: "Choose, then prove it", grid: true,
-      body: (S) => [
-        (S.teacher === "self" ? "Which weapon do you choose?" : "Which weapon do you choose?")
-      ],
+      body: ["Which path do you choose?"],
       choices: [
         pathChoice("archer", "The bow"),
         pathChoice("mace", "The mace"),

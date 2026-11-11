@@ -124,8 +124,10 @@
       // On a picture grid, small gold stars at the picture's corner on what suits you best (c.stars, 1 to 3).
       const nStars = grid && ok ? Math.min(3, K.val(c.stars) | 0) : 0;
       const stars = nStars ? '<span class="stars s' + nStars + '" role="img" aria-label="' + U.tr("Suits you best") + '" title="' + U.tr("Suits you best") + '">' + STAR.repeat(nStars) + "</span>" : "";
-      const cls = "choice" + (grid ? " tile" : "") + (img ? " has-img" : "") + (crossed ? " crossed" : "") + (fx ? " has-fx" : "") + (signs ? " has-marks" : "") + (stars ? " has-stars" : "");
-      const b = U.button(cls, '<span class="k">' + (i + 1) + "</span>" + (img ? U.thumb(img, grid ? "emblem" : undefined) : "") + stars + '<span class="t">' + U.t(K.val(c.t)) + "</span>" +
+      // On a picture grid, c.sub: a short line under the name (the paths: what each fights with).
+      const sub = grid && K.val(c.sub) ? '<span class="sub">' + U.t(K.val(c.sub)) + "</span>" : "";
+      const cls = "choice" + (grid ? " tile" : "") + (img ? " has-img" : "") + (crossed ? " crossed" : "") + (fx ? " has-fx" : "") + (signs ? " has-marks" : "") + (stars ? " has-stars" : "") + (sub ? " has-sub" : "");
+      const b = U.button(cls, '<span class="k">' + (i + 1) + "</span>" + (img ? U.thumb(img, grid ? "emblem" : undefined) : "") + stars + '<span class="t">' + U.t(K.val(c.t)) + "</span>" + sub +
         (fx ? '<span class="fx">' + fx + "</span>" : "") + (signs ? '<span class="marks">' + signs + "</span>" : ""), null, "choice-" + c.id);
       if (vowMark) b.title = vowMark[2];
       if (!ok && !crossed && fx) { b.title = fx.replace(/<[^>]+>/g, ""); b.setAttribute("aria-label", U.t(K.val(c.t)) + ": " + b.title); } // (on a phone the reason folds away; it stays as the card's label)

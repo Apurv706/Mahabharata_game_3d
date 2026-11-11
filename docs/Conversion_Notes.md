@@ -51,6 +51,9 @@ fight; the 2D game's tests brought over; every battle tuned.
   fire that walks to them and burns on (no one can set his feet to strike in it); a wall of water that carries a rank
   off together; a whirlwind that scatters them; a hush that puts them to sleep; serpents that run to each and wind round.
 - **Dress.** The figures wear wound cloth, not trousers and sleeves (see `Costume_Audit.md`, "How everyone is dressed").
+- **Kept in step with the 2D game.** The 2D repo's changes after the copy are carried over as patches (11 Nov: its
+  change 104, the path screen asks "Which path do you choose?" and each tile names what the path fights with; 2D
+  commit c6a8ef5). To do it again: `git diff <last carried commit> origin/main -- game` in the 2D repo, applied here with `-p2`.
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512

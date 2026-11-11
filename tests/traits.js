@@ -489,6 +489,17 @@ check("spear", "the charioteer fights with the spear and shield (the longest rea
   return bad;
 });
 
+check("path-arms", "the path screen at fifteen asks for a path, and each tile names what that path fights with (the strategist: the sword or the spear)", () => {
+  const bad = [], sc = K.SCENES.a2_path, body = [].concat(K.val(sc.body, life()) || []).join(" ");
+  if (!/path/i.test(body) || /weapon/i.test(body)) bad.push("the question: " + body);
+  for (const c of sc.choices) {
+    const p = c.id, sub = String(K.val(c.sub) || "").toLowerCase();
+    const arms = p === "strategist" ? ["sword", "spear"] : [K.playerWeapon(life({ path: p }))];
+    for (const w of arms) if (!sub.includes(w)) bad.push(p + ": the tile says \"" + sub + "\" but the path fights with " + w);
+  }
+  return bad;
+});
+
 const results = [];
 let fail = 0;
 for (const c of CASES) {

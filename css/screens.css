@@ -2169,6 +2169,7 @@ body.ending-on .ledger { display: none; }
   .leaf .choices.grid .choice.tile { padding: 7px 5px 6px; }
   .leaf .choices.grid .choice.tile .thumb.emblem { width: 44px; height: 44px; }
   .leaf .choices.grid .choice.tile .t { font-size: 13.5px; line-height: 1.2; }
+  .leaf .choices.grid .choice.tile .sub { font-size: 11.5px; }
   /* Vows and other emblem choices: a smaller emblem */
   .leaf .choices .choice.has-img .thumb.emblem { width: 36px; height: 36px; }
 }

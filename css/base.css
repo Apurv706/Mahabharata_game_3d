@@ -385,6 +385,11 @@ body.inscene .ledger { position: fixed; z-index: 40; top: calc(max(8px, var(--sa
 @media (max-width: 720px) { .choices.grid .choice.tile .stars { top: 5px; right: 6px; } .choices.grid .choice.tile .stars svg { width: 10px; height: 10px; } }
 .choices.grid .choice.tile .thumb.emblem, .split .actions .choices.grid .choice.tile .thumb.emblem { width: 76px; height: 76px; }
 .leaf .choices.grid .choice.tile .t { font-size: 15.5px; line-height: 1.2; }
+.leaf .choices.grid .choice.tile .sub { font-size: 13px; line-height: 1.15; color: var(--muted); }
+/* Tiles with a line under the name (the paths and their weapons): names level across a row, and on a phone a
+   smaller picture, so the seven still fit an iPhone 15 without scrolling. */
+.choices.grid .choice.tile.has-sub { justify-content: flex-start; }
+@media (max-width: 720px) { .choices.grid .choice.tile.has-sub .thumb.emblem, .split .actions .choices.grid .choice.tile.has-sub .thumb.emblem { width: 46px; height: 46px; } }
 .choices.grid .choice.tile:hover:not(:disabled) { transform: translateY(-2px); }
 @media (max-width: 720px) { .choices.grid .choice.tile .thumb.emblem, .split .actions .choices.grid .choice.tile .thumb.emblem { width: 58px; height: 58px; } .choices.grid .choice.tile { padding: 8px 6px 7px; gap: 2px; } }
 /* The frame-rate counter (Menu: Show frame rate) */

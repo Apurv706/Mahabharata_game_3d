@@ -6406,6 +6406,8 @@
     "They put you in the front rank, and a spearman of your own side stands two paces behind you all day. He is not there to guard your back.": "वे तुम्हें सबसे आगे की कतार में खड़ा करते हैं, और दिन भर तुम्हारे अपने पक्ष का एक भालाधारी तुमसे दो कदम पीछे खड़ा रहता है। वह तुम्हारी पीठ की रक्षा के लिए नहीं है।",
     "He knows you. On the first morning you tried to walk out of his line.": "वह तुम्हें पहचानता है। पहली सुबह तुमने उसकी पंक्ति से निकल जाने की कोशिश की थी।",
     "On the first morning {they} tried to cross to the Pandavas behind Yuyutsu. The Kauravas dragged {them} back, and watched {them} to the end of the war.": "पहली सुबह {g:उसने|उसने|उन्होंने} युयुत्सु के पीछे पांडवों की ओर जाने की कोशिश की। कौरव {g:उसे|उसे|उन्हें} घसीटकर वापस ले आए, और युद्ध के अंत तक {g:उस पर|उस पर|उन पर} नज़र रखते रहे।",
+    "Which path do you choose?": "तुम कौन-सा मार्ग {g:चुनते|चुनती} हो?",
+    "Sword or spear": "तलवार या भाला",
     "the enemy's soldiers": "शत्रु के सैनिक",
     "You are still shouting for the banner when the enemy's second rank reaches you. They take you alive, which is more than they do for most.": "तुम अब भी ध्वज के लिए पुकार {g:रहे होते|रही होती} हो जब शत्रु की दूसरी पंक्ति तुम तक पहुँचती है। वे तुम्हें जीवित पकड़ लेते हैं, जो वे ज़्यादातर के साथ नहीं करते।",
     "Rallying a broken division, you were taken by the enemy.": "टूटे सेना-खंड को जुटाते हुए तुम शत्रु के हाथ {g:पकड़े गए|पकड़ी गईं}।",
