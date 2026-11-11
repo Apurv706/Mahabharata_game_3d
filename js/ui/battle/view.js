@@ -396,7 +396,7 @@
       } else if (id === "varuna") {
         sfx("gong"); F.flash("rgba(70,150,220,.3)", 900);
         const wide = R.rad * 1.5, span = R.rad * 2 + 6, secs = 1.5, done = new Set();
-        const wall = new T.Mesh(new T.CylinderGeometry(wide, wide, 3.4, 20, 1, true, -0.62, 1.24), new T.MeshBasicMaterial({ color: 0x4aa8e8, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, fog: false, blending: T.AdditiveBlending }));
+        const wall = new T.Mesh(new T.CylinderGeometry(wide, wide, 3.4, 20, 1, true, -0.62, 1.24), new T.MeshBasicMaterial({ color: 0x2f86d8, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, fog: false }));
         wall.rotation.y = ang; wall.renderOrder = 5; G.fxRoot.add(wall); let t = 0;
         F.run((dt, cut) => {
           t += dt; const k = Math.min(1, t / secs), d = -3 + span * k, cx = o.x + dx * (d - wide), cz = o.z + dz * (d - wide);

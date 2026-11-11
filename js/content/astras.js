@@ -147,7 +147,7 @@
 
   // Agneya: a season of penance at a fire altar, through the storms.
   const FIRE = { t: "Keep the fire through the storms", game: "steady", hint: "A long test of stillness",
-    trial: { attr: "wisdom", skill: "lore", stage: art("stage_fire_altar"), secs: 24, verb: "Shield the flame",
+    trial: { divine: true, attr: "wisdom", skill: "lore", stage: art("stage_fire_altar"), secs: 24, verb: "Shield the flame",
       tally: "Flame kept: {c}% · {s} seconds of storm left", wonLine: "The storm passes. The flame is still there, and so are you.", nearLine: "The flame gutters, and comes back, and gutters. Not yet.", lostLine: "The wind takes the flame, and the season with it.",
       rules: "Hold to shield the flame from the gusts; let go when the wind drops.",
       stakes: ["On the last night, a voice in the fire gives you the Agneyastra.", "The flame goes out. You come down the hill with nothing but a cough."] },
@@ -160,7 +160,7 @@
 
   // Varuna: a dive for a sage's lost offering, in the deep lake (the breath test, ui/breath.js).
   const DIVE = { t: "Dive for the offering", game: "breath", hint: "A test of breath",
-    trial: { attr: "might", skill: "stealth", stage: art("stage_deep_lake"), dives: 3, need: 2, verb: "Dive",
+    trial: { divine: true, attr: "might", skill: "stealth", stage: art("stage_deep_lake"), dives: 3, need: 2, verb: "Dive",
       rules: "Hold to dive, let go to rise. Reach the glow before your breath runs out. Two of three dives.",
       stakes: ["The sage gives you the Varunastra for it.", "The lake keeps the vessel, and nearly keeps you."] },
     win: { fx: { astraGrant: { id: "varuna", from: "lake_sage" }, tapas: 1 }, text: "You come up with the vessel the second time, half-drowned. The sage gives you the mantra of water: never lie about where it came from." },
@@ -172,7 +172,7 @@
 
   // Vayavya: the climb to a Himalayan hermitage (a course up the mountain, on foot).
   const CLIMB = { t: "Climb to the hermitage", game: "race", hint: "A climb",
-    trial: { attr: "grace", skill: "chariot", kind: "war", stage: art("stage_mountain_path"), vehicle: "foot", obstacles: ["rock", "ice"], hull: 3, speed: 2.8,
+    trial: { divine: true, attr: "grace", skill: "chariot", kind: "war", stage: art("stage_mountain_path"), vehicle: "foot", obstacles: ["rock", "ice"], hull: 3, speed: 2.8,
       tally: "Climbed: {d}% · Falls: {h} of {l}", bump: "Your foot goes through the crust, and the mountain takes a little more of you.", help: "Step aside from the rocks and the ice: up and down, or the buttons.", helpSide: "Step left and right around the rocks and the ice.",
       rules: "Climb through the falling rocks. Three falls and you turn back.",
       stakes: ["The hermit of the heights gives you the Vayavyastra. Nearly there, a sanjivani root on a ledge.", "You turn back below the snow line, frostbitten."] },
@@ -192,7 +192,7 @@
     { line: "\"I am taken from you every night and given back every morning, and you are poorer each time.\"", replies: ["A day.", "Sleep.", "A dream."] }
   ];
   const RIDDLE = { t: "Answer the Gandharva's riddles", game: "retort", hint: "A test of wits",
-    trial: { attr: "wisdom", skill: "lore", stage: art("stage_gandharva_grove"), rounds: RIDDLES,
+    trial: { divine: true, attr: "wisdom", skill: "lore", stage: art("stage_gandharva_grove"), rounds: RIDDLES,
       rules: "Answer the Gandharva's riddles before the lamp burns down. Two right of three.",
       stakes: ["He gives you the mantra of sleep, laughing.", "He lets you drink anyway, and keeps the mantra."] },
     win: { fx: { astraGrant: { id: "sammohana", from: "gandharva" }, tapas: 1 }, text: "He drops out of the tree, delighted, and gives you the mantra that puts a host to sleep. Never against the sleeping or the unarmed." },
@@ -204,7 +204,7 @@
 
   // Nagapasha: healing a wounded naga by the river (your own life, before the forge).
   const NAGA = { t: "Draw the arrow and dress the wound", game: "steady", hint: "A test of steady hands",
-    trial: { attr: "wisdom", skill: "healing", stage: art("stage_naga_bank"), secs: 18, verb: "Hold",
+    trial: { divine: true, attr: "wisdom", skill: "healing", stage: art("stage_naga_bank"), secs: 18, verb: "Hold",
       tally: "The wound closing: {c}% · {s} seconds", wonLine: "The bleeding stops. The naga lets out a long breath that is almost a word.", nearLine: "Nearly. The wound keeps opening.", lostLine: "The naga pulls away from you and slides into the river, trailing blood.",
       rules: "Hold to press the wound; let go when he pulls away.",
       stakes: ["He gives you the serpent-noose for it.", "He goes back into the river without a word."] },
@@ -245,7 +245,7 @@
     body: ["Robbers have stolen a village temple's lamp. The priest looks at the empty hook."],
     choices: [K.testChoice("w_offering", "steal", OFFERING), { id: "no", t: "Give the priest a coin", fx: { rep: { common: 1 } } }] }));
   const MOUNTAIN = { t: "Stand in the light", game: "steady", hint: "A test of stillness",
-    trial: { attr: "wisdom", skill: "lore", stage: art("stage_shiva_mountain"), secs: 20, verb: "Hold still",
+    trial: { divine: true, attr: "wisdom", skill: "lore", stage: art("stage_shiva_mountain"), secs: 20, verb: "Hold still",
       tally: "Stillness: {c}% · {s} seconds", wonLine: "The light goes through you, and the voice says one word, and you do not remember it afterwards.", nearLine: "The light wavers, and so do you.", lostLine: "You step out of the light, shaking, and it is only snow.",
       rules: "Hold to keep still in the light as the cold and the fear push you.",
       stakes: ["Something is given to you: a weapon, or a kavacha against one death in the war.", "You come down, and never tell anyone what you saw."] },

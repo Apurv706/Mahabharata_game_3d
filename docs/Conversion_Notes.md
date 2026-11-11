@@ -40,6 +40,17 @@ fight; the 2D game's tests brought over; every battle tuned.
 - **Tests.** The 2D suite runs here. Its two-part build was taught to fold the 3D scripts into one file.
 - **Tuning.** Every fight was played by the bot 28 times and its numbers moved until its win rate sat where the 2D
   game's does (`docs/Balance_3D.md`; the baseline is `tests/baselines/fights3d.json`).
+- **Sneak tests** were one button (hold to walk a line, stop on a tell). They are now a yard to cross any way you can:
+  guards walk beats with their sight drawn on the ground, crates hide you, running is heard and creeping is not, a
+  meter shows how sure they are of you, and two pebbles draw their eyes away. `SETUP.sneak`/`PLAY.sneak`.
+- **Divine-weapon tests** (`divine: true` on the trial) are harder by method, not only by number: stillness is three
+  watches in a row (the band drifts, then leaps, then your hand is knocked too); the dive's glow rides up and down and
+  must be met at its depth, three times of four; every riddle must be right, on a shorter lamp; the climb is faster,
+  thicker, and forgives one stumble fewer.
+- **Divine weapons in a fight** each arrive and end their own way: forked lightning man by man; a burning arrow and
+  fire that walks to them and burns on (no one can set his feet to strike in it); a wall of water that carries a rank
+  off together; a whirlwind that scatters them; a hush that puts them to sleep; serpents that run to each and wind round.
+- **Dress.** The figures wear wound cloth, not trousers and sleeves (see `Costume_Audit.md`, "How everyone is dressed").
 - **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
   https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
   https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512
@@ -63,7 +74,7 @@ phone; the dream; all 23 kinds of test opening in 3D and ending; and the 2D scre
 The two built parts were walked through as a phone (the opening, a sparring bout, the war's first day, Act V from a
 save code) with no missing file, and a 3D fight was fought to its end on each, in English and with Hindi loaded.
 
-Not checked: the published pages themselves (they cannot be opened from the build machine; what was tested is the
+Not checked: whether a person finds the new sneak yard and the three watches fair (they were run for errors and for losing when played badly, not played well by hand); the published pages themselves (they cannot be opened from the build machine; what was tested is the
 same files served locally); real devices and GPUs; a person playing a fight by hand to its end in any view; frame rate with the line
 on a phone; gamepad; sound; the full test tier (playthroughs, layout on every device, visual baselines), whose
 baselines will show the puppets' corrected colours. The moves were checked against written technique from still

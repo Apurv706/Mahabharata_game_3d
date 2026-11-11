@@ -172,3 +172,8 @@ body.in3d #b3d { display: block; }
 }
 @keyframes line-left { 0% { opacity: 0; transform: translateY(6px); } 8% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
 .ubar.line { width: 34px; height: 4px; opacity: 0.85; } .ubar.line span { display: none !important; }
+
+/* The sneak test: how sure the guards are of you. */
+#b3d .t-sus { position: absolute; left: 50%; top: calc(146px + var(--safe-t, 0px)); transform: translateX(-50%); width: min(46vw, 260px); height: 9px; border-radius: 6px; background: rgba(20, 12, 8, .6); border: 1px solid rgba(255, 220, 160, .35); overflow: hidden; pointer-events: none; }
+#b3d .t-sus > i { display: block; height: 100%; width: 0; background: #e8c060; transition: background .15s; }
+#b3d .t-sus.hot > i { background: #ff5a3a; }

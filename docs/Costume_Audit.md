@@ -36,6 +36,24 @@ figures, plus `EXTRAS` in `js/g3/figure.js` for people who only appear in 3D. St
 | **Others on cars** | Satyaki "steeds of a silvery hue"; Shalya "an image like the presiding goddess of corn"; Somadatta's son "the sacrificial stake"; Vrishasena "a peacock made of gold" (Drona XXIII, CIV). | None. | Added. |
 | **The player** | — | A peacock feather for those born in Mathura and a bird's feather for forest-born. | A plain band or top knot. The epic gives neither feather. |
 
+## How everyone is dressed
+
+The epic's people wear lengths of cloth, not cut and sewn clothes, and the 3D figures are now dressed that way (the
+first build gave everyone trouser-like legs, and the women sleeves):
+
+- **The lower cloth** (antariya) is wound round the hips with its pleats gathered in front. Fighting and working men
+  draw it up between the legs so its border sits at the knee; kings, elders, brahmins and ascetics let it fall to the
+  calf; women wear it to the ankle under a girdle of gold beads.
+- **The chest is bare.** Men wear the upper cloth (uttariya) across from the left shoulder with its end down the back;
+  women a breast-band and the upper cloth over the shoulder, and elder women draw it over the head.
+- **A sash** is knotted at the left hip, its ends hanging.
+- **Ornaments** in place of sleeves and shoes: armlets, bracelets or bangles, ear-rings for the crowned, anklets for
+  the wealthy. Feet are bare.
+
+This follows the text's own words for dress (cloth, upper garment, ear-rings, armlets, garlands, girdle) and the general
+account of early Indian dress in the history cited below; no single passage describes the drape, so the cut of it is
+the game's reading.
+
 ## Soldiers
 
 The epic names the heroes' gear and says little about the rank and file, so the line's foot soldiers follow a

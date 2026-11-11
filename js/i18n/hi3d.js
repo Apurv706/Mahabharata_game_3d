@@ -88,6 +88,13 @@
     "Against you": "आपके विरुद्ध", "With you": "आपके साथ", "And with them: {who}": "और उनके साथ: {who}", "More will come.": "और भी आएँगे।",
     "They keep coming. Stand as long as you can.": "वे आते ही जा रहे हैं। जब तक बन पड़े, डटे रहिए।",
     "There are too many of them. Stand as long as you can.": "वे बहुत अधिक हैं। जब तक बन पड़े, डटे रहिए।",
-    "A soldier out of the dust": "धूल से निकला एक सैनिक", "A soldier of your line": "आपकी पंक्ति का एक सैनिक"
+    "A soldier out of the dust": "धूल से निकला एक सैनिक", "A soldier of your line": "आपकी पंक्ति का एक सैनिक",
+    "Cross to the green ring without standing in a guard's sight. Crates hide you. Running is heard; creeping is not.": "पहरेदार की नज़र में खड़े हुए बिना हरे घेरे तक पहुँचो। पेटियाँ तुम्हें छिपाती हैं। दौड़ना सुनाई देता है; दबे पाँव चलना नहीं।",
+    "The dog wakes and barks.": "कुत्ता जागकर भौंकने लगता है।", "A guard has seen you. You slip back.": "एक पहरेदार ने तुम्हें देख लिया। तुम पीछे खिसक जाते हो।",
+    "Creep": "दबे पाँव", "Toss a pebble ({n})": "कंकड़ फेंको ({n})",
+    "Three watches, each harder than the last. Hold to move your hand right; let go and it drifts left. Stay inside the band.": "तीन पहर, हर एक पिछले से कठिन। हाथ दाएँ ले जाने को दबाए रखो; छोड़ो तो वह बाएँ सरकता है। पट्टी के भीतर रहो।",
+    "First watch": "पहला पहर", "Second watch": "दूसरा पहर", "Third watch": "तीसरा पहर", "{w} · Steady: {c}%": "{w} · स्थिरता: {c}%",
+    "The first watch is kept. Now it leaps.": "पहला पहर निभ गया। अब वह उछलेगी।", "The second is kept. Now your own hand is not your own.": "दूसरा भी निभ गया। अब तुम्हारा अपना हाथ तुम्हारा नहीं।",
+    "Hold to dive, let go to rise. The glow rides the current up and down: stay level with it until your hand closes, then come up before your breath is gone.": "गोता लगाने को दबाए रखो, ऊपर आने को छोड़ो। चमक धारा के साथ ऊपर-नीचे होती है: जब तक हाथ उस पर बंद न हो, उसी गहराई पर रहो, फिर साँस टूटने से पहले ऊपर आ जाओ।"
   });
 })(window.K = window.K || {});

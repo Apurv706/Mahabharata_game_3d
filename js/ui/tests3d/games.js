@@ -9,6 +9,7 @@
   if (!T) return;
   const PLAY = U.PLAY, SETUP = U.TRIAL_SETUP, AUTO = U.AUTO;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const turnA = (a, to, k) => { let d = to - a; d = Math.atan2(Math.sin(d), Math.cos(d)); return a + clamp(d, -k, k); };
   const V = (x, y, z) => new T.Vector3(x, y, z);
   const sfx = (n) => { if (K.Sound) K.Sound.play(n); };
   const tx = (s, p) => U.esc(K.text(p ? [s, p] : s));
@@ -187,6 +188,7 @@
   // =====================================================================================================
   SETUP.steady = { clear: 9, setup(ctx) { meAt(ctx, 0, 0.8, Math.PI * 0.8, ctx.t.horse ? "hold" : "kneel", { item: null }); if (ctx.t.horse) { const h = G.horse(0x7a4a2a, true); h.position.set(-1.4, 0, -0.4); h.rotation.y = 1; ctx.add(h); ctx.x = { h }; } ctx.cam([2.4, 1.9, 4.6], [-0.3, 1, 0.2], 40, true); } };
   PLAY.steady = function (ctx) {
+    if (ctx.t.divine) return steadyDivine(ctx);
     const t = ctx.t, half = clamp(0.11 + ctx.power * 0.015, 0.1, 0.2), secs = t.secs || 15, g = gauge(ctx, "h");
     let hand = 0.3, mood = 0.5, mv = 0, calm = 0.2, left = secs, held = false;
     ctx.prompt(tx(t.help || "Hold to move your hand right; let go and it drifts left. Stay inside the band."));
@@ -202,6 +204,33 @@
     const down = () => { held = true; }, up = () => { held = false; };
     ctx.button(t.verb || "Hold", down, up); ctx.onAct(down, up);
   };
+  // A divine weapon is not won by one calm minute. Three watches, one after another, and the calm begins again at each:
+  // in the first the band drifts as in any test of stillness; in the second it leaps without warning but for a flicker;
+  // in the third your own hand is knocked as well, and the band has narrowed. Lose the band and the calm drains faster
+  // than it filled. All three, inside the time, or the weapon is not given.
+  function steadyDivine(ctx) {
+    const t = ctx.t, half0 = clamp(0.1 + ctx.power * 0.012, 0.09, 0.17), secs = Math.round((t.secs || 18) * 2.6), g = gauge(ctx, "h"), WATCH = ["First watch", "Second watch", "Third watch"];
+    let hand = 0.3, mood = 0.5, mv = 0, calm = 0, left = secs, held = false, watch = 0, leap = 2.5, tell = 0, to = 0.5, jolt = 2, rest = 0;
+    ctx.prompt(tx("Three watches, each harder than the last. Hold to move your hand right; let go and it drifts left. Stay inside the band.") + (t.help ? " " + tx(t.help) : ""));
+    ctx.loop((dt, tt) => {
+      left -= dt; ctx.clock.set(left, secs);
+      if (rest > 0) { rest -= dt; return; }
+      const half = half0 * (1 - watch * 0.14), quick = 1 + watch * 0.45;
+      mv += (K.rng() - 0.5) * dt * 2.6 * quick; mv = clamp(mv, -0.4 * quick, 0.4 * quick); mood = clamp(mood + mv * dt, half, 1 - half); if (mood <= half || mood >= 1 - half) mv = -mv;
+      if (watch >= 1) { leap -= dt; if (leap <= 0 && tell <= 0) { tell = 0.42; to = clamp(mood + (K.rng() < 0.5 ? -1 : 1) * (0.22 + K.rng() * 0.16), half, 1 - half); sfx("step"); }
+        if (tell > 0) { tell -= dt; if (tell <= 0) { mood = to; mv = 0; leap = 2.2 + K.rng() * 1.8 - watch * 0.3; G.shake(0.12, 0.2); } } }
+      if (watch >= 2) { jolt -= dt; if (jolt <= 0) { hand = clamp(hand + (K.rng() < 0.5 ? -1 : 1) * 0.13, 0, 1); jolt = 1.6 + K.rng() * 1.6; ctx.cue("bad"); } }
+      hand = clamp(hand + (held ? 0.55 : -0.45) * dt, 0, 1);
+      const inside = Math.abs(hand - mood) <= half; calm = clamp(calm + (inside ? dt / 5.5 : -dt / 3.5), 0, 1);
+      g.band.style.left = (mood - half) * 100 + "%"; g.band.style.width = half * 200 + "%"; g.fill.style.left = hand * 100 + "%"; g.band.style.opacity = tell > 0 ? 0.45 + 0.5 * Math.abs(Math.sin(tt * 30)) : 1;
+      ctx.score(tx("{w} · Steady: {c}%", { w: K.tr(WATCH[watch]), c: Math.round(calm * 100) }));
+      if (ctx.x && ctx.x.h) ctx.x.h.rotation.z = inside ? 0 : Math.sin(tt * 14) * 0.05;
+      if (calm >= 1) { watch++; if (watch >= 3) return ctx.finish("win", t.wonLine || null); calm = 0; rest = 1.1; leap = 1.6; sfx("heal"); ctx.toast(tx(watch === 1 ? "The first watch is kept. Now it leaps." : "The second is kept. Now your own hand is not your own."), "good"); }
+      else if (left <= 0) { const near = watch >= 2 && calm >= 0.4; ctx.finish(near ? "close" : "lose", near ? t.nearLine || null : t.lostLine || null); }
+    });
+    const down = () => { held = true; }, up = () => { held = false; };
+    ctx.button(t.verb || "Hold", down, up); ctx.onAct(down, up);
+  }
 
   // =====================================================================================================
   // Breath: dive for the vessel on the lake bed and come up with air to spare.
@@ -213,20 +242,20 @@
     ctx.cam([0, 4.6, 14], [0, 4.2, 0], 50, true);
   } };
   PLAY.breath = function (ctx) {
-    const t = ctx.t, dives = t.dives || 3, need = t.need || 2, air0 = (t.secs || 12) + ctx.power * 0.6;
+    const t = ctx.t, hard = !!t.divine, dives = (t.dives || 3) + (hard ? 1 : 0), need = (t.need || 2) + (hard ? 1 : 0), air0 = ((t.secs || 12) + ctx.power * 0.6) * (hard ? 0.86 : 1);
     let n = 0, got = 0, depth = 0, air = air0, held = false, has = false, reach = 0, vx = 2, rest = 0;
     const draw = () => ctx.score(pips(dives, got, n - got));
-    draw(); ctx.prompt(tx("Hold to dive, let go to rise. Reach the glow, then come up before your breath is gone."));
+    draw(); ctx.prompt(tx(hard ? "Hold to dive, let go to rise. The glow rides the current up and down: stay level with it until your hand closes, then come up before your breath is gone." : "Hold to dive, let go to rise. Reach the glow, then come up before your breath is gone."));
     const end = (ok) => { n++; if (ok) got++; draw(); has = false; depth = 0; air = air0; rest = 1; ctx.toast(tx(ok ? "You bring it up." : "You come up with nothing."), ok ? "good" : "bad"); sfx(ok ? "heal" : "hit");
       if (got >= need) ctx.after(700, () => ctx.finish("win", null)); else if (got + dives - n < need) ctx.after(700, () => ctx.finish(got === need - 1 ? "close" : "lose", null)); };
     ctx.loop((dt, tt) => {
       if (rest > 0) { rest -= dt; return; }
       depth = clamp(depth + (held ? 0.24 : -0.34) * dt, 0, 1);
-      vx = Math.sin(tt * 0.5) * 2.4; const mx = ctx.me.root.position.x + ((has ? 0 : vx) - ctx.me.root.position.x) * dt * 0.6;
+      vx = Math.sin(tt * (hard ? 0.8 : 0.5)) * 2.4; const gd = hard ? 0.74 + 0.2 * Math.sin(tt * 1.15 + n * 2) : 0.94, mx = ctx.me.root.position.x + ((has ? 0 : vx) - ctx.me.root.position.x) * dt * 0.6;
       ctx.me.root.position.set(mx, 7 - depth * 6.4, 0); ctx.me.speed = held || depth > 0.02 ? 1.5 : 0;
-      if (!has) ctx.x.v.position.set(vx, 0.4, 0); else ctx.x.v.position.copy(ctx.me.root.position).add(V(0.3, 0.6, 0));
+      if (!has) ctx.x.v.position.set(vx, hard ? 7 - gd * 6.4 - 0.2 : 0.4, 0); else ctx.x.v.position.copy(ctx.me.root.position).add(V(0.3, 0.6, 0));
       if (depth > 0.02) air -= dt * (1 + depth * 0.9); else air = Math.min(air0, air + dt * 4);
-      if (!has && depth > 0.9 && Math.abs(mx - vx) < 0.9) { reach += dt; if (reach > 0.5) { has = true; reach = 0; sfx("tap"); ctx.toast(tx("You have it. Up!"), "good"); } } else reach = 0;
+      if (!has && (hard ? Math.abs(depth - gd) < 0.075 : depth > 0.9) && Math.abs(mx - vx) < 0.9) { reach += dt; if (reach > (hard ? 0.8 : 0.5)) { has = true; reach = 0; sfx("tap"); ctx.toast(tx("You have it. Up!"), "good"); } } else reach = 0;
       ctx.clock.set(air, air0);
       if (has && depth <= 0.02) end(true); else if (air <= 0) end(false);
       if (K.rng() < dt * 6 && depth > 0.05) G.fx.burst("splash", ctx.me.headPos(), { n: 1, s: 0.3 });
@@ -246,12 +275,12 @@
   }
   SETUP.retort = { clear: 8, setup: talkSetup };
   PLAY.retort = function (ctx) {
-    const t = ctx.t, rounds = K.val(t.rounds) || [], need = Math.ceil(rounds.length * 2 / 3);
+    const t = ctx.t, rounds = K.val(t.rounds) || [], need = t.divine ? rounds.length : Math.ceil(rounds.length * 2 / 3);
     let i = 0, right = 0, left = 0, total = 1, open = false;
     const draw = () => ctx.score(pips(rounds.length, right, i - right));
     const ask = () => {
       if (i >= rounds.length || right >= need || right + rounds.length - i < need) return ctx.finish(right >= need ? "win" : right === need - 1 ? "close" : "lose", null);
-      const r = rounds[i], line = K.text(K.val(r.line)); total = left = clamp(3.5 + ctx.power * 0.4, 3.5, 6.5) + line.length / 70 + 1.2;
+      const r = rounds[i], line = K.text(K.val(r.line)); total = left = (clamp(3.5 + ctx.power * 0.4, 3.5, 6.5) + line.length / 70 + 1.2) * (t.divine ? 0.72 : 1);
       ctx.x.foe.talk = true; ctx.me.talk = false; ctx.prompt(U.esc(line)); ctx.clearButtons(); open = true;
       shuffle(r.replies.map((s, k) => [s, k === 0])).forEach(([s, ok]) => ctx.choice(U.esc(K.text(K.val(s))), () => answer(ok), "wide"));
     };
@@ -333,35 +362,76 @@
   // =====================================================================================================
   // Sneak: cross while the guard looks away; stand still when he turns.
   // =====================================================================================================
-  SETUP.sneak = { clear: 10, setup(ctx) {
-    const t = ctx.t; G.setSky(t.daylight ? "day" : "hall", t.daylight ? null : { hi: 1.5, amb: 0.7, si: 1.8, fd: 0.008 }); meAt(ctx, 0, 7, Math.PI, "sneak", { item: null });
-    const g = ctx.figure(K.PUPPETS[t.watch] ? t.watch : "guard", { item: "spear" }); g.place(0.5, -7.6, Math.PI); g.pose("readySpear", true);
-    const lamp = glow(0xffc070, 5); lamp.position.set(0.5, 2.4, -7.6); ctx.add(lamp, G.fxRoot);
-    const goal = new T.Mesh(new T.RingGeometry(0.5, 0.7, 24).rotateX(-Math.PI / 2), basic(0x7fe08a, 0.8)); goal.position.set(0, 0.06, -6); ctx.add(goal, G.fxRoot);
-    ctx.x = { g, goal }; ctx.cam([0.6, 5.6, 14], [0, 1, -1], 46, true);
+  // The yard is yours to cross any way you can find. Guards walk their beats and each one's sight lies on the ground in
+  // front of him as a fan of light: stand in it with nothing between you and he grows sure of you; stay, and you are
+  // seen. Crates and pillars hide you. Run and the nearest guard hears and turns; creep and he does not. A pebble
+  // thrown ahead draws their eyes to where it lands. (Before: one button, hold to walk a straight line, stop on a tell.)
+  const SNEAK = { W: 5.6, D: 7.2, cover: [[-3.1, 3.4, 0.9, 0.6], [2.5, 2.3, 0.7, 0.7], [-0.6, -0.1, 1.1, 0.55], [3.3, -2.5, 0.75, 0.7], [-3.4, -3.0, 0.8, 0.65], [0.4, -4.4, 0.6, 0.5]] };
+  function sneakClear(ax, az, bx, bz) { // is the straight line from a to b free of every crate?
+    for (const [cx, cz, hw, hd] of SNEAK.cover) { let t0 = 0, t1 = 1, ok = true;
+      for (const [o, d, lo, hi] of [[ax, bx - ax, cx - hw, cx + hw], [az, bz - az, cz - hd, cz + hd]]) { if (Math.abs(d) < 1e-6) { if (o < lo || o > hi) { ok = false; break; } } else { let u = (lo - o) / d, v = (hi - o) / d; if (u > v) { const w = u; u = v; v = w; } t0 = Math.max(t0, u); t1 = Math.min(t1, v); if (t0 > t1) { ok = false; break; } } }
+      if (ok) return false; }
+    return true;
+  }
+  SETUP.sneak = { clear: 11, setup(ctx) {
+    const t = ctx.t; G.setSky(t.daylight ? "day" : "hall", t.daylight ? null : { hi: 1.5, amb: 0.75, si: 1.9, fd: 0.008 }); meAt(ctx, 0, SNEAK.D - 0.6, Math.PI, "sneak", { item: null });
+    const wood = new T.MeshLambertMaterial({ color: 0x7a5632 }), dark = new T.MeshLambertMaterial({ color: 0x5a3e24 });
+    SNEAK.cover.forEach(([cx, cz, hw, hd], i) => { const m = new T.Mesh(new T.BoxGeometry(hw * 2, i % 3 === 2 ? 1.5 : 0.95, hd * 2), i % 2 ? wood : dark); m.position.set(cx, i % 3 === 2 ? 0.75 : 0.475, cz); m.castShadow = true; ctx.add(m, G.fxRoot); const lid = new T.Mesh(new T.BoxGeometry(hw * 2 + 0.1, 0.07, hd * 2 + 0.1), wood); lid.position.set(cx, i % 3 === 2 ? 1.5 : 0.95, cz); ctx.add(lid, G.fxRoot); });
+    const n = 2 + (t.twist === "turns" ? 1 : 0), range = 5.0, half = 0.5, guards = [];
+    for (let i = 0; i < n; i++) {
+      const z = [1.3, -1.6, -3.6][i], f = ctx.figure(i === 0 && K.PUPPETS[t.watch] ? t.watch : "guard", { item: "spear" }); f.place(i % 2 ? 4 : -4, z, 0); f.pose("readySpear", true);
+      const cone = new T.Mesh(new T.CircleGeometry(range, 22, -half, half * 2).rotateX(-Math.PI / 2), basic(0xffd060, 0.3)); cone.position.y = 0.05; cone.renderOrder = 2; ctx.add(cone, G.fxRoot);
+      const lamp = glow(0xffc070, 1.2); ctx.add(lamp, G.fxRoot);
+      guards.push({ f, cone, lamp, x: i % 2 ? 4 : -4, z, dir: i % 2 ? -1 : 1, a: 0, wait: 0, alert: 0, lx: 0, lz: 0, range, half, still: i === 2 });
+    }
+    const goal = new T.Mesh(new T.RingGeometry(0.55, 0.8, 24).rotateX(-Math.PI / 2), basic(0x7fe08a, 0.85)); goal.position.set(0, 0.06, -SNEAK.D + 0.7); ctx.add(goal, G.fxRoot);
+    let dog = null;
+    if (t.twist === "dog") { dog = { x: -2.2, z: 0.9, r: 2.3, m: ctx.add(mesh((b) => { b.box(0.5, 0.22, 0.24, 0, 0.02, 0, 0x8a6a48); b.sph(0.13, 0.3, 0.14, 0, 0x8a6a48); b.box(0.2, 0.05, 0.05, -0.32, 0.06, 0.05, 0x6a4e34); }), G.fxRoot), ring: new T.Mesh(new T.RingGeometry(2.2, 2.3, 32).rotateX(-Math.PI / 2), basic(0xff9a70, 0.5)) }; dog.m.position.set(dog.x, 0, dog.z); dog.ring.position.set(dog.x, 0.05, dog.z); ctx.add(dog.ring, G.fxRoot); }
+    ctx.x = { guards, goal, dog }; ctx.cam([0, 7.2, 12.4], [0, 0, SNEAK.D - 5], 54, true);
   } };
   PLAY.sneak = function (ctx) {
-    const t = ctx.t, trips = t.trips || 2, maxSpots = t.spots || 2, secs = (t.secs || 45) + (t.twist ? 8 : 0), x = ctx.x;
-    let done = 0, seen = 0, left = secs, held = false, dir = 1, px = -7, state = "away", st = 1.6 + K.rng() * 1.4, burst = 0;
-    const tell = clamp(0.5 + ctx.power * 0.03, 0.5, 0.9) * (t.twist === "turns" ? 0.7 : 1);
+    const t = ctx.t, trips = t.trips || 2, maxSpots = t.spots || 2, secs = (t.secs || 45) + 25 + (t.twist ? 8 : 0), x = ctx.x, W = SNEAK.W, D = SNEAK.D;
+    let done = 0, seen = 0, left = secs, out = true, sus = 0, grace = 1.2, creep = false, stones = 2, over = false;
+    const keen = clamp(1.25 - ctx.power * 0.035, 0.7, 1.25) * (t.daylight ? 1.2 : 1) * (t.twist === "turns" ? 1.1 : 1);
+    const w = walker(ctx, 3.3, [W, D - 0.5]); w.z = D - 0.6;
     const draw = () => ctx.score(tx(t.tally || "Crossings: {d} of {n} · Seen: {s} of {m}", { d: done, n: trips, s: seen, m: maxSpots }));
-    draw(); ctx.prompt(tx(t.help || "Hold to move. Stop before the guard turns: he sees only what moves."));
-    ctx.loop((dt, tt) => {
-      left -= dt; ctx.clock.set(left, secs);
-      st -= dt;
-      if (st <= 0) { if (state === "away") { state = "tell"; st = tell; x.g.act("nod", tell); } else if (state === "tell") { state = "watch"; st = (t.twist === "turns" ? 0.8 : 1.1) + K.rng() * 0.8; sfx("step"); } else { state = "away"; st = (t.twist === "turns" ? 1.1 : 1.6) + K.rng() * 1.8; } }
-      x.g.turnTo(state === "watch" ? 0 : state === "tell" ? Math.PI / 2 : Math.PI);
-      const moving = held;
-      if (moving) { px = clamp(px + dir * 2.3 * dt, -7, 6); burst += dt; } else burst = 0;
-      ctx.me.speed = moving ? 2.3 : 0; ctx.me.root.position.z = -px; ctx.me.turnTo(dir > 0 ? Math.PI : 0);
-      const caught = (state === "watch" && moving) || (t.twist === "dog" && burst > 2.4);
-      if (caught) { seen++; held = false; px = dir > 0 ? Math.max(-7, px - 3) : Math.min(6, px + 3); state = "away"; st = 2; burst = 0; ctx.toast(tx(t.spotted || "A guard turns. You slip back."), "bad"); ctx.cue("bad"); draw(); if (seen >= maxSpots) return ctx.finish(done >= trips - 1 && trips > 1 ? "close" : "lose", null); }
-      if ((dir > 0 && px >= 6) || (dir < 0 && px <= -7)) { if (dir > 0) { done++; draw(); sfx("tap"); if (done >= trips) return ctx.finish("win", null); ctx.toast(tx(t.made || "Through. Now back."), "good"); } dir = -dir; x.goal.position.z = dir > 0 ? -6 : 7; }
-      if (left <= 0) ctx.finish(done >= trips - 1 && trips > 1 ? "close" : "lose", null);
-      void tt;
+    draw(); ctx.prompt(tx("Cross to the green ring without standing in a guard's sight. Crates hide you. Running is heard; creeping is not."));
+    const meter = U.el('<div class="t-sus"><i></i></div>'); ctx.hud.appendChild(meter);
+    const hearAll = (hx, hz, far, secsOn) => { for (const g of x.guards) if (Math.hypot(g.x - hx, g.z - hz) < far) { g.alert = secsOn; g.lx = hx; g.lz = hz; } };
+    const back = () => { w.x = 0; w.z = out ? D - 0.6 : -D + 0.8; w.tx = null; sus = 0; grace = 1.4; for (const g of x.guards) g.alert = 0; };
+    const blocked = (nx, nz) => SNEAK.cover.some(([cx, cz, hw, hd]) => Math.abs(nx - cx) < hw + 0.3 && Math.abs(nz - cz) < hd + 0.3);
+    ctx.loop((dt) => {
+      if (over) return; left -= dt; ctx.clock.set(left, secs); grace -= dt;
+      const ox = w.x, oz = w.z; w.step(dt, creep ? 0.45 : 1);
+      if (blocked(w.x, w.z)) { if (!blocked(w.x, oz)) w.z = oz; else if (!blocked(ox, w.z)) w.x = ox; else { w.x = ox; w.z = oz; } w.tx = null; ctx.me.root.position.set(w.x, 0, w.z); }
+      ctx.cam([w.x * 0.5, 7.2, Math.min(12.4, w.z + 6.4)], [w.x * 0.5, 0, w.z - 4.4], 54);
+      const moving = ctx.me.speed > 0.1, running = moving && !creep; ctx.me.pose(creep || !moving ? "sneak" : "stand");
+      let inSight = 0;
+      for (const g of x.guards) {
+        if (g.alert > 0) { g.alert -= dt; g.a = turnA(g.a, Math.atan2(g.lx - g.x, g.lz - g.z), dt * 5); g.f.speed = 0; }
+        else if (g.still) { g.a += dt * 0.9 * g.dir; g.f.speed = 0; }
+        else if (g.wait > 0) { g.wait -= dt; g.a = turnA(g.a, g.dir > 0 ? Math.PI / 2 : -Math.PI / 2, dt * 2.6); g.f.speed = 0; }
+        else { g.x += g.dir * 1.45 * dt; g.a = turnA(g.a, (g.dir > 0 ? Math.PI / 2 : -Math.PI / 2) + Math.sin(left * 1.3 + g.z) * 0.55, dt * 3); g.f.speed = 1.45; if (Math.abs(g.x) > 4.2) { g.x = clamp(g.x, -4.2, 4.2); g.dir = -g.dir; g.wait = 0.9; } }
+        g.f.root.position.set(g.x, 0, g.z); g.f.turnTo(g.a); g.cone.position.set(g.x, 0.05, g.z); g.cone.rotation.y = g.a - Math.PI / 2; g.lamp.position.set(g.x, 2.3, g.z);
+        const dx = w.x - g.x, dz = w.z - g.z, dist = Math.hypot(dx, dz); let da = Math.atan2(dx, dz) - g.a; da = Math.abs(Math.atan2(Math.sin(da), Math.cos(da)));
+        const sees = grace <= 0 && dist < g.range && da < g.half && sneakClear(g.x, g.z, w.x, w.z);
+        if (sees) inSight = Math.max(inSight, (1.7 - dist / g.range) * (creep ? 0.6 : 1) * (moving ? 1 : 0.7));
+        if (running && grace <= 0 && dist < 2.7 && g.alert <= 0) { g.alert = 1.6; g.lx = w.x; g.lz = w.z; sfx("step"); G.fx.ring(new T.Vector3(w.x, 0.06, w.z), 0xffd9a0, 0.3, 2.7, 0.5); }
+        g.cone.material.color.setHex(sees ? 0xff5a3a : g.alert > 0 ? 0xffa040 : 0xffd060); g.cone.material.opacity = sees ? 0.5 : 0.3;
+      }
+      if (x.dog && running && grace <= 0 && Math.hypot(w.x - x.dog.x, w.z - x.dog.z) < x.dog.r) { ctx.toast(tx("The dog wakes and barks."), "bad"); sfx("hit"); hearAll(x.dog.x, x.dog.z, 9, 2.6); for (const g of x.guards) { g.lx = w.x; g.lz = w.z; } sus = Math.min(0.95, sus + 0.3); grace = 0.01; x.dog.r = 0; x.dog.ring.visible = false; ctx.after(6000, () => { if (x.dog) { x.dog.r = 2.3; x.dog.ring.visible = true; } }); }
+      sus = clamp(sus + (inSight > 0 ? inSight * keen * 1.15 : -0.55) * dt, 0, 1); meter.firstChild.style.width = Math.round(sus * 100) + "%"; meter.classList.toggle("hot", inSight > 0);
+      if (sus >= 1) { seen++; ctx.toast(tx(t.spotted || "A guard has seen you. You slip back."), "bad"); ctx.cue("bad"); draw(); if (seen >= maxSpots) { over = true; return ctx.finish(done >= trips - 1 && trips > 1 ? "close" : "lose", null); } back(); }
+      const gz = x.goal.position.z;
+      if (Math.hypot(w.x - x.goal.position.x, w.z - gz) < 0.95) { if (out) { done++; draw(); sfx("tap"); if (done >= trips) { over = true; return ctx.finish("win", null); } ctx.toast(tx(t.made || "Through. Now back."), "good"); } out = !out; grace = 0.8; x.goal.position.z = out ? -D + 0.7 : D - 0.6; }
+      if (left <= 0) { over = true; ctx.finish(done >= trips - 1 && trips > 1 ? "close" : "lose", null); }
     });
-    const down = () => { held = true; }, up = () => { held = false; };
-    ctx.button(t.verb || "Move", down, up); ctx.onAct(down, up);
+    const keys = ctx.keys; ctx.keys = (e, down) => { if (e.key === "Shift" || e.key.toLowerCase() === "c") { creep = down; return true; } if (down && e.key.toLowerCase() === "f") { toss(); return true; } return keys(e, down); };
+    ctx.button("Creep", () => { creep = true; }, () => { creep = false; });
+    const tossB = ctx.button(K.text(["Toss a pebble ({n})", { n: stones }]), () => toss());
+    function toss() { if (stones <= 0 || over) return; stones--; tossB.textContent = K.text(["Toss a pebble ({n})", { n: stones }]); if (!stones) tossB.disabled = true;
+      const a = ctx.me.face, px = clamp(w.x + Math.sin(a) * 4.5, -W, W), pz = clamp(w.z + Math.cos(a) * 4.5, -D, D), from = ctx.me.root.position.clone().setY(1.2), to = new T.Vector3(px, 0.1, pz);
+      G.fx.arrow(from, to, 0.5, 1.6, () => { sfx("tap"); G.fx.burst("dust", to, { n: 6 }); G.fx.ring(to, 0xffe9b0, 0.2, 2.4, 0.6); hearAll(px, pz, 7, 3); }); }
   };
 
   // =====================================================================================================
@@ -415,7 +485,7 @@
   } };
   const OBS_COL = { rock: 0x8a7a64, wreck: 0x5a3a20, fire: 0xff7a2a, wave: 0xbfe8f0, arrow: 0xe6c98c, ice: 0xd8eef4, lotus: 0xf0a0c0, stone: 0x8a7a64 };
   PLAY.race = function (ctx) {
-    const t = ctx.t, x = ctx.x, o = U.raceSetup(t, ctx.power); o.who = t.rival ? K.tr(t.rival) : "";
+    const t = ctx.t, x = ctx.x, o = U.raceSetup(t, ctx.power); if (t.divine) { o.base *= 1.22; o.gap *= 0.74; o.lives = Math.max(2, o.lives - 1); } o.who = t.rival ? K.tr(t.rival) : "";
     const R = U.raceRules(o, K.rng), s = steering(ctx, t.upVerb ? "◀" : "◀", "▶"); s.tapL = () => R.move(-1); s.tapR = () => R.move(1);
     if (o.whip) ctx.button("Whip", () => { if (R.whip()) sfx("hit"); });
     if (o.bow) ctx.button("Loose", () => { const r = R.shoot(); if (r === "hit") { ctx.toast(tx("Hit!"), "good"); sfx("clang"); } else if (r === "far") ctx.toast(tx("Too far."), "bad"); });
