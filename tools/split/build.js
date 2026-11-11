@@ -58,7 +58,7 @@ for (const n of [1, 2]) {
   // Two more files saved the same way: the fights' stylesheet goes into the page, and the fights' Hindi into the Hindi file.
   page = page.replace('<link rel="stylesheet" href="css/battle3d.css">', "<style>\n" + read("css/battle3d.css") + "\n</style>");
   fs.writeFileSync(path.join(dir, "hi.js"), read("js/i18n/hi.js") + "\n;\n" + read("js/i18n/hi3d.js"));
-  fs.writeFileSync(path.join(dir, "index.html"), page.replace(/<title>[^<]*<\/title>/, "<title>Kurukshetra 3D: Part " + (n === 1 ? "One" : "Two") + "</title>"));
+  fs.writeFileSync(path.join(dir, "index.html"), page.replace(/<title>[^<]*<\/title>/, "<title>Kurukshetra 3D Part " + (n === 1 ? "One" : "Two") + "</title>"));
   fs.copyFileSync(path.join(__dirname, "part.js"), path.join(dir, "part.js"));
   let files = all.filter((f) => f !== "index.html" && !k3d.includes(f) && f !== "css/battle3d.css" && f !== "js/i18n/hi3d.js" && parts(f).includes(n));
   // Clips are the first to go if a part is over the limit (the painting stays without one).

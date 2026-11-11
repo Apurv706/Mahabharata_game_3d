@@ -47,7 +47,7 @@
   // Each fight's own tuning in 3D, on top of the 2D game's (RT.TUNE). Set against the bot on all seven paths, with the line
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
-  R3.TUNE = { e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.5 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05 }, e_ash: { hp: 1.05 },
+  R3.TUNE = { e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.5 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
     oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.9 }, wc_e_reach: { atk: 0.86 },
     e_wheel: { hp: 0.9, atk: 0.9 }, e_day16: { hp: 0.9, atk: 0.84 }, e_road: { atk: 1.05 }, oath_king_hold: { atk: 0.88 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.15, atk: 1.4 },
     hold_duryodhana: { atk: 0.92 } };
