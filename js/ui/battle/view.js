@@ -103,7 +103,52 @@
       if (R.goal) { goalMark = G.fx.mark("ring", { r: R.goal.r, col: 0x7fe08a }); goalMark.position.set(R.goal.x, 0.05, R.goal.z); goalMark.userData.set(1, false, false); st.flame(R.goal.x, 0, R.goal.z, 0.9, true); }
       if (/night|cave|fire/.test(st.sky)) st.amb("embers", { r: rad, rate: 3 }); else st.amb("dust", { r: rad + 4, rate: 2 });
       sync();
+      buildFar();
       camera(0, true);
+    }
+    // ---------- The battle beyond the ring ----------
+    // Where a line fights inside the field, the hosts behind it are fighting too: a few pairs at the ranks' edge trade
+    // blows (no rules, only the look of it), and flights of arrows go over from one host to the other.
+    const far = { pairs: [], arrows: [], next: 2.5, dir: 1 };
+    function buildFar() {
+      if (!R.line || !st || st.indoor) return;
+      const q = G.q.crowd || 1, n = q >= 0.9 ? 5 : q >= 0.5 ? 3 : 0, rnd = G.rand(G.hash(enc.id) + 7), rad = R.rad;
+      const mine = K.S.side === "kaurava" ? RED : BLUE, theirs = mine === RED ? BLUE : RED, base = U.lookOf3d("soldier");
+      for (let i = 0; i < n; i++) {
+        const a = Math.PI + (((i + 0.2 + rnd() * 0.6) / n) * 2 - 1) * 1.75, r = rad + 2.8 + rnd() * 3.2, x = Math.sin(a) * r, z = Math.cos(a) * r, ry = rnd() * 6.28;
+        const two = [mine, theirs].map((col, k) => {
+          const w = rnd() < 0.5 ? "sword" : "spear", f = G.figure(Object.assign({}, base, { palette: [base.palette[0], col, base.palette[2]] }), { item: w });
+          f.setShield(true); f.place(x + Math.sin(ry) * (k ? 0.85 : -0.85), z + Math.cos(ry) * (k ? 0.85 : -0.85), ry + (k ? Math.PI : 0)); f.pose(w === "spear" ? "readySpear" : "ready", true); f.w = w;
+          G.actors.add(f.root); return f;
+        });
+        far.pairs.push({ f: two, t: 0.6 + rnd() * 2, turn: i % 2 });
+      }
+      for (let i = 0; i < (q >= 0.5 ? 12 : 7); i++) { const m = G.arrowMesh(1.1); m.visible = false; G.fxRoot.add(m); far.arrows.push({ m, t: 9, dur: 1 }); }
+    }
+    function farFrame(dt, t) {
+      for (const p of far.pairs) {
+        p.t -= dt;
+        if (p.t <= 0) { // one strikes, the other meets it or takes it
+          const a = p.f[p.turn], b = p.f[1 - p.turn], act = a.w === "spear" ? "thrust" : Math.random() < 0.3 ? "heavy" : Math.random() < 0.5 ? "slash2" : "slash", dur = 0.85 + Math.random() * 0.3;
+          a.act(act, dur); const land = G.ACTS[act].land * dur, met = Math.random() < 0.6;
+          setTimeout(() => { if (closed || !b.root.parent) return; b.act(met ? "parry" : "hit", met ? 0.35 : 0.45); if (met && Math.random() < 0.5) G.fx.burst("spark", b.root.position.clone().setY(1.3), { n: 5, s: 0.8 }); }, Math.max(0, land - (met ? 0.1 : 0)) * 1000);
+          p.turn = Math.random() < 0.75 ? 1 - p.turn : p.turn; p.t = dur + 0.5 + Math.random() * 1.3;
+        }
+        for (const f of p.f) f.update(dt, t);
+      }
+      if (!far.arrows.length) return;
+      far.next -= dt;
+      if (far.next <= 0 && started && !R.over) { // a flight from one host over to the other
+        far.next = 5 + Math.random() * 6; far.dir = -far.dir; const z0 = -6 - Math.random() * 14;
+        for (const a of far.arrows) { if (Math.random() < 0.25) continue; a.t = -Math.random() * 0.5; a.dur = 2.3 + Math.random() * 0.6; a.x0 = far.dir * (R.rad + 22 + Math.random() * 6); a.x1 = -far.dir * (R.rad + 18 + Math.random() * 8); a.z0 = z0 + (Math.random() - 0.5) * 9; a.z1 = a.z0 + (Math.random() - 0.5) * 8; a.h = 13 + Math.random() * 6; }
+      }
+      for (const a of far.arrows) {
+        if (a.t >= a.dur) { if (a.m.visible) a.m.visible = false; continue; }
+        a.t += dt; if (a.t < 0) continue;
+        const k = Math.min(1, a.t / a.dur), dx = a.x1 - a.x0, dz = a.z1 - a.z0, vy = 4 * a.h * (1 - 2 * k);
+        a.m.visible = true; a.m.position.set(a.x0 + dx * k, 2.2 + 4 * a.h * k * (1 - k), a.z0 + dz * k);
+        a.m.rotation.set(-Math.atan2(vy, Math.hypot(dx, dz)), Math.atan2(dx, dz), 0, "YXZ");
+      }
     }
     function makeView(u) {
       const g = u.g, v = { u, kind: g.kind, figs: [], obj: null, bar: null, mark: null, atkRef: null, dead: false, bodies: g.kind === "squad" ? 3 : 1, hp: u.hp, shown: 0 };
@@ -120,14 +165,14 @@
         }
         for (let i = 0; i < n; i++) {
           const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon) });
-          if (u.side === "player" ? R.shield && !R.broken : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.side === "enemy" ? 0x6e3026 : undefined);
+          if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined);
           f.pose(READY[g.weapon] || "ready", true); f.turnRate = 16;
           if (v.car) { v.car.add(f.root); f.root.position.set(-0.2, 0.86, -0.3); } else G.actors.add(f.root);
           v.figs.push(f);
         }
       }
       if (u.side !== "player") {
-        v.bar = U.el('<div class="ubar ' + (u.side === "enemy" ? "foe" : "ally") + (u.hero || u.person ? " hero" : "") + '"><span></span><i></i></div>');
+        v.bar = U.el('<div class="ubar ' + (u.side === "enemy" ? "foe" : "ally") + (u.hero || u.person ? " hero" : "") + (u.line ? " line" : "") + '"><span></span><i></i></div>');
         v.bar.querySelector("span").textContent = K.text(u.name);
         hud.appendChild(v.bar);
       }
@@ -175,7 +220,8 @@
         f.speed = v.car ? 0 : g.moving * g.speed * (u.side === "player" && R.block ? 0.5 : 1);
         // How it holds itself now.
         let pose = READY[g.weapon] || "ready";
-        if (u.side === "player") {
+        if (v.over) pose = v.over;
+        else if (u.side === "player") {
           f.spin = R.roll > 0 && !R.dash ? Math.PI * 2 * (1 - R.roll / R3.P.roll) : 0;
           if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
           if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
@@ -198,7 +244,8 @@
         const u = v.u, a = u.hp > 0 ? u.g.atk : null;
         if (u.side === "enemy") {
           // the mark on the ground
-          const m = a ? R3.markOf(R, u) : null;
+          const pl = C.player(), near = !u.line || !a || !pl || a.on === pl.uid || Math.hypot(u.g.x - pl.g.x, u.g.z - pl.g.z) < 4.2;
+          const m = a && near ? R3.markOf(R, u) : null;
           if (m && !v.mark) v.mark = G.fx.mark(m.kind, { r: m.kind === "lane" ? Math.min(m.r, 26) : m.r, arc: (m.half || 1) * 2, w: m.w });
           if (!m && v.mark) { v.mark.userData.free(); v.mark = null; }
           if (m && v.mark) { v.mark.position.set(m.x, 0.05, m.z); v.mark.rotation.y = m.a || 0; v.mark.userData.set(m.fill, m.locked, m.heavy); v.mark.visible = !(m.feint && Math.floor(t * 20) % 2 === 0 && m.fill > 0.75); }
@@ -264,14 +311,14 @@
           case "kneel": break;
           case "call": sfx("conch"); toast(U.tr("Help comes."), "good"); break;
           case "join": sync(); break;
-          case "enter": sfx("drumCall"); break;
+          case "enter": if (!v || !v.u.line) sfx("drumCall"); break;
           case "beaten": { const at = posOf(e.uid, 2); if (at) float(at, U.tr("Mercy!"), "note"); if (!tips.spare) tip("spare", "A beaten foe kneels. Step close and Spare him, or strike him down."); break; }
           case "spared": toast(U.tr("Spared. The fight goes on."), "good"); if (v) { for (const x of v.figs) x.pose("namaste"); dropView(v); } break;
           case "feint": { const at = posOf(e.uid, 2); if (at) float(at, U.tr("Feint!"), "note"); break; }
           case "brace": { const at = posOf(e.uid, 1.2); if (at) G.fx.ring(at.setY(0.1), 0xa0c0ff, 0.3, 1.2, 0.4); break; }
           case "dot": { const at = posOf(e.uid, 1.4); if (at) { float(at, String(e.n), v.u.side === "enemy" ? "foe" : "mine"); G.fx.burst(e.s === "burn" ? "ember" : "hit", at, { n: 5 }); } break; }
           case "leave": if (v) { G.fx.burst("dust", posOf(e.uid, 0.5), { n: 14, s: 2 }); dropView(v, "now"); } break;
-          case "fall": if (v) { sfx(v.u.side === "enemy" ? "fall" : "friendFalls"); if (v.mark) { v.mark.userData.free(); v.mark = null; } if (v.bar) v.bar.classList.add("gone"); if (v.kind === "cart") G.fx.burst("smoke", posOf(e.uid, 0.6), { n: 14, s: 2 }); } break;
+          case "fall": if (v) { if (!v.u.line || Math.hypot(v.u.g.x - p.g.x, v.u.g.z - p.g.z) < 7) sfx(v.u.side === "enemy" ? "fall" : "friendFalls"); if (v.mark) { v.mark.userData.free(); v.mark = null; } if (v.bar) v.bar.classList.add("gone"); if (v.kind === "cart") G.fx.burst("smoke", posOf(e.uid, 0.6), { n: 14, s: 2 }); } break;
           case "event": { const row = B.log[e.at]; if (row) { banner(C.line(row)); sfx("drumCall"); } break; }
           case "toast": toast(U.tr(e.s)); break;
           case "laydown": if (pf) pf.pose("kneel"); toast(U.tr(K.ABILITIES.lay_down.name)); break;
@@ -485,6 +532,7 @@
     }
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
+      if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });
       if (R.through) return K.tr("Break through to the far side") + (left != null ? " · " + n + " s" : "");
       if (R.escort) { const cart = B.units.find((u) => u.still); return K.tr("Keep {who} whole", { who: cart ? K.text(cart.name) : "" }) + " · " + n + " s"; }
@@ -511,7 +559,7 @@
       const tgt = R.lock;
       for (const v of views.values()) {
         const u = v.u; if (!v.bar) continue;
-        const show = u.hp > 0 && u.g.entered !== false && (u.side === "ally" ? u.hp < u.maxHp || u.still : true) && v.kind !== "light";
+        const show = u.hp > 0 && u.g.entered !== false && (u.side === "ally" ? u.hp < u.maxHp || u.still : true) && v.kind !== "light" && (!u.line || (u.side === "enemy" && (u.uid === tgt || Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z) < 4.5)));
         if (!show) { v.bar.style.display = "none"; continue; }
         G.toScreen(tmp.set(u.g.x, v.kind === "elephant" ? 4 : v.car ? 3.3 : v.kind === "cart" ? 2.2 : 2.25, u.g.z), scr);
         if (scr.behind || scr.x < -40 || scr.x > G.W + 40 || scr.y < 30) { v.bar.style.display = "none"; continue; }
@@ -555,7 +603,7 @@
       const lines = B.log.filter((r) => r && r.raw).map((r) => C.line(r));
       if (U.battleBot || U.calm() || !foes.length || !p.g) return ready(true);
       hud.classList.add("pre");
-      const px = p.g.x, pz = p.g.z, kind = U.tr(enc.lethal ? "Battle" : "A fight"), shots = [];
+      const px = p.g.x, pz = p.g.z, kind = U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight"), shots = [];
       // 1. You, close.
       shots.push({ secs: 2.4, a: [[px + 1.9, 1.62, pz - 3.1], [px, 1.34, pz], 32], b: [[px + 1.05, 1.52, pz - 2.05], [px, 1.42, pz], 30], kind, head: title, text: cap, who: p.uid, act: "taunt", sfx: enc.lethal ? "drumCall" : "tap" });
       // (what the story says as the fight opens: read over the same close view, a caption or two at most)
@@ -602,11 +650,12 @@
       viewEase = 1.6; camera(0, !!whole);
       const foes = tally(B.units.filter((u) => u.side === "enemy" && !u.line)), allies = tally(B.units.filter((u) => u.side === "ally" && !u.line));
       const one = foes.length === 1 && !/×/.test(foes[0]) ? foes[0] : null, left = R3.timeLeft(R);
-      const goal = R.noStrike ? K.tr("You cannot strike back. Guard, take cover, and live through {n} rounds.", { n: enc.hold || enc.rounds || 4 }).replace(/\d+ rounds|\d+ दौर/, Math.round(left) + " s")
+      const goal = enc.dream && R.line ? K.tr("There are too many of them. Stand as long as you can.")
+        : R.noStrike ? K.tr("You cannot strike back. Guard, take cover, and live through {n} rounds.", { n: enc.hold || enc.rounds || 4 }).replace(/\d+ rounds|\d+ दौर/, Math.round(left) + " s")
         : R.through ? K.tr("Break through to the far side") + " (" + Math.round(left) + " s)" : R.escort ? K.tr("Keep {who} whole", { who: K.text((B.units.find((u) => u.still) || {}).name || "") }) + " (" + Math.round(left) + " s)"
         : left != null ? K.tr("Hold your ground") + " (" + Math.round(left) + " s). " + K.tr("You need not win, only not fall.") : one ? K.tr("Bring {foe} down. If you fall first, you lose.", { foe: one }) : K.tr("Bring them all down. If you fall first, you lose.");
       const lines = whole ? B.log.filter((r) => r && r.raw).map((r) => "<p>" + U.esc(C.line(r)) + "</p>").join("") : "";
-      const el = U.el('<div class="b-card b-brief' + (whole ? "" : " low") + '"><span class="kind war">' + U.tr(enc.lethal ? "Battle" : "A fight") + "</span><h2>" + U.esc(K.text(K.val(enc.title) || "A fight")) + "</h2>" + (whole && K.val(enc.caption) ? '<p class="cap">' + U.esc(K.text(K.val(enc.caption))) + "</p>" : "") + lines +
+      const el = U.el('<div class="b-card b-brief' + (whole ? "" : " low") + '"><span class="kind war">' + U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight") + "</span><h2>" + U.esc(K.text(K.val(enc.title) || "A fight")) + "</h2>" + (whole && K.val(enc.caption) ? '<p class="cap">' + U.esc(K.text(K.val(enc.caption))) + "</p>" : "") + lines +
         '<p class="b-foes"><b>' + U.esc(foes.join(", ")) + "</b>" + (allies.length ? ' <span class="muted">· ' + U.tr("With you: {who}", { who: U.esc(allies.join(", ")) }) + "</span>" : "") + "</p>" +
         '<p class="b-goalline">' + U.esc(goal) + '</p><p class="small muted">' + U.tr(touch ? HOW_TOUCH : HOW_KEYS) + '</p><div class="b-views"><span class="muted">' + U.tr("View") + '</span></div><div class="btnrow"></div></div>');
       const vr = el.querySelector(".b-views");
@@ -631,11 +680,13 @@
     function finish() {
       if (ending) return; ending = true;
       const out = R.over;
-      const word = out === "win" ? "Victory" : out === "spare" ? "Spared" : out === "flee" ? "You withdraw" : "You are beaten";
+      const word = enc.dream ? "The dream breaks." : out === "win" ? "Victory" : out === "spare" ? "Spared" : out === "flee" ? "You withdraw" : "You are beaten";
       const res = U.el('<div class="t-result ' + (out === "win" || out === "spare" ? "win" : out === "flee" ? "close" : "lose") + '"><b>' + U.tr(word) + "</b></div>"); document.body.appendChild(res);
       sfx(out === "win" || out === "spare" ? "gong" : "drum");
       const p = C.player(), pv = p && views.get(p.uid), pf = pv && pv.figs[0];
       if (pf && p.hp > 0) pf.pose(out === "win" || out === "spare" ? "cheer" : "slump");
+      // The line breaks with the named: the beaten side's soldiers give up the ground, the other raises its weapons.
+      for (const v of views.values()) if (v.u.line && v.u.hp > 0) { const won = (v.u.side === "ally") === (out === "win" || out === "spare"); v.over = won ? "cheer" : "plead"; }
       setTimeout(() => {
         U.curtain(() => {
           res.remove(); close(); U.b3d.off();
@@ -652,6 +703,7 @@
       cv.removeEventListener("pointerdown", pdown); cv.removeEventListener("pointermove", pmove); cv.removeEventListener("pointerup", pup); cv.removeEventListener("pointercancel", pup); cv.removeEventListener("contextmenu", noMenu);
       for (const v of [...views.values()]) dropView(v, "now");
       for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } for (const m of grounds.values()) { G.fxRoot.remove(m); G.dispose(m); }
+      for (const p2 of far.pairs) for (const f of p2.f) f.dispose(); for (const a of far.arrows) { G.fxRoot.remove(a.m); G.dispose(a.m); } far.pairs.length = 0; far.arrows.length = 0;
       if (lockRing) { G.fxRoot.remove(lockRing); G.dispose(lockRing); } if (goalMark) goalMark.userData.free();
       hud.remove(); U.setPaused("battle", false); U.astraFx = null; U.battleState = null;
       const sh = U.$("shade"); if (sh) sh.style.background = "";
@@ -673,7 +725,7 @@
       }
       sync();
       if (intro) introFrame(real);
-      for (const v of [...views.values()]) { if (!B.units.includes(v.u) && !v.gone) { v.gone = true; dropView(v, "now"); continue; } place(v, dt, t); }
+      for (const v of [...views.values()]) { if (!B.units.includes(v.u) && !v.gone && !(v.u.line && R.over)) { v.gone = true; dropView(v, "now"); continue; } place(v, dt, t); }
       windups(t);
       // Arrows in the air.
       for (const s of R.shots) { if (R.t < s.t0) continue; let m = shots.get(s.n); if (!m) { m = G.arrowMesh(0.9); G.fxRoot.add(m); shots.set(s.n, m); } if (m.userData.x0 == null) { m.userData.x0 = s.x; m.userData.z0 = s.z; const tg2 = s.on != null ? B.units.find((u) => u.uid === s.on) : null; m.userData.len = Math.max(4, tg2 && tg2.g ? Math.hypot(tg2.g.x - s.x, tg2.g.z - s.z) : 14); }
@@ -684,6 +736,7 @@
       const tg = !R.over && started ? R3.target(R) : null;
       if (tg && lockRing) { lockRing.visible = true; lockRing.position.set(tg.g.x, 0.06, tg.g.z); const s = (tg.g.rad / 0.42) * (1 + Math.sin(t * 5) * 0.05); lockRing.scale.set(s, 1, s); } else if (lockRing) lockRing.visible = false;
       for (const m of grounds.values()) m.rotation.y = t * 2;
+      farFrame(dt, t);
       camera(dt, false);
       drawHud(real);
       if (R.over === "retry" && !asked) { asked = true; setTimeout(retryCard, 700); }

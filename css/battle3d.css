@@ -171,3 +171,4 @@ body.in3d #b3d { display: block; }
   .b-card.low { bottom: calc(10px + var(--safe-b)); }
 }
 @keyframes line-left { 0% { opacity: 0; transform: translateY(6px); } 8% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.ubar.line { width: 34px; height: 4px; opacity: 0.85; } .ubar.line span { display: none !important; }

@@ -57,6 +57,50 @@
   const MELEE = RT.MELEE, RANGED = new Set(["arrows", "aimed", "pin", "volley"]), HEAVY = new Set(["heavy", "crush", "breaker", "aimed"]);
   const isSoldiers = (a) => a.plural && !a.person && !a.called;
 
+  // ---------- The line ----------
+  // A war or raid battle is not fought alone in an empty ring: a few soldiers of each host fight inside it, each with his
+  // own man, and more come on from the ranks as they fall. They are the engine's own units (every blow is the engine's
+  // blow), marked `line`. The fight is still decided by those the story names: when they fall, the line breaks. With no man
+  // of your line left to face him, a soldier turns on you. They are taken off the roll before the fight is settled, so the
+  // story reads the same fight it always did. Duels, sparring and the special kinds of fight have no line.
+  const LINE_ART = /^war_|^fight_war_(field|chariot)|^fight_between_lines|^fight_night_torches|^fight_(arjuna|karna)_chariot|^fight_duryodhana_line|^fight_bhima_charge|^scene_day13|^battle_(night|border|cattle)|^scene_line_broken/;
+  const NO_LINE = new Set(["e_last_stand", "cross_e_escape", "cross_e_duel"]);
+  // (health on the field's own scale: a pair of them settles it in some twelve seconds, either way)
+  R3.LINE = { hpMine: 16, atkMine: 3, hpTheirs: 32, atkTheirs: 5, dreamSecs: 56 };
+  R3.lineFor = function (B) {
+    const enc = B.enc, art = String(K.val(enc.art) || "");
+    if (enc.dream) return { mine: 3, theirs: 3, more: [0, 99], every: 6, dream: true };
+    if (K.val(enc.kind) || NO_LINE.has(enc.id) || !LINE_ART.test(art)) return null;
+    const foes = B.units.filter((u) => u.side === "enemy"), allies = B.units.filter((u) => u.side === "ally");
+    if (foes.length === 1 && !allies.length) return null; // a duel stays a duel
+    return /^battle_(border|cattle)/.test(art) ? { mine: 2, theirs: 2, more: [2, 2], every: 9 } : { mine: 4, theirs: 4, more: [4, 4], every: 8 };
+  };
+  function lineName(R, side) {
+    if (R.line.dream) return side === "enemy" ? "A soldier out of the dust" : "A soldier of your line";
+    const first = R.B.units.find((u) => u.side === "enemy" && !u.line), n = String((first && (first.src || first.name)) || "");
+    const mine = (K.S && K.S.side) || (/Pandava|Panchala|Matsya|Yadava/.test(n) ? "kaurava" : "pandava");
+    return (side === "enemy") === (mine === "kaurava") ? "Pandava footsoldier" : "Kaurava spearman";
+  }
+  function addLine(R, side) {
+    const B = R.B, L = R.line, foe = side === "enemy", name = lineName(R, side);
+    const u = C.core.makeUnit({ name, hp: 10, atk: foe ? L.atkTheirs : L.atkMine, abilities: ["strike"], shield: false }, side, 200 + L.n++, B.enc);
+    u.line = true; u.shield = false; u.shieldDrawn = false; u.lineHp = foe ? L.hpTheirs : L.hpMine;
+    u.item = /spearman/.test(name) ? (K.rng() < 0.7 ? "spear" : "sword") : K.rng() < 0.55 ? "sword" : K.rng() < 0.8 ? "spear" : "mace";
+    B.units.push(u);
+    return u;
+  }
+  // More come on from the ranks as the line thins; in the dream they come faster and stronger the longer you stand.
+  function lineStep(R) {
+    const L = R.line; if (!L || R.t < L.next) return;
+    const B = R.B, mine = living(B, "ally").filter((u) => u.line).length, theirs = living(B, "enemy").filter((u) => u.line).length;
+    L.next = R.t + L.every * (0.8 + K.rng() * 0.4) * (L.dream ? Math.max(0.45, 1 - R.t / 80) : 1);
+    const want = L.dream ? Math.min(7, 3 + Math.floor(R.t / 9)) : L.theirs;
+    if (theirs < want && L.sent[1] < L.more[1]) { L.sent[1]++; if (L.dream) { L.hpTheirs = Math.round(22 * (1 + L.sent[1] * 0.07)); L.atkTheirs = Math.round(40 * (1 + L.sent[1] * 0.06)) / 10; } addLine(R, "enemy"); }
+    if (mine < L.mine && L.sent[0] < L.more[0]) { L.sent[0]++; addLine(R, "ally"); }
+  }
+  // The engine's roll without the line: what the story reads when the fight is settled.
+  function settle(R, out, rounds) { const B = R.B; if (R.line && !R.lineOff) { R.lineOff = B.units.filter((u) => u.line); B.units = B.units.filter((u) => !u.line); } if (!B.over) C.settle(out, rounds); }
+
   // ---------- Who each unit is, on the ground ----------
   function kindOf(u) {
     const n = String(u.src || u.name);
@@ -70,7 +114,8 @@
     const k = foe ? P.hpFoe : u.side === "player" ? P.hpFriend : P.hpAlly;
     u._tb = { hp: u.hp, maxHp: u.maxHp, atk: u.atk };
     u.maxHp = Math.max(1, Math.round(u.maxHp * k)); u.hp = Math.max(0, Math.round(u.hp * k));
-    if (foe) {
+    if (u.line) { u.maxHp = u.hp = u.lineHp; if (foe) u.atk = Math.round(u.atk * P.atkFoe * 10) / 10; }
+    else if (foe) {
       const t2 = Object.assign({}, RT.IDS.has(B.enc.id) ? RT.TUNE[B.enc.id] : null, R3.TUNE[B.enc.id] || {}), ft = K.S && K.S.fighter ? RT.FIGHTER[B.enc.id] : null;
       if (ft) { t2.hp = (t2.hp || 1) * ft; t2.atk = (t2.atk || 1) * ft; }
       if (t2.hp && !(B.enc.hold && u.hero)) { u.maxHp = Math.max(1, Math.round(u.maxHp * t2.hp)); u.hp = Math.max(0, Math.round(u.hp * t2.hp)); }
@@ -99,12 +144,12 @@
   function place(R) {
     const B = R.B, p = C.player(), rad = R.rad;
     p.g.x = 0; p.g.z = rad * 0.34; p.g.a = Math.PI;
-    B.units.filter((u) => u.side === "ally").forEach((a, i) => {
+    B.units.filter((u) => u.side === "ally" && !u.line).forEach((a, i) => {
       if (a.still) { a.g.x = 0; a.g.z = rad * 0.72; return; }
       const s = i % 2 ? 1 : -1, row = Math.floor(i / 2);
       a.g.x = s * (3.0 + row * 2.2); a.g.z = rad * 0.34 + 0.3 + row * 1.0; a.g.a = Math.PI;
     });
-    const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0), atOnce = Math.max(3, B.enc.atOnce || 3);
+    const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line), atOnce = Math.max(3, B.enc.atOnce || 3);
     foes.forEach((e, i) => {
       e.g.wave = i < atOnce ? 0 : 1;
       const n = Math.min(foes.length, atOnce), th = n > 1 ? ((i % atOnce) / (n - 1) - 0.5) * 1.3 : 0;
@@ -112,6 +157,11 @@
       e.g.x = Math.sin(th) * r; e.g.z = -Math.cos(th) * r; e.g.a = 0;
       e.g.entered = !e.g.wave;
     });
+    if (R.line) { // the line: man against man down both flanks, clear of the middle where the named fight
+      const lane = (k) => (k % 2 ? 1 : -1) * (6.2 + Math.floor(k / 2) * 2.5), deep = R.line.dream ? 1.6 : 0;
+      B.units.filter((u) => u.line && u.side === "ally").forEach((u, k) => { u.g.x = lane(k) + rr(-0.4, 0.4); u.g.z = 1.7 + deep + rr(-0.5, 0.5); u.g.a = Math.PI; });
+      B.units.filter((u) => u.line && u.side === "enemy").forEach((u, k) => { u.g.x = lane(k) + rr(-0.4, 0.4); u.g.z = -1.9 - deep + rr(-0.5, 0.5); u.g.a = 0; u.g.entered = true; u.g.wave = 0; });
+    }
   }
   R3.begin = function (B, opts) {
     opts = opts || {};
@@ -122,6 +172,8 @@
       stats: { blows: 0, hits: 0, rolls: 0, dodged: 0, perfect: 0, blocks: 0, blocked: 0, perfectBlocks: 0, parries: 0, parried: 0, fblocks: 0, taken: 0, maxAtk: 0 },
       skill: null, D: RT.level(K.S), noStrike: kind === "weather", escort: kind === "escort", through: kind === "breakthrough", sp: P.shieldPts, broken: false, spOff: 0, ground: [], gid: 0 };
     B.rt = R;
+    const L = opts.noLine ? null : R3.lineFor(B);
+    if (L) { R.line = Object.assign({ n: 0, next: L.every, sent: [0, 0] }, R3.LINE, L); if (L.dream) { R.line.hpTheirs = 22; R.line.atkTheirs = 4; R.line.hpMine = 7; R.line.atkMine = 3; } for (let i = 0; i < L.mine; i++) addLine(R, "ally"); for (let i = 0; i < L.theirs; i++) addLine(R, "enemy"); }
     B.units.forEach((u) => initUnit(R, u));
     place(R);
     const p = C.player();
@@ -139,14 +191,22 @@
   // ---------- On the ground ----------
   const onField = (R, u) => Math.hypot(u.g.x, u.g.z) <= R.rad + 0.2;
   const foesIn = (R) => living(R.B, "enemy").filter((e) => e.g.entered);
-  function nearestFoe(R, from, max) { let best = null, bd = max || 1e9; for (const e of foesIn(R)) { if (e.g.kind === "light") continue; const d = dist(e, from); if (d < bd) { bd = d; best = e; } } return best; }
+  // (a soldier of the line is the nearest only when he is much the nearer: your fight is with the named)
+  function nearestFoe(R, from, max) {
+    let best = null, bd = max || 1e9, man = null, md = 1e9;
+    for (const e of foesIn(R)) { if (e.g.kind === "light") continue; const d = dist(e, from); if (e.line && from.side === "player") { if (d < md && (d < 2.6 && e.g.atk && e.g.atk.on === from.uid || d < (max || 1e9))) { if (e.g.atk && e.g.atk.on === from.uid && d < 2.6) return e; md = d; man = e; } continue; } if (d < bd) { bd = d; best = e; } }
+    return best || man; // a soldier of the line only when he is on you, or when none of the named is on the field
+  }
   R3.target = function (R) { // whom you are facing: the one locked, while it stands; else the nearest
     const p = C.player(); let t = R.lock && R.B.units.find((u) => u.uid === R.lock && u.hp > 0 && !u.spared && u.g.entered);
+    if (t && t.line && R.lockBy !== t.uid) t = null; // (a soldier of the line is kept only while you chose him yourself)
     if (!t || t.g.kind === "light") { t = nearestFoe(R, p); R.lock = t ? t.uid : null; }
     return t || null;
   };
-  R3.attacking = (R) => living(R.B, "enemy").filter((e) => e.g.atk).length;
-  R3.count = (R) => living(R.B, "enemy").reduce((n, e) => n + (e.plural ? Math.max(1, Math.ceil(e.g.bodies * e.hp / e.maxHp)) : 1), 0);
+  // (the line's soldiers at their own men are no part of the turn-taking against you)
+  R3.attacking = (R) => { const me = C.player().uid; return living(R.B, "enemy").filter((e) => e.g.atk && !(e.line && e.g.atk.on !== me)).length; };
+  R3.count = (R) => living(R.B, "enemy").reduce((n, e) => n + (e.line ? 0 : e.plural ? Math.max(1, Math.ceil(e.g.bodies * e.hp / e.maxHp)) : 1), 0);
+  const blowsAtOnce = (R) => (R.line && R.line.dream ? 2 + (R.t > 20 ? 1 : 0) + (R.t > 38 ? 1 : 0) : 2);
   const ready = (id) => { const row = C.available().find((a) => a.id === id); return !!row && !row.why; };
   const swinging = (p) => !!(p && p.g && (p.g.busy > 0 || p.g.blow));
   R3.can = function (R, what) {
@@ -206,8 +266,8 @@
     const B = R.B, p = C.player(), g = p.g;
     if (a.orders) Object.assign(R.orders, a.orders);
     if (a.withdraw && C.canFlee()) { C.flee(); return; }
-    if (a.lock) { const fs = foesIn(R).filter((e) => e.g.kind !== "light").sort((x, y) => dist(x, p) - dist(y, p)); if (fs.length) { const i = fs.findIndex((e) => e.uid === R.lock); R.lock = fs[(i + 1) % fs.length].uid; R.fx.push({ k: "lock", uid: R.lock }); } }
-    if (a.lockOn) { const t = B.units.find((u) => u.uid === a.lockOn && u.side === "enemy" && u.hp > 0); if (t) R.lock = t.uid; }
+    if (a.lock) { const fs = foesIn(R).filter((e) => e.g.kind !== "light" && (!e.line || dist(e, p) < 7)).sort((x, y) => dist(x, p) - dist(y, p)); if (fs.length) { const i = fs.findIndex((e) => e.uid === R.lock); R.lock = fs[(i + 1) % fs.length].uid; R.lockBy = R.lock; R.fx.push({ k: "lock", uid: R.lock }); } }
+    if (a.lockOn) { const t = B.units.find((u) => u.uid === a.lockOn && u.side === "enemy" && u.hp > 0); if (t) { R.lock = t.uid; R.lockBy = t.uid; } }
     if (R.block && (!a.block || !R3.can(R, "block"))) lowerShield(R);
     else if (!R.block && a.block && R3.can(R, "block")) raiseShield(R);
     if (a.spare) { const t = R3.spareable(R).find((e) => e.uid === a.spare); if (t) { if (t.g.atk) cancel(t); C.spare(t.uid); R.fx.push({ k: "spared", uid: t.uid }); return; } }
@@ -457,13 +517,17 @@
   function cancel(u) { u.g.atk = null; u.g.cool = Math.max(u.g.cool, 0.6); }
   function targetable(R, f) {
     if (f.hp <= 0) return false;
+    if (f.line) return true;
     if (f.still) return !!R.escort;
     if (f.side === "player") return R.unseen <= 0;
     if (f.called || f.person || !f.plural) return R.orders.friend !== "hold" || dist(f, C.player()) < 2.5;
     return R.orders.soldiers !== "stay";
   }
   function pickTarget(R, e) {
-    const fr = living(R.B, "friends").filter((f) => targetable(R, f));
+    const all = living(R.B, "friends").filter((f) => targetable(R, f));
+    // A soldier of the line takes the nearest man of the other line; with none left standing he turns on you and yours.
+    if (e.line) { const man = all.filter((f) => f.line).sort((a, b) => dist(a, e) - dist(b, e))[0]; if (man) return man; }
+    const fr = e.line ? all : all.filter((f) => !f.line);
     const taunt = fr.find((f) => f.status.taunt); if (taunt) return taunt;
     const cart = R.escort && fr.find((f) => f.still); if (cart && K.rng() < 0.4) return cart;
     const p = fr.find((f) => f.side === "player");
@@ -618,12 +682,12 @@
     if (e.still) return;
     if (g.rec > 0) { g.rec -= dt; return; }
     if (!g.entered) { // waiting off the field: the next come on as it thins
-      if (foesIn(R).length >= Math.max(3, B.enc.atOnce || 3) && g.wave) return;
+      if (foesIn(R).filter((x) => !x.line).length >= Math.max(3, B.enc.atOnce || 3) && g.wave) return;
       const d = Math.hypot(g.x, g.z); g.x -= (g.x / d) * g.speed * dt; g.z -= (g.z / d) * g.speed * dt; g.moving = 1; g.a = Math.atan2(-g.x, -g.z);
       if (d <= R.rad - 1) { g.entered = true; R.fx.push({ k: "enter", uid: e.uid }); }
       return;
     }
-    if (B.enc.spare && e.hp <= e.maxHp * C.PLEAD) { if (!g.beaten) { g.beaten = true; if (g.atk) cancel(e); R.fx.push({ k: "beaten", uid: e.uid }); } return; }
+    if (B.enc.spare && !e.line && e.hp <= e.maxHp * C.PLEAD) { if (!g.beaten) { g.beaten = true; if (g.atk) cancel(e); R.fx.push({ k: "beaten", uid: e.uid }); } return; }
     if (g.atk && g.atk.feint && R.t >= g.atk.feint) { const a = g.atk, w = a.land - a.t0; a.feint = 0; a.t0 = R.t + 0.3; a.land = a.t0 + w; a.feinted = true; R.fx.push({ k: "feint", uid: e.uid }); }
     if (g.atk) {
       const a = g.atk, t = B.units.find((x) => x.uid === a.on);
@@ -646,13 +710,15 @@
     const d = dist(e, t), ang = angTo(e, t);
     g.a = turnTo(g.a, ang, 6 * dt);
     if (g.kind === "light") { if (g.cool <= 0 && R3.attacking(R) < 2) startAttack(R, e, t); return; }
-    const others = living(B, "enemy").filter((o) => o !== e && o.g.atk);
-    const spaced = others.every((o) => Math.abs(o.g.atk.land - (R.t + (g.archer ? P.track + P.lock : g.windup))) >= 0.45 * R.D.pair);
+    const own = !!e.line && t.side !== "player"; // a soldier of the line at his own man: no part of the turn-taking against you
+    const others = living(B, "enemy").filter((o) => o !== e && o.g.atk && !(o.line && o.g.atk.on !== p.uid));
+    const spaced = own || others.every((o) => Math.abs(o.g.atk.land - (R.t + (g.archer ? P.track + P.lock : g.windup))) >= 0.45 * R.D.pair);
     const inRange = g.ranged && (g.archer || d > g.reach * 2.2) ? d <= 19 : d <= hitReach(e) + t.g.rad - 0.42 - 0.12;
-    const mayAttack = g.cool <= 0 && R3.attacking(R) < 2 && spaced && onField(R, e);
+    const free = own || R3.attacking(R) < blowsAtOnce(R);
+    const mayAttack = g.cool <= 0 && free && spaced && onField(R, e);
     if (mayAttack && inRange) { startAttack(R, e, t); return; }
     // Where to stand: an archer keeps his distance; a man with a turn to strike closes; the rest circle and wait.
-    const engaged = g.cool <= 0.9 && R3.attacking(R) < 2 && !g.archer;
+    const engaged = g.cool <= 0.9 && free && !g.archer;
     let want = g.archer ? g.keep : engaged ? (g.reach * 0.9 + t.g.rad - 0.42) : Math.max(g.reach + 1.4, P.wait);
     let mx = 0, mz = 0;
     if (g.archer) {
@@ -681,7 +747,8 @@
     if (g.down > 0) { g.down -= dt; return; }
     if (held(a)) { g.atk = null; return; }
     if (g.rec > 0) { g.rec -= dt; return; }
-    const order = isSoldiers(a) ? R.orders.soldiers : R.orders.friend, hast = R.haste > 0 ? 0.7 : 1;
+    const man = a.line ? foesIn(R).filter((e) => e.line).sort((x, y) => dist(x, a) - dist(y, a))[0] || null : null; // a soldier of your line has his own man
+    const order = a.line ? (man ? "allout" : R.orders.soldiers) : isSoldiers(a) ? R.orders.soldiers : R.orders.friend, hast = R.haste > 0 ? 0.7 : 1;
     if (g.atk) {
       if (R.t >= g.atk.land - 1e-6) {
         const t = B.units.find((x) => x.uid === g.atk.on && x.hp > 0), id = g.atk.id, shot = !!g.atk.ranged; g.atk = null;
@@ -702,9 +769,11 @@
     const side = (g.sideIdx % 2 ? 1 : -1) * (2.6 + Math.floor(g.sideIdx / 2) * 1.4); // beside you, not behind: clear of the camera
     if (order === "stay" || order === "hold" || low) behind(low ? 2.2 : 1.2, side);
     else {
-      if (order === "guard" || order === "defend") foe = foes.filter((e) => dist(e, p) <= Math.max(5, e.g.reach + 3)).sort((x, y) => dist(x, p) - dist(y, p))[0] || null;
-      else if (order === "allout") foe = foes.slice().sort((x, y) => dist(x, a) - dist(y, a))[0] || null;
-      else foe = foes.slice().sort((x, y) => dist(x, p) - dist(y, p))[0] || null;
+      const far = (x, from) => dist(x, from) * (x.line ? 2.5 : 1); // those who came with you keep to the named
+      if (man) foe = man;
+      else if (order === "guard" || order === "defend") foe = foes.filter((e) => dist(e, p) <= Math.max(5, e.g.reach + 3)).sort((x, y) => far(x, p) - far(y, p))[0] || null;
+      else if (order === "allout") foe = foes.slice().sort((x, y) => far(x, a) - far(y, a))[0] || null;
+      else foe = foes.slice().sort((x, y) => far(x, p) - far(y, p))[0] || null;
       if (foe) { const an = angTo(foe, a), r = g.archer ? 8 : g.reach * 0.9 + foe.g.rad; gx = foe.g.x + Math.sin(an + side * 0.12) * r; gz = foe.g.z + Math.cos(an + side * 0.12) * r; }
       else behind(0.6, side);
     }
@@ -763,20 +832,26 @@
     if (B.over) return B.over;
     C.core.amulet(p);
     if (p.hp <= 0) return "lose";
-    if (R.through) { if (R.reached) return "win"; if (R.t >= (enc.hold || 4) * P.story) return enc.roundOut || "lose"; if (!living(B, "enemy").length && !enc.cannot) return "win"; return null; }
+    const named = living(B, "enemy").filter((u) => !u.line); // the fight is decided by the named: when they fall, the line breaks
+    if (R.through) { if (R.reached) return "win"; if (R.t >= (enc.hold || 4) * P.story) return enc.roundOut || "lose"; if (!named.length && !enc.cannot) return "win"; return null; }
     { const r2 = B.rule && B.rule.over ? B.rule.over(B) : null; if (r2) return r2; }
-    if (!living(B, "enemy").length) return "win";
-    if (enc.rounds && R.t >= enc.rounds * P.story) { B.say(enc.roundsText || "You held long enough."); return "win"; }
+    if (!named.length) return "win";
+    if (enc.dream && R.line) { if (R.t >= R.line.dreamSecs) { B.say(enc.roundsText || "You held long enough."); return "win"; } }
+    else if (enc.rounds && R.t >= enc.rounds * P.story) { B.say(enc.roundsText || "You held long enough."); return "win"; }
     if (enc.hold && R.t >= enc.hold * P.story) { B.say(enc.holdText || "You held until the end."); return "win"; }
-    if (R.t >= P.cap) { const mine = p.hp / p.maxHp, theirs = living(B, "enemy").reduce((s, e) => s + e.hp / e.maxHp, 0) / Math.max(1, B.units.filter((u) => u.side === "enemy").length); R.capped = true; return mine >= theirs ? "win" : "lose"; }
+    if (R.t >= P.cap) { const mine = p.hp / p.maxHp, theirs = named.reduce((s, e) => s + e.hp / e.maxHp, 0) / Math.max(1, B.units.filter((u) => u.side === "enemy" && !u.line).length); R.capped = true; return mine >= theirs ? "win" : "lose"; }
     return null;
   }
   function joined(R) {
     const p = C.player();
+    for (const u of R.B.units) if (!u.g && u.line) { // from the ranks at the field's edge: theirs from the far side, yours from behind you
+      initUnit(R, u); const a = (u.side === "enemy" ? Math.PI : 0) + rr(-1.25, 1.25), r = u.side === "enemy" ? R.rad + 2.5 : R.rad - 0.7;
+      u.g.x = Math.sin(a) * r; u.g.z = Math.cos(a) * r; u.g.a = u.side === "enemy" ? 0 : Math.PI; u.g.entered = u.side !== "enemy"; u.g.wave = 0; R.fx.push({ k: "join", uid: u.uid, line: true });
+    }
     for (const u of R.B.units) if (!u.g) { initUnit(R, u); if (u.side === "enemy") { const a = K.rng() * TAU; u.g.x = Math.sin(a) * (R.rad + 3); u.g.z = Math.cos(a) * (R.rad + 3); u.g.entered = false; } else { u.g.x = clamp(p.g.x + rr(-2, 2), -R.rad + 1, R.rad - 1); u.g.z = Math.min(R.rad - 0.6, p.g.z + 5); u.g.a = Math.PI; } R.fx.push({ k: "join", uid: u.uid }); }
   }
   // The time left of a fight that is won by standing (a hold, a number of rounds), or null.
-  R3.timeLeft = (R) => { const e = R.B.enc, n = e.hold || e.rounds; return n ? Math.max(0, n * P.story - R.t) : null; };
+  R3.timeLeft = (R) => { const e = R.B.enc, n = e.hold || e.rounds; return e.dream && R.line ? Math.max(0, R.line.dreamSecs - R.t) : n ? Math.max(0, n * P.story - R.t) : null; };
 
   R3.step = function (R, act) {
     const B = R.B;
@@ -803,6 +878,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
+    lineStep(R); joined(R);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
@@ -829,9 +905,9 @@
     R.lost = out === "lose";
     if (out === "lose" && (B.enc.lethal || (K.S && K.S.fighter)) && !R.tries && !B.over && !R.noRetry) { R.over = "retry"; return; }
     R.over = out;
-    if (!B.over) C.settle(out, B.enc.hold || B.enc.rounds ? Math.min((B.enc.hold || B.enc.rounds), Math.floor(R.t / P.story)) : null);
+    settle(R, out, B.enc.hold || B.enc.rounds ? Math.min((B.enc.hold || B.enc.rounds), Math.floor(R.t / P.story)) : null);
   }
-  R3.accept = function (R) { if (R.over !== "retry") return; R.over = "lose"; C.settle("lose"); };
+  R3.accept = function (R) { if (R.over !== "retry") return; R.over = "lose"; settle(R, "lose"); };
   R3.retry = function (R) {
     if (R.over !== "retry") return R;
     const B = C.start(R.B.enc.id, R.B.onEnd);
@@ -924,7 +1000,7 @@
   R3.log = [];
   R3.autoplay = function (encId, opt) {
     opt = opt || {};
-    let B = C.start(encId, null), R = R3.begin(B, { assist: opt.assist });
+    let B = C.start(encId, null), R = R3.begin(B, { assist: opt.assist, noLine: opt.noLine });
     const play = () => { let guard = 0; while (!R.over && guard++ < 60 * (P.cap + 30)) R3.step(R, R3.bot(R, opt)); };
     play();
     let total = R.t;
