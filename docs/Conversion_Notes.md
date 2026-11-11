@@ -38,6 +38,14 @@ fight; the 2D game's tests brought over; every battle tuned.
 - **Moves** rebuilt (`figure.js`); **costumes** corrected in the shared look data (`puppet.js`), so the 2D puppets
   changed colour and headgear too.
 - **Tests.** The 2D suite runs here. Its two-part build was taught to fold the 3D scripts into one file.
+- **Tuning.** Every fight was played by the bot 28 times and its numbers moved until its win rate sat where the 2D
+  game's does (`docs/Balance_3D.md`; the baseline is `tests/baselines/fights3d.json`).
+- **Play pages.** The game is published as two private claude.ai pages, as the 2D game is: Part One (Acts I–IV) at
+  https://claude.ai/artifact/TXBcsF2GVrtdw1dHKmDPiJ and Part Two (Acts V–VII) at
+  https://claude.ai/artifact/2k4v9FbvnRxXk7TY25UQ5H. `tools/split/build.js` makes them (each within the host's 512
+  files; the 3D scripts folded into `k3d.js`, the 3D stylesheet into the page, both Hindi files into one). A part is
+  uploaded in three goes, since one upload carries at most 255 files and 64 MB; to update a part, publish its page
+  again to the same address with only the files that changed.
 
 Faults found on the way, all fixed:
 - The fight's HUD layer swallowed every tap and click meant for the field: on a phone the thumb stick never moved the
@@ -49,11 +57,14 @@ Faults found on the way, all fixed:
 ## Checked, and not
 Checked: the quick tier of `tests/run.js` on this build, all passing: the 2D game's rules (530 checks), 500 random
 lives, 16 golden lives exactly as the 2D game recorded them, its balance bands, content, bug and save checks; the 3D
-fights' rules (27 checks); all 72 fights by the bot on seven paths, 14 runs each, no errors; and in headless Chromium
+fights' rules (27 checks); every fight by the bot, 28 runs each, inside its band; and in headless Chromium
 with software WebGL a battle played from its opening shots to its outcome on a desktop and, with real touches, on a
 phone; the dream; all 23 kinds of test opening in 3D and ending; and the 2D screens with 3D switched off.
+The two built parts were walked through as a phone (the opening, a sparring bout, the war's first day, Act V from a
+save code) with no missing file, and a 3D fight was fought to its end on each, in English and with Hindi loaded.
 
-Not checked: real devices and GPUs; a person playing a fight by hand to its end in any view; frame rate with the line
+Not checked: the published pages themselves (they cannot be opened from the build machine; what was tested is the
+same files served locally); real devices and GPUs; a person playing a fight by hand to its end in any view; frame rate with the line
 on a phone; gamepad; sound; the full test tier (playthroughs, layout on every device, visual baselines), whose
 baselines will show the puppets' corrected colours. The moves were checked against written technique from still
 frames, not against film or by a fighter. Several 3D tests are simpler than their 2D versions (escape, herd,

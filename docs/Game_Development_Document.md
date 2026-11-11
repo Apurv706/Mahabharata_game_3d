@@ -108,7 +108,7 @@ fights and tests in a real browser with software WebGL). CI runs the quick tier 
 ## 7. Known gaps and roadmap
 | Priority | Item |
 |---|---|
-| 1 | Play every fight by hand on real phones and desktops in all three views; tune feel and frame rate |
+| 1 | Play every fight by hand (the two private play pages are the place to do it) on real phones and desktops in all three views; tune feel and frame rate |
 | 1 | Run the full test tier (playthroughs, layout, visual baselines) on this build and accept the puppets' new colours |
 | 2 | Repaint the four portraits that differ from the text (Arjuna's diadem and skin, Karna in the war, Dhrishtadyumna's crown, Ghatotkacha's hair) |
 | 2 | The five board and dice tests and the five button-answered tests are a 3D scene with flat controls: make them fully 3D |

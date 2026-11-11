@@ -8,6 +8,9 @@ act, the page gives way to a 3D scene: every fight, every practice bout, and all
 
 **Play:** serve the folder (`npm start`) or turn on GitHub Pages. No build step.
 
+For a host that holds at most 512 files a page, `tools/split/build.js` writes the game as two linked parts (Acts I–IV,
+Acts V–VII); a life crosses from one to the other with its save code.
+
 ## The battles
 - All 72 fights, on a round field: the Kurukshetra plain between the two hosts, the camps, the fair's ring, the
   forest road, the swayamvara hall, the wheel formation.
