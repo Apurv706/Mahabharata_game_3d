@@ -170,19 +170,40 @@
         if (closed) { tex.dispose(); return; }
         const CROP = 0.56, RAD = 190, REP = 4, img = tex.image, H = (2 * Math.PI * RAD / REP) / ((img.width || 16) / ((img.height || 9) * CROP));
         tex.colorSpace = T.SRGBColorSpace; tex.wrapS = T.MirroredRepeatWrapping; tex.repeat.set(REP, CROP); tex.offset.set(0.5, 1 - CROP); tex.needsUpdate = true;
-        // Its colours: the top of its sky, its horizon, its ground.
-        let top = null, hor = null, gnd = null;
+        // Its colours: the top of its sky, its horizon, the strip of ground just under its horizon, its near ground.
+        let top = null, hor = null, strip = null, gnd = null;
         try { const cv = document.createElement("canvas"); cv.width = 16; cv.height = 32; const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, 16, 32); const px = cx.getImageData(0, 0, 16, 32).data;
           const avg = (y0, y1) => { let r = 0, g = 0, b2 = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < 16; x++) { const i = (y * 16 + x) * 4; r += px[i]; g += px[i + 1]; b2 += px[i + 2]; n++; } return new T.Color().setRGB(r / n / 255, g / n / 255, b2 / n / 255, T.SRGBColorSpace); };
-          top = avg(0, 3); hor = avg(11, 14); gnd = avg(20, 28); } catch (e) { top = hor = gnd = null; }
+          top = avg(0, 3); hor = avg(11, 14); strip = avg(16, 18); gnd = avg(20, 28); } catch (e) { top = hor = strip = gnd = null; }
         const geo = new T.CylinderGeometry(RAD, RAD, H, 72, 5, true), pos = geo.attributes.position, col = new Float32Array(pos.count * 4);
         for (let i = 0; i < pos.count; i++) { const v = (pos.getY(i) + H / 2) / H; col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = 1; col[i * 4 + 3] = v > 0.72 ? Math.max(0, 1 - (v - 0.72) / 0.28) : 1; }
         geo.setAttribute("color", new T.BufferAttribute(col, 4));
         const m = new T.Mesh(geo, new T.MeshBasicMaterial({ map: tex, side: T.BackSide, fog: false, transparent: true, vertexColors: true, depthWrite: false })); m.renderOrder = -5; m.frustumCulled = false;
         const horizon = 0.2; m.userData.y = H / 2 - horizon * H + 1.2; m.position.y = m.userData.y; // (the picture's horizon sits at eye height)
         st.group.add(m); backMesh = m; st.offs.push(() => { tex.dispose(); });
-        if (top && hor) { G.setSky(st.sky, { top: top.getHex(), hor: hor.getHex(), bot: hor.getHex(), fog: hor.clone().lerp(new T.Color(0xffffff), 0.08).getHex(), cloud: hor.clone().lerp(new T.Color(0xffffff), 0.5).getHex() }); }
-        if (gnd && st.lastGround && st.lastGround.material && st.lastGround.material.color) { const base = new T.Color(0xa58a62), t = new T.Color(gnd.r / base.r, gnd.g / base.g, gnd.b / base.b); st.lastGround.material.color.copy(new T.Color(1, 1, 1).lerp(t, 0.55)); }
+        if (!top || !hor || !strip) return;
+        // The join. The picture has its own hills, so the built ones stand down. Under the picture's horizon its ground
+        // thins into one plain colour (a band of haze just inside the picture), and the built ground runs out to that
+        // same colour and then to nothing, so there is no line where one stops and the other starts.
+        for (const f of st.far || []) f.visible = false;
+        const hz = new T.CylinderGeometry(RAD - 2, RAD - 2, 1, 48, 3, true), hp = hz.attributes.position, hc = new Float32Array(hp.count * 4), yb = -horizon * H, ys = [-90, yb * 0.55, yb * 0.12, 3.5], al = [1, 1, 0.55, 0];
+        for (let i = 0; i < hp.count; i++) { const k = Math.round((0.5 - hp.getY(i)) * 3); hp.setY(i, ys[3 - k]); hc[i * 4] = strip.r; hc[i * 4 + 1] = strip.g; hc[i * 4 + 2] = strip.b; hc[i * 4 + 3] = al[3 - k]; }
+        hz.setAttribute("color", new T.BufferAttribute(hc, 4));
+        const haze = new T.Mesh(hz, new T.MeshBasicMaterial({ side: T.BackSide, fog: false, transparent: true, vertexColors: true, depthWrite: false })); haze.renderOrder = -4.5; haze.frustumCulled = false; haze.position.y = 1.2; m.add(haze); haze.position.y = 1.2 - m.userData.y;
+        const gm = st.lastGround;
+        if (gm && gm.position.y > -1 && gm.geometry.attributes.color && gm.material && !Array.isArray(gm.material)) {
+          const P = gm.geometry.attributes.position, C = gm.geometry.attributes.color, n = P.count, out = new Float32Array(n * 4), half = (gm.geometry.parameters && gm.geometry.parameters.width || 160) / 2;
+          let ar = 0, ag = 0, ab = 0; for (let i = 0; i < n; i++) { ar += C.getX(i); ag += C.getY(i); ab += C.getZ(i); } ar /= n; ag /= n; ab /= n;
+          const cl = (x) => Math.max(0.72, Math.min(1.25, x)), tr = cl(gnd.r / Math.max(0.05, ar)), tg = cl(gnd.g / Math.max(0.05, ag)), tb = cl(gnd.b / Math.max(0.05, ab)), r0 = Math.min(R.rad + 10, half * 0.4), r1 = half * 0.7, r2 = half * 0.93, ss = (a, b2, x) => { const k = Math.max(0, Math.min(1, (x - a) / (b2 - a))); return k * k * (3 - 2 * k); };
+          for (let i = 0; i < n; i++) { const r = Math.hypot(P.getX(i), P.getZ(i)), k = ss(r0, r1, r), near = 0.6;
+            const cr = C.getX(i) * (1 + (tr - 1) * near), cg = C.getY(i) * (1 + (tg - 1) * near), cb = C.getZ(i) * (1 + (tb - 1) * near);
+            out[i * 4] = cr + (strip.r - cr) * k; out[i * 4 + 1] = cg + (strip.g - cg) * k; out[i * 4 + 2] = cb + (strip.b - cb) * k; out[i * 4 + 3] = 1 - ss(r1, r2, r); }
+          gm.geometry.setAttribute("color", new T.BufferAttribute(out, 4)); gm.material.transparent = true; gm.material.color.set(0xffffff); gm.material.needsUpdate = true; gm.renderOrder = -4;
+        }
+        // The light is the picture's light: the sun takes the colour of its horizon, the sky-light its sky, the bounce its ground.
+        const base = G.SKIES[st.sky] || G.SKIES.gold, mix = (hex, c, k) => new T.Color(hex).lerp(c, k).getHex(), fog = hor.clone().lerp(strip, 0.5);
+        G.setSky(st.sky, { top: top.getHex(), hor: hor.getHex(), bot: strip.getHex(), fog: fog.getHex(), fd: Math.max(base.fd || 0, 0.0075), cloud: hor.clone().lerp(new T.Color(0xffffff), 0.5).getHex(), glow: 0,
+          sun: mix(base.sun, hor.clone().lerp(new T.Color(0xffffff), 0.35), 0.5), hs: mix(base.hs, top, 0.5), hg: mix(base.hg, gnd, 0.6) });
       }, undefined, () => {});
     }
     U.fieldEvent3d = fieldEvent; // (so a check can ask for each kind)
@@ -845,7 +866,7 @@
       if (s.face != null) { // end on his face: in front of where his head is turned, a little to one side and above, clear of his horses, his standard and his umbrella
         const v = views.get(s.face), f = v && v.figs[0];
         if (f) { f.root.updateWorldMatrix(true, true); const hp = f.j.H.getWorldPosition(new T.Vector3()), sc = f.j.H.getWorldScale(new T.Vector3()).y, fw = new T.Vector3(0, 0, 1).applyQuaternion(f.j.H.getWorldQuaternion(new T.Quaternion()));
-          const ang = Math.atan2(fw.x, fw.z) + 0.55, d = (v.car ? 4.4 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
+          const ang = Math.atan2(fw.x, fw.z) + (v.car ? 1.0 : 0.55) /* (wide of a team of four) */, d = (v.car ? 5.0 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
           to = [[hp.x + Math.sin(ang) * d, hp.y + (v.car ? -0.55 : 0.12), hp.z + Math.cos(ang) * d], [hp.x, hp.y - 0.22, hp.z], 32]; } } // (under a king's umbrella the camera looks up from below its rim)
       G.camSet(mix(s.a[0], to[0]), mix(s.a[1], to[1]), s.a[2] + (to[2] - s.a[2]) * k, true);
       if (intro.t >= s.hold) introNext();

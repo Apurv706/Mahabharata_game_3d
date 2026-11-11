@@ -371,6 +371,7 @@
     const b = new G.Builder();
     BUILD[pl.kind](b, o, rnd, st);
     if (!b.empty()) st.group.add(b.mesh());
+    st.far = b.far || []; for (const f of st.far) st.group.add(f);
     G.world.add(st.group);
     // Where people stand: you a little left of the middle, the others in an arc to your right, all turned inward.
     st.me = st.me || [-1.25, 0.6, 0.55];

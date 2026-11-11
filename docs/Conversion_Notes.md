@@ -127,3 +127,18 @@ baselines will show the puppets' corrected colours. The moves were checked again
 frames, not against film or by a fighter. Several 3D tests are simpler than their 2D versions (escape, herd,
 formation, array; the board and dice games are a board drawn over the 3D hall).
 Known leftovers: the 2D menu's "Fights: turn-based" switch no longer changes anything while 3D is on.
+
+## The join between the field and the painting (12 Nov)
+
+The painted horizon and the built field used to meet at a hard line. Now, once a painting loads (`backdrop` in `js/ui/battle/view.js`):
+
+- the built far hills stand down (`G.hills` makes its own mesh, kept in `st.far`), since the painting has its own;
+- a band of haze just inside the painting thins the painted ground under its horizon into one plain colour (sampled from that strip);
+- the built ground runs out to that same colour with distance and then fades to nothing (RGBA vertex colours, transparent material), and its near tint toward the painting is clamped so a yard does not turn red;
+- the sun, sky-light and ground bounce take colour from the painting, the haze is at least 0.0075 dense, and the sky's own sun-glow is off (the painting has its sun).
+
+Known: the painting is mirrored round the horizon, so a painted sun or moon near the picture's edge shows as a close pair in some directions.
+
+## Chariots after the user's reference paintings (12 Nov)
+
+`G.chariot`: lotus wheels and gold panels on the sides, bosses on the rails, a scroll at each rear corner and a prow, a two-tier domed umbrella with a hanging fringe and pot finial, and a taller standard (3.35, or 4.05 with an umbrella) so the cloth flies above heads and umbrella. `G.horse` with tack: face plate, collar of bosses with tassels, girth, crupper, tail ribbon, anklets. The opening shot stands wider of a team of four.
