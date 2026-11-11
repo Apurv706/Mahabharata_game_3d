@@ -204,6 +204,21 @@
       return false;
     });
   };
+  // For the divine weapons, each of which moves in its own way: a thing that runs on the frame clock until it says it
+  // is done (fn(dt, cut): cut is true when the scene is being cleared), and single particles of light or of haze.
+  F.run = function (fn) { if (!G.ok) return; shapes.push((dt) => (dt > 50 ? (fn(0, true), true) : !!fn(dt, false))); };
+  F.glow = function (x, y, z, vx, vy, vz, col, a, size, life, grav, grow, drag) { if (glow) glow.add(x, y, z, vx, vy, vz, col, a, size, life, grav, grow, drag); };
+  F.haze = function (x, y, z, vx, vy, vz, col, a, size, life, grav, grow, drag) { if (haze) haze.add(x, y, z, vx, vy, vz, col, a, size, life, grav, grow, drag); };
+  // A forked bolt of lightning from a down to b: a jagged line, a bright core in it, and one branch that dies in the air.
+  F.bolt = function (a, b, col, secs) {
+    if (!G.ok) return;
+    const pts = [a.clone()], n = 7;
+    for (let i = 1; i < n; i++) pts.push(new V3().lerpVectors(a, b, i / n).add(new V3(rs(1.6), rs(0.5), rs(1.6))));
+    pts.push(b.clone());
+    for (let i = 0; i < n; i++) { F.beam(pts[i], pts[i + 1], col, 0.16, secs); F.beam(pts[i], pts[i + 1], 0xffffff, 0.05, secs * 0.8); }
+    const k = 2 + Math.floor(R() * 3), br = pts[k].clone().add(new V3(rs(5), -4 - R() * 4, rs(5)));
+    F.beam(pts[k], br, col, 0.07, secs * 0.7);
+  };
   // The whole screen washed with a colour for a moment (the page's own layer, not the 3D).
   F.flash = function (css, ms) {
     if (K.headless || calm()) return;

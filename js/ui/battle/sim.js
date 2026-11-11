@@ -289,8 +289,9 @@
         R.frozen = 2.6;
         const struck = B.units.filter((u) => u.side === "enemy" && u.g && before.get(u.uid) > u.hp), dealt = {};
         struck.forEach((u) => { dealt[u.uid] = before.get(u.uid) - u.hp; });
-        R.astraKnock = struck.map((u) => u.uid);
-        R.fx.push({ k: "astra", id: row.id, out: B.astraOut, struck: struck.map((u) => u.uid), dealt });
+        R.astraAfter = { id: row.id, struck: struck.map((u) => u.uid), ang: t ? angTo(p, t) : p.g.a };
+        R.fx.push({ k: "astra", id: row.id, out: B.astraOut, struck: struck.map((u) => u.uid), dealt, ang: R.astraAfter.ang,
+          held: living(B, "enemy").filter((u) => u.g && (u.status.asleep || u.status.bound)).map((u) => u.uid) });
         living(B, "enemy").forEach((e) => { if (e.g.atk && held(e)) cancel(e); });
       }
     }
@@ -424,6 +425,23 @@
       else if (!b.c.heavy && caught === 1 && t.hp > 0 && !t.g.atk && K.rng() < RT.STRENGTH.flinch[RT.tierOf(t)]) t.g.stag = Math.max(t.g.stag, P.lightStag);
       t.g.hits.push(R.t);
     });
+  }
+  // What a divine weapon leaves behind when the light clears. Each is its own: Indra's bolts throw men down where they
+  // stand; water carries a whole rank off the way it ran; wind scatters them every way; fire throws no one, but burns on
+  // where it fell, and no one can set his feet to strike inside it. (Sleep and the serpent-noose hold without a blow.)
+  function astraAfter(R, A) {
+    const B = R.B, p = C.player(), us = A.struck.map((id) => B.units.find((x) => x.uid === id)).filter((u) => u && u.g && u.hp > 0);
+    if (A.id === "varuna") us.forEach((u) => { knock(R, u, A.ang, 4.2, true); u.g.down = Math.max(u.g.down, 1.4); });
+    else if (A.id === "vayavya") us.forEach((u, i) => { knock(R, u, angTo(p, u) + ((i * 0.618) % 1 - 0.5) * 1.5, 3 + ((i * 0.382) % 1) * 2.6, true); u.g.down = Math.max(u.g.down, 1.8); });
+    else if (A.id === "agneya") { us.forEach((u) => { knock(R, u, angTo(p, u), 0.9, false); u.g.stag = Math.max(u.g.stag || 0, 0.9); }); R.fires = us.map((u) => ({ x: u.g.x, z: u.g.z, t: 7 })); R.fx.push({ k: "fires", at: R.fires.map((f) => [f.x, f.z]), secs: 7 }); }
+    else us.forEach((u) => { knock(R, u, angTo(p, u), 2.4, true); u.g.down = Math.max(u.g.down, 2.2); });
+  }
+  function fireStep(R, dt) {
+    if (!R.fires || !R.fires.length) return;
+    for (const f of R.fires) f.t -= dt;
+    R.fires = R.fires.filter((f) => f.t > 0);
+    for (const u of living(R.B, "enemy")) { if (!u.g || u.g.down > 0) continue; u.g.fireT = (u.g.fireT || 0) - dt;
+      if (u.g.fireT <= 0 && R.fires.some((f) => Math.hypot(f.x - u.g.x, f.z - u.g.z) < 1.5)) { u.g.fireT = 1.3; if (u.g.atk) cancel(u); u.g.stag = Math.max(u.g.stag || 0, 0.5); R.fx.push({ k: "scorch", uid: u.uid }); } }
   }
   function knock(R, u, ang, d, down) {
     if (u.still || u.g.kind === "elephant" || u.g.kind === "light") return;
@@ -866,7 +884,7 @@
     R.n++;
     if (R.frozen > 0) { // a divine weapon's moment: the fight stands still
       R.frozen -= STEP; if (act.orders) Object.assign(R.orders, act.orders);
-      if (R.frozen <= 0) { const p = C.player(); for (const id of R.astraKnock || []) { const u = B.units.find((x) => x.uid === id); if (u && u.g && u.hp > 0) { knock(R, u, angTo(p, u), 2.4, true); u.g.down = Math.max(u.g.down, 2.2); } } R.astraKnock = null; }
+      if (R.frozen <= 0 && R.astraAfter) { astraAfter(R, R.astraAfter); R.astraAfter = null; }
       return R;
     }
     joined(R);
@@ -883,7 +901,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
-    lineStep(R); joined(R);
+    lineStep(R); joined(R); fireStep(R, dt);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);

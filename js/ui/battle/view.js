@@ -363,29 +363,88 @@
           case "cover": sfx("tap"); break;
           case "lock": break;
           case "astra": astraFx(e); break;
+          case "fires": firesFx(e); break;
+          case "scorch": { const at = posOf(e.uid, 0.5); if (at) G.fx.burst("ember", at, { n: 8, s: 1.2 }); break; }
         }
       }
       // A line the fight itself spoke (the engine's log) that no event carried: the story beats.
       for (; lastLog < B.log.length; lastLog++) { const row = B.log[lastLog]; if (row && (row.raw || row.ev) && started && lastLog > 0) banner(C.line(row)); }
     }
+    // Each divine weapon comes in its own way. Indra's falls as forked lightning, one man after another, out of a sky gone
+    // dark. Fire goes up as one burning arrow and comes down in a line that walks toward them, and stays on the ground.
+    // Water crosses the field as a wall. Wind is a pillar of dust that walks through them. Sleep is no blow at all: a
+    // hush spreads and they sink. The serpent-noose runs along the ground to each man and winds round him.
     function astraFx(e) {
-      const p = C.player(), pv = views.get(p.uid), pf = pv && pv.figs[0];
-      const [col, kind] = ASTRA_FX[e.id] || ASTRA_FX.astra;
-      sfx("gong"); G.fx.flash("rgba(255,244,214,.6)", 600); G.shake(0.5, 0.8);
-      if (pf) { G.fx.beam(pf.root.position.clone(), pf.root.position.clone().setY(30), col, 0.6, 1.6); G.fx.ring(pf.root.position, col, 0.5, R.rad, 1.2); G.fx.burst("light", pf.chest(), { n: 30, s: 1.6, col }); }
+      const p = C.player(), pv = views.get(p.uid), pf = pv && pv.figs[0]; if (!pf) return;
+      const id = ASTRA_FX[e.id] ? e.id : "astra", col = ASTRA_FX[id][0], F = G.fx, V3 = T.Vector3, rs = (a) => (Math.random() - 0.5) * 2 * a;
+      const o = pf.root.position.clone(), hit = (e.struck || []).map((uid) => ({ uid, at: posOf(uid, 0.1) })).filter((x) => x.at), bound = (e.held || []).map((uid) => ({ uid, at: posOf(uid, 0.1) })).filter((x) => x.at);
+      const ang = e.ang != null ? e.ang : p.g.a, dx = Math.sin(ang), dz = Math.cos(ang), along = (at) => (at.x - o.x) * dx + (at.z - o.z) * dz;
+      const later = (ms, fn) => setTimeout(() => { if (!closed) fn(); }, ms);
+      const dmg = (x) => { if (e.dealt && e.dealt[x.uid]) float(x.at.clone().setY(1.6), String(Math.round(e.dealt[x.uid])), "foe big"); };
       toast(U.tr(K.astraName ? K.astraName(e.id) : K.ABILITIES[e.id].name), "good");
-      (e.struck || []).forEach((uid, i) => {
-        const at = posOf(uid, 0.1); if (!at) return;
-        setTimeout(() => {
-          if (closed) return;
-          if (kind === "bolt") { G.fx.beam(at, at.clone().setY(30), col, 0.35, 0.5); G.fx.burst("hit", at.clone().setY(1.2), { n: 18, s: 1.8, col }); }
-          else if (kind === "fire" || kind === "water") G.fx.fall(at, col, 0.35, kind);
-          else { G.fx.ring(at, col, 0.3, 2.4, 0.9); G.fx.burst(kind === "wind" ? "dust" : "light", at.clone().setY(1), { n: 18, s: 1.6, col }); }
-          if (e.dealt && e.dealt[uid]) float(at.clone().setY(1.6), String(Math.round(e.dealt[uid])), "foe big");
-          sfx("drum");
-        }, 500 + i * 220);
-      });
+      F.burst("light", pf.chest(), { n: 24, s: 1.4, col }); F.ring(o, col, 0.4, 2.8, 0.7); // the mantra gathers on the one who speaks it
+      if (id === "astra") {
+        sfx("gong"); F.flash("rgba(16,20,56,.6)", 1100);
+        hit.forEach((x, i) => later(420 + i * 260, () => { F.bolt(x.at.clone().add(new V3(rs(5), 26, rs(5))), x.at, 0xdfe8ff, 0.42); F.flash("rgba(235,240,255,.45)", 150); G.shake(0.4, 0.3);
+          F.burst("spark", x.at.clone().setY(0.8), { n: 24, s: 1.6, col: 0xcfe0ff }); F.ring(x.at, 0xcfe0ff, 0.3, 3.2, 0.5); F.burst("smoke", x.at, { n: 4 }); sfx("drum"); dmg(x); }));
+      } else if (id === "agneya") {
+        sfx("gong"); F.flash("rgba(255,140,50,.32)", 700);
+        F.arrow(pf.chest(), o.clone().add(new V3(dx * 4, 22, dz * 4)), 0.42, 0, null); F.beam(pf.chest(), o.clone().add(new V3(dx * 4, 22, dz * 4)), 0xff8a30, 0.07, 0.6);
+        const far = Math.max(7, ...hit.map((x) => along(x.at) + 1));
+        for (let k = 0; k < 8; k++) later(420 + k * 95, () => { const d = 2 + (k / 7) * (far - 2), at = new V3(o.x + dx * d + rs(1.6), 0.1, o.z + dz * d + rs(1.6)); F.fall(at, 0xff7a2a, 0.26, "fire", () => { F.burst("ember", at, { n: 10, s: 1.4 }); F.burst("smoke", at, { n: 2 }); }); });
+        hit.forEach((x, i) => later(620 + Math.max(0, along(x.at)) * 55 + i * 40, () => F.fall(x.at, 0xffb050, 0.3, "fire", () => { G.shake(0.22, 0.25); sfx("drum"); dmg(x); F.burst("ember", x.at.clone().setY(0.6), { n: 26, s: 1.8 }); })));
+      } else if (id === "varuna") {
+        sfx("gong"); F.flash("rgba(70,150,220,.3)", 900);
+        const wide = R.rad * 1.5, span = R.rad * 2 + 6, secs = 1.5, done = new Set();
+        const wall = new T.Mesh(new T.CylinderGeometry(wide, wide, 3.4, 20, 1, true, -0.62, 1.24), new T.MeshBasicMaterial({ color: 0x4aa8e8, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, fog: false, blending: T.AdditiveBlending }));
+        wall.rotation.y = ang; wall.renderOrder = 5; G.fxRoot.add(wall); let t = 0;
+        F.run((dt, cut) => {
+          t += dt; const k = Math.min(1, t / secs), d = -3 + span * k, cx = o.x + dx * (d - wide), cz = o.z + dz * (d - wide);
+          wall.position.set(cx, 1.5 - k * k * 0.9, cz); wall.material.opacity = 0.55 * (1 - k * k); wall.scale.y = 1 - k * 0.45;
+          for (let i = 0; i < 9; i++) { const a = ang + rs(0.6), x = cx + Math.sin(a) * wide, z = cz + Math.cos(a) * wide; F.glow(x, 2.2 + Math.random() * 1.2 - k, z, dx * 3 + rs(1), 1.5 + Math.random() * 2, dz * 3 + rs(1), Math.random() < 0.4 ? 0xeaf8ff : 0x8fd0f8, 0.75, 0.14 + Math.random() * 0.16, 0.5 + Math.random() * 0.4, 9, 0, 0.2); if (i < 3) F.glow(x, 0.15, z, rs(0.6), 0.2, rs(0.6), 0x9ad8ff, 0.45, 0.5, 1.2, 0, 1.5, 1); }
+          for (const x of hit) if (!done.has(x.uid) && along(x.at) <= d) { done.add(x.uid); F.burst("splash", x.at.clone().setY(0.8), { n: 26, s: 1.8 }); F.ring(x.at, 0x8fd0f8, 0.4, 3, 0.7); G.shake(0.2, 0.2); sfx("drum"); dmg(x); }
+          if (k >= 1 || cut) { G.fxRoot.remove(wall); G.dispose(wall); return true; } return false;
+        });
+      } else if (id === "vayavya") {
+        sfx("drum");
+        const far = Math.max(8, ...hit.map((x) => along(x.at) + 3)), secs = 1.9, done = new Set(); let t = 0, a = 0;
+        F.run((dt, cut) => {
+          t += dt; a += dt * 15; const k = Math.min(1, t / secs), d = 1 + far * k, sway = Math.sin(t * 5) * 1.2, cx = o.x + dx * d + dz * sway, cz = o.z + dz * d - dx * sway, fade = k > 0.85 ? (1 - k) / 0.15 : 1;
+          for (let i = 0; i < 12; i++) { const h = Math.random() * 7, r = 0.5 + h * 0.42, b = a + h * 1.9 + i; F.haze(cx + Math.cos(b) * r, h + 0.1, cz + Math.sin(b) * r, -Math.sin(b) * 7, 1.4, Math.cos(b) * 7, i % 3 ? 0xd8c8a0 : 0xf0e8d0, 0.5 * fade, 0.5 + h * 0.14, 0.45, 0, 1.2, 1.5); }
+          if (Math.random() < dt * 30) F.burst("leaf", new V3(cx, 1, cz), { n: 2, s: 1.6, col: 0xa89858 });
+          for (const x of hit) if (!done.has(x.uid) && Math.hypot(x.at.x - cx, x.at.z - cz) < 2.6 || (!done.has(x.uid) && k >= 1)) { done.add(x.uid); F.burst("dust", x.at, { n: 22, s: 2.4 }); G.shake(0.18, 0.2); sfx("step"); dmg(x); }
+          return k >= 1 || cut;
+        });
+      } else if (id === "sammohana") {
+        sfx("heal"); F.flash("rgba(140,100,220,.26)", 1800); F.ring(o, col, 0.5, R.rad * 1.5, 2.8); F.ring(o, 0xe8d8ff, 0.5, R.rad * 1.1, 3.4);
+        bound.forEach((x, i) => later(500 + Math.hypot(x.at.x - o.x, x.at.z - o.z) * 110, () => { let t = 0; float(x.at.clone().setY(1.9), "z z z", "mine");
+          F.run((dt, cut) => { t += dt; if (Math.random() < dt * 16) F.glow(x.at.x + rs(0.7), 2.6 + Math.random(), x.at.z + rs(0.7), rs(0.15), -0.7, rs(0.15), i % 2 ? 0xc8a0ff : 0xf0e0ff, 0.7, 0.1 + Math.random() * 0.1, 2.2, 0, 0, 0.2); return t > 3.4 || cut; }); }));
+      } else if (id === "nagapasha") {
+        sfx("drum");
+        bound.forEach((x, i) => {
+          const len = Math.hypot(x.at.x - o.x, x.at.z - o.z) || 1, ux = (x.at.x - o.x) / len, uz = (x.at.z - o.z) / len, run = 0.5 + len * 0.07; let t = -i * 0.08, coils = null;
+          F.run((dt, cut) => {
+            t += dt; if (cut) { if (coils) { G.fxRoot.remove(coils); G.dispose(coils); } return true; }
+            if (t < 0) return false;
+            if (t < run) { for (let n = 0; n < 3; n++) { const k = Math.min(1, (t + n * 0.012) / run), w = Math.sin(k * len * 2.2) * 0.45 * (1 - k * 0.5); F.glow(o.x + ux * len * k - uz * w, 0.12, o.z + uz * len * k + ux * w, 0, 0.05, 0, n ? 0x4ad070 : 0xc8ffb0, 0.9, 0.2, 0.55, 0, -0.5, 0); } return false; }
+            if (!coils) { coils = new T.Group(); for (let n = 0; n < 4; n++) { const m = new T.Mesh(new T.TorusGeometry(1, 0.07, 5, 18).rotateX(Math.PI / 2), new T.MeshBasicMaterial({ color: n % 2 ? 0x2f9a50 : 0x6ae08a, transparent: true, fog: false })); m.position.y = 0.3 + n * 0.3; m.rotation.z = (n % 2 ? 1 : -1) * 0.16; coils.add(m); } coils.position.set(x.at.x, 0, x.at.z); G.fxRoot.add(coils); sfx("step"); F.burst("light", x.at.clone().setY(0.9), { n: 10, col: 0x8aff9a }); }
+            const k = Math.min(1, (t - run) / 0.5), r = 1.15 - 0.72 * G.ease(k), life = t - run;
+            coils.children.forEach((m, n) => { m.scale.set(r, 1, r); m.rotation.y += dt * (n % 2 ? 2.2 : -2.2) * (1.2 - k); m.material.opacity = life > 4.4 ? Math.max(0, 1 - (life - 4.4) / 0.6) : 1; });
+            if (life > 5) { G.fxRoot.remove(coils); G.dispose(coils); return true; } return false;
+          });
+        });
+      }
       if (e.out && e.out.text) banner(K.text(e.out.text));
+    }
+    // Where fire fell it burns on for a while: flames low on the ground, embers and smoke going up.
+    function firesFx(e) {
+      for (const [x, z] of e.at || []) { let t = 0; const at = new T.Vector3(x, 0.05, z);
+        const scorch = new T.Mesh(new T.CircleGeometry(1.5, 16).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x140a04, transparent: true, opacity: 0.7, depthWrite: false, fog: false })); scorch.position.set(x, 0.045, z); scorch.renderOrder = 2; G.fxRoot.add(scorch);
+        G.fx.run((dt, cut) => { t += dt; const k = t / e.secs, live = 1 - Math.max(0, (k - 0.7) / 0.3);
+          for (let i = 0; i < 3; i++) if (Math.random() < dt * 22 * live) { const a = Math.random() * 6.3, r = Math.random() * 1.3; G.fx.glow(x + Math.cos(a) * r, 0.1, z + Math.sin(a) * r, 0, 1.2 + Math.random() * 1.4, 0, Math.random() < 0.5 ? 0xffb040 : 0xff6a20, 0.85, 0.35 + Math.random() * 0.4, 0.45 + Math.random() * 0.3, -0.3, -0.7, 0.2); }
+          if (Math.random() < dt * 5 * live) G.fx.burst("ember", at, { n: 2, s: 2 }); if (Math.random() < dt * 2.5) G.fx.burst("smoke", at, { n: 1 });
+          if (k >= 1 || cut) { scorch.material.opacity = 0; G.fxRoot.remove(scorch); G.dispose(scorch); return true; } scorch.material.opacity = 0.7 * Math.min(1, (1 - k) * 4); return false; });
+      }
     }
     // The champions' weapons meeting overhead (content/war_duel.js calls this through K.UI.astraFx).
     U.astraFx = function (o) {
