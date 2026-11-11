@@ -81,6 +81,13 @@
     "You: {a} home · {who}: {b} home": "तुम: {a} घर · {who}: {b} घर", "Piece {k}: {a} → {b}": "गोटी {k}: {a} → {b}", "You take his piece.": "तुम उसकी गोटी मारते हो।", "He takes your piece.": "वह तुम्हारी गोटी मारता है।",
     "{who} throws {n}.": "{who} ने {n} फेंका।", "You throw {n}.": "तुमने {n} फेंका।",
     "You are the tigers. Tap a tiger, then where it goes. Jump a goat to take it: take {n} before they hem you in.": "तुम बाघ हो। एक बाघ छुओ, फिर जहाँ उसे जाना है। बकरी को लाँघकर मारो: घिर जाने से पहले {n} मारो।",
-    "Goats taken: {n} of {m}": "मारी बकरियाँ: {m} में से {n}", "A goat taken.": "एक बकरी मारी।"
+    "Goats taken: {n} of {m}": "मारी बकरियाँ: {m} में से {n}", "A goat taken.": "एक बकरी मारी।",
+    // The three views, the opening of a fight, the line and the dream (10 November).
+    "From above": "ऊपर से", "From behind": "पीछे से", "Through your eyes": "अपनी आँखों से", "View": "दृश्य", "Change the view": "दृश्य बदलें",
+    "This view turns to keep the foe you face ahead of you. Next foe (Q) turns you to another. A marker at the edge of the screen warns of a blow from out of sight.": "यह दृश्य घूमकर आपके सामने वाले शत्रु को आगे रखता है। अगला शत्रु (Q) आपको दूसरे की ओर मोड़ता है। परदे के किनारे का चिह्न ओझल वार की चेतावनी देता है।",
+    "Against you": "आपके विरुद्ध", "With you": "आपके साथ", "And with them: {who}": "और उनके साथ: {who}", "More will come.": "और भी आएँगे।",
+    "They keep coming. Stand as long as you can.": "वे आते ही जा रहे हैं। जब तक बन पड़े, डटे रहिए।",
+    "There are too many of them. Stand as long as you can.": "वे बहुत अधिक हैं। जब तक बन पड़े, डटे रहिए।",
+    "A soldier out of the dust": "धूल से निकला एक सैनिक", "A soldier of your line": "आपकी पंक्ति का एक सैनिक"
   });
 })(window.K = window.K || {});

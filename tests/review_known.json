@@ -1,0 +1,4 @@
+{
+ "_": "Problems the review of 4 November found and reported to the owner without fixing them (a decision for the owner, or a change to a tuned fight's balance). Each entry: the review check (tests/<test>.js), the text it matches in a problem, the bug and why it is not fixed. A case whose every problem matches an entry is KNOWN, not FAIL; take an entry off when the bug is fixed.",
+ "known": []
+}

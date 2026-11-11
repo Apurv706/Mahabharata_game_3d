@@ -1,0 +1,16 @@
+{
+ "Go back to the start of Act {n}": "अंक {n} की शुरुआत पर लौटो",
+ "Tap again to go back to Act {n}": "अंक {n} पर लौटने के लिए फिर से छुओ",
+ "Start again from an act": "किसी अंक से फिर शुरू करो",
+ "{name}'s life, at the start of each act it reached. Going back takes up the life as it was then; everything after is lived again.": "{name} का जीवन, हर उस अंक की शुरुआत पर जहाँ तक वह पहुँचा। लौटने पर जीवन वहीं से उठता है जैसा तब था; उसके बाद का सब फिर से जिया जाता है।",
+ "Your life in progress is replaced. Tap an act twice to go back.": "अभी चल रहा जीवन बदल जाएगा। लौटने के लिए किसी अंक को दो बार छुओ।",
+ "Go back": "लौटो",
+ "This death stays in your Book of Lives. Going back takes up the life as it was at the start of that act.": "यह मृत्यु तुम्हारी जीवनों की पोथी में लिखी रहेगी। लौटने पर जीवन वहीं से उठता है जैसा उस अंक की शुरुआत में था।",
+ "Tap to show everything": "सब एक साथ देखने के लिए छुओ",
+ "Your last chance": "तुम्हारा आख़िरी मौक़ा",
+ "It nearly killed you. You are still alive, and there is one more chance.": "इसने तुम्हें लगभग मार ही डाला था। तुम अभी जीवित हो, और एक मौक़ा और है।",
+ "One more try. Fail again, and this life ends here.": "बस एक कोशिश और। फिर चूके, तो यह जीवन यहीं समाप्त होगा।",
+ "The fire catches you in the house. You may get one more chance, and no more.": "आग तुम्हें घर में ही पकड़ लेती है। शायद एक मौक़ा और मिले, उससे ज़्यादा नहीं।",
+ "The fire catches you again, and this time it does not let go.": "आग तुम्हें फिर पकड़ लेती है, और इस बार नहीं छोड़ती।",
+ "The smoke takes your legs. You come to on the floor with your sleeve burning and the roof still up. You crawl. There is still a way to the storeroom, for a little longer.": "धुआँ तुम्हारे पैर छीन लेता है। होश आता है तो तुम फ़र्श पर हो, आस्तीन जल रही है और छत अभी टिकी है। तुम रेंगते हो। भंडार तक का रास्ता अभी खुला है, थोड़ी देर और।"
+}

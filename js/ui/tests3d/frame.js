@@ -144,7 +144,7 @@
     return { draw() { const n = hud.querySelector(".t-name"); if (n) n.innerHTML = U.t(K.val(c.t)); if (phase === "intro") intro(); } };
   }
   const SETUP = (U.TRIAL_SETUP = {}); // kind → { clear, setup(ctx) }: what stands on the ground before the card comes up
-  U.trialFrame = frame;
+  U.trialFrame3d = frame; // (never U.trialFrame: that is the 2D game's own frame, which the tests fall back to where there is no 3D)
   U.games2D = Object.assign({}, U.games);
   for (const kind of KINDS) if (U.games2D[kind]) U.games[kind] = (box, done, c) => frame(box, done, c, kind);
 })(window.K = window.K || {});

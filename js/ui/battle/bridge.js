@@ -5,12 +5,16 @@
 (function (K) {
   "use strict";
   const U = K.UI, G = K.G3;
-  U.headless = () => !!K.headless || /jsdom/i.test(navigator.userAgent || "");
+  // Under a test harness the 2D game's own screens are used, as its tests expect: jsdom, or a driven browser that has not
+  // asked for 3D (?3d=1 on the address, which tests/smoke3d.js gives).
+  U.headless = () => !!K.headless || /jsdom/i.test(navigator.userAgent || "") || (!!navigator.webdriver && !/[?&]3d=1\b/.test(location.search || "") && !window.K_3D);
   U.startBattle2D = U.startBattle; // the 2D game's own fights: the fallback
   const B = (U.b3d = { ready: false, failed: false });
-  B.can = () => !B.failed && !U.headless() && !!window.THREE;
+  // (3D can be switched off: a preference `no3d`, or ?2d=1 on the address. The 2D game's own screens are used then.)
+  U.no3d = () => { try { return !!(K.prefs && K.prefs().no3d) || /[?&]2d=1\b/.test(location.search || ""); } catch (e) { return false; } };
+  B.can = () => !B.failed && !U.headless() && !!window.THREE && !U.no3d();
   B.on = function () {
-    if (B.failed || U.headless() || !window.THREE) return false;
+    if (B.failed || U.headless() || !window.THREE || U.no3d()) return false;
     document.body.classList.add("in3d");
     if (!B.ready) {
       try { G.init(); } catch (e) { if (window.console) console.error(e); }
@@ -38,7 +42,7 @@
     const h = G.hash(id);
     return { pronoun: SHE.has(id) ? "she" : "he", stage: "adult", palette: [SKIN[h % SKIN.length], CLOTH[(h >> 3) % CLOTH.length], "#e2b55a"], headgear: SHE.has(id) ? null : ["band", "turban", "mukuta", null][(h >> 6) % 4], item: null };
   };
-  // Hindi: the new battle words come with the 2D game's dictionary.
+  // Hindi: the new battle words come with the 2D game's dictionary (a published part carries them inside its Hindi file).
   const load = U.loadLang;
-  U.loadLang = function (lang) { return load(lang).then((ok) => new Promise((res) => { if (!ok || lang === "en" || U.headless()) return res(ok); const s = document.createElement("script"); s.src = "js/i18n/" + lang + "3d.js"; s.onload = s.onerror = () => res(ok); document.head.appendChild(s); })); };
+  U.loadLang = function (lang) { return load(lang).then((ok) => new Promise((res) => { if (!ok || lang === "en" || U.headless() || (window.K_PART && window.K_PART.hi3d)) return res(ok); const s = document.createElement("script"); s.src = "js/i18n/" + lang + "3d.js"; s.onload = s.onerror = () => res(ok); document.head.appendChild(s); })); };
 })(window.K = window.K || {});

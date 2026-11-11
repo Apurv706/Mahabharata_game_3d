@@ -5,7 +5,19 @@
   "description": "Kurukshetra: A Life, with every battle fought in 3D. No build step.",
   "scripts": {
     "start": "node -e \"require('./tools/serve.js')(8080).then(s=>console.log(s.url))\"",
-    "test": "node tests/fights.js 6 47"
+    "test": "node tests/run.js quick",
+    "test:quick": "node tests/run.js quick",
+    "test:full": "node tests/run.js full",
+    "test:3d": "node tests/run.js quick --only rules3d,fights3d,smoke3d",
+    "test:fights3d": "node tests/fights.js 28 21 --check",
+    "test:smoke3d": "node tests/smoke3d.js",
+    "test:rules": "node tests/rules.js",
+    "test:golden": "node tests/golden.js",
+    "test:bands": "node tests/bands.js",
+    "test:content": "node tests/content.js"
   },
-  "devDependencies": { "playwright": "^1.50.0" }
+  "devDependencies": {
+    "jsdom": "24.1.3",
+    "playwright": "1.63.0"
+  }
 }

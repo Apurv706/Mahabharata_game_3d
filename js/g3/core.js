@@ -67,6 +67,7 @@
     G.hemi = new T.HemisphereLight(0xffffff, 0x554433, 0.8); scene.add(G.hemi);
     G.amb = new T.AmbientLight(0xffffff, 0.2); scene.add(G.amb);
     G.sun = new T.DirectionalLight(0xffffff, 2); G.sun.position.set(-20, 12, -10); scene.add(G.sun); scene.add(G.sun.target);
+    G.rim = new T.DirectionalLight(0xffffff, 0.4); scene.add(G.rim); scene.add(G.rim.target); // light off the sky from the side away from the sun: it picks figures out of their own shadow
     const sc = G.sun.shadow.camera; sc.left = -26; sc.right = 26; sc.top = 26; sc.bottom = -26; sc.near = 1; sc.far = 120;
     G.sun.shadow.bias = -0.0006; G.sun.shadow.normalBias = 0.035;
     G.world = new T.Group(); scene.add(G.world);   // the current place
@@ -207,6 +208,7 @@
     G.sun.color.setHex(s.sun); G.sun.intensity = s.si;
     G.hemi.color.setHex(s.hs); G.hemi.groundColor.setHex(s.hg); G.hemi.intensity = s.hi;
     G.amb.intensity = s.amb; G.amb.color.setHex(s.hs);
+    if (G.rim) { G.rim.color.setHex(s.hs); G.rim.intensity = Math.min(0.75, 0.16 * s.si + 0.16); G.rim.position.set(-G.sunDir.x * 30, 16, -G.sunDir.z * 30); }
     scene.fog = new T.FogExp2(s.fog, s.fd);
     G.fogColor = s.fog;
     renderer.setClearColor(s.hor);

@@ -1,0 +1,66 @@
+# The regression suite (tests/run.js, tests/README.md): the 2D game's own checks, brought over with it, and the 3D layer's.
+#   quick: pushes to main and every pull request: engine rules and random lives, content integrity, golden lives, balance
+#          bands on a small sample, the engine bug checks, the 3D fights' rules, every 3D fight played by the bot, and a
+#          fight and the 2D fallback in a real browser (software WebGL).
+#   full:  nightly and by hand (Actions > Regression > Run workflow): everything.
+# Reports (JSON), logs and the images of any visual difference are uploaded as artifacts.
+name: Regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "47 21 * * *"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "quick or full"
+        default: full
+        type: choice
+        options: [quick, full]
+      checks:
+        description: "run just these checks (comma-separated, as tests/run.js --only), e.g. smoke3d,fights3d"
+        default: ""
+        type: string
+concurrency:
+  group: regression-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  quick:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'quick')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/run.js quick --out regress-out ${{ inputs.checks && format('--only {0}', inputs.checks) || '' }}
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: regression-quick
+          path: regress-out
+          retention-days: 14
+  full:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tier != 'quick')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/run.js full --out regress-out ${{ inputs.checks && format('--only {0}', inputs.checks) || '' }}
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: regression-full
+          path: regress-out
+          retention-days: 14

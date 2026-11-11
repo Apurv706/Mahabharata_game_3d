@@ -1,0 +1,6 @@
+{
+  "_": "Scenes left unreachable on purpose (tests/content.js). Each with why; a listed scene that is reached again is reported.",
+  "unreachable": {
+    "ep_sibling_side": "Owner, 2 November (commit 9daa4b5): the sibling on the other side is one line on the eve of the war (content/episodes.js a6_eve body), not a scene of its own; the scene is kept but no longer placed before a6_eve."
+  }
+}

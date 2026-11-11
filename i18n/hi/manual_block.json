@@ -1,0 +1,15 @@
+{
+ "Block": "ढाल",
+ "×2 combo": "×2 लगातार",
+ "Perfect block": "सटीक बचाव",
+ "A / D move · W / S change row · J strike · hold K or Space to block · L skill · H herbs · C call · U divine weapon · O orders · P pause · E spare": "A / D चलो · W / S पंक्ति बदलो · J वार · K या Space दबाए रखो, ढाल उठाओ · L कौशल · H जड़ी · C पुकार · U दिव्यास्त्र · O आदेश · P रोको · E छोड़ दो",
+ "J strike · K block · L skill · H herbs · W/S row · P pause": "J वार · K ढाल · L कौशल · H जड़ी · W/S पंक्ति · P रोको",
+ "J, or click a foe: an overhead smash, then a side sweep": "J, या शत्रु पर क्लिक: सिर के ऊपर से प्रहार, फिर बगल से घुमाव",
+ "An overhead smash, then a side sweep": "सिर के ऊपर से प्रहार, फिर बगल से घुमाव",
+ "Hold K or Space to raise your shield; it costs breath": "ढाल उठाने के लिए K या Space दबाए रखो; इसमें साँस लगती है",
+ "Hold to raise your shield; it costs breath": "ढाल उठाने के लिए दबाए रखो; इसमें साँस लगती है",
+ "Press J, or click a foe, to strike: an overhead smash, then a side sweep that knocks him back.": "वार के लिए J दबाओ, या शत्रु पर क्लिक करो: सिर के ऊपर से प्रहार, फिर बगल से घुमाव जो उसे पीछे धकेल देता है।",
+ "Strike: an overhead smash, then a side sweep that knocks a foe back.": "वार: सिर के ऊपर से प्रहार, फिर बगल से घुमाव जो शत्रु को पीछे धकेल देता है।",
+ "A blow is marked on the ground. Hold K or Space (or the right mouse button) to raise your shield before the mark fills. Raised just in time, it staggers him. Holding it costs breath.": "ज़मीन पर वार का निशान बनता है। निशान भरने से पहले ढाल उठाने के लिए K या Space (या माउस का दायाँ बटन) दबाए रखो। ठीक समय पर उठी ढाल उसे लड़खड़ा देती है। उसे थामे रहने में साँस लगती है।",
+ "A blow is marked on the ground. Hold Block to raise your shield before the mark fills to its rim. Raised just in time, it staggers him. Holding it costs breath.": "ज़मीन पर वार का निशान बनता है। निशान किनारे तक भरने से पहले ढाल उठाने के लिए ढाल बटन दबाए रखो। ठीक समय पर उठी ढाल उसे लड़खड़ा देती है। उसे थामे रहने में साँस लगती है।"
+}

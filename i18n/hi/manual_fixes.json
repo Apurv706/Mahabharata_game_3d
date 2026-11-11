@@ -1,0 +1,15 @@
+{
+ "{who} is already in this fight.": "{who} पहले से इस लड़ाई में है।",
+ "On the last night, when Ashwatthama asked who would ride into the sleeping camp with him, {they} said no.": "आख़िरी रात, जब अश्वत्थामा ने पूछा कि सोते हुए शिविर में उसके साथ कौन चलेगा, तो {g:उसने|उसने|उन्होंने} मना कर दिया।",
+ "On the thirteenth morning the drums start before dawn, and by noon the carts are bringing the wounded in faster than anyone can count.": "तेरहवीं सुबह भोर से पहले ही नगाड़े बजने लगते हैं, और दोपहर तक गाड़ियाँ घायलों को इतनी तेज़ी से ला रही हैं कि कोई गिन नहीं पाता।",
+ "Charu's hammer hangs over a forge that went cold the day Charu died.": "चारु का हथौड़ा उस भट्ठी के ऊपर टँगा है जो चारु के मरने के दिन ठंडी पड़ गई।",
+ "The huge brahmin": "विशालकाय ब्राह्मण",
+ "Your company turns on {t}.": "तुम्हारी टुकड़ी {tpar} टूट पड़ती है।",
+ "You call out {t}, and those beside you turn on them.": "तुम {tki} ओर इशारा {g:करते हो|करती हो|करते हो}, और तुम्हारे साथ लड़ने वाले उस पर टूट पड़ते हैं।",
+ "Marked: your company is on it": "निशाने पर: तुम्हारी टुकड़ी इसी पर है",
+ "Marked: those beside you are on it": "निशाने पर: तुम्हारे साथी इसी पर हैं",
+ "Against you · tap to mark": "तुम्हारे विरुद्ध · निशाना तय करने को छुओ",
+ "The master bowman: ranged damage, and the weapon of Arjuna, Karna and Drona.": "बाणों का महारथी: दूर से वार, और अर्जुन, कर्ण और द्रोण का शस्त्र।",
+ "Round {n}, best of {m} · Right: {r}": "दौर {n} · बेस्ट ऑफ़ {m} · सही: {r}",
+ "Suits you best": "तुम्हारे लिए सबसे उपयुक्त"
+}
