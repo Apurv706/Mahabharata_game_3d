@@ -56,11 +56,19 @@
   // Pull the string back by d (0 at rest … 1 at the ear); an arrow lies on it while it is drawn.
   function drawBow(bw, d) { if (bw.userData.d === d) return; bw.userData.d = d; const P = bw.userData.string.geometry.attributes.position; P.setXYZ(1, 0, d * PULL, 0); P.needsUpdate = true; const a = bw.userData.arrow; if (a) { a.visible = d > 0.04; a.position.set(0, d * PULL - 0.47, 0); } }
   const PULL = 0.68;
-  function shield(col, trim) {
+  function shield(col, trim, kind) {
     const b = B(); b.ao = 0.85;
+    if (kind === "hide") { // a foot soldier's: hide stretched on cane, painted with a band of his host's colour, a boss of horn
+      const hide = 0x8a6238;
+      b.geo(new T.SphereGeometry(0.4, 10, 4, 0, PI * 2, 0, PI / 2.7).rotateZ(-PI / 2).scale(0.36, 1, 1), 0.05, 0, 0, 0, 0, 0, hide, G.shade(hide, 1.25));
+      b.geo(new T.CircleGeometry(0.365, 12).rotateY(-PI / 2), 0.105, 0, 0, 0, 0, 0, G.shade(hide, 0.55));
+      b.torus(0.25, 0.04, 0.15, 0, 0, col || 0x7a3a2a, 0, PI / 2, 0, 14); b.torus(0.355, 0.02, 0.11, 0, 0, G.shade(hide, 0.6), 0, PI / 2, 0, 14); b.sph(0.065, 0.19, 0, 0, 0xd8cdb0, 1, 6);
+      return b.mesh();
+    }
     b.geo(new T.SphereGeometry(0.42, 12, 5, 0, PI * 2, 0, PI / 2.6).rotateZ(-PI / 2).scale(0.42, 1, 1), 0.05, 0, 0, 0, 0, 0, col || 0x7a3a2a, G.shade(col || 0x7a3a2a, 1.3));
     b.geo(new T.CircleGeometry(0.385, 14).rotateY(-PI / 2), 0.11, 0, 0, 0, 0, 0, G.shade(col || 0x7a3a2a, 0.6));
     b.torus(0.37, 0.025, 0.115, 0, 0, trim || GOLD, 0, PI / 2, 0, 16); b.sph(0.08, 0.2, 0, 0, trim || GOLD);
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.sph(0.022, 0.16, Math.sin(a) * 0.24, Math.cos(a) * 0.24, trim || GOLD, 1, 5); } // studs
     return b.mesh();
   }
   G.held = held; G.bow = bow;
@@ -224,9 +232,22 @@
     b.cyl(0.055, 0.065, 0.1, 0, 0, 0, skin, 7);
     b.sph(0.125, 0, 0.2, 0, skin, 1.12, 10, 0.95, 1.0);
     b.geo(new T.SphereGeometry(0.134, 10, 7, 0, PI * 2, 0, PI * 0.5).scale(0.98, 1.1, 1.03), 0, 0.212, -0.02, -0.62, 0, 0, hair); // the hair, set back off the face
-    for (const sx of [-1, 1]) { b.sph(0.017, sx * 0.046, 0.215, 0.112, 0x140c08); b.sph(0.03, sx * 0.122, 0.2, 0.0, skin, 1.2); }
+    const gearH = sp.gear || [];
+    for (const sx of [-1, 1]) {
+      b.sph(0.026, sx * 0.047, 0.214, 0.099, 0xf6f0e4, 0.82, 6);                                  // the white of the eye
+      if (!sp.blind) b.sph(0.0145, sx * 0.047, 0.213, 0.1195, 0x140c08, 1, 6);                    // (a blind king's eyes are shown without)
+      b.geo(new T.BoxGeometry(0.054, 0.012, 0.02), sx * 0.048, 0.249, 0.106, 0, 0, sx * -0.14, sp.stage === "elder" ? hair : DARK); // the brow
+      b.sph(0.03, sx * 0.122, 0.2, 0.0, skin, 1.2);
+    }
     b.box(0.026, 0.045, 0.03, 0, 0.165, 0.118, G.shade(skin, 0.93));
+    if (!sp.beard) b.box(0.052, 0.011, 0.02, 0, 0.126, 0.108, 0x7a2f22);                            // the mouth
     if (sp.eye) b.box(0.06, 0.04, 0.02, 0.046, 0.2, 0.118, 0x140c08);
+    if (gearH.includes("blindfold")) b.cyl(0.131, 0.131, 0.055, 0, 0.188, 0, 0xf2ece0, 10);        // Gandhari's bandage, folded many times over her eyes
+    // Hair beyond the cap: long and loose, a braid down the back, matted locks, or standing stiff.
+    if (sp.hair === "long") b.geo(new T.BoxGeometry(0.21, 0.27, 0.05), 0, 0.07, -0.118, 0.14, 0, 0, hair);
+    else if (sp.hair === "braid") { b.sph(0.07, 0, 0.2, -0.125, hair, 1, 6); b.rod(0, 0.14, -0.13, 0, -0.42, -0.17, 0.04, hair, 5, 0.022); b.sph(0.03, 0, -0.44, -0.17, 0xb2432a, 1, 5); }
+    else if (sp.hair === "matted") { for (const sx of [-1, 0, 1]) b.rod(sx * 0.07, 0.2, -0.11, sx * 0.09, -0.08, -0.15, 0.032, hair, 5, 0.018); }
+    else if (sp.hair === "up") { for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.geo(new T.ConeGeometry(0.035, 0.2, 4), Math.sin(a) * 0.06, 0.4, Math.cos(a) * 0.06 - 0.02, Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35, hair); } b.geo(new T.ConeGeometry(0.04, 0.24, 4), 0, 0.44, -0.02, 0, 0, 0, hair); }
     const beardCol = hair;
     if (sp.beard === "long") { b.geo(new T.ConeGeometry(0.1, 0.36, 7).rotateX(PI), 0, 0.0, 0.07, 0.12, 0, 0, 0xf0ece2); b.sph(0.1, 0, 0.13, 0.05, 0xf0ece2, 0.7, 7, 1, 0.9); }
     else if (sp.beard === "forked") { for (const sx of [-1, 1]) b.geo(new T.ConeGeometry(0.045, 0.22, 5).rotateX(PI), sx * 0.04, 0.03, 0.09, 0.1, 0, sx * 0.14, beardCol); b.sph(0.09, 0, 0.13, 0.05, beardCol, 0.6, 7, 1, 0.9); }
@@ -242,7 +263,12 @@
       gems.forEach((gm, i) => { const a = (i - (gems.length - 1) / 2) * 0.5; b.sph(0.022, Math.sin(a) * r * 0.98, 0.36, Math.cos(a) * r * 0.98, gm); });
     } else if (hg === "jata") { b.sph(0.075, 0, top + 0.035, -0.02, hair, 1.15, 7); b.cyl(0.05, 0.06, 0.03, 0, top - 0.02, -0.02, trim, 7); }
     else if (hg === "band") { b.cyl(0.131, 0.131, 0.035, 0, 0.245, -0.005, trim, 10); }
-    else if (hg === "turban") { b.geo(new T.SphereGeometry(0.16, 10, 6).scale(1.05, 0.62, 1.05), 0, 0.3, -0.01, 0, 0, 0, sp.hat || cloth); b.cyl(0.14, 0.14, 0.03, 0, 0.245, 0, sp.hatTrim || trim, 10); b.sph(0.05, 0.04, 0.38, 0.02, sp.hat || cloth); }
+    else if (hg === "turban") { // thick coils of cloth, wound one above another, with the end tucked up
+      const hc = sp.hat || cloth; b.dome(0.136, 0, 0.215, -0.005, G.shade(hc, 0.9), 0.95, 9);
+      for (let i = 0; i < 3; i++) b.torus(0.122 - i * 0.026, 0.046, 0, 0.268 + i * 0.05, -0.006, i % 2 ? G.shade(hc, 0.86) : hc, PI / 2, 0, 0, 10);
+      b.sph(0.055, 0.035, 0.41, 0.012, hc, 0.9, 6); b.cyl(0.139, 0.139, 0.022, 0, 0.243, -0.004, sp.hatTrim || trim, 10);
+      if (sp.chin) { b.torus(0.118, 0.012, 0, 0.17, 0.0, G.shade(hc, 0.9), 0, 0, 0, 10); } // tied under the chin
+    }
     else if (hg === "helmet" || hg === "crest") { b.dome(0.142, 0, 0.215, -0.005, sp.hat && hg === "crest" ? 0x8a6a3a : 0x8a7248, 1.05, 10); b.cyl(0.146, 0.146, 0.03, 0, 0.215, -0.005, 0x6a5232, 10); if (hg === "crest") b.box(0.03, 0.14, 0.26, 0, 0.33, -0.02, sp.hat || 0xa3302a); else b.cone(0.03, 0.09, 0, 0.36, 0, 0x8a7248, 5); }
     else if (hg === "capfeather") { b.dome(0.14, 0, 0.225, -0.01, sp.hat || 0x5d3b2a, 0.9, 9); b.geo(new T.ConeGeometry(0.028, 0.26, 4), 0.09, 0.4, -0.05, -0.3, 0, -0.3, 0xe8e0d0); }
     else if (hg === "peacock") { b.cyl(0.131, 0.131, 0.035, 0, 0.25, -0.005, GOLD, 10); b.geo(new T.SphereGeometry(0.06, 6, 5).scale(0.5, 2.1, 0.2), 0.03, 0.44, 0.0, 0, 0, -0.18, 0x2f8a6a, 0x3a5ac0); b.sph(0.022, 0.045, 0.5, 0.012, 0x2a3a9a); }
@@ -261,7 +287,18 @@
     b.geo(new T.CylinderGeometry(0.235 * wide, 0.2 * wide, 0.28, 10, 1).translate(0, 0.14, 0).scale(1, 1, 0.66), 0, 0.27, 0, 0, 0, 0, chest, armour ? G.shade(chest, 1.25) : null);
     b.geo(new T.SphereGeometry(0.1, 7, 5).scale(1, 0.7, 1), -0.25 * wide, 0.5, 0, 0, 0, 0, armour ? chest : top); b.geo(new T.SphereGeometry(0.1, 7, 5).scale(1, 0.7, 1), 0.25 * wide, 0.5, 0, 0, 0, 0, armour ? chest : top);
     if (sp.armour) b.sph(0.07, 0, 0.42, 0.14, 0xfff0a0, 1, 8); // the sun on Karna's breastplate
-    if (!armour && !she && sp.stage !== "child") { // the upper cloth, across from the left shoulder
+    if (armour) { // shoulder pieces, and the plates or scales in rows
+      for (const sx of [-1, 1]) b.geo(new T.SphereGeometry(0.115, 7, 4, 0, PI * 2, 0, PI / 2).scale(1.1, 0.6, 1.05), sx * 0.26 * wide, 0.5, 0, 0, 0, sx * -0.3, G.shade(chest, 1.18));
+      const rows = gear.includes("scale") ? 4 : 2; for (let i = 0; i < rows; i++) b.geo(new T.CylinderGeometry(0.238 * wide - i * 0.008, 0.236 * wide - i * 0.008, 0.012, 10, 1).scale(1, 1, 0.67), 0, 0.5 - (i + 0.5) * (0.24 / rows), 0, 0, 0, 0, G.shade(chest, 0.72));
+    }
+    if (gear.includes("thread")) { b.geo(new T.BoxGeometry(0.02, 0.7, 0.014), -0.03, 0.27, 0.152, 0, 0, 0.64, 0xf6f0e2); b.geo(new T.BoxGeometry(0.02, 0.7, 0.014), -0.03, 0.27, -0.152, 0, 0, -0.64, 0xf6f0e2); } // the sacred thread, from the left shoulder
+    if (gear.includes("garland")) { b.torus(0.15, 0.026, 0, 0.4, 0.07, sp.garland || 0xf4ecd8, 1.05, 0, 0, 12); for (let i = 0; i < 5; i++) b.sph(0.03, Math.sin((i - 2) * 0.5) * 0.13, 0.3 + Math.abs(i - 2) * 0.035, 0.15, i % 2 ? 0xf2c14a : sp.garland || 0xf4ecd8, 1, 5); }
+    if (gear.includes("deerskin")) { // a skin worn over the left shoulder, as those who go to the forest wear
+      b.geo(new T.BoxGeometry(0.2, 0.68, 0.03), 0.045, 0.27, 0.148, 0, 0, 0.62, 0x9a6a3a); b.geo(new T.BoxGeometry(0.2, 0.68, 0.03), 0.045, 0.27, -0.148, 0, 0, -0.62, 0x8a5c30);
+      for (const [dx, dy] of [[0.08, 0.4], [0.0, 0.3], [-0.07, 0.18], [0.05, 0.22]]) b.sph(0.02, dx, dy, 0.166, 0xe8dcc0, 0.4, 5);
+    }
+    if (gear.includes("bands") && !armour) { for (const sgn of [1, -1]) { b.geo(new T.BoxGeometry(0.06, 0.62, 0.02), 0, 0.3, 0.15, 0, 0, sgn * 0.7, cloth); b.geo(new T.BoxGeometry(0.06, 0.62, 0.02), 0, 0.3, -0.15, 0, 0, -sgn * 0.7, cloth); } b.geo(new T.CylinderGeometry(0.2 * wide, 0.19 * wide, 0.06, 10, 1).scale(1, 1, 0.66), 0, 0.16, 0, 0, 0, 0, cloth); } // cloth bands crossed on the chest and bound at the waist
+    if (!armour && !she && sp.stage !== "child" && !gear.includes("deerskin") && !gear.includes("bands") && !gear.includes("bare")) { // the upper cloth, across from the left shoulder
       b.geo(new T.BoxGeometry(0.11, 0.66, 0.03), 0.02, 0.27, 0.142, 0, 0, 0.66, cloth); b.geo(new T.BoxGeometry(0.11, 0.66, 0.03), 0.02, 0.27, -0.142, 0, 0, -0.66, cloth);
       b.box(0.1, 0.03, 0.34, 0.2 * wide, 0.53, 0, cloth);
     }
@@ -280,12 +317,14 @@
     return b.mesh();
   }
 
+  let BLOB_GEO = null, BLOB_MAT = null, TRAIL_MAT = null;
+  const TRAIL_N = 9;
   G.figure = function (spec, opt) {
     const sp = Object.assign({ stage: "adult", pronoun: "he", palette: ["#c27a44", "#8a3a2a", "#e2b55a"] }, spec || {}); opt = opt || {};
     const [sc, headK] = STAGE[sp.stage] || STAGE.adult, she = sp.pronoun === "she";
     const size = sc * (sp.size || 1) * (sp.big ? 1.04 : 1), wide = (sp.big ? 1.2 : 1) * (she ? 0.88 : 1) * (sp.stage === "child" ? 0.92 : 1);
     const skin = new T.Color(sp.palette[0]).getHex(), cloth = new T.Color(sp.palette[1]).getHex(), trim = new T.Color(sp.palette[2]).getHex();
-    const hair = sp.stage === "elder" ? (sp.beard === "long" || (sp.crown && sp.crown.white) ? 0xf0ece2 : HAIR.elder) : DARK;
+    const hair = sp.hairCol ? new T.Color(sp.hairCol).getHex() : sp.stage === "elder" ? (sp.beard === "long" || sp.white || (sp.crown && sp.crown.white) ? 0xf0ece2 : HAIR.elder) : DARK;
     const f = { spec: sp, size, root: new T.Group(), j: {}, cur: blank(), tgt: blank(), base: "stand", speed: 0, phase: Math.random() * 6, fall: 0, fallTo: 0, fallDir: 1, action: null, talk: false, look: null, alive: true, rate: 10, spin: 0 };
     const body = new T.Group(); body.scale.setScalar(size); f.root.add(body); f.body = body;
     const tilt = new T.Group(); body.add(tilt); f.tilt = tilt; // falls and rolls turn here, about the feet
@@ -301,7 +340,7 @@
       const sh = new T.Group(); sh.position.set(sx * 0.255 * wide, 0.49, 0); torso.add(sh); f.j["a" + s] = sh;
       sh.add(limb(0.29, 0.072, 0.058, skin, she ? cloth : null, (b) => { if (!she && sp.stage !== "child") b.cyl(0.067, 0.067, 0.035, 0, -0.14, 0, trim, 7); }));
       const el = new T.Group(); el.position.y = -0.29; sh.add(el); f.j["e" + s] = el;
-      el.add(limb(0.26, 0.058, 0.046, skin, null, (b) => { b.sph(0.056, 0, -0.3, 0, skin, 1.1, 6); if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(0.056, 0.062, 0.14, 0, -0.22, 0, trim, 7); else b.cyl(0.051, 0.051, 0.025, 0, -0.24, 0, trim, 7); }));
+      el.add(limb(0.26, 0.058, 0.046, skin, null, (b) => { b.sph(0.056, 0, -0.3, 0, skin, 1.1, 6); if (gear.includes("bracer") || sp.armour || gear.includes("scale")) b.cyl(0.056, 0.062, 0.14, 0, -0.22, 0, trim, 7); else if (gear.includes("bangles")) { for (let i = 0; i < 3; i++) b.cyl(0.054, 0.054, 0.022, 0, -0.27 + i * 0.032, 0, i === 1 ? GOLD : 0xf6f0e4, 8); } else b.cyl(0.051, 0.051, 0.025, 0, -0.24, 0, trim, 7); }));
       const ha = new T.Group(); ha.position.y = -0.3; el.add(ha); f.j["w" + s] = ha;
       const hip = new T.Group(); hip.position.set(sx * 0.1 * wide, 0, 0); hips.add(hip); f.j["l" + s] = hip;
       hip.add(limb(0.45, 0.105 * (she ? 1.12 : 1), 0.08, cloth, G.shade(cloth, 0.9)));
@@ -310,6 +349,10 @@
     }
     { const b = B(); b.ao = 0.9; b.geo(new T.CylinderGeometry(0.19 * wide, 0.21 * wide, 0.2, 10, 1).scale(1, 1, 0.72), 0, -0.06, 0, 0, 0, 0, cloth); b.box(0.1, 0.36, 0.035, 0, -0.5, 0.125, trim, 0, 0.05); if (gear.includes("sash")) b.box(0.08, 0.5, 0.03, 0.12, -0.6, 0.12, trim); hips.add(b.mesh()); }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+    if (!opt.noBlob) { // a soft dark patch under the feet: it holds the figure to the ground whether or not the sun casts shadows
+      f.blob = new T.Mesh(BLOB_GEO || (BLOB_GEO = G.keep(new T.CircleGeometry(0.62, 14).rotateX(-PI / 2))), BLOB_MAT || (BLOB_MAT = G.keep(new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false, fog: false }))));
+      f.blob.position.y = 0.03; f.blob.scale.setScalar(size * (sp.big ? 1.2 : 1)); f.blob.renderOrder = 1; f.root.add(f.blob);
+    }
     fillPose(f.cur, POSES.stand); fillPose(f.tgt, POSES.stand);
 
     // What is held. item: a weapon name or null; the bow goes to the left hand, a shield to the left forearm.
@@ -321,9 +364,9 @@
       else { const m = held(item, sp.maceCol); if (m) { m.position.set(0, -0.03, 0.02); m.castShadow = true; f.j.wR.add(m); f.item = m; } }
       return f;
     };
-    f.setShield = function (on, col) {
+    f.setShield = function (on, col, kind) {
       if (f.shield) { f.shield.parent.remove(f.shield); G.dispose(f.shield); f.shield = null; }
-      if (on) { f.shield = shield(col || cloth, trim); f.shield.position.set(0.07, -0.16, 0); f.shield.castShadow = true; f.j.eL.add(f.shield); }
+      if (on) { f.shield = shield(col || cloth, trim, kind); f.shield.position.set(0.07, -0.16, 0); f.shield.castShadow = true; f.j.eL.add(f.shield); }
       return f;
     };
     f.drawBow = (d) => { if (f.bow) { f.autoDraw = false; drawBow(f.bow, d); } };
@@ -427,8 +470,33 @@
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
       f.root.rotation.y += d * (1 - Math.exp(-(f.turnRate || 12) * dt));
       apply();
+      if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
     };
-    f.dispose = function () { if (f.root.parent) f.root.parent.remove(f.root); G.dispose(f.root); };
+    // The streak of a weapon through its blow: a ribbon between where the weapon was and where it is, fading behind it.
+    const tipA = new V3(), tipB = new V3();
+    function trail(dt) {
+      const a = f.action, on = f.trails && f.item && a && a.tS != null && a.t >= a.tS - 0.03 && a.t <= a.tF + 0.02;
+      if (!on && !(f.trail && f.trail.n)) return;
+      if (!f.trail) {
+        const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(new Float32Array(TRAIL_N * 6), 3)); g.setAttribute("color", new T.BufferAttribute(new Float32Array(TRAIL_N * 6), 3));
+        const idx = []; for (let i = 0; i < TRAIL_N - 1; i++) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } g.setIndex(idx);
+        const m = new T.Mesh(g, TRAIL_MAT || (TRAIL_MAT = G.keep(new T.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false }))));
+        m.frustumCulled = false; m.renderOrder = 4; G.fxRoot.add(m); f.trail = { m, pts: [], n: 0 };
+      }
+      const tr = f.trail;
+      if (on) { tipA.set(0, 0, f.item.userData.tip); f.item.localToWorld(tipA); tipB.set(0, 0, f.item.userData.tip * 0.42); f.item.localToWorld(tipB); tr.pts.unshift([tipA.x, tipA.y, tipA.z, tipB.x, tipB.y, tipB.z, 1]); if (tr.pts.length > TRAIL_N) tr.pts.pop(); }
+      const P = tr.m.geometry.attributes.position, Cc = tr.m.geometry.attributes.color; let live = 0;
+      for (let i = 0; i < TRAIL_N; i++) {
+        const p = tr.pts[Math.min(i, tr.pts.length - 1)];
+        if (!p) { P.setXYZ(i * 2, 0, -9, 0); P.setXYZ(i * 2 + 1, 0, -9, 0); continue; }
+        if (i < tr.pts.length) { p[6] -= dt * 4.5; if (p[6] > 0) live++; }
+        const k = Math.max(0, p[6]) * (1 - i / TRAIL_N) * 0.55;
+        P.setXYZ(i * 2, p[0], p[1], p[2]); P.setXYZ(i * 2 + 1, p[3], p[4], p[5]); Cc.setXYZ(i * 2, k, k * 0.92, k * 0.7); Cc.setXYZ(i * 2 + 1, k * 0.25, k * 0.22, k * 0.16);
+      }
+      if (!live && !on) tr.pts.length = 0;
+      tr.n = tr.pts.length; tr.m.visible = tr.n > 1; P.needsUpdate = true; Cc.needsUpdate = true;
+    }
+    f.dispose = function () { if (f.trail) { G.fxRoot.remove(f.trail.m); f.trail.m.geometry.dispose(); f.trail = null; } if (f.root.parent) f.root.parent.remove(f.root); G.dispose(f.root); };
     apply();
     return f;
   };
@@ -444,10 +512,24 @@
   };
   // People the story names who have no look of their own in the 2D game, and the ordinary folk of every scene.
   const EXTRAS = {
-    draupadi: { pronoun: "she", palette: ["#8a5230", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", size: 1.02 },
+    // (Draupadi: "her complexion was dark, and her locks were blue and curly"; Gandhari bandaged her own eyes; the king is blind.)
+    draupadi: { pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
+    sairindhri: { pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
     kunti: { pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
-    gandhari: { pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", eye: true },
-    dhritarashtra: { pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1 },
+    gandhari: { pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
+    dhritarashtra: { pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },
+    // Arjuna in the year of hiding: "decked in the ornaments of women, and wearing large ear-rings and beautiful
+    // conch-bracelets overlaid with gold", "a braid to hang down from my head". Bhima at the bride-choice, as a brahmin.
+    brihannala: { pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
+    bhima_brahmin: { pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
+    bhurishravas: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
+    kritavarma: { pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
+    vrishasena: { pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
+    iravan: { pronoun: "he", palette: ["#7a5a3a", "#2a4a3a", "#c9d27a"], stage: "youth", headgear: "mukuta", item: "sword" },
+    yudhamanyu: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
+    uttamaujas: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "sword" },
+    // The foot soldier of the line: bare to the waist under crossed bands of cloth, a thick coiled turban tied under the chin.
+    footman: { pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], headgear: "turban", chin: true, gear: ["bands"], item: "spear", stage: "adult" },
     virata: { pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "elder", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, beard: true },
     uttara: { pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "youth", headgear: "mukuta", item: "bow" },
     vikarna: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "mukuta", item: "sword" },

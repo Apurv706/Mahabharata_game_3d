@@ -23,7 +23,7 @@
   const RED = "#a3302a", BLUE = "#2d5aa0";
 
   // ---------- Who each fighter is drawn as ----------
-  const NAMED = [[/^Ugra(?!'s)/, "ugra"], [/Dushasana's/, "guard"], [/Dushasana(?!'s)/, "dushasana"], [/Karna(?!'s)/, "karna"], [/Bhima(?!'s)/, "bhima"], [/Brihannala(?!'s)/, "arjuna"], [/Ketan|boy/i, "boy"], [/Drona(?!'s)/, "drona"], [/^Satyaki$/, "satyaki"],
+  const NAMED = [[/^Ugra(?!'s)/, "ugra"], [/Dushasana's/, "guard"], [/Dushasana(?!'s)/, "dushasana"], [/Karna(?!'s)/, "karna"], [/Bhima(?!'s)/, "bhima"], [/Brihannala/, "brihannala"], [/huge brahmin/i, "bhima_brahmin"], [/^Bhurishravas$/, "bhurishravas"], [/^Kritavarma$/, "kritavarma"], [/^Vrishasena$/, "vrishasena"], [/^Iravan$/, "iravan"], [/Ketan|boy/i, "boy"], [/Drona(?!'s)/, "drona"], [/^Satyaki$/, "satyaki"],
     [/^Ghatotkacha$/, "ghatotkacha"], [/^Jayadratha$/, "jayadratha"], [/^Shalya$/, "shalya"], [/^Kripa$/, "kripa"], [/^Abhimanyu$/, "abhimanyu"], [/Ashwatthama/, "ashwatthama"]];
   function lookFor(u, B) {
     const S = K.S, D = { lookOf: U.lookOf3d };
@@ -40,6 +40,7 @@
     if (!look && /club|raider|bandit/i.test(n)) look = G.EXTRAS.bandit;
     if (!look && /cowherd|villager/i.test(n)) look = G.EXTRAS.common;
     if (!look && /guard|bodyguard|captain|sentry/i.test(n)) { look = D.lookOf("guard"); plain = true; }
+    if (!look && u.line && parseInt(String(u.uid).slice(1), 10) % 3) { look = G.EXTRAS.footman; plain = true; } // most of the line are foot soldiers in turbans; some wear the helmet and cuirass
     if (!look) { look = D.lookOf("soldier"); plain = true; }
     look = Object.assign({}, look);
     // In the war the two hosts wear their colours, so friend and foe are told apart at a glance.
@@ -52,9 +53,35 @@
     return look;
   }
   const D3 = (id) => U.lookOf3d(id);
-  // Each hero's own standard, as the epic names them.
-  const STANDARD = { arjuna: ["#2d5aa0", "#f2d27a", "ape"], bhishma: ["#efe6cf", "#c9a24e", "palm"], karna: ["#a3302a", "#f2d27a", "girth"], drona: ["#d98a3a", "#f2ead2", "pot"], abhimanyu: ["#2d5aa0", "#f2d27a", "tree"], duryodhana: ["#7a1f2a", "#e2b55a", "serpent"],
-    bhima: ["#2d5aa0", "#f2d27a", "lion"], jayadratha: ["#5a4a6a", "#e8e8e8", "boar"], yudhishthira: ["#2d5aa0", "#f2ead2", "moon"], ashwatthama: ["#3a2a3a", "#c9a24e", "lion"], kripa: ["#8a5a2a", "#f2ead2", "wheel"] };
+  // Each hero's own standard, steeds and car, as the epic names them (docs/Costume_Audit.md has the passages).
+  // [field, device colour, device]
+  const STANDARD = {
+    arjuna: ["#e9c76a", "#5a2a14", "ape"],            // "the ape of fierce face"
+    bhishma: ["#f4efe2", "#b8862c", "palm"],          // a white banner; "palmyra-standard decked with five stars"
+    karna: ["#7a1f2a", "#f2c14a", "girth"],           // "an elephant-rope made of gold"
+    drona: ["#e2b55a", "#2a1a12", "pot"],             // "a golden altar decked with a water-pot", a black deer-skin
+    abhimanyu: ["#2d5aa0", "#f2c14a", "peacock"],     // "golden peacock"
+    duryodhana: ["#e2b55a", "#7a1f2a", "elephant"],   // "an elephant adorned with gems" on a standard decked with gold
+    bhima: ["#2d5aa0", "#e6e6ea", "lion"],            // "gigantic lion in silver"
+    jayadratha: ["#3a3a4a", "#e8e8ee", "boar"],       // "a silver boar", with golden chains
+    yudhishthira: ["#2a2a5a", "#f2c14a", "moon"],     // "golden moon with planets around it"
+    ashwatthama: ["#3a2a3a", "#f2c14a", "liontail"],  // "the lion-tail ... decked with gold"
+    kripa: ["#8a5a2a", "#f2ead2", "bull"],            // "an excellent bovine bull"
+    nakula: ["#2d5aa0", "#f2c14a", "sarabha"],        // "a Sarabha with its back made of gold"
+    sahadeva: ["#2d5aa0", "#e6e6ea", "swan"],         // "silver swan with bells"
+    ghatotkacha: ["#1a1a1a", "#c9a24e", "vulture"],   // "a prince of vultures with outstretched wings"
+    shalya: ["#6a4a2a", "#f2c14a", "furrow"],         // "an image like the presiding goddess of corn" (the furrow)
+    bhurishravas: ["#7a1f2a", "#f2c14a", "stake"],    // "the sign of the sacrificial stake"
+    vrishasena: ["#7a1f2a", "#f2c14a", "peacock"]     // "a peacock made of gold"
+  };
+  // The steeds: [coat, trappings]. (Arjuna's "white horses decked in golden armour"; Bhishma's white; Drona's red; Bhima's
+  // dappled; Yudhishthira's ivory; Abhimanyu's tawny; Satyaki's silvery; Dhrishtadyumna's "of the hue of pigeons"; Nakula's
+  // Kamboja steeds "decked with the feathers of the green parrot".)
+  const STEEDS = { arjuna: [0xf2efe6, 0xd9a53a], bhishma: [0xf2efe6, 0xe8e2d2], drona: [0x9a3a22, 0xd9a53a], bhima: [0x8f8378, 0x2d5aa0], yudhishthira: [0xe9dfc6, 0x2a2a5a], abhimanyu: [0xb8863c, 0x2d5aa0],
+    satyaki: [0xd6d8de, 0x2c4c86], dhrishtadyumna: [0xb9b2b8, 0xb2432a], nakula: [0x4a3626, 0x3f8a3a], sahadeva: [0x9a7a5a, 0x2d5aa0], brihannala: [0xf2efe6, 0xd9a53a] };
+  // The white umbrella is held over a king or the leader of a host; the others ride under their standards alone.
+  const UMBRELLA = new Set(["bhishma", "duryodhana", "yudhishthira", "karna", "jayadratha", "shalya"]);
+  const CAR = { drona: [0xb8862c, 0xf2c14a], ghatotkacha: [0x1c1c20, 0x4a4a52] }; // "a golden car"; "a car made of black iron covered with bear-skins"
   const itemOf = (w) => (w === "fist" || w === "tusk" || w === "fire" ? null : w);
   const READY = { bow: "readyBow", spear: "readySpear", staff: "readySpear", fist: "readyFist", mace: "readyMace" };
   const SQUAD = [[0, 0.3], [-0.66, -0.34], [0.66, -0.34]];
@@ -158,17 +185,28 @@
       else {
         const look = lookFor(u, B), n = v.bodies;
         if (g.car) { // a chariot: the archer on its deck, a driver at the rail, the hero's own standard behind
-          const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, flag = STANDARD[u.person] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
-          v.car = G.chariot({ col: u.hero || u.person ? 0x6e3a1e : 0x5a4026, trim: u.hero || u.person ? 0xe2b55a : 0xb8873a, flag, canopy: u.hero || u.person ? new T.Color(flag[0]).getHex() : null, horseCol: u.person === "arjuna" || u.person === "bhishma" ? 0xf2efe6 : undefined });
+          const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, who = u.person || (/Brihannala/.test(String(u.src || u.name)) ? "brihannala" : null), flag = STANDARD[who === "brihannala" ? "arjuna" : who] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
+          const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
+          v.car = G.chariot({ col: car ? car[0] : great ? 0x6e3a1e : 0x5a4026, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
-          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: u.person === "arjuna" ? null : "whip" }); v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
+          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip" }), { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
-          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon) });
-          if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined);
+          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car });
+          f.trails = true; // the streak of a weapon through its blow
+          const plainMan = !(u.hero || u.person) && u.side !== "player" && !NAMED.some(([re]) => re.test(String(u.src || u.name)));
+          if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined, plainMan ? "hide" : undefined);
           f.pose(READY[g.weapon] || "ready", true); f.turnRate = 16;
           if (v.car) { v.car.add(f.root); f.root.position.set(-0.2, 0.86, -0.3); } else G.actors.add(f.root);
           v.figs.push(f);
+        }
+        // A hero who fights on foot has left his car at the field's edge: it waits there under his standard, with his steeds.
+        const hero = u.person;
+        if (!g.car && hero && u.side !== "player" && (STANDARD[hero] || STEEDS[hero]) && st && !st.indoor && (R.line || K.S.act >= 6)) {
+          const steeds = STEEDS[hero], car = CAR[hero], side = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE;
+          v.parked = G.chariot({ col: car ? car[0] : 0x6e3a1e, trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
+          const a = Math.atan2(g.x, g.z) + (u.side === "ally" ? 0.55 : -0.4), r = R.rad + 3.6;
+          v.parked.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); v.parked.rotation.y = a + Math.PI; v.parked.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.parked);
         }
       }
       if (u.side !== "player") {
@@ -183,7 +221,7 @@
     function dropView(v, how) {
       if (v.mark) { v.mark.userData.free(); v.mark = null; }
       if (v.bar) v.bar.remove();
-      const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
+      const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.parked) { if (v.parked.parent) v.parked.parent.remove(v.parked); G.dispose(v.parked); } if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
       if (how === "now") gone(); else setTimeout(gone, 1400);
       views.delete(v.u.uid);
     }

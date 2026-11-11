@@ -98,7 +98,8 @@
     }
     g.setAttribute("color", new T.Float32BufferAttribute(cols, 3));
     g.computeVertexNormals();
-    const t = G.tex(o.tex || "grain").clone(); t.needsUpdate = true; t.repeat.set(o.rep || 28, o.rep || 28);
+    // (open ground: trodden earth, fine enough to stand close to; a floor names its own)
+    const rep = o.rep || (o.tex ? 28 : Math.round(size / 5.2)), t = G.tex(o.tex || "earth").clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
     const m = new T.Mesh(g, new T.MeshLambertMaterial({ vertexColors: true, map: t }));
     m.receiveShadow = true;
     return m;
