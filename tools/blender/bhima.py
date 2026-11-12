@@ -17,7 +17,7 @@ def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
 M = { "skin": mat("skin", lin(hexc(0x8f5126)), 0.5), "cloth": mat("cloth", lin(hexc(0xefe6cf)), 0.85), "red": mat("red", lin(hexc(0x9a2a1e)), 0.8),
       "gold": mat("gold", lin(hexc(0xd9a53a)), 0.32, 1.0), "hair": mat("hair", lin(hexc(0x14100c)), 0.5), "white": mat("white", (0.9, 0.88, 0.82), 0.3),
-      "iris": mat("iris", (0.03, 0.02, 0.015), 0.2), "lip": mat("lip", lin(hexc(0x7a3a26)), 0.5), "iron": mat("iron", lin(hexc(0x4a4a50)), 0.4, 0.9) }
+      "iris": mat("iris", (0.03, 0.02, 0.015), 0.2), "hide": mat("hide", lin(hexc(0xc79a5a)), 0.8), "armour": mat("armour", lin(hexc(0xc9a24e)), 0.35, 0.9), "lip": mat("lip", lin(hexc(0x7a3a26)), 0.5), "iron": mat("iron", lin(hexc(0x4a4a50)), 0.4, 0.9) }
 
 def metaballs(name, balls, res=0.035, thr=0.6):
     mb = bpy.data.metaballs.new(name); mb.resolution = res; mb.render_resolution = res; mb.threshold = thr
@@ -46,38 +46,79 @@ from mathutils import Euler
 def rot(rx, ry, rz): return tuple(Euler((rx, ry, rz)).to_quaternion())
 
 # ---- The body: a wrestler's build. Heavy chest and shoulders, thick arms and thighs, a solid waist.
-E = 2.0
-body = sym([
-  ((0, 0.0, 1.30), (0.20, 0.135, 0.17)),                    # ribcage
-  ((0.10, -0.075, 1.335), (0.115, 0.075, 0.085), 1.6),      # pectorals
-  ((0, 0.06, 1.33), (0.21, 0.09, 0.16), 1.6),               # upper back, lats
-  ((0.15, 0.03, 1.22), (0.085, 0.09, 0.14), 1.4),           # lats down the side
-  ((0, -0.01, 1.12), (0.165, 0.118, 0.13)),                 # belly, upper
-  ((0, -0.03, 1.03), (0.17, 0.12, 0.11)),                   # belly, lower
-  ((0, 0.01, 0.94), (0.185, 0.125, 0.12)),                  # pelvis
-  ((0.085, 0.075, 0.90), (0.105, 0.09, 0.105), 1.5),        # glutes
-  ((0.11, 0.03, 1.425), (0.11, 0.075, 0.04), 1.6, rot(0, 0.45, 0)),  # trapezius slope
+AX = SHX + 0.006   # the arm's own line, shoulder to wrist
+torso = sym([
+  ((0, 0.0, 1.30), (0.185, 0.128, 0.17)),                   # ribcage
+  ((0.095, -0.082, 1.335), (0.098, 0.062, 0.078), 1.5),     # pectorals: two slabs
+  ((0, -0.15, 1.33), (0.012, 0.03, 0.10), 1.4, None, True), # the groove between them
+  ((0.1, -0.135, 1.255), (0.09, 0.02, 0.012), 1.4, None, True),   # the crease under each
+  ((0, 0.07, 1.34), (0.19, 0.08, 0.15), 1.6),               # upper back
+  ((0.1, 0.085, 1.30), (0.075, 0.05, 0.12), 1.4),           # the blades and the muscle over them
+  ((0, 0.14, 1.25), (0.012, 0.02, 0.22), 1.4, None, True),  # the spine's furrow
+  ((0.125, 0.03, 1.2), (0.07, 0.085, 0.13), 1.4),           # lats, tapering to the waist
+  ((0, -0.01, 1.12), (0.15, 0.112, 0.13)),                  # belly, upper
+  ((0, -0.03, 1.03), (0.155, 0.115, 0.11)),                 # belly, lower
+  ((0.042, -0.118, 1.2), (0.036, 0.022, 0.03), 1.5),        # the belly's muscle, three rows of two
+  ((0.042, -0.128, 1.135), (0.036, 0.022, 0.03), 1.5),
+  ((0.04, -0.132, 1.07), (0.036, 0.022, 0.032), 1.5),
+  ((0, -0.16, 1.13), (0.007, 0.03, 0.12), 1.4, None, True), # the line down its middle
+  ((0.125, -0.06, 1.1), (0.04, 0.06, 0.07), 1.4),           # obliques
+  ((0, 0.01, 0.94), (0.175, 0.122, 0.12)),                  # pelvis
+  ((0.085, 0.078, 0.90), (0.1, 0.088, 0.1), 1.5),           # glutes
+  ((0.1, 0.035, 1.435), (0.1, 0.07, 0.04), 1.6, rot(0, 0.5, 0)),  # trapezius, neck to shoulder
+  ((0.17, 0.0, 1.415), (0.09, 0.075, 0.05), 1.6),           # collar and shoulder girdle
   ((0, 0.015, 1.52), (0.06, 0.064, 0.10)),                  # neck
-  ((SHX - 0.012, 0.0, 1.375), (0.082, 0.09, 0.085)),        # deltoid
-  ((0.19, 0.01, 1.405), (0.115, 0.085, 0.06), 1.6),         # collar and shoulder girdle: neck to arm in one slope
-  ((SHX + 0.005, 0.0, 1.25), (0.074, 0.08, 0.15)),          # upper arm
-  ((SHX + 0.005, -0.03, 1.265), (0.056, 0.055, 0.10), 1.4),  # biceps
-  ((SHX + 0.012, 0.0, 1.12), (0.05, 0.052, 0.05)),          # elbow
-  ((SHX + 0.012, -0.005, 1.02), (0.062, 0.065, 0.115)),     # forearm, the thick of it
-  ((SHX + 0.012, 0.0, 0.88), (0.04, 0.042, 0.09)),          # forearm to wrist
-  ((HPX + 0.012, 0.0, 0.72), (0.108, 0.115, 0.21)),         # thigh
-  ((HPX + 0.012, -0.035, 0.70), (0.075, 0.07, 0.16), 1.4),  # quadriceps
-  ((HPX + 0.005, 0.0, 0.47), (0.064, 0.068, 0.07)),         # knee
-  ((HPX + 0.005, 0.03, 0.33), (0.068, 0.075, 0.14)),        # calf
-  ((HPX + 0.005, 0.005, 0.14), (0.045, 0.05, 0.11)),        # shin to ankle
-  ((HPX + 0.008, -0.045, 0.035), (0.052, 0.105, 0.036)),    # foot
-  ((HPX + 0.008, -0.12, 0.028), (0.05, 0.05, 0.026)),       # toes
-  ((HPX + 0.005, 0.035, 0.045), (0.04, 0.045, 0.04)),       # heel
-  ((SHX + 0.012, -0.005, 0.775), (0.036, 0.05, 0.055)),     # the hand: palm
-  ((SHX + 0.012, -0.012, 0.715), (0.03, 0.045, 0.045)),     # fingers, curled a little
-  ((SHX - 0.012, -0.045, 0.775), (0.02, 0.024, 0.04), 1.6), # thumb
+  ((0.035, -0.035, 1.5), (0.018, 0.022, 0.07), 1.5, rot(0.25, 0.2, 0)),   # the cords of the neck
+  ((HPX + 0.012, 0.0, 0.72), (0.102, 0.11, 0.21)),          # thigh
+  ((HPX + 0.03, -0.055, 0.68), (0.055, 0.05, 0.15), 1.4),   # quadriceps: outer sweep
+  ((HPX - 0.02, -0.06, 0.6), (0.04, 0.04, 0.07), 1.4),      # and the teardrop over the knee
+  ((HPX + 0.012, 0.07, 0.68), (0.07, 0.05, 0.15), 1.4),     # hamstrings
+  ((HPX + 0.005, -0.01, 0.47), (0.058, 0.064, 0.065)),      # knee
+  ((HPX + 0.005, -0.05, 0.47), (0.03, 0.025, 0.035), 1.5),  # kneecap
+  ((HPX + 0.03, 0.045, 0.34), (0.04, 0.05, 0.1), 1.4),      # calf: outer head
+  ((HPX - 0.02, 0.045, 0.33), (0.038, 0.05, 0.11), 1.4),    # calf: inner head
+  ((HPX + 0.005, 0.0, 0.3), (0.05, 0.055, 0.14)),           # shin
+  ((HPX + 0.005, 0.005, 0.14), (0.042, 0.047, 0.11)),       # shin to ankle
+  ((HPX + 0.035, 0.005, 0.07), (0.016, 0.018, 0.02), 1.6),  # ankle bone
+  ((HPX + 0.008, -0.045, 0.035), (0.05, 0.105, 0.034)),     # foot
+  ((HPX + 0.008, -0.125, 0.026), (0.05, 0.045, 0.024)),     # toes
+  ((HPX + 0.005, 0.035, 0.045), (0.038, 0.045, 0.04)),      # heel
 ])
-B = metaballs("body", body, 0.022, 0.62)
+arms = sym([
+  ((SHX - 0.004, 0.0, 1.385), (0.082, 0.088, 0.082)),       # deltoid: a cap over the shoulder
+  ((SHX + 0.03, 0.0, 1.36), (0.05, 0.07, 0.08), 1.5),       # its outer swell
+  ((AX, 0.0, 1.25), (0.062, 0.066, 0.14)),                  # upper arm
+  ((AX - 0.004, -0.04, 1.265), (0.046, 0.042, 0.085), 1.4), # biceps
+  ((AX + 0.008, 0.045, 1.26), (0.045, 0.04, 0.1), 1.4),     # triceps
+  ((AX, 0.0, 1.125), (0.046, 0.05, 0.05)),                  # elbow
+  ((AX + 0.012, -0.012, 1.03), (0.05, 0.05, 0.1), 1.4),     # forearm: the outer mass under the elbow
+  ((AX, 0.0, 1.0), (0.05, 0.056, 0.12)),                    # forearm
+  ((AX, 0.0, 0.88), (0.036, 0.042, 0.085)),                 # forearm to wrist
+])
+def hand(sx):
+    px = sx * (AX + 0.016)                                   # the palm stands a little out, so what is held lies against it
+    balls = [((px, -0.004, 0.778), (0.016, 0.042, 0.046)),                              # palm
+             ((px - sx * 0.002, -0.004, 0.815), (0.02, 0.034, 0.03)),                   # heel of the hand, into the wrist
+             ((px - sx * 0.018, -0.046, 0.795), (0.012, 0.014, 0.026), 1.8, rot(0.5, 0, 0)),   # thumb, base
+             ((px - sx * 0.03, -0.058, 0.775), (0.0105, 0.012, 0.02), 1.8, rot(0.2, sx * 0.5, 0))]  # thumb, end, closing over
+    for i, fy in enumerate((-0.034, -0.012, 0.01, 0.031)):       # four fingers, loosely closed round a haft
+        k = (0.95, 1.0, 0.95, 0.82)[i]
+        balls.append(((px - sx * 0.002, fy, 0.728), (0.0105, 0.0108, 0.026 * k), 1.8))                          # first joint, down from the knuckle
+        balls.append(((px - sx * 0.017, fy, 0.7 + (1 - k) * 0.02), (0.0098, 0.0102, 0.02 * k), 1.8, rot(0, -sx * 0.9, 0)))   # second, turning in
+        balls.append(((px - sx * 0.032, fy, 0.712 + (1 - k) * 0.02), (0.009, 0.0095, 0.016 * k), 1.8, rot(0, -sx * 1.9, 0)))  # the tip, coming back up
+    return balls
+def lean(balls, k=0.84):   # a youth's build: the same frame, less on it, and none of the cut lines
+    out = []
+    for b in balls:
+        if len(b) > 4 and b[4]: continue
+        st = b[2] if len(b) > 2 else 2.0; kk = k * (0.8 if st < 1.55 else 1.0)
+        out.append(((b[0][0], b[0][1] * (0.8 if st < 1.55 else 1), b[0][2]), (b[1][0] * kk, b[1][1] * kk, b[1][2])) + tuple(b[2:]))
+    return out
+def mk_body(name, t, a):
+    Bt = metaballs(name + "t", t, 0.016, 0.62); Ba = metaballs(name + "a", a, 0.014, 0.62)
+    bpy.ops.object.select_all(action="DESELECT"); Bt.select_set(True); Ba.select_set(True); bpy.context.view_layer.objects.active = Bt; bpy.ops.object.join(); o = bpy.context.object; o.name = name; o.select_set(False); return o
+B = mk_body("body", torso, arms); BL = mk_body("bodylean", lean(torso), lean(arms, 0.8))
+HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
 # ---- The head: broad, heavy-jawed. Built at the head joint (z 1.47) with the skull's centre about 0.16 above it.
 HZ = 1.47 + 0.19
 head = sym([
@@ -97,12 +138,37 @@ head = sym([
   ((0, -0.128, HZ - 0.092), (0.03, 0.014, 0.005), 1.6, None, True),       # the mouth's line (cut in)
 ])
 Hd = metaballs("head", head, 0.0085, 0.62)
-for o in (B, Hd):
+for o in [B, BL, Hd] + HANDS:
     o.data.materials.append(M["skin"])
-    m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 6 if o is B else 2; m.factor = 0.6
+    m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 3 if o in (B, BL) else 2; m.factor = 0.55
     bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="sm")
     for p in o.data.polygons: p.use_smooth = True
 print("body verts", len(B.data.vertices), "head verts", len(Hd.data.vertices))
+
+# ---- The skeleton: the game's own joints, by the game's own names, where the game has them -----------------------
+JOINTS = ["P", "T", "H", "aL", "eL", "wL", "aR", "eR", "wR", "lL", "kL", "lR", "kR"]
+for o, r in ((B, 0.5), (BL, 0.45), (Hd, 0.6), (HANDS[0], 0.5), (HANDS[1], 0.5)):
+    d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
+    for p in o.data.polygons: p.use_smooth = True
+arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
+def bone(n, h, t, parent=None):
+    b = arm.edit_bones.new(n); b.head = h; b.tail = t
+    if parent: b.parent = arm.edit_bones[parent]
+bone("P", (0, 0, 0.93), (0, 0, 0.80)); bone("T", (0, 0, 0.98), (0, 0, 1.42), "P"); bone("H", (0, 0, 1.47), (0, 0, 1.78), "T")
+for sd, sx in (("L", 1), ("R", -1)):
+    ax = sx * (SHX + 0.008)
+    bone("a" + sd, (sx * SHX, 0, 1.41), (ax, 0, 1.12), "T"); bone("e" + sd, (ax, 0, 1.12), (ax, 0, 0.82), "a" + sd); bone("w" + sd, (ax, 0, 0.82), (ax, -0.01, 0.69), "e" + sd)
+    bone("l" + sd, (sx * (HPX + 0.008), 0, 0.92), (sx * (HPX + 0.006), 0, 0.47), "P"); bone("k" + sd, (sx * (HPX + 0.006), 0, 0.47), (sx * (HPX + 0.006), 0, 0.04), "l" + sd)
+bpy.ops.object.mode_set(mode="OBJECT")
+for o in (B, BL):
+    bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); A.select_set(True); bpy.context.view_layer.objects.active = A
+    try: bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    except Exception as e: print("AUTO WEIGHTS FAILED", e)
+    o.select_set(False); A.select_set(False)
+    print(o.name, "unweighted", sum(1 for v in o.data.vertices if not v.groups), "verts", len(o.data.vertices))
+def rigid(o, bone_name):
+    g = o.vertex_groups.new(name=bone_name); g.add(range(len(o.data.vertices)), 1.0, "REPLACE")
+rigid(Hd, "H"); rigid(HANDS[0], "wL"); rigid(HANDS[1], "wR")
 
 # ---- What he wears and carries on him ---------------------------------------------------------------------------
 def prim(kind, name, m, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), **kw):
@@ -152,6 +218,59 @@ both(lambda sx: prim("torus", "wrist", "gold", (sx * (SHX + 0.012), 0, 0.845), (
 both(lambda sx: prim("torus", "anklet", "gold", (sx * (HPX + 0.005), 0.005, 0.1), (1, 1.05, 1), major_radius=0.05, minor_radius=0.009, major_segments=16, minor_segments=6))
 both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104, 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
 parts.append(prim("cylinder", "clasp", "gold", (0, -0.128, 0.995), (0.03, 0.03, 0.008), (math.pi / 2, 0, 0), vertices=12))
+# ---- What changes with the years and the acts: each is a part the game shows or leaves out ---------------------
+def shell(name, role, keep, off, src=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights
+    src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
+    bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co)], context="VERTS")
+    for v in bm.verts: v.co += v.normal * off
+    bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
+trunk = lambda c: abs(c.x) < 0.212 and not (c.z > 1.4 and abs(c.x) < 0.085)
+def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
+    ux, uz = -0.32, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.15) * uz - (c.z - 1.43) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
+shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
+parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.72, 1), major_radius=0.178, minor_radius=0.02, major_segments=28, minor_segments=8))
+both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.01), 0, 1.4), (0.1, 0.1, 0.085), segments=14, ring_count=8))
+shell("hide", "hide", lambda c: band(c, 0.085), 0.017)
+shell("uttariya", "cloth", lambda c: band(c, 0.06), 0.015)
+shell("uttariyalean", "cloth", lambda c: band(c, 0.06), 0.013, BL)
+parts.append(prim("cube", "uttariyaend", "cloth", (0.15, 0.13, 1.25), (0.05, 0.012, 0.2), size=2))
+# A prince's crown: a gold band, a tall plate in front with a red stone, points round it
+parts.append(prim("torus", "crown", "gold", (0, 0.015, HZ + 0.085), (1, 1.12, 1), major_radius=0.102, minor_radius=0.014, major_segments=28, minor_segments=8))
+parts.append(prim("cylinder", "crowncap", "gold", (0, 0.015, HZ + 0.135), (0.092, 0.105, 0.05), vertices=20))
+parts.append(prim("cone", "crownpeak", "gold", (0, 0.015, HZ + 0.22), (0.07, 0.08, 0.06), vertices=16))
+parts.append(prim("uv_sphere", "crowntip", "gold", (0, 0.015, HZ + 0.285), (0.018, 0.018, 0.022), segments=8, ring_count=6))
+parts.append(prim("cube", "crownplate", "gold", (0, -0.1, HZ + 0.13), (0.03, 0.008, 0.05), size=2))
+parts.append(prim("uv_sphere", "crowngem", "red", (0, -0.11, HZ + 0.135), (0.014, 0.008, 0.018), segments=8, ring_count=6))
+for i in range(8):
+    a = i / 8 * math.tau + 0.39; parts.append(prim("cone", "crownpoint", "gold", (math.sin(a) * 0.1, 0.015 - math.cos(a) * 0.112, HZ + 0.125), (0.014, 0.014, 0.035), vertices=6))
+# The matted hair of the forest years: a heavy coil on the crown, locks down the back and over the shoulders
+parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.13), (1, 1, 1.3), major_radius=0.05, minor_radius=0.03, major_segments=16, minor_segments=8))
+parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.175), (1, 1, 1.3), major_radius=0.034, minor_radius=0.026, major_segments=14, minor_segments=8))
+parts.append(prim("uv_sphere", "jata", "hair", (0, 0.03, HZ + 0.215), (0.03, 0.03, 0.026), segments=10, ring_count=6))
+for i, (x, y, l) in enumerate(((-0.07, 0.085, 0.3), (-0.035, 0.105, 0.34), (0, 0.11, 0.36), (0.035, 0.105, 0.34), (0.07, 0.085, 0.3), (0.1, 0.03, 0.22), (-0.1, 0.03, 0.22))):
+    parts.append(prim("uv_sphere", "jata", "hair", (x, y + 0.02, HZ - 0.02 - l / 2), (0.017, 0.017, l / 2), segments=8, ring_count=8))
+# A beard for the forest years, to go with it
+parts.append(prim("uv_sphere", "beard", "hair", (0, -0.075, HZ - 0.125), (0.062, 0.05, 0.05), segments=14, ring_count=8))
+
+PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair",
+  "knot": "knot", "knotband": "knot", "dhoti": "dhoti", "hem": "dhoti", "pleats": "dhoti", "pleatend": "dhoti", "sash": "sash", "knotsash": "sash", "sashend": "sash", "clasp": "sash",
+  "necklace": "gold", "pendant": "gold", "earring": "gold", "armlet": "bands", "wrist": "bands", "anklet": "bands", "cuirass": "cuirass", "cuirassbelt": "cuirass", "pauldron": "cuirass",
+  "hide": "hide", "uttariya": "uttariya", "uttariyaend": "uttariya", "uttariyalean": "uttariyalean", "jata": "jata", "beard": "beard" }
+def part_of(o):
+    n = o.name.split(".")[0]; return "crown" if n.startswith("crown") else PART.get(n, n)
+def bone_for(o):
+    n = o.name.split(".")[0]; x = sum((o.matrix_world @ v.co).x for v in o.data.vertices) / max(1, len(o.data.vertices)); sd = "L" if x > 0 else "R"
+    if n in ("eye", "iris", "lid", "browhair", "lip", "stache", "stache2", "haircap", "knot", "knotband", "backhair", "earring", "jata", "beard") or n.startswith("crown"): return "H"
+    if n in ("necklace", "pendant", "cuirassbelt", "uttariyaend"): return "T"
+    if n == "pauldron": return "a" + sd
+    if n == "armlet": return "a" + sd
+    if n == "wrist": return "e" + sd
+    if n == "anklet": return "k" + sd
+    if n == "hem": return "l" + sd
+    return "P"
+for o in parts:
+    if o.vertex_groups: continue          # (it kept the body's own weights when it was taken from the body)
+    rigid(o, bone_for(o))
 print("parts", len(parts))
 
 # ---- A look at it
@@ -170,4 +289,37 @@ def render(tag, shots, res=(560, 800), samples=24):
     for n, loc, at, lens in shots:
         S.camera = look(n, loc, at, lens); S.render.filepath = f"{OUT}/{tag}_{n}.png"; bpy.ops.render.render(write_still=True)
 if STAGE in ("body", "dress"):
-    lights(); render("body", [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.35, -1.25, 1.68), (0, 0, 1.62), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)])
+    LOOK = argv[2] if len(argv) > 2 else "prince"
+    SHOW = { "prince": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "uttariya"}, "exile": {"face", "stache", "hair", "dhoti", "jata", "beard", "hide"},
+             "war": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "cuirass"}, "youth": {"face", "hair", "knot", "dhoti", "sash", "gold", "uttariyalean"} }[LOOK]
+    for o in parts: o.hide_render = part_of(o) not in SHOW
+    B.hide_render = LOOK == "youth"; BL.hide_render = LOOK != "youth"
+    lights(); render(LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
+
+if STAGE == "export":
+    import json, base64, struct
+    for o in (B, BL, Hd): o["part"] = {"body": "body", "bodylean": "bodylean", "head": "head"}[o.name]
+    for o in HANDS: o["part"] = "hands"
+    for o in parts: o["part"] = part_of(o)
+    objs = sorted([B, BL, Hd] + HANDS + parts, key=lambda o: o["part"]); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; roles = []; cols = []; base = 0; ranges = {}
+    for o in objs:
+        me = o.data; me.calc_loop_triangles(); mt = o.data.materials[0]; names = [g.name for g in o.vertex_groups]
+        if mt.name not in roles:
+            roles.append(mt.name); c = mt.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value; cols.append([round(255 * (x ** (1 / 2.2))) for x in c[:3]])
+        ci = roles.index(mt.name); i0 = len(I_)
+        for v in me.vertices:
+            x, y, z = o.matrix_world @ v.co; nx, ny, nz = (o.matrix_world.to_3x3() @ v.normal).normalized()   # (where it stands in the world, not in its own frame)
+            P_ += [x, z, -y]; N_ += [nx, nz, -ny]; C_.append(ci)          # Blender (x, y, z) -> the game's (x, up, front)
+            ws = sorted(((g.weight, JOINTS.index(names[g.group])) for g in v.groups if names[g.group] in JOINTS and g.weight > 0.01), reverse=True)[:2]
+            if not ws: ws = [(1.0, 0)]
+            if len(ws) == 1: ws.append((0.0, ws[0][1]))
+            t = ws[0][0] + ws[1][0]; J_ += [ws[0][1], ws[1][1]]; W_.append(round(255 * ws[0][0] / t))
+        for t in me.loop_triangles: I_ += [base + t.vertices[0], base + t.vertices[1], base + t.vertices[2]]
+        base += len(me.vertices); r = ranges.setdefault(o["part"], [i0, 0]); r[1] = len(I_) - r[0]
+    n = base; assert n < 65536, n
+    b64 = lambda fmt, a: base64.b64encode(struct.pack("<%d%s" % (len(a), fmt), *a)).decode()
+    data = { "n": n, "joints": JOINTS, "scale": 8192, "roles": roles, "cols": cols, "parts": ranges,
+             "pos": b64("h", [max(-32767, min(32767, round(v * 8192))) for v in P_]), "nor": b64("b", [max(-127, min(127, round(v * 127))) for v in N_]),
+             "col": b64("B", C_), "jnt": b64("B", J_), "wgt": b64("B", W_), "idx": b64("H", I_) }
+    open(OUT + "/hero.js", "w").write("/* A hero's body, face, hair, cloth, gold and armour, modelled in Blender by tools/blender/bhima.py (see tools/blender/README.md). Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.MODELS = G.MODELS || {}).hero = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")
+    print("exported verts", n, "tris", len(I_) // 3, "roles", roles, "parts", {k: v[1] // 3 for k, v in ranges.items()})

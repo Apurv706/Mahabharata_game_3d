@@ -164,3 +164,10 @@ Two lives from birth (to the war, and to 42) and two ready-made war lives (to th
 - **The burning house (escape) drew nothing:** it is looked down on from above but was built under the cellar's roof. Halls take `open: true` (no roof); the escape uses it, is lit, has a tunnel arrow, rings on the tunnel and the sleepers, a camera that follows on narrow screens, and its own how-to (`U.HOWTO3D`), since the story's how-to describes the 2D grid.
 - Fight titles wrap to two lines on phones and sit below the status line; the steady-hand test stands back on narrow screens.
 - Known and left: the strip above the cellar's roof in "Cut the oil lines" is still black; "Carry earth from the tunnel" plays in a daylight corridor though the story says night.
+
+## A hero modelled in Blender (12 Nov)
+
+Bhima is now a Blender-built model (`tools/blender/bhima.py` -> `js/g3/models/hero.js`, loaded by `js/g3/model.js`), skinned to
+the same joints the fight poses turn, so every move works unchanged. Parts and colour roles let one model change dress and
+build from the look data: youth (lean, no moustache), prince (crown, upper cloth, gold), forest (matted hair, beard, hide),
+war (cuirass). See `tools/blender/README.md`. Everyone else is still code-built.
