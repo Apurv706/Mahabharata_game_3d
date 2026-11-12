@@ -96,8 +96,9 @@
     stand: {},
     // On guard: the left foot leads (the shield side), knees bent, weight a little back, the weapon hand by the hip with the blade up and forward.
     ready: { P: [0, -24, 0], T: [8, 10, 0], H: [0, 14, 0], lL: [-26, 0, 6], kL: 30, lR: [18, 0, -8], kR: 34, y: -0.1, aR: [-30, 0, -20], eR: -86, wR: [26, 0, 0], aL: [-42, 0, 10], eL: -62 },
+    // (The wrist is cocked so the head stands up over the shoulder, not lying back behind it.)
     // The mace at rest: its head up over the right shoulder, the left hand ready to join the right on the haft.
-    readyMace: { P: [0, -22, 0], T: [6, 8, 0], H: [0, 14, 0], lL: [-24, 0, 8], kL: 30, lR: [18, 0, -10], kR: 34, y: -0.11, aR: [-48, 0, -14], eR: -108, wR: [-22, 0, 0], aL: [-46, 0, -16], eL: -84 },
+    readyMace: { P: [0, -22, 0], T: [6, 8, 0], H: [0, 14, 0], lL: [-24, 0, 8], kL: 30, lR: [18, 0, -10], kR: 34, y: -0.11, aR: [-56, 0, -14], eR: -100, wR: [38, 0, 0], aL: [-46, 0, -16], eL: -84 },
     readyBow: { P: [0, -18, 0], T: [4, 6, 0], lL: [-16, 0, 4], kL: 12, lR: [12, 0, -4], kR: 14, y: -0.03, aL: [-42, 0, 8], eL: -30, aR: [-20, 0, -12], eR: -60 },
     readySpear: { P: [0, -24, 0], T: [10, 10, 0], lL: [-22, 0, 4], kL: 20, lR: [18, 0, -4], kR: 24, y: -0.06, aR: [-18, 0, -20], eR: -78, wR: [62, 0, 0], aL: [-48, 0, 6], eL: -40 },
     readyFist: { P: [0, -16, 0], T: [12, 6, 0], lL: [-20, 0, 6], kL: 22, lR: [14, 0, -6], kR: 26, y: -0.07, aR: [-52, 0, -18], eR: -105, aL: [-58, 0, 16], eL: -100 },
@@ -163,7 +164,7 @@
       follow: W(LUNGE, { P: [0, -30, 0], T: [14, -36, 0], H: [0, 40, 0], aR: [-44, 0, -62], eR: -22, wR: [62, 0, 0], aL: [-40, 0, 10], eL: -60, kL: 46, y: -0.11, z: 0.15 }) },
     // The heavy blow: both hands above the head, the whole body dropping into the cut.
     heavy: { land: 0.55, strike: 0.14,
-      coil: W(BACK, { P: [0, -12, 0], T: [-16, -6, 0], H: [8, 12, 0], aR: [-166, 0, 12], eR: -64, wR: [-18, 0, 0], aL: [-166, 0, -12], eL: -64, y: -0.03, z: -0.07 }),
+      coil: W(BACK, { P: [0, -12, 0], T: [-12, -6, 0], H: [6, 12, 0], aR: [-166, 0, 12], eR: -30, wR: [50, 0, 0], aL: [-166, 0, -12], eL: -32, y: -0.03, z: -0.07 }), // (arms up and nearly straight, the weapon high and tipped back: not folded down behind the neck)
       hit: W(LUNGE, { P: [0, 6, 0], T: [32, 6, 0], H: [-14, -6, 0], aR: [-60, 0, 12], eR: -8, wR: [52, 0, 0], aL: [-60, 0, -12], eL: -10, kL: 60, y: -0.18, z: 0.22 }),
       follow: W(LUNGE, { P: [0, 8, 0], T: [40, 8, 0], H: [-18, -8, 0], aR: [-40, 0, 10], eR: -10, wR: [66, 0, 0], aL: [-40, 0, -10], eL: -12, kL: 64, y: -0.21, z: 0.23 }) },
     // A spear thrust: the point goes first, the body follows, the lead foot lands last.
@@ -171,9 +172,10 @@
       coil: W(BACK, { P: [0, -36, 0], T: [4, -22, 0], H: [0, 44, 0], aR: [30, 0, -18], eR: -104, wR: [76, 0, 0], aL: [-54, 0, 4], eL: -32 }),
       hit: W(LUNGE, { P: [0, 12, 0], T: [18, 24, 0], H: [-6, -28, 0], aR: [-80, 0, 6], eR: -4, wR: [84, 0, 0], aL: [-72, 0, -6], eL: -28, kL: 62, y: -0.16, z: 0.27 }),
       follow: W(LUNGE, { P: [0, 8, 0], T: [16, 18, 0], H: [-6, -22, 0], aR: [-62, 0, 2], eR: -34, wR: [86, 0, 0], aL: [-64, 0, -2], eL: -36, kL: 56, y: -0.15, z: 0.22 }) },
-    // The mace brought over from behind the back, both hands on the haft, the knees sinking under it.
+    // The mace raised high over the head, tipped a little back, both hands on the haft; then down, the knees sinking under it.
+    // (It used to hang down behind the back with the elbows folded shut, which no arm with a mace in it does.)
     smash: { land: 0.56, strike: 0.15,
-      coil: W(BACK, { P: [0, -14, 0], T: [-18, -10, 0], H: [10, 16, 0], aR: [-152, 0, 6], eR: -104, wR: [-34, 0, 0], aL: [-150, 0, -16], eL: -98, y: -0.02, z: -0.08 }),
+      coil: W(BACK, { P: [0, -14, 0], T: [-12, -10, 0], H: [8, 16, 0], aR: [-165, 0, 8], eR: -28, wR: [58, 0, 0], aL: [-163, 0, -14], eL: -30, y: 0.0, z: -0.08 }),
       hit: W(LUNGE, { P: [0, 4, 0], T: [36, 4, 0], H: [-16, -4, 0], aR: [-58, 0, 10], eR: -6, wR: [58, 0, 0], aL: [-58, 0, -12], eL: -10, lL: [-48, 0, 8], kL: 66, lR: [28, 0, -10], kR: 14, y: -0.22, z: 0.18 }),
       follow: W(LUNGE, { P: [0, 4, 0], T: [44, 4, 0], H: [-20, -4, 0], aR: [-40, 0, 8], eR: -8, wR: [68, 0, 0], aL: [-40, 0, -10], eL: -12, lL: [-48, 0, 8], kL: 70, lR: [28, 0, -10], kR: 16, y: -0.25, z: 0.19 }) },
     // The mace swung level from the right, the hips throwing it round through everyone in reach.
