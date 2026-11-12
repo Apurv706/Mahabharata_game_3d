@@ -171,3 +171,9 @@ Bhima is now a Blender-built model (`tools/blender/bhima.py` -> `js/g3/models/he
 the same joints the fight poses turn, so every move works unchanged. Parts and colour roles let one model change dress and
 build from the look data: youth (lean, no moustache), prince (crown, upper cloth, gold), forest (matted hair, beard, hide),
 war (cuirass). See `tools/blender/README.md`. Everyone else is still code-built.
+
+## Five Pandavas, the dhoti, and a mace-life replay (Nov 12)
+
+- All five Pandavas are now Blender-built (`tools/blender/heroes.py` → `js/g3/models/hero_<name>.js`), each with his own build, face, crown and dress by act. The dhoti is a wrapped cloth with folds round each leg, not a skirt. Mace wind-ups start above the head with a bent elbow.
+- An art brief for the reference pictures of every character, age and attire is in `docs/brief/`.
+- Replay of a mace life (141 frames, one every 30 s) found: the modelled Pandavas appear in few scenes of an ordinary life (the player and soldiers are still the old puppets); the top view in pillared halls was black on an upright phone (camera above the roof) — the roof is now one-sided; the "With you" opening shot stood inside a spread company — it now stands clear.

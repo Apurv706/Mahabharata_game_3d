@@ -839,7 +839,8 @@
         text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
-        shots.push({ secs: 2.0, a: [[ax + (ax >= px ? 3.2 : -3.2), 1.75, az - 3.6], [ax, 1.25, az], 40], b: [[ax + (ax >= px ? 2.3 : -2.3), 1.62, az - 3.0], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }
+        let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
+        shots.push({ secs: 2.0, a: [[ax + sx * 3.2 * ak, 1.75 + 0.5 * (ak - 1), az - 3.6 * ak], [ax, 1.25, az], 40], b: [[ax + sx * 2.3 * ak, 1.62 + 0.5 * (ak - 1), az - 3.0 * ak], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }
       intro = { shots, i: -1, t: 0 };
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
       hud.appendChild(intro.box); hud.appendChild(intro.skip);
