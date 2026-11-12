@@ -284,6 +284,7 @@
     if (a.layDown && R3.can(R, "layDown")) { C.core.use(p, "lay_down", null); R.fx.push({ k: "laydown" }); return; }
     if (a.cover && R3.can(R, "cover")) { C.core.use(p, "cover", null); R.kneelPose = 1.2; R.fx.push({ k: "cover" }); }
     if (a.call && R3.can(R, "call")) { C.core.use(p, "call", null); R.fx.push({ k: "call" }); }
+    if (a.astraBreak) { R.astraRest = R.t + 6; R.fx.push({ k: "mantraBroke" }); return; } // (the figure was not joined in time: the weapon rests, and no use of it is spent)
     if (a.astra) {
       const row = R3.astras(R).find((x) => x.id === a.astra && !x.why);
       if (row) {
@@ -293,8 +294,15 @@
         R.frozen = 2.6;
         const struck = B.units.filter((u) => u.side === "enemy" && u.g && before.get(u.uid) > u.hp), dealt = {};
         struck.forEach((u) => { dealt[u.uid] = before.get(u.uid) - u.hp; });
+        // A mantra poorly spoken (a.astraQ, 0.5 to 1, from how the figure was joined) lands softer: those still standing
+        // get back that share of what it took. It is never stronger than it was.
+        const q = a.astraQ == null ? 1 : clamp(a.astraQ, 0.5, 1);
+        if (q < 1) struck.forEach((u) => { if (u.hp > 0) { const back = Math.round(dealt[u.uid] * (1 - q)); u.hp = Math.min(u.maxHp, u.hp + back); dealt[u.uid] -= back; } });
+        const clash = !!(B.astraOut && B.astraOut.clash), fled = clash || !struck.length ? [] : panic(R, struck);
+        if (clash) R.clash = { uid: B.astraOut.uid, id: row.id, won: false };
         R.astraAfter = { id: row.id, struck: struck.map((u) => u.uid), ang: t ? angTo(p, t) : p.g.a };
-        R.fx.push({ k: "astra", id: row.id, out: B.astraOut, struck: struck.map((u) => u.uid), dealt, ang: R.astraAfter.ang,
+        if (clash) R.frozen = 3.6;
+        R.fx.push({ k: "astra", id: row.id, out: B.astraOut, struck: struck.map((u) => u.uid), dealt, ang: R.astraAfter.ang, q, fled,
           held: living(B, "enemy").filter((u) => u.g && (u.status.asleep || u.status.bound)).map((u) => u.uid) });
         living(B, "enemy").forEach((e) => { if (e.g.atk && held(e)) cancel(e); });
       }
@@ -496,6 +504,15 @@
   // What a divine weapon leaves behind when the light clears. Each is its own: Indra's bolts throw men down where they
   // stand; water carries a whole rank off the way it ran; wind scatters them every way; fire throws no one, but burns on
   // where it fell, and no one can set his feet to strike inside it. (Sleep and the serpent-noose hold without a blow.)
+  // Panic. Common soldiers who saw a divine weapon land beside them throw down their spears and run: up to two, never
+  // more than half of those still on their feet, never a captain or a named man, never one it holds asleep or bound. (One it struck and did not kill runs as readily as one it missed.) They
+  // leave the fight alive and count as beaten (the owner's ruling).
+  function panic(R, struck) {
+    const B = R.B, p = C.player(), hit = new Set(struck.map((u) => u.uid));
+    const pool = living(B, "enemy").filter((u) => u.g && !u.hero && !u.person && !u.decoy && !u.g.car && !(u.status.asleep || u.status.bound) && (RT.tierOf ? RT.tierOf(u) : 0) < 1);
+    const n = Math.min(2, Math.floor(pool.length / 2));
+    return pool.sort((a, b) => (hit.has(b.uid) ? 1 : 0) - (hit.has(a.uid) ? 1 : 0) || dist(a, p) - dist(b, p)).slice(0, n).map((u) => { u.g.flee = R.t + 1.8; u.g.burnUntil = 0; cancel(u); return u.uid; });
+  }
   function astraAfter(R, A) {
     const B = R.B, p = C.player(), us = A.struck.map((id) => B.units.find((x) => x.uid === id)).filter((u) => u && u.g && u.hp > 0);
     if (A.id === "varuna") us.forEach((u) => { knock(R, u, A.ang, 4.2, true); u.g.down = Math.max(u.g.down, 1.4); });
@@ -781,6 +798,10 @@
   function foeStep(R, e, dt) {
     const B = R.B, p = C.player(), g = e.g;
     if (e.decoy) { if (R.t >= e.decoy || !B.units.some((x) => x.uid === e.real && x.hp > 0)) vanishDecoy(R, e); else if (p && p.g) g.a = turnTo(g.a, angTo(e, p), 6 * dt); return; } // a false Ghatotkacha only stands and looks at you
+    if (g.flee) { // he has seen a divine weapon land: he runs, and is out of the fight
+      g.a = turnTo(g.a, angTo(p, e), 9 * dt); g.x += Math.sin(g.a) * 5.4 * dt; g.z += Math.cos(g.a) * 5.4 * dt; g.moving = 1; g.atk = null;
+      if (R.t >= g.flee) { e.hp = 0; e.fled = true; R.fx.push({ k: "fled", uid: e.uid }); }
+      return; }
     traitStep(R, e);
     if (g.wheelUntil > R.t) return; // Karna frees his sunken wheel
     if (g.boundUntil > R.t && !g.atk) { g.moving = 0; if (g.cool > 0) g.cool -= dt; return; } // the serpent's coil: his feet are held
@@ -992,6 +1013,13 @@
     R.n++;
     if (R.frozen > 0) { // a divine weapon's moment: the fight stands still
       R.frozen -= STEP; if (act.orders) Object.assign(R.orders, act.orders);
+      if (R.clash && act.clashWin) R.clash.won = true;
+      if (R.frozen <= 0 && R.clash) { // two weapons met in the air. Whoever kept his mantra the longer has a part of his come through.
+        const h = B.units.find((x) => x.uid === R.clash.uid);
+        if (R.clash.won && h && h.hp > 0 && h.g) { const floor = who(h) === "bhishma" && RT.warDay && RT.warDay() < 10 ? Math.round(h.maxHp * 0.1) : 1, n = Math.max(0, Math.min(h.hp - floor, Math.round(h.maxHp * 0.08)));
+          h.hp -= n; h.g.stag = Math.max(h.g.stag || 0, 2.2); cancel(h); R.fx.push({ k: "clashEnd", won: true, uid: h.uid, n }); }
+        else R.fx.push({ k: "clashEnd", won: false, uid: R.clash.uid });
+        R.clash = null; R.astraAfter = null; }
       if (R.frozen <= 0 && R.astraAfter) { astraAfter(R, R.astraAfter); R.astraAfter = null; }
       return R;
     }

@@ -103,6 +103,9 @@
     "Three watches, each harder than the last. Hold to move your hand right; let go and it drifts left. Stay inside the band.": "तीन पहर, हर एक पिछले से कठिन। हाथ दाएँ ले जाने को दबाए रखो; छोड़ो तो वह बाएँ सरकता है। पट्टी के भीतर रहो।",
     "First watch": "पहला पहर", "Second watch": "दूसरा पहर", "Third watch": "तीसरा पहर", "{w} · Steady: {c}%": "{w} · स्थिरता: {c}%",
     "The first watch is kept. Now it leaps.": "पहला पहर निभ गया। अब वह उछलेगी।", "The second is kept. Now your own hand is not your own.": "दूसरा भी निभ गया। अब तुम्हारा अपना हाथ तुम्हारा नहीं।",
-    "Hold to dive, let go to rise. The glow rides the current up and down: stay level with it until your hand closes, then come up before your breath is gone.": "गोता लगाने को दबाए रखो, ऊपर आने को छोड़ो। चमक धारा के साथ ऊपर-नीचे होती है: जब तक हाथ उस पर बंद न हो, उसी गहराई पर रहो, फिर साँस टूटने से पहले ऊपर आ जाओ।"
+    "Hold to dive, let go to rise. The glow rides the current up and down: stay level with it until your hand closes, then come up before your breath is gone.": "गोता लगाने को दबाए रखो, ऊपर आने को छोड़ो। चमक धारा के साथ ऊपर-नीचे होती है: जब तक हाथ उस पर बंद न हो, उसी गहराई पर रहो, फिर साँस टूटने से पहले ऊपर आ जाओ।",
+    "Join the points in one stroke to speak the mantra": "मंत्र बोलने को बिंदुओं को एक ही रेखा में जोड़ो", "He answers! Join it twice before the ring closes": "वह उत्तर देता है! घेरा सिमटने से पहले इसे दो बार जोड़ो",
+    "The mantra broke": "मंत्र टूट गया", "They break and run": "वे टूटकर भाग खड़े हुए", "{t} answers with the counter-weapon. The two meet in the air.": "{t} प्रति-अस्त्र से उत्तर देता है। दोनों आकाश में टकराते हैं।",
+    "Your mantra holds the longer: a part of your weapon breaks through.": "तुम्हारा मंत्र अधिक देर टिका: तुम्हारे अस्त्र का एक अंश भेद गया।", "The two weapons burn each other out, and both are gone.": "दोनों अस्त्र एक-दूसरे को भस्म कर देते हैं, और दोनों मिट जाते हैं।",
   });
 })(window.K = window.K || {});

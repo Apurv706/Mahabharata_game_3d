@@ -16,10 +16,13 @@
   const BORDER = { none: 0, band: 1, lines: 2, zari: 3, temple: 4, royal: 5, rim: 6 };
   G.SURF = { id: ID, border: BORDER };
 
-  const VPARS = "attribute vec4 surfP;\nattribute vec4 surfA;\nattribute vec4 surfB;\nattribute vec4 surfC;\nvarying vec4 vSp;\nvarying vec4 vSa;\nvarying vec4 vSb;\nvarying vec4 vSc;\n";
-  const VMAIN = "\nvSp = surfP; vSa = surfA; vSb = surfB; vSc = surfC;\n";
+  const VPARS = "attribute vec4 surfP;\nattribute vec4 surfA;\nattribute vec4 surfB;\nattribute vec4 surfC;\nvarying vec4 vSp;\nvarying vec4 vSa;\nvarying vec4 vSb;\nvarying vec4 vSc;\n#if SURF_MAP == 1\nattribute vec2 faceUV;\nvarying vec2 vFuv;\n#endif\n";
+  const VMAIN = "\nvSp = surfP; vSa = surfA; vSb = surfB; vSc = surfC;\n#if SURF_MAP == 1\nvFuv = faceUV;\n#endif\n";
+  // A modelled head wears a painted face (js/g3/face.js): the canvas, and which of its four faces, are set for each figure as it is drawn.
+  G.faceU = { tex: { value: null }, cell: { value: new T.Vector4(0, 0, 0, 0) } };
   const FPARS = [
     "varying vec4 vSp; varying vec4 vSa; varying vec4 vSb; varying vec4 vSc;",
+    "#if SURF_MAP == 1\nvarying vec2 vFuv; uniform sampler2D uFaceTex; uniform vec4 uFaceCell;\n#endif",
     "float sH(vec2 p){ p = fract(p * vec2(123.34, 345.45)); p += dot(p, p + 34.345); return fract(p.x * p.y); }",
     "float sN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(sH(i), sH(i + vec2(1., 0.)), f.x), mix(sH(i + vec2(0., 1.)), sH(i + vec2(1., 1.)), f.x), f.y); }",
     "float sB(float x, float a, float b, float w){ return smoothstep(a - w, a + w, x) - smoothstep(b - w, b + w, x); }",
@@ -120,6 +123,9 @@
         col = mix(col, mix(c3, GOLD, g), mb); spS = mix(spS, .2 + .65 * g, mb); spC = mix(spC, mix(vec3(1.), GOLD * 2.6, g), mb); surfShn = mix(surfShn, 40., mb * g); }
       else { mb = 1. - smoothstep(1. - tw, 1. + tw, t); col = mix(col, c3 * (.92 + .16 * sN(qm * 70.)), mb); spS = mix(spS, .95, mb); surfShn = mix(surfShn, 48., mb); spC = mix(spC, c3 * 2.6 + .1, mb); }
     }
+    #if SURF_MAP == 1
+      if (uFaceCell.z > 0. && vFuv.x > .004 && sid > 20.5 && sid < 21.5) { vec4 ft = texture2D(uFaceTex, uFaceCell.xy + vFuv * uFaceCell.zw); col = mix(col, ft.rgb, ft.a); spS *= 1. - .6 * ft.a; } // (the painted face, on the head's own skin)
+    #endif
     diffuseColor.rgb = col; surfSpc = spC * spS;
   }
 `;
@@ -134,6 +140,7 @@
     if (/[?&]nosurf=1/.test(location.search)) { m.userData.keep = true; return m; } // (plain colours, for comparing and for timing)
     m.defines = { SURF_MAP: o.map || 0 };
     m.onBeforeCompile = (sh) => {
+      if (o.map === 1) { sh.uniforms.uFaceTex = G.faceU.tex; sh.uniforms.uFaceCell = G.faceU.cell; }
       sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + VPARS).replace("#include <begin_vertex>", "#include <begin_vertex>" + VMAIN);
       sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + FPARS).replace("#include <color_fragment>", "#include <color_fragment>" + FMAIN)
         .replace("#include <lights_phong_fragment>", "#include <lights_phong_fragment>" + FLIGHT).replace("#include <lights_fragment_end>", "#include <lights_fragment_end>" + FRIM);

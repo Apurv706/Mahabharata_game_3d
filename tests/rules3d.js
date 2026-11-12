@@ -153,5 +153,30 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   C.settle("flee"); C.end();
 }
 
+// 10. Divine weapons: a poorly spoken mantra lands softer, common soldiers break and run (and count as beaten), a broken
+//     mantra rests the weapon, and a champion's counter is a contest.
+{
+  const cast = (o) => { const K = fresh(9); const S = life(K, { path: "archer" }); S.astras = [{ id: "agneya", from: "test" }]; S.tapas = 30;
+    const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, {}), p = C.player();
+    for (let i = 0; i < 120; i++) { p.hp = p.maxHp; R3.step(R, {}); } p.hp = Math.round(p.maxHp * 0.4);
+    const foes = () => B.units.filter((u) => u.side === "enemy" && u.g);
+    if (o.hero) foes().find((u) => u.hp > 0).hero = true;
+    const before = new Map(foes().map((u) => [u.uid, u.hp])), ready = R3.astras(R).some((x) => x.id === "agneya" && !x.why);
+    R3.step(R, o.act); const fx = R.fx.slice(); let ended = null, fled = 0;
+    for (let i = 0; i < 60 * 7 && !R.over; i++) { p.hp = Math.max(p.hp, 60); R3.step(R, i < 200 && o.hold ? o.hold : {}); for (const e of R.fx) { if (e.k === "clashEnd") ended = e; if (e.k === "fled") fled++; } R.fx.length = 0; }
+    const out = { ready, fx, ended, fled, lost: foes().reduce((n, u) => n + Math.max(0, before.get(u.uid) - Math.max(0, u.hp)) * (u.fled ? 0 : 1), 0), a: fx.find((e) => e.k === "astra"), rest: R3.astras(R).find((x) => x.id === "agneya"), uses: K.astraLeft ? K.astraLeft("agneya") : null, hero: foes().find((u) => u.hero), before };
+    try { C.settle("flee"); C.end(); } catch (e) {} return out; };
+  const full = cast({ act: { astra: "agneya" } }), soft = cast({ act: { astra: "agneya", astraQ: 0.5 } });
+  ok(full.ready && full.a && full.a.struck.length > 0, "A mantra joined cleanly lands as it always did");
+  const sum = (x) => Object.values(x.a.dealt).reduce((n, v) => n + v, 0);
+  ok(soft.a && sum(soft) < sum(full) && soft.a.q === 0.5, "A mantra poorly joined lands softer (" + sum(soft) + " against " + sum(full) + ")");
+  ok(full.a.fled.length >= 1 && full.a.fled.length <= 2 && full.fled >= 1 && full.fled <= full.a.fled.length, "Common soldiers break and run, no more than two, and leave the fight (" + full.fled + " of " + full.a.fled.length + ")");
+  const broke = cast({ act: { astraBreak: "agneya" } });
+  ok(!broke.a && broke.fx.some((e) => e.k === "mantraBroke") && broke.uses === full.uses + 1, "A figure not joined in time breaks the mantra and spends no use of it");
+  const draw = cast({ act: { astra: "agneya" }, hero: true }), won = cast({ act: { astra: "agneya" }, hero: true, hold: { clashWin: true } });
+  ok(draw.a && draw.a.out.clash && draw.ended && !draw.ended.won, "A champion answers: left alone, the two weapons burn out");
+  ok(won.ended && won.ended.won && won.ended.n > 0, "Hold your mantra the longer and a part of your weapon comes through (" + (won.ended && won.ended.n) + ")");
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

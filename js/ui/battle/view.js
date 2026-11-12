@@ -388,6 +388,9 @@
         let da = g.a - c.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.rotation.y += da * Math.min(1, dt * (u.hp > 0 ? 5 : 0));
         v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
       }
+      if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
+        v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 1; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
+        if (v.bar) v.bar.style.display = "none"; return; }
       const alive = u.plural ? Math.max(u.hp > 0 ? 1 : 0, Math.ceil(v.bodies * u.hp / u.maxHp)) : u.hp > 0 ? 1 : 0;
       v.figs.forEach((f, i) => {
         const o = v.bodies > 1 ? SQUAD[i] : [0, 0], s = Math.sin(g.a), c = Math.cos(g.a);
@@ -517,7 +520,10 @@
           case "laydown": if (pf) pf.pose("kneel"); toast(U.tr(K.ABILITIES.lay_down.name)); break;
           case "cover": sfx("tap"); break;
           case "lock": break;
-          case "astra": astraFx(e); break;
+          case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
+          case "mantraBroke": toast(U.tr("The mantra broke"), "bad"); sfx("step"); break;
+          case "clashEnd": clashEnd(e); break;
+          case "fled": { const v = views.get(e.uid); if (v) v.fled = 0.001; break; }
           case "fires": firesFx(e); break;
           case "scorch": { const at = posOf(e.uid, 0.5); if (at) G.fx.burst("ember", at, { n: 8, s: 1.2 }); break; }
         }
@@ -590,6 +596,71 @@
         });
       }
       if (e.out && e.out.text) banner(K.text(e.out.text));
+    }
+    // ---------- Speaking a mantra: a figure to join ----------
+    // A divine weapon is not fired by a button. The fight slows, the sky darkens, and the weapon's own figure stands
+    // on the screen: join its points in order in one stroke (or press the numbers) and the mantra is spoken. Quick and
+    // whole, it lands as it always did; slow, it lands softer; not joined in time, it breaks and the weapon rests.
+    // When a champion answers with his counter-weapon the two hold in the air, and the same figure is joined against
+    // a closing ring: twice round before it closes and a part of yours comes through.
+    const YANTRA = { // points in a unit square, and the order they are joined in
+      agneya: [[[0.5, 0.1], [0.86, 0.82], [0.14, 0.82]], [0, 1, 2, 0]],                                              // fire: the triangle that points up
+      varuna: [[[0.14, 0.2], [0.86, 0.2], [0.5, 0.88]], [0, 1, 2, 0]],                                               // water: the triangle that points down
+      vayavya: [[[0.5, 0.5], [0.68, 0.36], [0.5, 0.2], [0.24, 0.42], [0.42, 0.8], [0.84, 0.68]], [0, 1, 2, 3, 4, 5]],  // wind: a spiral opening outward
+      sammohana: [[[0.5, 0.1], [0.88, 0.38], [0.74, 0.84], [0.26, 0.84], [0.12, 0.38]], [0, 2, 4, 1, 3, 0]],           // sleep: the five-pointed lotus
+      nagapasha: [[[0.2, 0.12], [0.76, 0.26], [0.26, 0.44], [0.76, 0.6], [0.26, 0.76], [0.8, 0.9]], [0, 1, 2, 3, 4, 5]], // the serpent, winding
+      astra: [[[0.34, 0.08], [0.66, 0.34], [0.38, 0.46], [0.7, 0.72], [0.5, 0.94]], [0, 1, 2, 3, 4]] };             // Indra's bolt
+    let yantra = null;
+    function yantraOpen(id, mode, secs, done) {
+      if (yantra) return; const fig = YANTRA[id] || YANTRA.astra, pts = fig[0], order = fig[1], col = "#" + (ASTRA_FX[ASTRA_FX[id] ? id : "astra"][0]).toString(16).padStart(6, "0");
+      const name = U.tr(K.astraName ? K.astraName(id) : K.ABILITIES[id].name), S = 100, P = (i) => pts[i][0] * S + "," + pts[i][1] * S;
+      const el = U.el('<div class="b-yantra ' + mode + '" style="--yc:' + col + '"><div class="b-yname">' + U.esc(name) + '</div><div class="b-yhow">' + U.tr(mode === "speak" ? "Join the points in one stroke to speak the mantra" : "He answers! Join it twice before the ring closes") + '</div>' +
+        '<svg viewBox="-8 -8 116 116"><circle class="y-ring" cx="50" cy="50" r="56"/><polyline class="y-guide" points="' + order.map(P).join(" ") + '"/><polyline class="y-done" points=""/>' +
+        pts.map((q, i) => '<g class="y-pt" data-i="' + i + '"><circle cx="' + q[0] * S + '" cy="' + q[1] * S + '" r="7"/><text x="' + q[0] * S + '" y="' + (q[1] * S + 3.4) + '">' + (order.indexOf(i) + 1) + "</text></g>").join("") + '</svg><div class="b-ytime"><i></i></div></div>');
+      hud.appendChild(el); hud.classList.add("invoking"); const svg = el.querySelector("svg");
+      yantra = { id, mode, el, svg, pts, order, at: 0, laps: 0, t: 0, secs, done, down: false };
+      const near = (ev) => { const r = svg.getBoundingClientRect(), x = ((ev.clientX - r.left) / r.width) * 116 - 8, y = ((ev.clientY - r.top) / r.height) * 116 - 8, q = pts[order[yantra.at]]; return Math.hypot(x - q[0] * S, y - q[1] * S) < 13; };
+      const move = (ev) => { if (!yantra || !yantra.down) return; ev.preventDefault(); if (near(ev)) yantraStep(); };
+      el.addEventListener("pointerdown", (ev) => { if (!yantra) return; ev.preventDefault(); yantra.down = true; try { el.setPointerCapture(ev.pointerId); } catch (e) {} if (near(ev)) yantraStep(); });
+      el.addEventListener("pointermove", move);
+      const lift = () => { if (yantra && yantra.down) { yantra.down = false; if (yantra.at > 0 && yantra.at < order.length) { yantra.at = 0; yantraDraw(); } } }; // (one stroke: lift the finger and it begins again)
+      el.addEventListener("pointerup", lift); el.addEventListener("pointercancel", lift);
+      yantra.key = (ev) => { if (!yantra || ev.type !== "keydown") return; const n = +ev.key; if (n >= 1 && n <= 9) { ev.preventDefault(); ev.stopPropagation(); if (order.indexOf(order[yantra.at]) + 1 === n || yantra.at + 1 === n || (n === 1 && yantra.at === order.length - 1 && order[yantra.at] === order[0])) yantraStep(); } };
+      window.addEventListener("keydown", yantra.key, true);
+      yantraDraw(); sfx("gong"); G.fx.flash("rgba(10,8,30,.5)", 600);
+    }
+    function yantraDraw() { const y = yantra, S = 100; y.svg.querySelector(".y-done").setAttribute("points", y.order.slice(0, y.at).map((i) => y.pts[i][0] * S + "," + y.pts[i][1] * S).join(" "));
+      y.svg.querySelectorAll(".y-pt").forEach((g) => { const i = +g.dataset.i; g.classList.toggle("next", y.order[y.at] === i); g.classList.toggle("lit", y.order.slice(0, y.at).includes(i)); }); }
+    function yantraStep() { const y = yantra; y.at++; sfx("step"); const q = y.pts[y.order[y.at - 1]]; void q;
+      if (y.at >= y.order.length) { y.laps++; if (y.mode === "clash" && y.laps < 2) { y.at = 0; y.el.classList.add("lap"); } else { yantraClose(true); return; } }
+      yantraDraw(); }
+    function yantraTick(real) { const y = yantra; if (!y) return; y.t += real; const k = Math.min(1, y.t / y.secs); y.el.querySelector(".b-ytime i").style.width = (1 - k) * 100 + "%"; y.svg.querySelector(".y-ring").setAttribute("r", String(56 - (y.mode === "clash" ? 40 * k : 0)));
+      if (k >= 1 || R.over) yantraClose(false); }
+    function yantraClose(ok) { const y = yantra; if (!y) return; yantra = null; window.removeEventListener("keydown", y.key, true); y.el.classList.add(ok ? "ok" : "broke"); hud.classList.remove("invoking"); setTimeout(() => y.el.remove(), 380); y.done(ok, y.t / y.secs); }
+    function invoke(id) {
+      if (yantra || R.frozen > 0 || R.over || !started) return;
+      if (U.battleBot || K.prefs().easyMantra) { tap("astra", id); if (K.prefs().easyMantra) input.taps.astraQ = 0.7; return; } // (the game's own fighter, and the setting that speaks it for you at lesser force)
+      const pv = views.get(C.player().uid), pf = pv && pv.figs[0]; if (pf) { G.fx.burst("light", pf.chest(), { n: 16, s: 1.1, col: ASTRA_FX[ASTRA_FX[id] ? id : "astra"][0] }); pf.mood = "shout"; setTimeout(() => { pf.mood = null; }, 2600); }
+      yantraOpen(id, "speak", U.mantraSecs || 5, (ok, k) => { if (ok) { tap("astra", id); input.taps.astraQ = k <= 0.5 ? 1 : 1 - (k - 0.5); } else tap("astraBreak", id); });
+    }
+    // The counter: his weapon rises to meet yours and the two hold between you.
+    function clashFx(e) {
+      const p = C.player(), pv = views.get(p.uid), pf = pv && pv.figs[0], hv = views.get(e.out.uid), hf = hv && hv.figs[0]; if (!pf || !hf) return;
+      const id = ASTRA_FX[e.id] ? e.id : "astra", col = ASTRA_FX[id][0], F = G.fx, a = pf.chest(), b = hf.chest(), mid = a.clone().lerp(b, 0.5).setY(4.2), anti = 0xffffff ^ col | 0x404040;
+      toast(U.tr(K.astraName ? K.astraName(e.id) : K.ABILITIES[e.id].name), "good"); sfx("gong"); F.flash("rgba(16,20,56,.55)", 900);
+      F.burst("light", a, { n: 24, s: 1.4, col }); F.burst("light", b, { n: 24, s: 1.4, col: anti }); hf.mood = "shout"; pf.mood = "shout";
+      let t = 0; F.run((dt, cut) => { t += dt; if (cut) return true; const k = Math.min(1, t / 0.5);
+        const ma = a.clone().lerp(mid, k), mb = b.clone().lerp(mid, k); F.beam(a, ma, col, 0.09, 0.12); F.beam(b, mb, anti, 0.09, 0.12);
+        if (k >= 1) { F.burst("spark", mid, { n: 5, s: 2.2, col: Math.random() < 0.5 ? col : anti }); if (Math.random() < dt * 5) { F.ring(mid.clone().setY(0.1), 0xffffff, 0.4, 5, 0.6); G.shake(0.15, 0.2); } }
+        return !R.clash; });
+      banner(U.tr("{t} answers with the counter-weapon. The two meet in the air.", { t: C.name ? C.name(hv.u) : hv.u.name }));
+      if (!U.battleBot) setTimeout(() => { if (!closed && R.clash) yantraOpen(e.id, "clash", U.mantraSecs ? 3.4 : 3.0, (ok) => { if (ok) tap("clashWin"); }); }, 350);
+    }
+    function clashEnd(e) {
+      const hv = views.get(e.uid), hf = hv && hv.figs[0], pv = views.get(C.player().uid), pf = pv && pv.figs[0], F = G.fx; if (hf) hf.mood = null; if (pf) pf.mood = null;
+      if (hf && pf) { const mid = pf.chest().lerp(hf.chest(), 0.5).setY(4.2); F.flash("rgba(255,250,235,.6)", 260); G.shake(0.5, 0.4); sfx("drum"); F.burst("spark", mid, { n: 40, s: 3, col: 0xffffff }); F.ring(mid.clone().setY(0.1), 0xffffff, 0.5, 9, 0.8);
+        if (e.won) { F.bolt(mid, hf.chest(), 0xfff0c0, 0.4); F.burst("ember", hf.chest(), { n: 26, s: 1.8 }); if (e.n) float(hf.chest().setY(1.9), String(e.n), "foe big"); } }
+      banner(U.tr(e.won ? "Your mantra holds the longer: a part of your weapon breaks through." : "The two weapons burn each other out, and both are gone."));
     }
     // Where fire fell it burns on for a while: flames low on the ground, embers and smoke going up.
     function firesFx(e) {
@@ -698,7 +769,7 @@
       if (k === "x") { withdraw(); return; }
       if (k === "o") { cycleOrders(); return; }
       if (k === "r") { cycleView(); return; }
-      if (/^[1-3]$/.test(k)) { const rows = R3.astras(R); const row = rows[+k - 1]; if (row && !row.why) tap("astra", row.id); }
+      if (/^[1-3]$/.test(k)) { const rows = R3.astras(R); const row = rows[+k - 1]; if (row && !row.why) invoke(row.id); }
     }
     function tapRollDir() { /* the roll takes the direction the stick or keys are held (the simulation reads mx, mz with it) */ }
     function withdraw() {
@@ -794,7 +865,7 @@
       if (RT.vanishOffer && RT.vanishOffer(R)) mk(side, "vanish", "Vanish", "G", () => { if (R3.can(R, "vanish")) tap("vanish"); else toast(U.tr("Used this act")); }); // Antardhana (a boon): two seconds unseen
       if (p.abilities.includes("cover")) mk(side, "cover", K.ABILITIES.cover.name, "V", () => tap("cover"));
       if (p.abilities.includes("lay_down")) mk(side, "layDown", K.ABILITIES.lay_down.name, "Y", () => tap("layDown"));
-      R3.astras(R).forEach((row, i) => { if (i < 3) mk(side, "astra" + i, row.name || K.ABILITIES[row.id].name, String(i + 1), () => { const r2 = R3.astras(R)[i]; if (r2 && !r2.why) tap("astra", r2.id); else if (r2) toast(U.esc(r2.why)); }); });
+      R3.astras(R).forEach((row, i) => { if (i < 3) mk(side, "astra" + i, row.name || K.ABILITIES[row.id].name, String(i + 1), () => { const r2 = R3.astras(R)[i]; if (r2 && !r2.why) invoke(r2.id); else if (r2) toast(U.esc(r2.why)); }); });
       mk(side, "spare", "Spare", "F", () => { const s = R3.spareable(R)[0]; if (s) tap("spare", s.uid); });
       if (B.units.some((u) => u.side === "ally" && !u.still)) mk(side, "orders", "Orders", "O", () => cycleOrders());
       mk(side, "lock", "Next foe", "Q", () => tap("lock"));
@@ -1007,7 +1078,8 @@
       gamepad();
       if (started && !R.over && !paused && dt > 0) {
         const sp = U.battleSpeed || 1; // (the smoke tests run fights faster than life)
-        if (hitStop > 0 && sp === 1) hitStop -= real; else acc += Math.min(dt, 0.1) * sp;
+        if (hitStop > 0 && sp === 1) hitStop -= real; else acc += Math.min(dt, 0.1) * sp * (yantra && yantra.mode === "speak" ? 0.2 : 1);
+        if (yantra) yantraTick(real);
         let n = 0;
         while (acc >= R3.STEP && n++ < 8 * sp && !R.over) { R3.step(R, act()); acc -= R3.STEP; events(); if (hitStop > 0 && sp === 1) break; }
         if (n >= 5 * sp) acc = Math.min(acc, R3.STEP * 2);

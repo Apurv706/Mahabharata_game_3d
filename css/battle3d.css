@@ -194,3 +194,26 @@ body.in3d #b3d { display: block; }
 .b-ord.on { border-color: #e2b55a; background: rgba(98, 62, 22, 0.92); } .b-ord:active { transform: scale(0.985); }
 .b-ordx { width: 100%; }
 @media (min-width: 700px) { .b-card.b-orders { width: min(640px, calc(100% - 24px)); } .b-ordgrid { grid-template-columns: 1fr 1fr; } }
+
+/* Speaking a mantra: the weapon's figure, joined in one stroke (js/ui/battle/view.js, yantraOpen) */
+.b-yantra { position: absolute; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: radial-gradient(circle at 50% 52%, rgba(12, 10, 34, .2), rgba(8, 6, 24, .78)); animation: yIn .25s ease-out; }
+.b-yantra.ok { animation: yOut .38s ease-in forwards; } .b-yantra.broke { animation: yOut .38s ease-in forwards; filter: grayscale(1); }
+.bhud.invoking > .b-tip, .bhud.invoking > .b-line { display: none; }
+.b-yname { font: 600 22px/1.2 var(--serif, Georgia, serif); color: var(--yc); text-shadow: 0 0 14px var(--yc); letter-spacing: .04em; }
+.b-yhow { font-size: 14px; color: #efe6cf; opacity: .9; text-align: center; padding: 0 20px; }
+.b-yantra svg { width: min(78vw, 46vh, 360px); height: auto; overflow: visible; }
+.b-yantra .y-ring { fill: none; stroke: var(--yc); stroke-width: .8; opacity: .55; }
+.b-yantra.clash .y-ring { stroke: #fff; stroke-width: 1.6; opacity: .9; }
+.b-yantra .y-guide { fill: none; stroke: #efe6cf; stroke-width: 1; stroke-dasharray: 2 3; opacity: .45; }
+.b-yantra .y-done { fill: none; stroke: var(--yc); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px var(--yc)); }
+.b-yantra .y-pt circle { fill: rgba(20, 16, 40, .85); stroke: #efe6cf; stroke-width: 1.2; }
+.b-yantra .y-pt text { font: 600 9px/1 system-ui, sans-serif; fill: #efe6cf; text-anchor: middle; pointer-events: none; }
+.b-yantra .y-pt.lit circle { fill: var(--yc); stroke: var(--yc); } .b-yantra .y-pt.lit text { fill: #1a1408; }
+.b-yantra .y-pt.next circle { stroke: var(--yc); stroke-width: 2.4; animation: yPulse .7s ease-in-out infinite; }
+.b-ytime { width: min(60vw, 260px); height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.b-ytime i { display: block; height: 100%; width: 100%; background: var(--yc); }
+@keyframes yIn { from { opacity: 0; } to { opacity: 1; } } @keyframes yOut { to { opacity: 0; transform: scale(1.12); } }
+@keyframes yPulse { 50% { r: 9.5px; } }
+@media (prefers-reduced-motion: reduce) { .b-yantra, .b-yantra.ok, .b-yantra.broke { animation: none; } .b-yantra .y-pt.next circle { animation: none; } }
+
