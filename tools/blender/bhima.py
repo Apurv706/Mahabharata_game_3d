@@ -7,7 +7,7 @@ OUT = argv[0] if argv else "."
 STAGE = argv[1] if len(argv) > 1 else "all"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 S = bpy.context.scene
-WIDE = 1.2; SHX = 0.255 * WIDE; HPX = 0.1 * WIDE
+WIDE = 1.2; SHX = 0.255 * WIDE * 0.9; HPX = 0.1 * WIDE   # (a modelled hero's shoulder joints stand a little closer: js/g3/figure.js)
 
 def mat(name, col, rough=0.6, metal=0.0, emit=None):
     m = bpy.data.materials.new(name); m.use_nodes = True; b = m.node_tree.nodes["Principled BSDF"]
@@ -46,54 +46,74 @@ from mathutils import Euler
 def rot(rx, ry, rz): return tuple(Euler((rx, ry, rz)).to_quaternion())
 
 # ---- The body: a wrestler's build. Heavy chest and shoulders, thick arms and thighs, a solid waist.
-AX = SHX + 0.006   # the arm's own line, shoulder to wrist
+AX = SHX + 0.03   # the arm's own line: it hangs a little out from the joint, pushed there by the lats
+# Anatomy, after a heavyweight's: wide shoulders over a narrow waist (the lats make the V), pectorals that tie in under the
+# deltoids, a trapezius sloping from a thick neck, the belly's wall in rows, thighs with their outer sweep and the
+# teardrop over the knee, calves in two heads. z is height: collar 1.44, nipples 1.30, ribs' end 1.14, navel 1.05, crotch 0.86.
 torso = sym([
-  ((0, 0.0, 1.30), (0.185, 0.128, 0.17)),                   # ribcage
-  ((0.095, -0.082, 1.335), (0.098, 0.062, 0.078), 1.5),     # pectorals: two slabs
-  ((0, -0.15, 1.33), (0.012, 0.03, 0.10), 1.4, None, True), # the groove between them
-  ((0.1, -0.135, 1.255), (0.09, 0.02, 0.012), 1.4, None, True),   # the crease under each
-  ((0, 0.07, 1.34), (0.19, 0.08, 0.15), 1.6),               # upper back
-  ((0.1, 0.085, 1.30), (0.075, 0.05, 0.12), 1.4),           # the blades and the muscle over them
-  ((0, 0.14, 1.25), (0.012, 0.02, 0.22), 1.4, None, True),  # the spine's furrow
-  ((0.125, 0.03, 1.2), (0.07, 0.085, 0.13), 1.4),           # lats, tapering to the waist
-  ((0, -0.01, 1.12), (0.15, 0.112, 0.13)),                  # belly, upper
-  ((0, -0.03, 1.03), (0.155, 0.115, 0.11)),                 # belly, lower
-  ((0.042, -0.118, 1.2), (0.036, 0.022, 0.03), 1.5),        # the belly's muscle, three rows of two
-  ((0.042, -0.128, 1.135), (0.036, 0.022, 0.03), 1.5),
-  ((0.04, -0.132, 1.07), (0.036, 0.022, 0.032), 1.5),
-  ((0, -0.16, 1.13), (0.007, 0.03, 0.12), 1.4, None, True), # the line down its middle
-  ((0.125, -0.06, 1.1), (0.04, 0.06, 0.07), 1.4),           # obliques
-  ((0, 0.01, 0.94), (0.175, 0.122, 0.12)),                  # pelvis
-  ((0.085, 0.078, 0.90), (0.1, 0.088, 0.1), 1.5),           # glutes
-  ((0.1, 0.035, 1.435), (0.1, 0.07, 0.04), 1.6, rot(0, 0.5, 0)),  # trapezius, neck to shoulder
-  ((0.17, 0.0, 1.415), (0.09, 0.075, 0.05), 1.6),           # collar and shoulder girdle
-  ((0, 0.015, 1.52), (0.06, 0.064, 0.10)),                  # neck
-  ((0.035, -0.035, 1.5), (0.018, 0.022, 0.07), 1.5, rot(0.25, 0.2, 0)),   # the cords of the neck
-  ((HPX + 0.012, 0.0, 0.72), (0.102, 0.11, 0.21)),          # thigh
-  ((HPX + 0.03, -0.055, 0.68), (0.055, 0.05, 0.15), 1.4),   # quadriceps: outer sweep
-  ((HPX - 0.02, -0.06, 0.6), (0.04, 0.04, 0.07), 1.4),      # and the teardrop over the knee
-  ((HPX + 0.012, 0.07, 0.68), (0.07, 0.05, 0.15), 1.4),     # hamstrings
-  ((HPX + 0.005, -0.01, 0.47), (0.058, 0.064, 0.065)),      # knee
-  ((HPX + 0.005, -0.05, 0.47), (0.03, 0.025, 0.035), 1.5),  # kneecap
-  ((HPX + 0.03, 0.045, 0.34), (0.04, 0.05, 0.1), 1.4),      # calf: outer head
-  ((HPX - 0.02, 0.045, 0.33), (0.038, 0.05, 0.11), 1.4),    # calf: inner head
-  ((HPX + 0.005, 0.0, 0.3), (0.05, 0.055, 0.14)),           # shin
-  ((HPX + 0.005, 0.005, 0.14), (0.042, 0.047, 0.11)),       # shin to ankle
-  ((HPX + 0.035, 0.005, 0.07), (0.016, 0.018, 0.02), 1.6),  # ankle bone
-  ((HPX + 0.008, -0.045, 0.035), (0.05, 0.105, 0.034)),     # foot
-  ((HPX + 0.008, -0.125, 0.026), (0.05, 0.045, 0.024)),     # toes
-  ((HPX + 0.005, 0.035, 0.045), (0.038, 0.045, 0.04)),      # heel
+  ((0, 0.005, 1.33), (0.175, 0.12, 0.13)),                  # ribcage, upper
+  ((0, 0.0, 1.2), (0.15, 0.108, 0.1)),                      # ribcage, lower
+  ((0, -0.005, 1.09), (0.122, 0.098, 0.1)),                 # waist: narrow
+  ((0, -0.012, 1.0), (0.128, 0.102, 0.08)),                 # lower belly
+  ((0, 0.01, 0.93), (0.158, 0.118, 0.095)),                 # pelvis
+  ((0.125, 0.015, 0.94), (0.055, 0.08, 0.07), 1.5),         # hips: the muscle over the hip bone
+  ((0.095, -0.1, 1.31), (0.108, 0.082, 0.082), 1.5),       # pectorals: broad, deep, squared below
+  ((0.085, -0.082, 1.375), (0.085, 0.05, 0.04), 1.5),       # their upper part, under the collar bone
+  ((0.185, -0.06, 1.345), (0.06, 0.05, 0.055), 1.5),        # and the tie-in under the deltoid
+  ((0, -0.155, 1.32), (0.011, 0.03, 0.095), 1.4, None, True),     # the groove between them
+  ((0.095, -0.158, 1.228), (0.085, 0.022, 0.011), 1.4, None, True), # the line under each
+  ((0, 0.075, 1.36), (0.185, 0.075, 0.11), 1.6),            # upper back
+  ((0.105, 0.09, 1.31), (0.07, 0.045, 0.1), 1.4),           # the muscle over the blades
+  ((0.175, 0.04, 1.285), (0.07, 0.085, 0.115), 1.5),        # latissimus: the flare under the arm
+  ((0.14, 0.035, 1.17), (0.055, 0.075, 0.09), 1.5),         # and its taper to the waist
+  ((0.045, 0.1, 1.1), (0.034, 0.03, 0.15), 1.5),            # the columns either side of the spine
+  ((0, 0.15, 1.2), (0.011, 0.022, 0.24), 1.4, None, True),  # the spine's furrow
+  ((0.036, -0.1, 1.2), (0.028, 0.012, 0.022), 1.7),       # the belly's wall: three rows of two, low in relief
+  ((0.036, -0.103, 1.14), (0.028, 0.012, 0.022), 1.7),
+  ((0.035, -0.103, 1.08), (0.027, 0.012, 0.023), 1.7),
+  ((0, -0.1, 1.005), (0.05, 0.012, 0.045), 1.7),          # and the plate below the navel
+  ((0, -0.14, 1.13), (0.005, 0.02, 0.12), 1.4, None, True), # the line down its middle
+  ((0.145, -0.068, 1.225), (0.017, 0.018, 0.011), 1.7), ((0.14, -0.072, 1.19), (0.017, 0.018, 0.011), 1.7), ((0.132, -0.075, 1.155), (0.017, 0.018, 0.011), 1.7),  # serratus: the fingers on the ribs
+  ((0.112, -0.045, 1.07), (0.034, 0.058, 0.06), 1.5),       # obliques
+  ((0.09, 0.085, 0.9), (0.098, 0.085, 0.095), 1.5),         # glutes
+  ((0.07, 0.035, 1.475), (0.08, 0.058, 0.055), 1.6, rot(0, 0.55, 0)),   # trapezius: from the neck
+  ((0.135, 0.035, 1.42), (0.07, 0.055, 0.028), 1.6),        # down to the shoulder's point
+  ((0, 0.012, 1.53), (0.06, 0.066, 0.09)),                  # neck
+  ((0.034, -0.035, 1.505), (0.017, 0.02, 0.07), 1.5, rot(0.25, 0.2, 0)),   # its cords
+  ((0.075, -0.088, 1.428), (0.06, 0.011, 0.009), 1.7),      # collar bones
+  ((SHX, 0.0, 1.372), (0.068, 0.072, 0.068)),               # deltoid: the core over the joint
+  ((SHX - 0.012, -0.048, 1.365), (0.052, 0.05, 0.066), 1.5),# front head
+  ((SHX + 0.04, 0.0, 1.355), (0.048, 0.062, 0.075), 1.5),   # side head: the width of him
+  ((SHX - 0.005, 0.052, 1.365), (0.05, 0.048, 0.064), 1.5), # rear head
+  ((HPX + 0.02, 0.0, 0.72), (0.098, 0.108, 0.2)),           # thigh
+  ((HPX + 0.068, -0.03, 0.7), (0.048, 0.06, 0.155), 1.5),   # the outer sweep
+  ((HPX + 0.02, -0.078, 0.72), (0.05, 0.04, 0.165), 1.5),   # the long muscle down the front
+  ((HPX - 0.022, -0.055, 0.585), (0.042, 0.04, 0.065), 1.5),# the teardrop over the knee
+  ((HPX - 0.048, 0.0, 0.77), (0.05, 0.07, 0.115), 1.5),     # inner thigh
+  ((HPX + 0.02, 0.078, 0.68), (0.07, 0.05, 0.16), 1.5),     # hamstrings
+  ((HPX + 0.008, -0.01, 0.47), (0.056, 0.062, 0.062)),      # knee
+  ((HPX + 0.008, -0.052, 0.47), (0.03, 0.024, 0.034), 1.6), # kneecap
+  ((HPX + 0.008, -0.005, 0.3), (0.046, 0.05, 0.15)),        # shin
+  ((HPX - 0.02, 0.05, 0.345), (0.04, 0.048, 0.1), 1.5),     # calf: inner head, the lower and fuller
+  ((HPX + 0.036, 0.05, 0.36), (0.037, 0.045, 0.088), 1.5),  # calf: outer head
+  ((HPX + 0.008, 0.005, 0.13), (0.038, 0.044, 0.1)),        # shin to ankle
+  ((HPX + 0.04, 0.005, 0.07), (0.015, 0.017, 0.019), 1.7), ((HPX - 0.022, 0.0, 0.078), (0.015, 0.017, 0.019), 1.7),   # ankle bones
+  ((HPX + 0.01, -0.045, 0.035), (0.05, 0.105, 0.034)),      # foot
+  ((HPX + 0.01, -0.125, 0.026), (0.05, 0.045, 0.024)),      # toes
+  ((HPX + 0.008, 0.035, 0.045), (0.038, 0.045, 0.04)),      # heel
 ])
 arms = sym([
-  ((SHX - 0.004, 0.0, 1.385), (0.082, 0.088, 0.082)),       # deltoid: a cap over the shoulder
-  ((SHX + 0.03, 0.0, 1.36), (0.05, 0.07, 0.08), 1.5),       # its outer swell
-  ((AX, 0.0, 1.25), (0.062, 0.066, 0.14)),                  # upper arm
-  ((AX - 0.004, -0.04, 1.265), (0.046, 0.042, 0.085), 1.4), # biceps
-  ((AX + 0.008, 0.045, 1.26), (0.045, 0.04, 0.1), 1.4),     # triceps
-  ((AX, 0.0, 1.125), (0.046, 0.05, 0.05)),                  # elbow
-  ((AX + 0.012, -0.012, 1.03), (0.05, 0.05, 0.1), 1.4),     # forearm: the outer mass under the elbow
-  ((AX, 0.0, 1.0), (0.05, 0.056, 0.12)),                    # forearm
-  ((AX, 0.0, 0.88), (0.036, 0.042, 0.085)),                 # forearm to wrist
+  ((SHX + 0.012, 0.0, 1.345), (0.06, 0.064, 0.07)),         # the arm's head, inside the deltoid
+  ((AX, 0.0, 1.25), (0.06, 0.064, 0.125)),                  # upper arm
+  ((AX - 0.006, -0.046, 1.25), (0.05, 0.044, 0.082), 1.5),  # biceps, with its peak
+  ((AX + 0.022, 0.04, 1.275), (0.04, 0.04, 0.078), 1.5),    # triceps: outer head
+  ((AX - 0.016, 0.05, 1.245), (0.04, 0.04, 0.098), 1.5),    # triceps: long head
+  ((AX, 0.006, 1.125), (0.042, 0.046, 0.045)),              # elbow
+  ((AX + 0.004, 0.045, 1.125), (0.02, 0.02, 0.022), 1.7),   # its point
+  ((AX + 0.016, -0.012, 1.055), (0.05, 0.05, 0.08), 1.5),   # forearm: the mass on the thumb side
+  ((AX - 0.012, 0.0, 1.04), (0.046, 0.05, 0.09), 1.5),      # and on the other
+  ((AX, 0.0, 0.94), (0.04, 0.044, 0.09)),                   # forearm, tapering
+  ((AX, 0.0, 0.86), (0.027, 0.034, 0.045)),                 # wrist
 ])
 def hand(sx):
     px = sx * (AX + 0.016)                                   # the palm stands a little out, so what is held lies against it
@@ -115,7 +135,7 @@ def lean(balls, k=0.84):   # a youth's build: the same frame, less on it, and no
         out.append(((b[0][0], b[0][1] * (0.8 if st < 1.55 else 1), b[0][2]), (b[1][0] * kk, b[1][1] * kk, b[1][2])) + tuple(b[2:]))
     return out
 def mk_body(name, t, a):
-    Bt = metaballs(name + "t", t, 0.016, 0.62); Ba = metaballs(name + "a", a, 0.014, 0.62)
+    Bt = metaballs(name + "t", t, 0.0125, 0.62); Ba = metaballs(name + "a", a, 0.0115, 0.62)
     bpy.ops.object.select_all(action="DESELECT"); Bt.select_set(True); Ba.select_set(True); bpy.context.view_layer.objects.active = Bt; bpy.ops.object.join(); o = bpy.context.object; o.name = name; o.select_set(False); return o
 B = mk_body("body", torso, arms); BL = mk_body("bodylean", lean(torso), lean(arms, 0.8))
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
@@ -140,14 +160,14 @@ head = sym([
 Hd = metaballs("head", head, 0.0085, 0.62)
 for o in [B, BL, Hd] + HANDS:
     o.data.materials.append(M["skin"])
-    m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 3 if o in (B, BL) else 2; m.factor = 0.55
+    m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 2; m.factor = 0.5
     bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="sm")
     for p in o.data.polygons: p.use_smooth = True
 print("body verts", len(B.data.vertices), "head verts", len(Hd.data.vertices))
 
 # ---- The skeleton: the game's own joints, by the game's own names, where the game has them -----------------------
 JOINTS = ["P", "T", "H", "aL", "eL", "wL", "aR", "eR", "wR", "lL", "kL", "lR", "kR"]
-for o, r in ((B, 0.5), (BL, 0.45), (Hd, 0.6), (HANDS[0], 0.5), (HANDS[1], 0.5)):
+for o, r in ((B, 0.42), (BL, 0.36), (Hd, 0.6), (HANDS[0], 0.5), (HANDS[1], 0.5)):
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
@@ -165,7 +185,17 @@ for o in (B, BL):
     try: bpy.ops.object.parent_set(type="ARMATURE_AUTO")
     except Exception as e: print("AUTO WEIGHTS FAILED", e)
     o.select_set(False); A.select_set(False)
-    print(o.name, "unweighted", sum(1 for v in o.data.vertices if not v.groups), "verts", len(o.data.vertices))
+    lost = [v for v in o.data.vertices if not v.groups]
+    if lost:   # (what the automatic weights missed goes to the bone it lies nearest)
+        segs = [(b.name, A.matrix_world @ b.head_local, A.matrix_world @ b.tail_local) for b in arm.bones]
+        def near(p):
+            best = None
+            for n, h, t in segs:
+                d = t - h; k = max(0, min(1, (p - h).dot(d) / d.dot(d))); dist = (p - (h + d * k)).length
+                if best is None or dist < best[0]: best = (dist, n)
+            return best[1]
+        for v in lost: (o.vertex_groups.get(near(v.co)) or o.vertex_groups.new(name=near(v.co))).add([v.index], 1.0, "REPLACE")
+    print(o.name, "unweighted", len(lost), "verts", len(o.data.vertices))
 def rigid(o, bone_name):
     g = o.vertex_groups.new(name=bone_name); g.add(range(len(o.data.vertices)), 1.0, "REPLACE")
 rigid(Hd, "H"); rigid(HANDS[0], "wL"); rigid(HANDS[1], "wR")
@@ -199,13 +229,9 @@ parts.append(prim("uv_sphere", "knot", "hair", (0, 0.03, HZ + 0.155), (0.05, 0.0
 parts.append(prim("torus", "knotband", "gold", (0, 0.03, HZ + 0.128), (1, 1, 1), major_radius=0.04, minor_radius=0.008, major_segments=16, minor_segments=6))
 parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085, 0.045, 0.1), segments=14, ring_count=8))
 # The lower cloth, drawn up to the knee as a fighting man wears it: taken from the body's own surface and stood off it
-dh = B.copy(); dh.data = B.data.copy(); S.collection.objects.link(dh); dh.name = "dhoti"
-bm = bmesh.new(); bm.from_mesh(dh.data)
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (0.5 < v.co.z < 1.0 and abs(v.co.x) < 0.243)], context="VERTS")
-for v in bm.verts: v.co += v.normal * (0.014 + 0.004 * math.sin(v.co.z * 90 + v.co.x * 40))   # (a little fold in it)
-bm.to_mesh(dh.data); bm.free(); dh.data.materials.clear(); dh.data.materials.append(M["cloth"]); parts.append(dh)
+DHOTI_AT = len(parts)   # (made further down, once shells can be cut by the skin's weights)
 both(lambda sx: prim("torus", "hem", "red", (sx * (HPX + 0.008), 0.0, 0.505), (1, 1.06, 1), major_radius=0.083, minor_radius=0.012, major_segments=20, minor_segments=6))
-parts.append(prim("torus", "sash", "red", (0, 0.0, 0.995), (1, 0.7, 1), major_radius=0.183, minor_radius=0.024, major_segments=28, minor_segments=8))
+parts.append(prim("torus", "sash", "red", (0, 0.0, 0.995), (1, 0.78, 1), major_radius=0.15, minor_radius=0.024, major_segments=28, minor_segments=8))
 parts.append(prim("cube", "pleats", "cloth", (0, -0.135, 0.8), (0.05, 0.012, 0.17), size=2))
 parts.append(prim("cube", "pleatend", "red", (0, -0.137, 0.635), (0.052, 0.013, 0.02), size=2))
 parts.append(prim("uv_sphere", "knotsash", "red", (0.1, -0.12, 0.99), (0.035, 0.03, 0.03), segments=10, ring_count=6))
@@ -213,23 +239,26 @@ parts.append(prim("cube", "sashend", "red", (0.105, -0.13, 0.86), (0.028, 0.008,
 # Gold: a broad necklace, armlets, wristbands, anklets, earrings, a clasp on the sash
 parts.append(prim("torus", "necklace", "gold", (0, -0.03, 1.455), (1, 0.9, 1), (0.5, 0, 0), major_radius=0.105, minor_radius=0.013, major_segments=28, minor_segments=8))
 parts.append(prim("uv_sphere", "pendant", "gold", (0, -0.118, 1.395), (0.022, 0.012, 0.026), segments=10, ring_count=6))
-both(lambda sx: prim("torus", "armlet", "gold", (sx * (SHX + 0.012), 0, 1.285), (1, 1.05, 1), major_radius=0.078, minor_radius=0.012, major_segments=20, minor_segments=6))
-both(lambda sx: prim("torus", "wrist", "gold", (sx * (SHX + 0.012), 0, 0.845), (1, 1.05, 1), major_radius=0.043, minor_radius=0.011, major_segments=16, minor_segments=6))
+both(lambda sx: prim("torus", "armlet", "gold", (sx * AX, 0, 1.2), (1, 1.05, 1), major_radius=0.07, minor_radius=0.012, major_segments=20, minor_segments=6))
+both(lambda sx: prim("torus", "wrist", "gold", (sx * AX, 0, 0.87), (1, 1.1, 1), major_radius=0.037, minor_radius=0.011, major_segments=16, minor_segments=6))
 both(lambda sx: prim("torus", "anklet", "gold", (sx * (HPX + 0.005), 0.005, 0.1), (1, 1.05, 1), major_radius=0.05, minor_radius=0.009, major_segments=16, minor_segments=6))
 both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104, 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
 parts.append(prim("cylinder", "clasp", "gold", (0, -0.128, 0.995), (0.03, 0.03, 0.008), (math.pi / 2, 0, 0), vertices=12))
 # ---- What changes with the years and the acts: each is a part the game shows or leaves out ---------------------
 def shell(name, role, keep, off, src=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
-    bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co)], context="VERTS")
+    bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
+    armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
-trunk = lambda c: abs(c.x) < 0.212 and not (c.z > 1.4 and abs(c.x) < 0.085)
+trunk = lambda c: not (c.z > 1.4 and abs(c.x) < 0.085)
 def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
-    ux, uz = -0.32, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.15) * uz - (c.z - 1.43) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
+    ux, uz = -0.3, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.14) * uz - (c.z - 1.44) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
+dh = shell("dhoti", "cloth", lambda c: 0.5 < c.z < 1.0, 0.014)
 shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
-parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.72, 1), major_radius=0.178, minor_radius=0.02, major_segments=28, minor_segments=8))
-both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.01), 0, 1.4), (0.1, 0.1, 0.085), segments=14, ring_count=8))
+parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.8, 1), major_radius=0.145, minor_radius=0.02, major_segments=28, minor_segments=8))
+both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105, 0.105, 0.09), segments=14, ring_count=8))
 shell("hide", "hide", lambda c: band(c, 0.085), 0.017)
 shell("uttariya", "cloth", lambda c: band(c, 0.06), 0.015)
 shell("uttariyalean", "cloth", lambda c: band(c, 0.06), 0.013, BL)
@@ -291,10 +320,10 @@ def render(tag, shots, res=(560, 800), samples=24):
 if STAGE in ("body", "dress"):
     LOOK = argv[2] if len(argv) > 2 else "prince"
     SHOW = { "prince": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "uttariya"}, "exile": {"face", "stache", "hair", "dhoti", "jata", "beard", "hide"},
-             "war": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "cuirass"}, "youth": {"face", "hair", "knot", "dhoti", "sash", "gold", "uttariyalean"} }[LOOK]
+             "war": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "cuirass"}, "youth": {"face", "hair", "knot", "dhoti", "sash", "gold", "uttariyalean"}, "anatomy": {"face", "stache", "hair", "knot", "dhoti"} }[LOOK]
     for o in parts: o.hide_render = part_of(o) not in SHOW
     B.hide_render = LOOK == "youth"; BL.hide_render = LOOK != "youth"
-    lights(); render(LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
+    lights(); render(LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("torso", (0.9, -2.5, 1.35), (0, 0, 1.2), 70)] if LOOK == "anatomy" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
 
 if STAGE == "export":
     import json, base64, struct

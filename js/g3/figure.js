@@ -450,7 +450,7 @@
     const hips = new T.Group(); hips.position.y = 0.92; tilt.add(hips); f.j.P = hips;
     const torso = new T.Group(); hips.add(torso); f.j.T = torso;
     torso.add(torsoMesh(sp, skin, cloth, trim, she, wide, accent));
-    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK); torso.add(head); f.j.H = head;
+    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK * (sp.model && G.MODELS && G.MODELS[sp.model] && !opt.lite && headK < 1.15 ? 0.92 : 1)); /* (a modelled adult's head is nearer life size) */ torso.add(head); f.j.H = head;
     head.add(headMesh(sp, skin, hair, accent, trim, she));
     // Dress. Nothing here is cut or sewn: the epic's people wear lengths of cloth. The lower cloth (antariya) is wound
     // round the hips, its pleats gathered in front; fighting men and working men draw it up between the legs to the
@@ -467,7 +467,7 @@
     const bld = { arm: (sp.big ? 1.3 : sp.strong ? 1.14 : sp.slim ? 0.9 : 1) * (she ? 0.84 : 1) * (sp.stage === "elder" ? 0.92 : 1) * (sp.stage === "child" ? 0.95 : 1), leg: (sp.big ? 1.16 : sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * (she ? 0.94 : 1),
       chest: (sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * wide, waist: (sp.big ? 1.12 : sp.slim ? 0.92 : she ? 0.9 : 1) * wide, hip: wide * (she ? 1.1 : 1) };
     const armour = sp.armour || gear.includes("cuirass") || gear.includes("scale"), plate = sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0xae8440;
-    const HY = 0.92, SHX = 0.255 * wide, HPX = 0.1 * wide, B_ = { P: 0, T: 1, H: 2, aL: 3, eL: 4, aR: 5, eR: 6, lL: 7, kL: 8, lR: 9, kR: 10, sB: 11, sF: 12, sS: 13 };
+    const modelled = !LITE && sp.model && G.MODELS && G.MODELS[sp.model], HY = 0.92, SHX = 0.255 * wide * (modelled ? 0.9 : 1) /* (a modelled hero's shoulders are his own: tools/blender) */, HPX = 0.1 * wide, B_ = { P: 0, T: 1, H: 2, aL: 3, eL: 4, aR: 5, eR: 6, lL: 7, kL: 8, lR: 9, kR: 10, sB: 11, sF: 12, sS: 13 };
     for (const sd of ["L", "R"]) {
       const sx = sd === "L" ? 1 : -1;
       const sh = new T.Group(); sh.position.set(sx * SHX, 0.49, 0); torso.add(sh); f.j["a" + sd] = sh;
