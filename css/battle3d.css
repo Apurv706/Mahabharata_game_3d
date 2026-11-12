@@ -80,7 +80,7 @@ body.in3d #b3d { display: block; }
 .bhud.touch .b-acts .b-btn[data-a="roll"] { right: 112px; bottom: 4px; } .bhud.touch .b-acts .b-btn[data-a="block"] { right: 96px; bottom: 86px; } .bhud.touch .b-acts .b-btn[data-a="skill"] { right: 10px; bottom: 114px; }
 .bhud.touch .b-side { bottom: auto; top: calc(56px + var(--safe-t)); } .bhud.touch .b-side .b-btn { min-height: 36px; }
 .bhud.touch .b-tip { bottom: calc(240px + var(--safe-b)); }
-@media (max-aspect-ratio: 21/20) { .b-top { top: calc(72px + var(--safe-t)); max-width: calc(100% - 20px); } .b-line { top: calc(130px + var(--safe-t)); } .b-me { width: min(200px, 46vw); } .b-toasts { top: 24%; }
+@media (max-aspect-ratio: 21/20) { .b-top { top: calc(88px + var(--safe-t)); max-width: calc(100% - 20px); } .b-line { top: calc(150px + var(--safe-t)); } .b-me { width: min(200px, 46vw); } .b-toasts { top: 24%; }
   .bhud:not(.touch) .b-side { bottom: calc(70px + var(--safe-b)); } }
 
 /* ---------- Tests ---------- */

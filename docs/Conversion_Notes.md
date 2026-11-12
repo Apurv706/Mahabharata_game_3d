@@ -156,3 +156,11 @@ A script played two lives through the real buttons on a 390×844 screen, a frame
 - **Forge:** an anvil in front of you and the smith to the side (a shielded soldier used to stand in the way).
 - **Path test (shared content, differs from the 2D game):** `a2_pathtest` has no `back`: failing the second chance costs what it costs but no longer strikes the path out and sends you back to choose again. Golden lives re-recorded.
 - **Not changed:** fights for an archer in Acts III–V already exist (kings at the swayamvara, Jayadratha, the Gandharvas, the cattle raid, bandits) and are marked on their choices; the scripted life missed them by choosing at random.
+
+## Full-life replays, second round (12 Nov)
+
+Two lives from birth (to the war, and to 42) and two ready-made war lives (to their deaths on day 1 and day 12), a frame every 40 s on a phone screen. Found and fixed:
+
+- **The burning house (escape) drew nothing:** it is looked down on from above but was built under the cellar's roof. Halls take `open: true` (no roof); the escape uses it, is lit, has a tunnel arrow, rings on the tunnel and the sleepers, a camera that follows on narrow screens, and its own how-to (`U.HOWTO3D`), since the story's how-to describes the 2D grid.
+- Fight titles wrap to two lines on phones and sit below the status line; the steady-hand test stands back on narrow screens.
+- Known and left: the strip above the cellar's roof in "Cut the oil lines" is still black; "Carry earth from the tunnel" plays in a daylight corridor though the story says night.
