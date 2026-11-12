@@ -16,12 +16,46 @@
     for (let i = 0; i < n; i++) { ji[i * 4] = j[i * 2]; ji[i * 4 + 1] = j[i * 2 + 1]; jw[i * 4] = w[i] / 255; jw[i * 4 + 1] = 1 - w[i] / 255; }
     M.pos = M.nor = M.jnt = M.wgt = null; /* (the text they came in is not needed again) */
     const D = (M._d = { pos, nor, ji, jw, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
-    edges(M, D, p16, EDGED); cavity(M, D, p16);
+    edges(M, D, p16, EDGED); cavity(M, D, p16); covers(M, D);
     return D;
   }
   // Which part each point belongs to, and how far each point of a cloth (or a plate) lies from that piece's edge: the
   // woven borders and the gold edging are drawn within a width of it (js/g3/surf.js). Found once, when a model is first worn.
   G.surfEdges = (M, D, p16, which) => edges(M, D, p16, which);
+  // Cloth never goes under the skin: the skin that a garment covers is simply not drawn while that garment is worn, so
+  // no pose can push it through. For each point of the body: is it inside a skirt (a lower cloth, the skirt of scales:
+  // everything of the hips and legs above the hem), or does a close-fitting piece (a coat, a breast-band, a sash, the
+  // band of an upper cloth, a guard on a limb) lie just outside it along its own normal? A triangle of the body whose
+  // three points are all covered by pieces of the look being worn is left out (G.modelSkin).
+  const SKIRT = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1 }, SHELL = { cuirass: 1, vambrace: 1, greave: 1, bandeau: 1, shawl: 1, drape: 1, sash: 1, girdle: 1, tuck: 1, hide: 1, baldric: 1, strap: 1, apron: 1 };
+  function covers(M, D) {
+    const n = M.n, pos = D.pos, nor = D.nor, idx = D.idx, names = D.partNames, part = D.part, cov = (D.cov = new Uint32Array(n)), bit = (D.covBit = {}), bi = names.indexOf("body"), body = [];
+    if (bi < 0) return; for (let v = 0; v < n; v++) if (part[v] === bi) body.push(v);
+    const CELL = 0.05, key = (x, y, z) => (Math.floor(x / CELL) + 512) * 1048576 + (Math.floor(y / CELL) + 512) * 1024 + (Math.floor(z / CELL) + 512); let nb = 0;
+    for (const k of names) {
+      if (!(SKIRT[k] || SHELL[k]) || nb >= 30) continue; const b = 1 << nb++, [s, l] = M.parts[k]; bit[k] = b;
+      let x0 = 9, y0 = 9, z0 = 9, x1 = -9, y1 = -9, z1 = -9; for (let i = s; i < s + l; i++) { const v = idx[i] * 3; if (pos[v] < x0) x0 = pos[v]; if (pos[v] > x1) x1 = pos[v]; if (pos[v + 1] < y0) y0 = pos[v + 1]; if (pos[v + 1] > y1) y1 = pos[v + 1]; if (pos[v + 2] < z0) z0 = pos[v + 2]; if (pos[v + 2] > z1) z1 = pos[v + 2]; }
+      if (SKIRT[k]) { // hips and legs (not an arm hanging beside them) from a little above the hem to the waist
+        for (const v of body) { const y = pos[v * 3 + 1], j = D.jw[v * 4] >= D.jw[v * 4 + 1] ? D.ji[v * 4] : D.ji[v * 4 + 1]; if ((j === 0 || j >= 9) && y > y0 + 0.05 && y < y1 + 0.012) cov[v] |= b; }
+        continue; }
+      const grid = new Map();
+      for (let i = s; i < s + l; i += 3) { const a = idx[i] * 3, c = idx[i + 1] * 3, e = idx[i + 2] * 3;
+        const ax = Math.floor(Math.min(pos[a], pos[c], pos[e]) / CELL), bx = Math.floor(Math.max(pos[a], pos[c], pos[e]) / CELL), ay = Math.floor(Math.min(pos[a + 1], pos[c + 1], pos[e + 1]) / CELL), by = Math.floor(Math.max(pos[a + 1], pos[c + 1], pos[e + 1]) / CELL), az = Math.floor(Math.min(pos[a + 2], pos[c + 2], pos[e + 2]) / CELL), bz = Math.floor(Math.max(pos[a + 2], pos[c + 2], pos[e + 2]) / CELL);
+        if ((bx - ax + 1) * (by - ay + 1) * (bz - az + 1) > 64) continue;
+        for (let X = ax; X <= bx; X++) for (let Y = ay; Y <= by; Y++) for (let Z = az; Z <= bz; Z++) { const g = (X + 512) * 1048576 + (Y + 512) * 1024 + (Z + 512); let t = grid.get(g); if (!t) grid.set(g, (t = [])); t.push(i); } }
+      const REACH = 0.034, BACK = 0.006;
+      for (const v of body) { const px = pos[v * 3], py = pos[v * 3 + 1], pz = pos[v * 3 + 2]; if (px < x0 - 0.04 || px > x1 + 0.04 || py < y0 - 0.04 || py > y1 + 0.04 || pz < z0 - 0.04 || pz > z1 + 0.04) continue;
+        const nx = nor[v * 3], ny = nor[v * 3 + 1], nz = nor[v * 3 + 2], ox = px - nx * BACK, oy = py - ny * BACK, oz = pz - nz * BACK, g0 = key(ox, oy, oz), g1 = key(px + nx * REACH, py + ny * REACH, pz + nz * REACH); let hit = false;
+        for (const g of g0 === g1 ? [g0] : [g0, g1]) { const list = grid.get(g); if (!list || hit) continue;
+          for (const i of list) { const a = idx[i] * 3, c = idx[i + 1] * 3, e = idx[i + 2] * 3; // (a ray from just under the skin, out along its normal, against the piece's triangles)
+            const e1x = pos[c] - pos[a], e1y = pos[c + 1] - pos[a + 1], e1z = pos[c + 2] - pos[a + 2], e2x = pos[e] - pos[a], e2y = pos[e + 1] - pos[a + 1], e2z = pos[e + 2] - pos[a + 2];
+            const hx = ny * e2z - nz * e2y, hy = nz * e2x - nx * e2z, hz = nx * e2y - ny * e2x, det = e1x * hx + e1y * hy + e1z * hz; if (det > -1e-9 && det < 1e-9) continue;
+            const f = 1 / det, sx = ox - pos[a], sy = oy - pos[a + 1], sz = oz - pos[a + 2], u = f * (sx * hx + sy * hy + sz * hz); if (u < -0.02 || u > 1.02) continue;
+            const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x, w = f * (nx * qx + ny * qy + nz * qz); if (w < -0.02 || u + w > 1.04) continue;
+            const t = f * (e2x * qx + e2y * qy + e2z * qz); if (t >= 0 && t <= REACH + BACK) { hit = true; break; } } }
+        if (hit) cov[v] |= b; }
+    }
+  }
   // How hollow or how proud the surface is at each point (from its neighbours: do they rise above it or fall away?).
   // The colour is deepened in the hollows (between muscles, in the folds of cloth, under a rim) and lifted a little on
   // the ridges, as a painter would: the figure reads as modelled form, not as one flat colour.
@@ -100,7 +134,11 @@
     let geo = D.geo.get(key);
     if (!geo) {
       let len = 0; for (const k of parts) len += M.parts[k][1];
-      const idx = new Uint16Array(len); let o = 0; for (const k of parts) { const [s, l] = M.parts[k]; idx.set(D.idx.subarray(s, s + l), o); o += l; }
+      let idx = new Uint16Array(len), o = 0, mask = 0; const cov = D.cov, src = D.idx; if (cov) for (const k of parts) mask |= D.covBit[k] || 0;
+      for (const k of parts) { const [s, l] = M.parts[k];
+        if (k === "body" && mask) { for (let i = s; i < s + l; i += 3) { const a = src[i], b = src[i + 1], c = src[i + 2]; if ((cov[a] & mask) && (cov[b] & mask) && (cov[c] & mask)) continue; idx[o++] = a; idx[o++] = b; idx[o++] = c; } } // (skin under what is worn is not drawn: it cannot come through)
+        else { idx.set(src.subarray(s, s + l), o); o += l; } }
+      if (o < len) idx = idx.slice(0, o);
       const col = new Float32Array(M.n * 3), sh = D.shade; for (let i = 0; i < M.n; i++) { const q = cols[D.col[i]], k = sh ? sh[i] : 1; col[i * 3] = q.r * k; col[i * 3 + 1] = q.g * k; col[i * 3 + 2] = q.b * k; }
       geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(D.pos, 3)); geo.setAttribute("normal", new T.BufferAttribute(D.nor, 3)); geo.setAttribute("color", new T.BufferAttribute(col, 3));
       geo.setAttribute("skinIndex", new T.BufferAttribute(D.ji, 4)); geo.setAttribute("skinWeight", new T.BufferAttribute(D.jw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1));

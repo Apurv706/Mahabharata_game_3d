@@ -59,6 +59,29 @@ The 2D game's 452 paintings set the look: warm, late-afternoon light, earth and 
 ### Paintings, film, sound
 20. No faults found in the paintings on contact sheets. Clips and music were not judged.
 
+## What was done about each
+
+| Finding | State after three rounds |
+|---|---|
+| 1 Inflated bodies | Eased, not cured: hollows are shaded and the forms read better, but the bodies are the same shapes. A rework of the body presets is the next step. |
+| 2 Faces alike | Open. |
+| 3 Shoulder balls, barrel hoops | Fixed: lapped plates; a skirt of scales; two slim bands. |
+| 4 Upper cloth like a board | Fixed: it crosses the chest. |
+| 5 Flat colour on cloth, metal, skin | Fixed: surfaces. |
+| 6 Player ignored the story | Fixed: skin, home colours, gender, age, and the amulet, manuscript, purse and eye patch. |
+| 7 Portraits and models disagree | Open: needs new portraits or a decision on which is right. |
+| 8 Hands, squad followers | Open. |
+| 9 Crowd pegs | Fixed. |
+| 10 Heavy beasts | Fixed: halved. |
+| 11 Toy elephant, blunt horse | Partly: hide, harness and cloth have surfaces; the howdah has its pennon and quiver. Shapes unchanged. |
+| 12 Bhishma's chariot | Fixed. |
+| 13 Weapons | Fixed. |
+| 14 Arrows | Fixed (bound reed shaft, iron head). Quivers still plain. |
+| 15, 16 Flat built things, plain tents | Fixed for huts, houses, walls, towers, gates, pavilions, temples, steps, pillars, tents, stalls, thrones, pots. Halls' floors and the ground are unchanged. |
+| 17 Dark night tests | Open. |
+| 18 Performance | Shadows now drop on a phone that stays slow. Not measured on a real phone. |
+| 19 Models thrown away on a cached visit | Fixed. |
+
 ## Order of work
 
 Round 1: surfaces, chariot, the player's colours, crowds, shoulder plates.

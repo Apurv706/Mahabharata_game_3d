@@ -330,6 +330,12 @@ def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt
 # ---- Fitting things to this body: where its surface is, at any height.
 from mathutils.bvhtree import BVHTree
 BVB = BVHTree.FromObject(B, bpy.context.evaluated_depsgraph_get())
+# The shoulder joint, bulked: a ball of the arm's own girth set on each joint and carried by the arm, so the shoulder
+# stays whole whichever way the arm is raised (the skin alone pinched there and left a hollow at the joint).
+for sx in (1, -1):
+    h = BVB.ray_cast(Vector((sx * (SHX + 0.3), 0, 1.385)), Vector((-sx, 0, 0)), 0.6)
+    r = max(0.045, min(0.082, (abs(h[0].x) - SHX) if h[0] is not None else 0.065))
+    o = prim("uv_sphere", "joint", "skin", (sx * (SHX + 0.003), 0.0, 1.386), (r, r * 1.02, r * 0.94), segments=14, ring_count=9); rigid(o, "aL" if sx > 0 else "aR"); o["part"] = "body"; parts.append(o)
 def front(z, x=0.0):
     h = BVB.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)), 2.0); return h[0].y if h[0] is not None else -0.12
 def backy(z, x=0.0):
@@ -427,7 +433,7 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
         a = i / N * math.tau; d = (u * math.cos(a) + yh * math.sin(a)).normalized(); hit = None; o_ = c + d * 0.6
         h = bvh.ray_cast(o_, -d, 0.6)                                    # from outside in... but only the trunk counts, not an arm in the way
         while h[0] is not None:
-            vi = kd.find(h[0])[1]; aw = sum(g.weight for g in src.data.vertices[vi].groups if gn[g.group][0] in "ew")
+            vi = kd.find(h[0])[1]; aw = sum(g.weight * (0.5 if gn[g.group][0] == "a" else 1.0) for g in src.data.vertices[vi].groups if gn[g.group][0] in "aew")   # (an upper arm hanging by the hip is not the trunk either)
             if aw < 0.3: hit = h[0]; break
             h = bvh.ray_cast(h[0] - d * 0.002, -d, 0.6)
         ring.append((hit if hit is not None else c + d * 0.15, d))
@@ -437,9 +443,11 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
         for i in range(N): a, b = i * 2, ((i + 1) % N) * 2; fs.append((a, b, b + 1, a + 1))
         me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
         for pl in o.data.polygons: pl.use_smooth = True
-        for v in o.data.vertices:
-            sv = src.data.vertices[kd.find(v.co)[1]]
-            for g in sorted(sv.groups, key=lambda g: -g.weight)[:2]: (o.vertex_groups.get(gn[g.group]) or o.vertex_groups.new(name=gn[g.group])).add([v.index], g.weight, "REPLACE")
+        for v in o.data.vertices:   # a band round the trunk is carried by the trunk and the hips alone: an arm that swings must not drag it
+            sv = src.data.vertices[kd.find(v.co)[1]]; gs = [g for g in sorted(sv.groups, key=lambda g: -g.weight) if gn[g.group][0] not in "aew"][:2]; tot = sum(g.weight for g in gs)
+            if tot < 0.05: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], 1.0, "REPLACE")
+            else:
+                for g in gs: (o.vertex_groups.get(gn[g.group]) or o.vertex_groups.new(name=gn[g.group])).add([v.index], g.weight / tot, "REPLACE")
         parts.append(o); return o
     strip(names[0] + suffix, mid, -half, half, off)
     if edge: strip(names[1] + suffix, edge, -half - 0.01, -half, off + 0.0015); strip(names[1] + suffix, edge, half, half + 0.01, off + 0.0015)
@@ -454,11 +462,11 @@ ribbon(B, "", mid="leather", half=0.014, stud=99, edge="leather"); since(n0, "st
 ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
 ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2); since(n0, "harness"); n0 = len(parts)
 # the upper cloth: over the left shoulder, an end falling in front and one behind
-ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="cloth2", half=0.085, names=("shawl", "shawledge", "shawledge"), stud=99, edge="red")
+ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="cloth2", half=0.085, names=("shawl", "shawledge", "shawledge"), stud=99, edge="red", off=0.015)
 fall("shawlend", "cloth2", 0.17 * FX, hang(0.6, 1.36, 0.17 * FX), 1.36, 0.9, 0.08, top="T", side=0.85, edge=False, border=True)
 fall("shawlend", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.85, 0.08, top="T", side=0.85, edge=False, border=True); since(n0, "shawl"); n0 = len(parts)
 # a plain man's upper cloth: a folded length over the left shoulder and across the chest to the right hip, its end hanging behind
-ribbon(B, "", P0=(0.15, 1.455), P1=(-0.13, 1.03), mid="cloth2", half=0.06, names=("drape", "drapeedge", "drapeedge"), stud=99, edge="red")
+ribbon(B, "", P0=(0.15, 1.455), P1=(-0.13, 1.03), mid="cloth2", half=0.06, names=("drape", "drapeedge", "drapeedge"), stud=99, edge="red", off=0.017)
 fall("drape", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.62, 0.065, top="T", side=0.85, edge=False, gather=0.6, deep=1.6); since(n0, "drape"); n0 = len(parts)
 fall("apron", "leather", 0.0, hang(0.6, 1.3), 1.3, 0.75, 0.15, top="T", edge=False); since(n0, "apron"); n0 = len(parts)
 # ---- Head: crowns, a helmet, a turban, matted hair, beards, a veil, a blindfold

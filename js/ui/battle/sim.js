@@ -270,7 +270,10 @@
 
   function playerAct(R, a) {
     const B = R.B, p = C.player(), g = p.g;
-    if (a.orders) Object.assign(R.orders, a.orders);
+    if (a.orders) { Object.assign(R.orders, a.orders);
+      if (a.orders.form) { // a stand is made where the order was given, across the way the enemy lies
+        const fs = foesIn(R).filter((e) => e.g.kind !== "light"); let ex = 0, ez = 0; for (const e of fs) { ex += e.g.x; ez += e.g.z; }
+        R.orders.at = [g.x, g.z, fs.length ? Math.atan2(ex / fs.length - g.x, ez / fs.length - g.z) : g.a]; } }
     if (a.withdraw && C.canFlee()) { C.flee(); return; }
     if (a.lock) { const fs = foesIn(R).filter((e) => e.g.kind !== "light" && (!e.line || dist(e, p) < 7)).sort((x, y) => dist(x, p) - dist(y, p)); if (fs.length) { const i = fs.findIndex((e) => e.uid === R.lock); R.lock = fs[(i + 1) % fs.length].uid; R.lockBy = R.lock; R.fx.push({ k: "lock", uid: R.lock }); } }
     if (a.lockOn) { const t = B.units.find((u) => u.uid === a.lockOn && u.side === "enemy" && u.hp > 0); if (t) { R.lock = t.uid; R.lockBy = t.uid; } }
@@ -873,10 +876,29 @@
     for (const k of Object.keys(g.cd)) if (g.cd[k] > 0) g.cd[k] -= dt;
     const foes = foesIn(R).filter((e) => e.g.kind !== "light");
     const low = order === "balanced" && a.hp < a.maxHp * 0.35;
-    let gx, gz, foe = null;
+    // The six orders (R.orders.form): follow me, guard me; stick together or spread across, to attack or to defend.
+    // A soldier of the line who has his own man in front of him finishes that first.
+    const form = man ? null : R.orders.form || null, at = R.orders.at, idx = g.sideIdx || 0, wing = idx % 2 ? 1 : -1, rank = Math.floor(idx / 2);
+    let gx, gz, foe = null, post = false;
     const behind = (k, side) => { gx = p.g.x - Math.sin(p.g.a) * k + Math.cos(p.g.a) * side; gz = p.g.z - Math.cos(p.g.a) * k - Math.sin(p.g.a) * side; };
     const side = (g.sideIdx % 2 ? 1 : -1) * (2.6 + Math.floor(g.sideIdx / 2) * 1.4); // beside you, not behind: clear of the camera
-    if (order === "stay" || order === "hold" || low) behind(low ? 2.2 : 1.2, side);
+    const reachOf = (e) => (g.archer ? 14 : g.reach * 1.05 + P.lunge + e.g.rad - 0.42);
+    if (form === "follow" && !low) { // at your heels; they strike only what comes within their reach
+      behind(1.5 + rank * 0.9, wing * (1.2 + rank * 0.5)); foe = foes.filter((e) => dist(e, a) <= reachOf(e)).sort((x, y) => dist(x, a) - dist(y, a))[0] || null; post = true; }
+    else if ((form === "wall" || form === "line") && at && !low) { // a stand where the order was given: shoulder to shoulder, or strung out across the field
+      const gap = form === "wall" ? 1.25 : 3.3, off = wing * (gap * (form === "wall" ? 0.6 : 0.55) + rank * gap), fa = at[2], px = at[0] + Math.sin(fa) * 1.6 + Math.cos(fa) * off, pz = at[1] + Math.cos(fa) * 1.6 - Math.sin(fa) * off;
+      gx = px; gz = pz; post = true;
+      const zone = form === "wall" ? 0 : 4.2; // strung out, each man goes to meet what comes into his own ground, and then back to his post
+      foe = foes.filter((e) => dist(e, a) <= reachOf(e) || Math.hypot(e.g.x - px, e.g.z - pz) <= zone).sort((x, y) => dist(x, a) - dist(y, a))[0] || null;
+      if (foe && zone && !g.archer && dist(a, foe) > reachOf(foe)) { const an = angTo(foe, a), r = g.reach * 0.9 + foe.g.rad; gx = foe.g.x + Math.sin(an) * r; gz = foe.g.z + Math.cos(an) * r; }
+      if (!foe) g.a = turnTo(g.a, fa, 6 * dt); }
+    else if (form === "tight" && !low) { // one body on one foe: the one you face, else the nearest to you
+      const mine = R.lock && foes.find((e) => e.uid === R.lock); foe = mine || foes.slice().sort((x, y) => dist(x, p) - dist(y, p))[0] || null;
+      if (foe) { const an = angTo(foe, p) + wing * (0.28 + rank * 0.3), r = g.archer ? 8 : g.reach * 0.9 + foe.g.rad; gx = foe.g.x + Math.sin(an) * r; gz = foe.g.z + Math.cos(an) * r; } else behind(0.6, side); }
+    else if (form === "spread" && !low) { // each to a foe of his own: the nearest that no comrade has taken
+      const free = foes.filter((e) => !(e.g.takenT === R.t && e.g.takenBy !== a.uid)).sort((x, y) => dist(x, a) - dist(y, a))[0] || null; foe = free || foes.slice().sort((x, y) => dist(x, a) - dist(y, a))[0] || null;
+      if (foe) { foe.g.takenT = R.t; foe.g.takenBy = a.uid; const an = angTo(foe, a), r = g.archer ? 8 : g.reach * 0.9 + foe.g.rad; gx = foe.g.x + Math.sin(an) * r; gz = foe.g.z + Math.cos(an) * r; } else behind(0.6, side); }
+    else if (order === "stay" || order === "hold" || low) behind(low ? 2.2 : 1.2, side);
     else {
       const far = (x, from) => dist(x, from) * (x.line ? 2.5 : 1); // those who came with you keep to the named
       if (man) foe = man;
@@ -892,7 +914,7 @@
     if (foe && d <= 0.6) g.a = turnTo(g.a, angTo(a, foe), 8 * dt);
     const hurt = living(B, "friends").find((f) => !f.still && f.hp / f.maxHp < 0.45 && dist(f, a) < 5);
     if (g.cool <= 0 && hurt && a.abilities.includes("salve") && !(g.cd.salve > 0)) { g.atk = { id: "salve", on: hurt.uid, land: R.t + 0.5, t0: R.t }; g.cd.salve = 3 * ROUND; return; }
-    if (order === "stay" || order === "hold" || low || !foe || g.cool > 0) return;
+    if (((order === "stay" || order === "hold") && !post) || low || !foe || g.cool > 0) return;
     if (g.archer ? dist(a, foe) <= 14 : dist(a, foe) <= g.reach * 1.05 + P.lunge + foe.g.rad - 0.42) {
       const ok = (id) => a.abilities.includes(id) && !(g.cd[id] > 0);
       const id = g.archer ? "arrows" : ok("heavy") && K.rng() < 0.3 ? "heavy" : a.abilities.includes("strike") ? "strike" : a.abilities.find((x) => MELEE.has(x)) || "strike";

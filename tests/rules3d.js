@@ -129,5 +129,29 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   C.settle("flee"); C.end();
 }
 
+// 9. The six orders: how those beside you stand under each.
+{
+  const K = fresh(4); life(K);
+  const C = K.Combat, R3 = K.RT3, B = C.start("e_iravan", null), R = R3.begin(B, {}), p = C.player();
+  const mine = () => B.units.filter((u) => u.side === "ally" && u.hp > 0 && !u.line && u.g), dist = (a, b) => Math.hypot(a.g.x - b.g.x, a.g.z - b.g.z);
+  const run = (orders, secs) => { R3.step(R, { orders }); for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; for (const u of mine()) u.hp = u.maxHp; R3.step(R, {}); } };
+  ok(mine().length >= 2, "the fight beside Iravan has comrades to order (" + mine().length + ")");
+  run({ friend: "hold", soldiers: "stay", form: "follow" }, 5);
+  ok(mine().every((u) => dist(u, p) < 4.5), "Follow me: they are at your heels (" + mine().map((u) => dist(u, p).toFixed(1)).join(", ") + " m)");
+  run({ friend: "guard", soldiers: "defend", form: "wall" }, 5);
+  { const at = R.orders.at, far = mine().map((u) => Math.hypot(u.g.x - at[0], u.g.z - at[1]));
+    ok(at && far.every((d) => d < 4.2), "Stick together and defend: a wall where the order was given (" + far.map((d) => d.toFixed(1)).join(", ") + " m from it)"); }
+  run({ friend: "guard", soldiers: "defend", form: "line" }, 6);
+  { const a = mine(); ok(a.length < 2 || dist(a[0], a[1]) > 2.4, "Spread across and defend: they stand apart (" + (a.length > 1 ? dist(a[0], a[1]).toFixed(1) : "-") + " m)"); }
+  run({ friend: "allout", soldiers: "allout", form: "tight" }, 4);
+  { const foe = B.units.find((u) => u.uid === R.lock && u.hp > 0); const a = mine().filter((u) => !u.g.archer);
+    ok(!foe || a.every((u) => dist(u, foe) < 6.5), "Stick together and attack: all on the foe you face (" + (foe ? a.map((u) => dist(u, foe).toFixed(1)).join(", ") : "none left") + " m)"); }
+  run({ friend: "allout", soldiers: "allout", form: "spread" }, 4);
+  ok(R.orders.form === "spread" && !R.over, "Spread across and attack is taken, and the fight goes on");
+  run({ friend: "guard", soldiers: "defend", form: null }, 2);
+  ok(R.orders.form === null, "Guard me clears the stand");
+  C.settle("flee"); C.end();
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

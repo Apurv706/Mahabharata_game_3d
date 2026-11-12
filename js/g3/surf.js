@@ -100,6 +100,7 @@
     if (sid > .5 && sid < 9.5) col = mix(vec3(dot(col, vec3(.299, .587, .114))), col, .87) * vec3(1.02, 1., .95); // (vegetable dyes: a little greyer and warmer than a paint-box colour)
     #if SURF_MAP == 1
       col *= mix(.88, 1.05, smoothstep(0., 1.7, vSp.y)); // (a painter's gradient: a figure is a little deeper toward the ground)
+      surfRim = max(surfRim, .24);                         // (and an edge of light on every figure, to lift it off the ground it stands on)
     #endif
     // The woven border: within its width of the cloth's edge.
     float bs = floor(vSc.a * 255. + .5), bw = min(vSb.y * .32, vSb.w * .32 * .36), e = vSb.z * .32; // (a narrow piece, a pleat or a sash, has a narrower border: a third of its half-width)

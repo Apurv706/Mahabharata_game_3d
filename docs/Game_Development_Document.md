@@ -53,8 +53,8 @@ and aids at the right moment.
 - *You:* weapon chains (sword 3, mace smash and sweep, spear, dagger 5, bow double shots, fists); roll with a moment of
   safety; shield with perfect block and breaking; parry on the last moment; breath as stamina.
 - *Foes:* at most two wind up at once; melee circles and closes; archers keep 8.5 m; champions feint and parry.
-- *Aids:* path skill on a recharge, herbs, a call for help, divine weapons (one mantra a battle), orders (with me,
-  attack, fall back), mercy.
+- *Aids:* path skill on a recharge, herbs, a call for help, divine weapons (one mantra a battle), six orders to those beside you (follow me,
+  guard me; stick together or spread across, each to attack or to defend: the fight waits while you choose), mercy.
 - *Fight kinds:* defeat, hold for a time, escort (keep the cart whole), breakthrough (reach the far side), weather
   (no striking: survive), the unwinnable stand against Abhimanyu (withdraw or fall).
 - *Difficulty:* Easy, Normal (rises by act), Hard; Story mode cannot die; "Meet blows for me" guards and rolls for you.

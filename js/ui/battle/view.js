@@ -689,6 +689,7 @@
       if (!started || R.over) { return; }
       if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "k", "shift"].includes(k)) { if (down) input.keys.add(k); else input.keys.delete(k); e.preventDefault(); return; }
       if (!down || e.repeat) { if ([" ", "j", "l", "e", "q", "tab"].includes(k)) e.preventDefault(); return; }
+      { const oc = hud.querySelector(".b-orders"); if (oc) { e.preventDefault(); if (/^[1-6]$/.test(k)) { const b = oc.querySelector('[data-n="' + k + '"]'); if (b) b.click(); } else if (k === "o" || k === "escape" || k === "p") oc.querySelector(".b-ordx").click(); return; } } // the card of orders: 1-6 choose, O or Esc leaves them as they are
       if (k === "escape" || k === "p") { e.preventDefault(); pause(!paused); return; }
       if (paused) return;
       const map = { j: "strike", " ": "roll", l: "skill", e: "skill", q: "lock", tab: "lock", h: "herbs", c: "call", v: "cover", y: "layDown", g: "vanish" };
@@ -705,12 +706,31 @@
       const breaks = C.fleeBreaks && C.fleeBreaks();
       pause(true, { title: K.tr("Withdraw from the fight"), text: breaks ? K.tr("Withdrawing breaks your vow never to retreat.") : K.tr("Are you sure?"), yes: K.tr("Yes, withdraw"), no: K.tr("Stay and fight"), onYes: () => tap("withdraw") });
     }
-    const ORDERS = [["With me", { friend: "guard", soldiers: "defend" }], ["Attack", { friend: "allout", soldiers: "allout" }], ["Fall back", { friend: "hold", soldiers: "stay" }]];
-    let orderN = 0;
-    function cycleOrders() {
+    // Orders to those who fight beside you. Six: two that keep them by you, and two ways to stand (close, or spread)
+    // each to attack or to defend. The fight waits while you choose. (friend / soldiers: how hard they press, the
+    // older three-way order the rules already knew; form: how they stand, js/ui/battle/sim.js.)
+    const ORDERS = [
+      ["Follow me", "Follow me", { friend: "hold", soldiers: "stay", form: "follow" }, "They keep at your heels and strike only what reaches them."],
+      ["Guard me", "Guard me", { friend: "guard", soldiers: "defend", form: null }, "They ring you and take on whoever comes at you."],
+      ["Stick together and attack", "Together: attack", { friend: "allout", soldiers: "allout", form: "tight" }, "All of them on the one foe you face."],
+      ["Stick together and defend", "Together: defend", { friend: "guard", soldiers: "defend", form: "wall" }, "A wall of shields where you stand now."],
+      ["Spread across and attack", "Spread: attack", { friend: "allout", soldiers: "allout", form: "spread" }, "Each takes a foe of his own."],
+      ["Spread across and defend", "Spread: defend", { friend: "guard", soldiers: "defend", form: "line" }, "A line across the field from where you stand; each holds his own ground."]];
+    let orderN = -1;
+    function giveOrder(i) {
+      orderN = i; tap("orders", ORDERS[i][2]); toast(U.tr("Orders") + ": " + U.tr(ORDERS[i][0])); sfx("drumCall");
+      const b = hud.querySelector('[data-a="orders"] b'); if (b) b.textContent = K.tr(ORDERS[i][1]);
+    }
+    function cycleOrders() { // the Orders button, or O: the card of six
+      if (closed) return;
       if (!B.units.some((u) => u.side === "ally" && u.hp > 0 && !u.still)) { toast(U.tr("No one is fighting beside you to take an order.")); return; }
-      orderN = (orderN + 1) % ORDERS.length; tap("orders", ORDERS[orderN][1]); toast(U.tr("Orders") + ": " + U.tr(ORDERS[orderN][0])); sfx("drumCall");
-      const b = hud.querySelector('[data-a="orders"] b'); if (b) b.textContent = K.tr(ORDERS[orderN][0]);
+      const old = hud.querySelector(".b-orders"); if (old) { old.remove(); paused = false; U.setPaused("battle", false); return; }
+      paused = true; U.setPaused("battle", true);
+      const el = U.el('<div class="b-card b-pause b-orders" role="dialog"><h2>' + U.tr("Your orders") + '</h2><div class="b-ordgrid"></div></div>'), grid = el.querySelector(".b-ordgrid");
+      const shut = () => { el.remove(); paused = false; U.setPaused("battle", false); };
+      ORDERS.forEach((o, i) => { const bt = U.button("b-ord" + (i === orderN ? " on" : ""), "<b>" + U.tr(o[0]) + "</b><small>" + U.tr(o[3]) + "</small>", () => { shut(); giveOrder(i); }); bt.dataset.n = String(i + 1); grid.appendChild(bt); });
+      el.appendChild(U.button("ghost b-ordx", U.tr("Leave them as they are"), shut));
+      hud.appendChild(el);
     }
     function pause(on, ask) {
       if (closed) return;
@@ -776,7 +796,7 @@
       if (p.abilities.includes("lay_down")) mk(side, "layDown", K.ABILITIES.lay_down.name, "Y", () => tap("layDown"));
       R3.astras(R).forEach((row, i) => { if (i < 3) mk(side, "astra" + i, row.name || K.ABILITIES[row.id].name, String(i + 1), () => { const r2 = R3.astras(R)[i]; if (r2 && !r2.why) tap("astra", r2.id); else if (r2) toast(U.esc(r2.why)); }); });
       mk(side, "spare", "Spare", "F", () => { const s = R3.spareable(R)[0]; if (s) tap("spare", s.uid); });
-      if (B.units.some((u) => u.side === "ally" && !u.still)) mk(side, "orders", ORDERS[0][0], "O", () => cycleOrders());
+      if (B.units.some((u) => u.side === "ally" && !u.still)) mk(side, "orders", "Orders", "O", () => cycleOrders());
       mk(side, "lock", "Next foe", "Q", () => tap("lock"));
       const top = U.el('<div class="b-corner"></div>'); hud.appendChild(top);
       top.appendChild(U.button("b-ico b-viewbtn", EYE, () => cycleView())); top.lastChild.title = K.tr("Change the view") + " (R)"; top.lastChild.setAttribute("aria-label", K.tr("Change the view"));
