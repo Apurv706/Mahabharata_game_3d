@@ -448,7 +448,8 @@
   G.figure = function (spec, opt) {
     const sp = Object.assign({ stage: "adult", pronoun: "he", palette: ["#c27a44", "#8a3a2a", "#e2b55a"] }, spec || {}); opt = opt || {};
     const [sc, headK] = STAGE[sp.stage] || STAGE.adult, she = sp.pronoun === "she"; LITE = !!opt.lite;
-    const size = sc * (sp.size || 1) * (sp.big ? 1.04 : 1), wide = (sp.big ? 1.2 : 1) * (she ? 0.88 : 1) * (sp.stage === "child" ? 0.92 : 1);
+    const MDL = !opt.lite && G.modelFor ? G.modelFor(sp) : null; /* (modelled in Blender from the artist's sheets: js/g3/model.js; its height and frame are its own) */
+    const size = sc * (MDL ? MDL.size || 1 : (sp.size || 1) * (sp.big ? 1.04 : 1)), wide = MDL ? MDL.wide : (sp.big ? 1.2 : 1) * (she ? 0.88 : 1) * (sp.stage === "child" ? 0.92 : 1);
     const skin = new T.Color(sp.palette[0]).getHex(), accent = new T.Color(sp.palette[1]).getHex(), trim = new T.Color(sp.palette[2]).getHex();
     // As the 2D game's paintings have it: cream handwoven cotton, bordered and sashed in the wearer's own colour, with gold. A
     // few wear dyed cloth because the text says so (Krishna's yellow silk, Balarama's blue, Ekalavya's black) or as kings do.
@@ -460,7 +461,7 @@
     const hips = new T.Group(); hips.position.y = 0.92; tilt.add(hips); f.j.P = hips;
     const torso = new T.Group(); hips.add(torso); f.j.T = torso;
     torso.add(torsoMesh(sp, skin, cloth, trim, she, wide, accent));
-    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK * (sp.model && G.MODELS && G.MODELS[sp.model] && !opt.lite && headK < 1.15 ? 0.92 : 1)); /* (a modelled adult's head is nearer life size) */ torso.add(head); f.j.H = head;
+    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK * (MDL && headK < 1.15 ? 0.92 : 1)); /* (a modelled adult's head is nearer life size) */ torso.add(head); f.j.H = head;
     head.add(headMesh(sp, skin, hair, accent, trim, she));
     // Dress. Nothing here is cut or sewn: the epic's people wear lengths of cloth. The lower cloth (antariya) is wound
     // round the hips, its pleats gathered in front; fighting men and working men draw it up between the legs to the
@@ -477,7 +478,7 @@
     const bld = { arm: (sp.big ? 1.3 : sp.strong ? 1.14 : sp.slim ? 0.9 : 1) * (she ? 0.84 : 1) * (sp.stage === "elder" ? 0.92 : 1) * (sp.stage === "child" ? 0.95 : 1), leg: (sp.big ? 1.16 : sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * (she ? 0.94 : 1),
       chest: (sp.strong ? 1.07 : sp.slim ? 0.93 : 1) * wide, waist: (sp.big ? 1.12 : sp.slim ? 0.92 : she ? 0.9 : 1) * wide, hip: wide * (she ? 1.1 : 1) };
     const armour = sp.armour || gear.includes("cuirass") || gear.includes("scale"), plate = sp.armour ? 0xe2b040 : gear.includes("scale") ? 0xc9a24e : 0xae8440;
-    const modelled = !LITE && sp.model && G.MODELS && G.MODELS[sp.model], HY = 0.92, SHX = 0.255 * wide * (modelled ? 0.9 : 1) /* (a modelled hero's shoulders are his own: tools/blender) */, HPX = 0.1 * wide, B_ = { P: 0, T: 1, H: 2, aL: 3, eL: 4, aR: 5, eR: 6, lL: 7, kL: 8, lR: 9, kR: 10, sB: 11, sF: 12, sS: 13 };
+    const modelled = !!MDL, HY = 0.92, SHX = 0.255 * wide * (modelled ? 0.9 : 1) /* (a modelled hero's shoulders are his own: tools/blender) */, HPX = 0.1 * wide, B_ = { P: 0, T: 1, H: 2, aL: 3, eL: 4, aR: 5, eR: 6, lL: 7, kL: 8, lR: 9, kR: 10, sB: 11, sF: 12, sS: 13 };
     for (const sd of ["L", "R"]) {
       const sx = sd === "L" ? 1 : -1;
       const sh = new T.Group(); sh.position.set(sx * SHX, 0.49, 0); torso.add(sh); f.j["a" + sd] = sh;
@@ -580,7 +581,7 @@
     }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
     // A hero modelled in Blender wears that model on these same joints; the code-built body stands down (js/g3/model.js).
-    if (!LITE && sp.model && G.MODELS && G.MODELS[sp.model] && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign({ skin: sp.tone ? new T.Color(sp.tone).getHex() : skin, cloth, accent, hair }, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (tone, wear: a modelled hero's own skin and cloth colours) */ }
+    if (MDL && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign(MDL.sided ? { red: accent } : {}, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (sided: the rank and file wear their army's colour; wear: one model in another's colours) */ }
     if (!opt.noBlob) { // a soft dark patch under the feet: it holds the figure to the ground whether or not the sun casts shadows
       f.blob = new T.Mesh(BLOB_GEO || (BLOB_GEO = G.keep(new T.CircleGeometry(0.62, 14).rotateX(-PI / 2))), BLOB_MAT || (BLOB_MAT = G.keep(new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false, fog: false }))));
       f.blob.position.y = 0.03; f.blob.scale.setScalar(size * (sp.big ? 1.2 : 1)); f.blob.renderOrder = 1; f.root.add(f.blob);
@@ -767,50 +768,50 @@
   // People the story names who have no look of their own in the 2D game, and the ordinary folk of every scene.
   const EXTRAS = {
     // (Draupadi: "her complexion was dark, and her locks were blue and curly"; Gandhari bandaged her own eyes; the king is blind.)
-    draupadi: { face: "heart", pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
-    sairindhri: { face: "heart", dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
-    kunti: { face: "oval", pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
-    gandhari: { face: "long", pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
-    dhritarashtra: { face: "square", pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },
+    draupadi: { model: "draupadi", face: "heart", pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
+    sairindhri: { model: "draupadi", look: "disguise", face: "heart", dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden
+    kunti: { model: "kunti", face: "oval", pronoun: "she", palette: ["#c08a5a", "#efe6cc", "#b49054"], stage: "elder" },
+    gandhari: { model: "gandhari", face: "long", pronoun: "she", palette: ["#c48450", "#4f6178", "#d6c6a2"], stage: "elder", gear: ["blindfold"] },
+    dhritarashtra: { model: "dhritarashtra", face: "square", pronoun: "he", palette: ["#b8703b", "#5e2430", "#e2b55a"], stage: "elder", headgear: "crown", crown: { gem: "#b2432a", tall: 1.1 }, beard: true, size: 1.1, blind: true },
     // Arjuna in the year of hiding: "decked in the ornaments of women, and wearing large ear-rings and beautiful
     // conch-bracelets overlaid with gold", "a braid to hang down from my head". Bhima at the bride-choice, as a brahmin.
-    brihannala: { face: "oval", pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
-    bhima_brahmin: { model: "bhima", tone: "#b97a42", face: "broad", pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
-    bhurishravas: { face: "gaunt", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
-    kritavarma: { face: "square", pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
-    vrishasena: { face: "long", pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
-    iravan: { face: "heart", pronoun: "he", palette: ["#7a5a3a", "#2a4a3a", "#c9d27a"], stage: "youth", headgear: "mukuta", item: "sword" },
-    yudhamanyu: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
-    uttamaujas: { pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "sword" },
+    brihannala: { model: "arjuna", look: "disguise", face: "oval", pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
+    bhima_brahmin: { model: "bhima", look: "forest", face: "broad", pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
+    bhurishravas: { model: "soldier_cw", face: "gaunt", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
+    kritavarma: { model: "soldier_cw", face: "square", pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
+    vrishasena: { model: "soldier_cw", face: "long", pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
+    iravan: { model: "soldier_cw", face: "heart", pronoun: "he", palette: ["#7a5a3a", "#2a4a3a", "#c9d27a"], stage: "youth", headgear: "mukuta", item: "sword" },
+    yudhamanyu: { model: "soldier_cw", pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "bow" },
+    uttamaujas: { model: "soldier_cw", pronoun: "he", palette: ["#c98a52", "#2d5aa0", "#e2b55a"], stage: "adult", headgear: "mukuta", gear: ["cuirass"], item: "sword" },
     // The foot soldier of the line: bare to the waist under crossed bands of cloth, a thick coiled turban tied under the chin.
-    footman: { pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], headgear: "turban", chin: true, gear: ["bands"], item: "spear", stage: "adult" },
-    virata: { face: "round", pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "elder", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, beard: true },
-    uttara: { pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "youth", headgear: "mukuta", item: "bow" },
-    vikarna: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "mukuta", item: "sword" },
-    madhavi: { pronoun: "she", palette: ["#b47a4a", "#3f6b5a", "#e2b55a"], stage: "adult" },
-    revat: { pronoun: "he", palette: ["#b06c3c", "#7a5232", "#d8b77a"], stage: "adult", headgear: "band", item: "whip" },
-    bhadra: { face: "square", pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], stage: "elder", headgear: "crest", hat: "#a3302a", gear: ["cuirass"], item: "sword", beard: "short", strong: true }, // captain of the gate guard: a crested veteran, with the sword he strikes with
-    sudatta: { pronoun: "he", palette: ["#c9905a", "#d79a2b", "#8a3a2a"], stage: "elder", headgear: "turban", hat: "#d79a2b", big: true },
-    haridatta: { pronoun: "he", palette: ["#b47a48", "#d9c9a6", "#a3302a"], stage: "elder", headgear: "turban", hat: "#a3302a", beard: true },
-    sage: { pronoun: "he", palette: ["#b88352", "#d98a3a", "#8a6a3a"], stage: "elder", headgear: "jata", beard: "long", item: "staff" },
-    mother: { pronoun: "she", palette: ["#b9743f", "#8a2f3a", "#e2b55a"], stage: "adult" },
-    father: { pronoun: "he", palette: ["#b9743f", "#6f3a24", "#e2b55a"], stage: "adult", headgear: "band" },
-    grandmother: { pronoun: "she", palette: ["#b9743f", "#b9a27c", "#9a8a6a"], stage: "elder" },
-    townsman: { pronoun: "he", palette: ["#b0703f", "#8a5a3a", "#c9a066"], stage: "adult", headgear: "band" },
-    townswoman: { pronoun: "she", palette: ["#b47a4a", "#a34a5a", "#d9c27a"], stage: "adult" },
-    child: { pronoun: "he", palette: ["#b9743f", "#b2432a", "#e2b55a"], stage: "child" },
-    girl: { pronoun: "she", palette: ["#b9743f", "#2f7d55", "#e2b55a"], stage: "child" },
-    bandit: { pronoun: "he", palette: ["#9c6a42", "#6b5a3a", "#a8875a"], headgear: "scarf", hat: "#7a4a2a", item: "club", stage: "adult", size: 0.95 },
-    archer: { pronoun: "he", palette: ["#9e6a40", "#5d3b2a", "#9f8250"], headgear: "capfeather", hat: "#5d3b2a", gear: ["bracer"], item: "bow", stage: "adult" },
-    rider: { pronoun: "he", palette: ["#a8703f", "#6e3026", "#c9a24e"], headgear: "crest", hat: "#a3302a", gear: ["cuirass"], item: "sword", stage: "adult", size: 1.04 },
-    champion: { pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], headgear: "crest", hat: "#e2b55a", gear: ["scale"], item: "mace", stage: "adult", size: 1.1, big: true },
+    footman: { model: "soldier_charioteer", pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], headgear: "turban", chin: true, gear: ["bands"], item: "spear", stage: "adult" },
+    virata: { model: "virata", face: "round", pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "elder", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, beard: true },
+    uttara: { model: "uttara", pronoun: "he", palette: ["#c47d45", "#2f7d55", "#d9c27a"], stage: "youth", headgear: "mukuta", item: "bow" },
+    vikarna: { model: "soldier_cw", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "mukuta", item: "sword" },
+    madhavi: { model: "villager_f", pronoun: "she", palette: ["#b47a4a", "#3f6b5a", "#e2b55a"], stage: "adult" },
+    revat: { model: "villager_m", pronoun: "he", palette: ["#b06c3c", "#7a5232", "#d8b77a"], stage: "adult", headgear: "band", item: "whip" },
+    bhadra: { model: "guard", face: "square", pronoun: "he", palette: ["#9e6a40", "#6e3026", "#b39255"], stage: "elder", headgear: "crest", hat: "#a3302a", gear: ["cuirass"], item: "sword", beard: "short", strong: true }, // captain of the gate guard: a crested veteran, with the sword he strikes with
+    sudatta: { model: "villager_m", pronoun: "he", palette: ["#c9905a", "#d79a2b", "#8a3a2a"], stage: "elder", headgear: "turban", hat: "#d79a2b", big: true },
+    haridatta: { model: "villager_m", pronoun: "he", palette: ["#b47a48", "#d9c9a6", "#a3302a"], stage: "elder", headgear: "turban", hat: "#a3302a", beard: true },
+    sage: { model: "mauni", pronoun: "he", palette: ["#b88352", "#d98a3a", "#8a6a3a"], stage: "elder", headgear: "jata", beard: "long", item: "staff" },
+    mother: { model: "villager_f", pronoun: "she", palette: ["#b9743f", "#8a2f3a", "#e2b55a"], stage: "adult" },
+    father: { model: "villager_m", pronoun: "he", palette: ["#b9743f", "#6f3a24", "#e2b55a"], stage: "adult", headgear: "band" },
+    grandmother: { model: "healer", pronoun: "she", palette: ["#b9743f", "#b9a27c", "#9a8a6a"], stage: "elder" },
+    townsman: { model: "villager_m", pronoun: "he", palette: ["#b0703f", "#8a5a3a", "#c9a066"], stage: "adult", headgear: "band" },
+    townswoman: { model: "villager_f", pronoun: "she", palette: ["#b47a4a", "#a34a5a", "#d9c27a"], stage: "adult" },
+    child: { model: "village_child", pronoun: "he", palette: ["#b9743f", "#b2432a", "#e2b55a"], stage: "child" },
+    girl: { model: "player_f", pronoun: "she", palette: ["#b9743f", "#2f7d55", "#e2b55a"], stage: "child" },
+    bandit: { model: "raider", pronoun: "he", palette: ["#9c6a42", "#6b5a3a", "#a8875a"], headgear: "scarf", hat: "#7a4a2a", item: "club", stage: "adult", size: 0.95 },
+    archer: { model: "soldier_archer", pronoun: "he", palette: ["#9e6a40", "#5d3b2a", "#9f8250"], headgear: "capfeather", hat: "#5d3b2a", gear: ["bracer"], item: "bow", stage: "adult" },
+    rider: { model: "soldier_foot", pronoun: "he", palette: ["#a8703f", "#6e3026", "#c9a24e"], headgear: "crest", hat: "#a3302a", gear: ["cuirass"], item: "sword", stage: "adult", size: 1.04 },
+    champion: { model: "soldier_cw", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], headgear: "crest", hat: "#e2b55a", gear: ["scale"], item: "mace", stage: "adult", size: 1.1, big: true },
     gandharva: { pronoun: "he", palette: ["#9fb07a", "#2f5a3a", "#d9c27a"], headgear: "feather", item: "spear", stage: "adult" },
     rakshasa: { pronoun: "he", palette: ["#5a4a4a", "#2a1a1a", "#b2432a"], headgear: "band", item: "club", stage: "adult", big: true, size: 1.12 },
     naga: { pronoun: "he", palette: ["#6a8a6a", "#2a4a3a", "#c9d27a"], headgear: "band", item: "spear", stage: "adult" },
-    common: { pronoun: "he", palette: ["#9c6a42", "#6b5a3a", "#a8875a"], item: "staff", stage: "adult" },
-    dancer: { pronoun: "she", palette: ["#c08a5a", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta" },
-    king: { pronoun: "he", palette: ["#b8703b", "#5a2a6a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#8a5aa0" }, beard: true },
-    priest: { pronoun: "he", palette: ["#c9905a", "#efe6cf", "#c9a24e"], stage: "elder", headgear: "jata", beard: true },
+    common: { model: "villager_m", pronoun: "he", palette: ["#9c6a42", "#6b5a3a", "#a8875a"], item: "staff", stage: "adult" },
+    dancer: { model: "player_f", pronoun: "she", palette: ["#c08a5a", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta" },
+    king: { model: "jayadratha", look: "court", wear: { cloth: "#5a2a6a", red: "#3a1a4a", cloth2: "#c9a24e" }, pronoun: "he", palette: ["#b8703b", "#5a2a6a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#8a5aa0" }, beard: true },
+    priest: { model: "brahmin", pronoun: "he", palette: ["#c9905a", "#efe6cf", "#c9a24e"], stage: "elder", headgear: "jata", beard: true },
     yaksha: { pronoun: "he", palette: ["#7aa0b0", "#2a4a5a", "#d9e27a"], stage: "adult", headgear: "crown", crown: { gem: "#7ad0e0", white: true }, size: 1.3 }
   };
   G.EXTRAS = EXTRAS;

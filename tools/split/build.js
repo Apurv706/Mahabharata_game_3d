@@ -51,7 +51,14 @@ for (const n of [1, 2]) {
   // The 3D layer's scripts (the renderer, the figures and sets, the fights and tests) go out as one file, k3d.js, in the
   // order the page loads them: a dozen files fewer in each part, which is what keeps the clips under the host's limit.
   const k3d = [...html.matchAll(/<script src="(js\/(?:vendor|g3|ui\/battle|ui\/tests3d)\/[^"]+)"><\/script>\n?/g)].map((m) => m[1]);
-  let page = html, first = true;
+  // The modelled cast (js/g3/models, tools/blender) is tens of megabytes: it goes out beside k3d.js in files of at most ~11 MB
+  // (the host's limit is 16 MB a file), fetched after the page is up (async). A fight that starts before a model has
+  // arrived shows the code-built figure instead (js/g3/model.js: G.modelFor finds nothing yet).
+  const mods = [...html.matchAll(/<script async src="(js\/g3\/models\/[^"]+)"><\/script>\n?/g)].map((m) => m[1]), chunks = [[]]; let size = 0;
+  for (const f of mods) { const n_ = fs.statSync(path.join(G, f)).size; if (size + n_ > 11e6 && chunks[chunks.length - 1].length) { chunks.push([]); size = 0; } chunks[chunks.length - 1].push(f); size += n_; }
+  if (!mods.length) chunks.length = 0;
+  let page = html.replace(/<script async src="js\/g3\/models\/[^"]+"><\/script>\n?/g, "").replace("<!-- models -->\n", chunks.map((c, i) => '<script async src="m' + (i + 1) + '.js"></script>\n').join("")), first = true;
+  chunks.forEach((c, i) => fs.writeFileSync(path.join(dir, "m" + (i + 1) + ".js"), c.map((f) => read(f)).join("\n")));
   for (const f of k3d) { page = page.replace(new RegExp('<script src="' + f.replace(/[.\/]/g, "\\$&") + '"><\\/script>\\n?'), first ? '<script src="k3d.js"></script>\n' : ""); first = false; }
   const licence = fs.existsSync(path.join(G, "js/vendor/three.LICENSE.txt")) ? "/* three.js, whose code follows, is used under this licence:\n\n" + read("js/vendor/three.LICENSE.txt").replace(/\*\//g, "* /") + "\n*/\n" : "";
   fs.writeFileSync(path.join(dir, "k3d.js"), licence + k3d.map((f) => "/* " + f + " */\n" + read(f)).join("\n;\n"));
@@ -60,13 +67,14 @@ for (const n of [1, 2]) {
   fs.writeFileSync(path.join(dir, "hi.js"), read("js/i18n/hi.js") + "\n;\n" + read("js/i18n/hi3d.js"));
   fs.writeFileSync(path.join(dir, "index.html"), page.replace(/<title>[^<]*<\/title>/, "<title>Kurukshetra 3D Part " + (n === 1 ? "One" : "Two") + "</title>"));
   fs.copyFileSync(path.join(__dirname, "part.js"), path.join(dir, "part.js"));
-  let files = all.filter((f) => f !== "index.html" && !k3d.includes(f) && f !== "css/battle3d.css" && f !== "js/i18n/hi3d.js" && parts(f).includes(n));
+  let files = all.filter((f) => f !== "index.html" && !k3d.includes(f) && !mods.includes(f) && f !== "css/battle3d.css" && f !== "js/i18n/hi3d.js" && parts(f).includes(n));
   // Clips are the first to go if a part is over the limit (the painting stays without one).
-  const room = LIMIT - 3;
+  const room = LIMIT - 3 - chunks.length;
   if (files.length > room) { const vids = files.filter((f) => f.startsWith("video/")); const drop = new Set(vids.slice(0, files.length - room)); files = files.filter((f) => !drop.has(f)); }
   const map = { "part.js": path.join(dir, "part.js"), "k3d.js": path.join(dir, "k3d.js") };
+  chunks.forEach((c, i) => { map["m" + (i + 1) + ".js"] = path.join(dir, "m" + (i + 1) + ".js"); });
   for (const f of files) map[f] = f === "js/i18n/hi.js" ? path.join(dir, "hi.js") : path.join(G, f);
   fs.writeFileSync(path.join(out, "part" + n + ".files.json"), JSON.stringify(map, null, 1));
   const c = (re) => files.filter((f) => re.test(f)).length;
-  console.log("part " + n + ": " + (files.length + 3) + " files (art " + c(/^art\//) + ", video " + c(/^video\//) + ", music " + c(/^music\//) + ")");
+  console.log("part " + n + ": " + (files.length + 3 + chunks.length) + " files (art " + c(/^art\//) + ", video " + c(/^video\//) + ", music " + c(/^music\//) + ")");
 }

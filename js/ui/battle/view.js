@@ -28,6 +28,7 @@
   function lookFor(u, B) {
     const S = K.S, D = { lookOf: U.lookOf3d };
     if (u.side === "player") { const s = Object.assign({}, K.puppetSpec(S)); if (B.enc.dream) s.stage = "adult"; return s; }
+    if (u.person === "bhima" && B.enc.id === "e_kings") return D.lookOf("bhima_brahmin"); /* (at the swayamvara the brothers are still brahmins in deer-skins) */
     if (u.person && (K.PUPPETS[u.person] || G.EXTRAS[u.person])) return D.lookOf(u.person);
     const n = String(u.src || u.name);
     let look = null, plain = false;
@@ -119,6 +120,7 @@
     // ---------- The ground and the figures ----------
     function build() {
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
+      G.lookHint = (K.S && K.S.act >= 6) || enc.dream || (enc.lethal !== false && B.units.some((u) => u.line || u.plural || (u.g && (u.g.car || u.g.kind === "squad")))) ? "war" : ""; /* (who wears what: on a field where companies meet, everyone is in what he fights in; in a yard or a hall, his everyday dress. js/g3/model.js) */
       st = G.setStage(key, { clear: 15 });
       buildEdge(key);
       backdrop(key);

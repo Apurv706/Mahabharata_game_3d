@@ -1,35 +1,21 @@
-# The five Pandavas, each built in Blender by script (one hero a run), in the game's own rest pose and units (see js/g3/figure.js):
-#   up = Blender Z (game Y), front = Blender -Y (game +Z), his left = Blender +X. Hips 0.92, shoulders 1.41, head joint 1.47.
-import bpy, bmesh, math, sys
+# The whole cast, built in Blender by script from the artist's reference sheets (docs/brief): one run builds one character
+# at one age, with every attire on his sheets as a "look" the game can switch between. Specs are in cast_specs.py.
+#   python3 cast.py -- <out dir> export <key>      -> m_<key>.js for the game
+#   python3 cast.py -- <out dir> looks  <key>      -> a front render of each look, to set beside the sheet
+# Rest pose and units are the game's (js/g3/figure.js): up = Blender Z, front = Blender -Y, his left = Blender +X.
+import bpy, bmesh, math, sys, os
 from mathutils import Vector, Matrix
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = argv[0] if argv else "."
-STAGE = argv[1] if len(argv) > 1 else "all"
+STAGE = argv[1] if len(argv) > 1 else "export"
+HERO = argv[2]
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cast_specs import resolve
 bpy.ops.wm.read_factory_settings(use_empty=True)
 S = bpy.context.scene
-HERO = argv[2] if len(argv) > 2 and STAGE in ("export", "sheet") else (argv[3] if len(argv) > 3 else "bhima")
-# Each as the user's reference shows him (a still of the five in court dress, eldest on the right; Bhima after an old print):
-# build, the cast of the face, hair, and dress. girth/arm/leg scale the muscle on a frame set by `wide`; face scales the skull's parts.
-HEROES = {
-  "bhima":        dict(wide=1.2, girth=1.0,  arm=1.0,  leg=1.0,  soft=True,  abs=False, shape=dict(chest=1.0,  trap=1.0,  neck=1.0,  waist=1.0,  lat=1.0),
-                       face=dict(jaw=1.0,  chin=1.0,  long=0.0,    cheek=1.0,  nose=1.0,  brow=1.0,  hw=1.04, eye=0.95, gap=1.0,  lipw=1.05, browth=1.3,  nosel=1.0),
-                       stache=True,  stubble=False, hoop=False, crown="plume",   dress="print", locks=4, skin=0xb97a42, cloth=0xe0a92e, accent=0xc22a1a),
-  "yudhishthira": dict(wide=1.0, girth=0.86, arm=0.76, leg=0.86, soft=False, abs=False, shape=dict(chest=0.85, trap=0.8,  neck=0.88, waist=1.06, lat=0.8),
-                       face=dict(jaw=0.8,  chin=1.15, long=0.02,   cheek=0.85, nose=1.1,  brow=0.0,  hw=0.93, eye=0.92, gap=0.97, lipw=0.85, browth=0.8,  nosel=1.15),
-                       stache=False, stubble=False, hoop=False, crown="mukuta",  dress="court", shawl=True, locks=3, skin=0xd29a62, cloth=0x5a3a7a, accent=0xa8326a),
-  "arjuna":       dict(wide=1.0, girth=0.98, arm=0.96, leg=0.98, soft=False, abs=True,  shape=dict(chest=1.06, trap=0.95, neck=0.95, waist=0.86, lat=1.12),
-                       face=dict(jaw=0.94, chin=1.02, long=0.006,  cheek=1.0,  nose=1.0,  brow=0.6,  hw=0.98, eye=1.0,  gap=1.0,  lipw=0.95, browth=1.1,  nosel=1.03),
-                       stache=False, stubble=True,  hoop=False, crown="kirita",  dress="court", locks=4, skin=0xb9783f, cloth=0xf2ecdc, accent=0x3b6fb0),
-  "nakula":       dict(wide=1.0, girth=0.86, arm=0.78, leg=0.88, soft=False, abs=True,  shape=dict(chest=0.92, trap=0.8,  neck=0.85, waist=0.9,  lat=0.9),
-                       face=dict(jaw=0.8,  chin=0.95, long=0.01,   cheek=0.9,  nose=0.92, brow=0.2,  hw=0.94, eye=1.05, gap=1.0,  lipw=0.9,  browth=0.7,  nosel=0.97),
-                       stache=False, stubble=False, hoop=True,  crown="circlet", dress="court", locks=3, skin=0xc27a44, cloth=0x6f7a3a, accent=0xd9772a),
-  "sahadeva":     dict(wide=1.0, girth=0.8,  arm=0.72, leg=0.82, soft=False, abs=False, shape=dict(chest=0.85, trap=0.72, neck=0.8,  waist=1.0,  lat=0.8),
-                       face=dict(jaw=0.9,  chin=0.85, long=-0.004, cheek=1.12, nose=0.9,  brow=-0.2, hw=1.0,  eye=1.15, gap=1.03, lipw=0.92, browth=0.75, nosel=0.9),
-                       stache=False, stubble=False, hoop=True,  crown="circlet", dress="court", locks=3, skin=0xb8743f, cloth=0xb0482a, accent=0x7a2a5a),
-}
-H = HEROES[HERO]; F = H["face"]
-WIDE = H["wide"]; SHX = 0.255 * WIDE * 0.9; HPX = 0.1 * WIDE   # (a modelled hero's shoulder joints stand a little closer: js/g3/figure.js)
-FX = SHX / (0.255 * 1.2 * 0.9); GI = H["girth"]; WX = FX * (0.55 + 0.45 * GI) if WIDE < 1.1 else 1.0   # the frame's width against Bhima's, and what goes round the waist
+H = resolve(HERO); F = H["face"]; SHE = H["sex"] == "f"
+WIDE = H["wide"]; SHX = 0.255 * WIDE * 0.9; HPX = 0.1 * WIDE
+FX = SHX / (0.255 * 1.2 * 0.9); GI = H["girth"]; WX = FX * (0.55 + 0.45 * GI) if WIDE < 1.1 else 1.0
 
 def mat(name, col, rough=0.6, metal=0.0, emit=None):
     m = bpy.data.materials.new(name); m.use_nodes = True; b = m.node_tree.nodes["Principled BSDF"]
@@ -37,10 +23,10 @@ def mat(name, col, rough=0.6, metal=0.0, emit=None):
     return m
 def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
-M = { "skin": mat("skin", lin(hexc(H["skin"])), 0.5), "cloth": mat("cloth", lin(hexc(H["cloth"])), 0.85), "red": mat("red", lin(hexc(H["accent"])), 0.8),
-      "gold": mat("gold", lin(hexc(0xd9a53a)), 0.32, 1.0), "hair": mat("hair", lin(hexc(0x14100c)), 0.5), "white": mat("white", (0.9, 0.88, 0.82), 0.3),
-      "iris": mat("iris", (0.03, 0.02, 0.015), 0.2), "stubble": mat("stubble", tuple(a * 0.62 + b * 0.38 for a, b in zip(lin(hexc(H["skin"])), lin(hexc(0x14100c)))), 0.7), "hide": mat("hide", lin(hexc(0xc79a5a)), 0.8), "armour": mat("armour", lin(hexc(0x9a622a)), 0.35, 0.9), "lip": mat("lip", lin(hexc(0x7a3a26)), 0.5), "iron": mat("iron", lin(hexc(0x4a4a50)), 0.4, 0.9) }
-
+ROLE0 = { "skin": H["skin"], "cloth": 0xf2ecdc, "red": 0xb0402a, "cloth2": 0xf2ecdc, "band": 0xa8452f, "hem": 0xb0402a, "gold": 0xd9a53a, "hair": H["hair"], "white": 0xe8e4d8, "iris": 0x1a120c, "hide": 0xc79a5a,
+          "armour": 0x6a6258, "iron": 0x77736c, "leather": 0x5a3a22, "lip": 0x7a3a26 if not SHE else 0x9a3a30, "gem": 0xb0202a, "beads": 0x5a2e1a, "stubble": 0 }
+M = { k: mat(k, lin(hexc(v)), 0.35 if k in ("gold", "armour", "iron") else 0.7, 1.0 if k == "gold" else 0.0) for k, v in ROLE0.items() }
+M["stubble"] = mat("stubble", tuple(a * 0.62 + b * 0.38 for a, b in zip(lin(hexc(H["skin"])), lin(hexc(H["hair"])))), 0.7)
 def metaballs(name, balls, res=0.035, thr=0.6):
     mb = bpy.data.metaballs.new(name); mb.resolution = res; mb.render_resolution = res; mb.threshold = thr
     ob = bpy.data.objects.new(name, mb); S.collection.objects.link(ob)
@@ -161,7 +147,20 @@ def frame(balls):   # Bhima's own lists, refitted to this hero's frame and build
         out.append(nb + tuple(b[2:]))
     return out
 ABS = sym([((0.036, -0.1, 1.2), (0.03, 0.014, 0.024), 1.7), ((0.036, -0.103, 1.14), (0.03, 0.014, 0.024), 1.7), ((0.035, -0.103, 1.08), (0.029, 0.014, 0.025), 1.7), ((0, -0.14, 1.13), (0.005, 0.02, 0.12), 1.4, None, True)])
-B = mk_body("body", frame(torso + (ABS if H["abs"] else [])), [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
+MU = H.get("mu", 1.0)
+def soften(b):   # less muscle on the same frame: what lies over the bone shrinks toward it, and the cut lines go
+    if MU >= 0.99: return b
+    if len(b) > 4 and b[4]: return b if MU >= 0.7 else None
+    st = b[2] if len(b) > 2 else 2.0
+    if st < 1.45 or st > 1.65: return b
+    (x, y, z), (sx, sy, sz) = b[0], b[1]; k = 0.5 + 0.5 * MU
+    return ((x, y * (0.6 + 0.4 * MU) if (abs(y) > 0.03 and 1.0 < z < 1.45) else y, z), (sx * k, sy * k, sz * (0.75 + 0.25 * MU))) + tuple(b[2:])
+torso = [b for b in map(soften, torso) if b]; arms = [b for b in map(soften, arms) if b]
+if SHE:   # a woman's frame: breasts (not a girl), fuller hips and seat
+    if not H.get("flat"): torso += sym([((0.07, -0.088, 1.285), (0.06, 0.055, 0.056), 1.7)])
+    torso += sym([((0.125, 0.02, 0.93), (0.075, 0.095, 0.09), 1.7), ((0.08, 0.085, 0.9), (0.085, 0.08, 0.09), 1.7)])
+if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["belly"], 0.11), 1.7)]
+B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])), [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
 # ---- The head: broad, heavy-jawed. Built at the head joint (z 1.47) with the skull's centre about 0.16 above it.
 HZ = 1.47 + 0.19
@@ -192,7 +191,8 @@ print("body verts", len(B.data.vertices), "head verts", len(Hd.data.vertices))
 
 # ---- The skeleton: the game's own joints, by the game's own names, where the game has them -----------------------
 JOINTS = ["P", "T", "H", "aL", "eL", "wL", "aR", "eR", "wR", "lL", "kL", "lR", "kR"]
-for o, r in ((B, 0.34), (Hd, 0.5), (HANDS[0], 0.4), (HANDS[1], 0.4)):
+LOD = H.get("lod", 1.0)
+for o, r in ((B, 0.24 * LOD), (Hd, 0.42 * LOD), (HANDS[0], 0.28 * LOD), (HANDS[1], 0.28 * LOD)):
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
@@ -241,7 +241,7 @@ both(lambda sx: prim("uv_sphere", "lid", "skin", (sx * 0.037 * F["gap"], -0.1045
 both(lambda sx: prim("uv_sphere", "browhair", "hair", (sx * 0.04, -0.121 + (1 - BR) * 0.004, HZ + 0.024 + (1 - BR) * 0.004), (0.027, 0.008, (0.0055 + 0.0015 * BR) * F["browth"]), (0, -sx * 0.22 * BR, 0), segments=10, ring_count=6))
 parts.append(prim("uv_sphere", "lip", "lip", (0, -0.126, HZ - 0.098 - LG), (0.028 * (0.6 + 0.4 * JW) * F["lipw"], 0.012, 0.0085), segments=12, ring_count=6))
 # The moustache of a wrestler: thick over the lip, swept out and up at the ends
-if H["stache"]:
+if True:
     both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.03, -0.128, HZ - 0.078), (0.036, 0.017, 0.015), (0, sx * 0.2, sx * 0.2), segments=12, ring_count=6))
     both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.072, -0.108, HZ - 0.062), (0.026, 0.012, 0.012), (0, -sx * 0.8, sx * 0.6), segments=10, ring_count=6))
     both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.09, -0.094, HZ - 0.04), (0.012, 0.009, 0.014), segments=8, ring_count=6))
@@ -258,8 +258,6 @@ parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085,
 for k, (x, y) in enumerate(((-0.105, 0.03), (-0.092, 0.07), (-0.06, 0.1), (-0.02, 0.112), (0.02, 0.112), (0.06, 0.1), (0.092, 0.07), (0.105, 0.03))):   # locks, each a wave of three
     for j in range(H["locks"]):
         w = math.sin(j * 1.9 + k) * 0.012; parts.append(prim("uv_sphere", "locks", "hair", (x * (1 + j * 0.07) + w, y + j * 0.008, HZ - 0.06 - j * 0.058), (0.026, 0.026, 0.04), segments=8, ring_count=6))
-# The lower cloth, drawn up to the knee as a fighting man wears it: taken from the body's own surface and stood off it
-DHOTI_AT = len(parts)   # (made further down, once shells can be cut by the skin's weights)
 def sm(a, b, x): k = max(0.0, min(1.0, (x - a) / (b - a))); return k * k * (3 - 2 * k)
 def clothw(o, top="P", side=None):   # the wrap's own holding: the hips above (or the trunk), each thigh and then each shin below, shared across the middle
     G_ = {n: o.vertex_groups.new(name=n) for n in ("P", "T", "lL", "lR", "kL", "kR")}
@@ -268,7 +266,7 @@ def clothw(o, top="P", side=None):   # the wrap's own holding: the hips above (o
         w = {"T": tt, "P": hp * (1 - tt), "lL": (1 - hp) * (1 - kn) * wl, "lR": (1 - hp) * (1 - kn) * (1 - wl), "kL": (1 - hp) * kn * wl, "kR": (1 - hp) * kn * (1 - wl)}
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
-def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5):   # a hanging length of cloth, a little waved, with a gold edge at its foot
+def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red"):   # a hanging length of cloth, a little waved, with a gold edge at its foot
     me = bpy.data.meshes.new(name); rows = 10; vs = []; fs = []
     for r in range(rows + 1):
         t = r / rows; z = z_top - ln * t
@@ -281,30 +279,10 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
     clothw(o, top, side); parts.append(o)
     if edge:
         e = prim("cube", name + "edge", "gold", (x + lean_ * ln, y - (0.003 if y < 0 else -0.003), z_top - ln + 0.012), (wd * 1.02, 0.004, 0.012), size=2); clothw(e, top, side); parts.append(e)
+    if border:   # the cloth's own woven border, down both edges and across the foot
+        for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side)
+        e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side); parts.append(e)
     return o
-if H["dress"] == "print":
-    parts.append(prim("torus", "sash", "red", (0, 0.008, 0.995), (1, 0.86, 2.1), major_radius=0.19, minor_radius=0.024, major_segments=28, minor_segments=8))
-    parts.append(prim("uv_sphere", "knotsash", "red", (0.035, -0.185, 0.985), (0.06, 0.04, 0.05), segments=12, ring_count=8))
-    for dx, zz, ln, wd, ry in ((0.0, 0.76, 0.2, 0.078, 0.03), (0.06, 0.8, 0.16, 0.06, -0.06)):   # the two ends, one over the other
-        fall("sashend", "red", dx, -0.2 - dx * 0.1, zz + ln, ln * 2, wd, -ry)
-else:   # court dress, as the reference still has it: a gold girdle, and a long pleated fall of the second colour down the front
-    WY = 0.95
-    parts.append(prim("torus", "girdle", "gold", (0, 0.008, 0.99), (1, 0.84, 1.7), major_radius=0.19 * 0.94, minor_radius=0.02, major_segments=28, minor_segments=8))
-    parts.append(prim("uv_sphere", "girdle", "gold", (0, -0.165 * WY - 0.012, 0.99), (0.04, 0.014, 0.045), segments=10, ring_count=6))
-    for dx, zz, ln, wd in ((0.0, 0.68, 0.3, 0.075), (0.0, 0.8, 0.17, 0.1)):
-        fall("panel", "red", dx, -0.19 * WY - 0.02 - (0.012 if wd > 0.09 else 0), zz + ln, ln * 2, wd)
-# Gold: a broad necklace, armlets, wristbands, anklets, earrings, a clasp on the sash
-for k in range(15):
-    a = (k - 7) / 7 * 1.25; parts.append(prim("uv_sphere", "necklace", "gold", (math.sin(a) * 0.105 * FX, (-0.058 - math.cos(a) * 0.06) * (0.6 + 0.4 * GI), 1.47 - math.cos(a) * 0.075), (0.0125, 0.0125, 0.0125), segments=8, ring_count=6))
-parts.append(prim("uv_sphere", "pendant", "gold", (0, -0.128 * (0.6 + 0.4 * GI), 1.375), (0.024, 0.012, 0.028), segments=10, ring_count=6))
-parts.append(prim("uv_sphere", "pendantgem", "red", (0, -0.128 * (0.6 + 0.4 * GI) - 0.01, 1.375), (0.011, 0.006, 0.013), segments=8, ring_count=6))
-both(lambda sx: prim("torus", "armlet", "gold", (sx * AX, 0, 1.2), (1, 1.05, 2.6), major_radius=0.077 * H["arm"], minor_radius=0.011, major_segments=20, minor_segments=6))
-both(lambda sx: prim("uv_sphere", "armletgem", "red", (sx * (AX + 0.02), -0.085 * H["arm"], 1.2), (0.016, 0.008, 0.02), segments=8, ring_count=6))
-both(lambda sx: prim("torus", "wrist", "gold", (sx * AX, 0, 0.875), (1, 1.1, 3.2), major_radius=0.041 * (0.55 + 0.45 * H["arm"]), minor_radius=0.009, major_segments=16, minor_segments=6))
-if H["hoop"]: both(lambda sx: prim("torus", "earring", "gold", (sx * 0.106 * F["hw"], 0.0, HZ - 0.075), (1, 1, 1), (0, math.pi / 2, 0), major_radius=0.028, minor_radius=0.005, major_segments=14, minor_segments=5))
-else: both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104 * F["hw"], 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
-parts.append(prim("cylinder", "clasp", "gold", (0, -0.128, 0.995), (0.03, 0.03, 0.008), (math.pi / 2, 0, 0), vertices=12))
-# ---- What changes with the years and the acts: each is a part the game shows or leaves out ---------------------
 def shell(name, role, keep, off, src=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
     bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
@@ -316,49 +294,120 @@ trunk = lambda c: not (c.z > 1.4 and abs(c.x) < 0.085)
 def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
     ux, uz = -0.3, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.14) * uz - (c.z - 1.44) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
 def sm(a, b, x): k = max(0.0, min(1.0, (x - a) / (b - a))); return k * k * (3 - 2 * k)
-def wrap(name, role, z0, z1, rows):   # a ring of the wrapped cloth between two heights: round both legs at once, pleats gathered in front
-    N = 64; me = bpy.data.meshes.new(name); vs = []; fs = []
-    for r in range(rows + 1):
-        z = z0 + (z1 - z0) * r / rows; t = sm(1.0, 0.24, z)                                  # 0 at the waist, 1 at the hem
-        rx = 0.196 + 0.085 * sm(1.0, 0.82, z) - 0.04 * sm(0.7, 0.24, z); ryb = 0.158 + 0.065 * sm(1.0, 0.9, z) - 0.04 * sm(0.8, 0.3, z); ryf = 0.15 + 0.04 * sm(1.0, 0.8, z)
-        if not H["soft"]: rx *= 0.94; ryb *= 0.95; ryf *= 0.95   # (a slighter man's wrap is a little narrower, never tighter than his thighs)
-        for i in range(N):
-            a = i / N * math.tau; cx, sy = math.sin(a), -math.cos(a)                          # a = 0 is the front
-            front = max(0.0, math.cos(a)) ** 2; fold = (0.006 + 0.02 * t) * math.sin(a * 11) * (0.35 + 0.65 * front) + 0.012 * t * math.sin(a * 5 + 1.3)
-            k = 1 + fold / 0.2; vs.append((cx * rx * k, 0.012 + sy * (ryf if sy < 0 else ryb) * k, z))
-    for r in range(rows):
-        for i in range(N): a, b = r * N + i, r * N + (i + 1) % N; fs.append((a, b, b + N, a + N))
-    me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
-    for p in o.data.polygons: p.use_smooth = True
-    clothw(o)
-    parts.append(o); return o
-# The lower cloth as it is worn: wound round the hips, drawn between the legs and tucked behind, so it folds round each leg
-# separately and hangs loose to the calf, with pleats falling in front. Taken from the body's own surface, so it moves as the legs do.
-def dhoti():
-    o = shell("dhoti", "cloth", lambda c: 0.26 < c.z < 1.0, 0.012)
+
+def tag(objs, part):
+    for o in (objs if isinstance(objs, (list, tuple)) else [objs]): o["part"] = part
+def since(n0, part): tag(parts[n0:], part)
+# ---- Lower cloth: wound round the hips and drawn between the legs, so it folds round each leg; three lengths.
+def dhoti(name, zlow, flare=1.0):
+    n0 = len(parts); o = shell(name, "cloth", lambda c: zlow - 0.07 < c.z < 1.0, 0.012); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
     for v in o.data.vertices:
-        x, y, z = v.co; sd = 1 if x > 0 else -1; a = math.atan2(y, x - sd * HPX); t = sm(0.92, 0.3, z); inner = max(0.0, -sd * math.cos(a))   # t: 0 at the hips, 1 at the hem
-        d = Vector((math.cos(a), math.sin(a), 0))
-        loose = (0.012 + 0.03 * t) * (1 - 0.75 * inner * sm(0.9, 0.6, z))                                      # looser down the leg; kept in between the thighs so the two sides do not cross
-        fold = (0.004 + 0.012 * t) * math.sin(a * 5 * sd + z * 26) + 0.005 * t * math.sin(a * 11 - z * 40)      # folds winding down round the leg
-        v.co += d * (loose + fold * (1 - 0.6 * inner))
-        if z < 0.31: v.co.z -= (0.31 - z) * 0.4 * math.sin(a * 5 * sd) ** 2                                      # an uneven hem
-    return o
-dhoti()
-for sx in (1, -1):   # the worked border at each calf
-    for nm, role, zz, mr in (("hem", "red", 0.285, 0.014), ("hemline", "gold", 0.31, 0.006), ("hemline", "gold", 0.262, 0.006)):
-        parts.append(prim("torus", nm, role, (sx * (HPX + 0.008), 0.012, zz), (1, 1.12, 1.6 if nm == "hem" else 1), major_radius=0.105 * (0.8 + 0.2 * H["leg"]), minor_radius=mr, major_segments=22, minor_segments=6))
-# gathered pleats between the legs, front and back (the tuck)
-fall("pleat", "cloth", 0.0, -0.165 * (0.95 if not H["soft"] else 1.0), 0.97, 0.5, 0.05, edge=False)
-fall("pleat", "cloth", 0.0, 0.175 * (0.95 if not H["soft"] else 1.0), 0.95, 0.36, 0.04, edge=False)
+        v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
+        x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
+        t = sm(0.95, zlow, z); inner = max(0.0, -sd * math.cos(a)); below = sm(0.92, 0.78, z)     # t: 0 at the hips, 1 at the hem; inner: 1 facing the other leg
+        R = (0.13 - 0.014 * t) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))                    # it hangs from the hip, nearly straight: it does not follow the knee and calf
+        R = R * (1 - inner) + min(R, HPX * 0.97) * inner                                          # between the legs the cloth is one: never past the middle
+        r = r0 * (1 - below) + max(r0 + 0.006, R) * below
+        r += ((0.004 + 0.009 * t) * math.sin(a * 6 * sd + z * 22) + 0.004 * t * math.sin(a * 13 - z * 35)) * below * (1 - 0.7 * inner)
+        if z < zlow + 0.045: hemv.append(v.index)
+        v.co.x = cx + math.cos(a) * r; v.co.y = math.sin(a) * r
+        v.co.z += inner * 0.09 * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
+    hb = o.copy(); hb.data = o.data.copy(); S.collection.objects.link(hb); hb.name = name + "hem"; bm = bmesh.new(); bm.from_mesh(hb.data); bm.verts.ensure_lookup_table(); keep = set(hemv)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.index not in keep], context="VERTS")
+    for v in bm.verts:
+        sd = 1 if v.co.x > 0 else -1; cx = sd * HPX; rr = math.hypot(v.co.x - cx, v.co.y) or 1; k = (rr + 0.003) / rr; v.co.x = cx + (v.co.x - cx) * k; v.co.y *= k
+    bm.to_mesh(hb.data); bm.free(); hb.data.materials.clear(); hb.data.materials.append(M["hem"]); parts.append(hb)
+    fall("pleat", "cloth", 0.0, min(front(0.95), -0.13 * LEG * flare * 1.1) - 0.016, 0.97, min(0.56, 0.97 - zlow - 0.02), 0.045, edge=False, border=True, brole="hem")
+    fall("pleat", "cloth", 0.0, max(backy(0.9), 0.13 * LEG * flare * 1.1) + 0.014, 0.95, min(0.36, 0.95 - zlow - 0.1), 0.04, edge=False)
+    since(n0, name)
+# ---- Fitting things to this body: where its surface is, at any height.
+from mathutils.bvhtree import BVHTree
+BVB = BVHTree.FromObject(B, bpy.context.evaluated_depsgraph_get())
+def front(z, x=0.0):
+    h = BVB.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)), 2.0); return h[0].y if h[0] is not None else -0.12
+def backy(z, x=0.0):
+    h = BVB.ray_cast(Vector((x, 1.0, z)), Vector((0, -1, 0)), 2.0); return h[0].y if h[0] is not None else 0.12
+def hang(z0, z1, x=0.0, side=-1):   # where a cloth hanging between these heights lies: off the part of the body that stands furthest out
+    ys = [front(z0 + (z1 - z0) * i / 8, x) if side < 0 else backy(z0 + (z1 - z0) * i / 8, x) for i in range(9)]; return (min(ys) - 0.01) if side < 0 else (max(ys) + 0.01)
+def ring(name, role, z, minor, zs=1.0, grow=0.008, cx=0.0, cy=None, capx=None, N=32, bone=None):   # a band round the trunk or a limb, following its own outline
+    if cy is None: cy = (front(z, cx) + backy(z, cx)) / 2
+    c = Vector((cx, cy, z)); me = bpy.data.meshes.new(name); vs = []; fs = []; M_ = 6
+    for i in range(N):
+        a = i / N * math.tau; d = Vector((math.cos(a), math.sin(a), 0)); h = BVB.ray_cast(c, d, 0.6); p = (h[0] if h[0] is not None else c + d * 0.15) + d * grow
+        if capx is not None and abs(p.x - cx) > capx: p = c + d * (capx / max(1e-4, abs(d.x)))
+        for j in range(M_):
+            b_ = j / M_ * math.tau; q = p + d * (minor * math.cos(b_)) + Vector((0, 0, minor * zs * math.sin(b_))); vs.append(tuple(q))
+    for i in range(N):
+        for j in range(M_): p0 = i * M_ + j; p1 = i * M_ + (j + 1) % M_; q0 = ((i + 1) % N) * M_ + j; q1 = ((i + 1) % N) * M_ + (j + 1) % M_; fs.append((p0, q0, q1, p1))
+    me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
+    for pl in o.data.polygons: pl.use_smooth = True
+    if bone: rigid(o, bone)
+    parts.append(o); return o
+WY = front(0.99) - 0.014      # just clear of the belly, at the waist
+dhoti("dhoti", 0.27); dhoti("dhotiS", 0.46, 0.96); dhoti("dhotiL", 0.1, 0.98)
+# ---- Waist: a cloth sash knotted in front with two ends; a gold girdle with a pleated panel; a plain leather belt.
+n0 = len(parts)
+ring("sash", "red", 0.995, 0.022, 2.0, 0.014)
+parts.append(prim("uv_sphere", "knotsash", "red", (0.02, WY - 0.012, 0.985), (0.05, 0.03, 0.045), segments=12, ring_count=8))
+for dx, zz, ln, wd, ry in ((0.0, 0.74, 0.22, 0.062, 0.03), (0.05, 0.8, 0.17, 0.05, -0.06)): fall("sashend", "red", dx, min(WY, hang(zz, zz + ln)) - 0.022 - dx * 0.1, zz + ln, ln * 2, wd, -ry, edge=bool(H.get("rich")))
+since(n0, "sash"); n0 = len(parts)
+ring("girdle", "gold", 0.99, 0.019, 1.7, 0.012)
+parts.append(prim("uv_sphere", "girdle", "gold", (0, WY - 0.012, 0.99), (0.04, 0.014, 0.045), segments=10, ring_count=6))
+parts.append(prim("uv_sphere", "girdlegem", "gem", (0, WY - 0.024, 0.99), (0.018, 0.008, 0.02), segments=8, ring_count=6))
+since(n0, "girdle"); n0 = len(parts)
+for dx, zz, ln, wd in ((0.0, 0.68, 0.3, 0.075), (0.0, 0.8, 0.17, 0.1)): fall("panel", "red", dx, min(WY, hang(zz, zz + ln)) - 0.03 - (0.012 if wd > 0.09 else 0), zz + ln, ln * 2, wd)
+since(n0, "panel"); n0 = len(parts)
+ring("belt", "leather", 1.0, 0.015, 2.4, 0.012); since(n0, "belt"); n0 = len(parts)
+# ---- Gold
+for k in range(15):
+    a = (k - 7) / 7 * 1.25; x_, z_ = math.sin(a) * 0.105 * FX, 1.47 - math.cos(a) * 0.075; parts.append(prim("uv_sphere", "necklace", "gold", (x_, front(z_, x_) - 0.006, z_), (0.0125, 0.0125, 0.0125), segments=8, ring_count=6))
+parts.append(prim("uv_sphere", "pendant", "gold", (0, front(1.375) - 0.006, 1.375), (0.024, 0.012, 0.028), segments=10, ring_count=6))
+parts.append(prim("uv_sphere", "pendantgem", "gem", (0, front(1.375) - 0.016, 1.375), (0.011, 0.006, 0.013), segments=8, ring_count=6))
+for o in parts[n0:]: rigid(o, "T")
+since(n0, "gold"); n0 = len(parts)
+both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104 * F["hw"], 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
+for o in parts[n0:]: rigid(o, "H")
+since(n0, "ear"); n0 = len(parts)
+for sx, sd in ((1, "L"), (-1, "R")):
+    ring("armlet", "gold", 1.2, 0.01, 2.4, 0.004, cx=sx * AX, cy=0.0, N=20, bone="a" + sd)
+    parts.append(prim("uv_sphere", "armletgem", "gem", (sx * (AX + 0.01), front(1.2, sx * (AX + 0.01)) - 0.008, 1.2), (0.016, 0.008, 0.02), segments=8, ring_count=6)); rigid(parts[-1], "a" + sd)
+    ring("wrist", "gold", 0.875, 0.008, 3.0, 0.004, cx=sx * AX, cy=0.0, N=16, bone="e" + sd)
+since(n0, "bands"); n0 = len(parts)
+for sx, sd in ((1, "L"), (-1, "R")): ring("anklet", "gold", 0.1, 0.008, 2.0, 0.004, cx=sx * (HPX + 0.008), cy=0.005, N=16, bone="k" + sd)
+since(n0, "anklets"); n0 = len(parts)
+# a string of dark beads, long on the chest (teachers, forest folk, village people)
+for k in range(22):
+    a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
+since(n0, "beads"); n0 = len(parts)
+# ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
 shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
-parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.8, 1), major_radius=0.145 * WX, minor_radius=0.02, major_segments=28, minor_segments=8))
-both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105 * H["arm"], 0.105 * H["arm"], 0.09 * H["arm"]), segments=14, ring_count=8))
-if H["stubble"]: shell("stubble", "stubble", lambda c: c.z < HZ - 0.062 and c.y < -0.005 and not (abs(c.x) < 0.03 and HZ - 0.106 < c.z < HZ - 0.086 and c.y < -0.1), 0.0012, Hd)
-shell("hide", "hide", lambda c: band(c, 0.085), 0.017)
+ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
+since(n0, "cuirass"); n0 = len(parts)
+both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105 * H["arm"], 0.105 * H["arm"], 0.085 * H["arm"]), segments=14, ring_count=8))
+for o in parts[n0:]: rigid(o, "aL" if sum(v.co.x for v in o.data.vertices) > 0 else "aR")
+since(n0, "pauldron"); n0 = len(parts)
+def limbshell(name, role, z0, z1, bones, off):
+    o = B.copy(); o.data = B.data.copy(); S.collection.objects.link(o); o.name = name; bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active
+    bi = {i for i, g in enumerate(B.vertex_groups) if g.name[0] in bones}
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (z0 < v.co.z < z1 and sum(w for i, w in v[dl].items() if i in bi) > 0.5)], context="VERTS")
+    for v in bm.verts: v.co += v.normal * off
+    bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
+limbshell("vambrace", "leather", 0.885, 1.075, "ew", 0.009); since(n0, "vambrace"); n0 = len(parts)
+limbshell("greave", "leather", 0.1, 0.41, "k", 0.009); since(n0, "greave"); n0 = len(parts)
+# bands of trim round a cuirass, and a boss on the breast
+for zz in (1.1, 1.17, 1.24, 1.31): ring("lames", "gold", zz, 0.006, 1.4, 0.018, capx=SHX - 0.03, bone="T")
+since(n0, "lames"); n0 = len(parts)
+parts.append(prim("uv_sphere", "boss", "gold", (0, front(1.3) - 0.016, 1.3), (0.05, 0.016, 0.05), segments=12, ring_count=6)); rigid(parts[-1], "T")
+parts.append(prim("uv_sphere", "bossgem", "gem", (0, front(1.3) - 0.03, 1.3), (0.02, 0.008, 0.02), segments=8, ring_count=6)); rigid(parts[-1], "T"); since(n0, "boss"); n0 = len(parts)
+# the lower cloth's own rolled top, knotted in front (plain people: no sash over it)
+ring("tuck", "cloth", 0.995, 0.019, 1.8, 0.013); ring("tuckline", "red", 0.978, 0.0055, 1.0, 0.03)
+parts.append(prim("uv_sphere", "tuckknot", "cloth", (0.0, WY - 0.01, 0.99), (0.04, 0.028, 0.036), segments=10, ring_count=6)); since(n0, "tuck"); n0 = len(parts)
+# ---- Across the chest
+shell("hide", "hide", lambda c: band(c, 0.11), 0.017); since(n0, "hide"); n0 = len(parts)
+shell("bandeau", "band", lambda c: 1.215 < c.z < 1.37 and trunk(c), 0.01); since(n0, "bandeau"); n0 = len(parts)
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
-def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02, names=("strap", "strapedge", "strapstud"), stud=3):
+def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02, names=("strap", "strapedge", "strapstud"), stud=3, edge="gold", off=0.011):
     dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(src, dg); kd = KDTree(len(src.data.vertices))
     for v in src.data.vertices: kd.insert(v.co, v.index)
     kd.balance(); gn = [g.name for g in src.vertex_groups]
@@ -382,84 +431,120 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
             sv = src.data.vertices[kd.find(v.co)[1]]
             for g in sorted(sv.groups, key=lambda g: -g.weight)[:2]: (o.vertex_groups.get(gn[g.group]) or o.vertex_groups.new(name=gn[g.group])).add([v.index], g.weight, "REPLACE")
         parts.append(o); return o
-    strip(names[0] + suffix, mid, -half, half, 0.011); strip(names[1] + suffix, "gold", -half - 0.01, -half, 0.0125); strip(names[1] + suffix, "gold", half, half + 0.01, 0.0125)
+    strip(names[0] + suffix, mid, -half, half, off)
+    if edge: strip(names[1] + suffix, edge, -half - 0.01, -half, off + 0.0015); strip(names[1] + suffix, edge, half, half + 0.01, off + 0.0015)
     for i in range(0, N, stud):
         p, d = ring[i]; s_ = prim("uv_sphere", names[2] + suffix, "gold", tuple(p + d * 0.014), (0.0075, 0.0075, 0.0075), segments=6, ring_count=5)
         sv = src.data.vertices[kd.find(p)[1]]
         for g in sorted(sv.groups, key=lambda g: -g.weight)[:2]: (s_.vertex_groups.get(gn[g.group]) or s_.vertex_groups.new(name=gn[g.group])).add(range(len(s_.data.vertices)), g.weight, "REPLACE")
         parts.append(s_)
-if H["dress"] == "print": ribbon(B, "")
-else:   # the gold worn across the chest: two chains crossing, studded close
-    ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
-    ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
-    parts.append(prim("uv_sphere", "harness", "gold", (0, -0.2 * (0.6 + 0.4 * GI), 1.24), (0.035, 0.012, 0.04), segments=10, ring_count=6))
-if H.get("shawl"):   # the eldest's: a broad length of worked cloth over the left shoulder, an end falling in front and one behind
-    ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="red", half=0.1, names=("shawl", "shawledge", "shawledge"), stud=99)
-    fall("shawlend", "red", 0.17 * FX, -0.15, 1.36, 0.95, 0.085, top="T", side=0.85)     # down the front, over the left leg
-    fall("shawlend", "red", 0.16 * FX, 0.155, 1.4, 0.9, 0.085, top="T", side=0.85)        # and down the back
-
-# A prince's crown: a gold band, a tall plate in front with a red stone, points round it
-if H["crown"] == "plume":
+ribbon(B, "", mid="white", half=0.0045, stud=99, edge=None, off=0.006); since(n0, "thread"); n0 = len(parts)                  # the sacred thread
+ribbon(B, "", mid="red", half=0.03, stud=99, edge="red" if not H.get("rich") else "gold"); since(n0, "baldric"); n0 = len(parts)   # a sash of the side's colour, over the armour
+ribbon(B, "", mid="leather", half=0.014, stud=99, edge="leather"); since(n0, "strap"); n0 = len(parts)            # a quiver's or a bag's strap
+ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
+ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2); since(n0, "harness"); n0 = len(parts)
+# the upper cloth: over the left shoulder, an end falling in front and one behind
+ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="cloth2", half=0.085, names=("shawl", "shawledge", "shawledge"), stud=99, edge="red")
+fall("shawlend", "cloth2", 0.17 * FX, hang(0.6, 1.36, 0.17 * FX), 1.36, 0.9, 0.08, top="T", side=0.85, edge=False, border=True)
+fall("shawlend", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.85, 0.08, top="T", side=0.85, edge=False, border=True); since(n0, "shawl"); n0 = len(parts)
+# hung straight down from the left shoulder only (the folded cloth of a plain man: no wrap across the chest)
+DX = 0.15 * FX; DF, DB = hang(0.7, 1.44, DX), hang(0.7, 1.44, DX, 1)
+fall("drape", "cloth2", DX, DF, 1.45, 0.82, 0.05, top="T", side=0.85, edge=False, border=True)
+fall("drape", "cloth2", DX, DB, 1.45, 0.72, 0.05, top="T", side=0.85, edge=False, border=True)
+parts.append(prim("uv_sphere", "drapetop", "cloth2", (DX, (DF + DB) / 2, 1.452), (0.05, (DB - DF) / 2 + 0.004, 0.012), segments=10, ring_count=6)); rigid(parts[-1], "T"); since(n0, "drape"); n0 = len(parts)
+fall("apron", "leather", 0.0, hang(0.6, 1.3), 1.3, 0.75, 0.15, top="T", edge=False); since(n0, "apron"); n0 = len(parts)
+# ---- Head: crowns, a helmet, a turban, matted hair, beards, a veil, a blindfold
+CR = H.get("crown")
+if CR:
     parts.append(prim("torus", "crown", "gold", (0, 0.012, HZ + 0.072), (1, 1.14, 2.4), (0.12, 0, 0), major_radius=0.103, minor_radius=0.009, major_segments=28, minor_segments=8))
-    for k in range(7):
-        a = (k - 3) * 0.3; parts.append(prim("uv_sphere", "crowngem", "red", (math.sin(a) * 0.105, 0.012 - math.cos(a) * 0.122, HZ + 0.062 + abs(k - 3) * 0.004), (0.009, 0.006, 0.011), segments=6, ring_count=6))
-    parts.append(prim("uv_sphere", "crownboss", "gold", (0, -0.112, HZ + 0.1), (0.022, 0.012, 0.028), segments=10, ring_count=6))
-    for k, (dx, hh, lean_) in enumerate(((0, 0.13, 0), (-0.035, 0.105, 0.35), (0.035, 0.105, -0.35))):   # the plumes: dark, each with a gold eye
-        parts.append(prim("uv_sphere", "crownplume", "hair", (dx, -0.085, HZ + 0.12 + hh / 2), (0.022, 0.008, hh / 2), (-0.2, lean_, 0), segments=8, ring_count=8))
-        parts.append(prim("uv_sphere", "crowneye", "gold", (dx - lean_ * 0.035, -0.097, HZ + 0.12 + hh * 0.78), (0.011, 0.005, 0.014), segments=8, ring_count=6))
-else:
-    parts.append(prim("torus", "crown", "gold", (0, 0.012, HZ + 0.072), (1, 1.14, 2.4), (0.12, 0, 0), major_radius=0.103, minor_radius=0.009, major_segments=28, minor_segments=8))
-    parts.append(prim("uv_sphere", "crowngem", "red", (0, -0.112, HZ + 0.08), (0.014, 0.008, 0.018), segments=8, ring_count=6))
-    if H["crown"] == "mukuta":   # the tall crown of a king: tiers rising to a spire, a flare over each ear
+    parts.append(prim("uv_sphere", "crowngem", "gem", (0, -0.112, HZ + 0.08), (0.014, 0.008, 0.018), segments=8, ring_count=6))
+    if CR == "mukuta":
         for r_, z_, h_ in ((0.108, 0.13, 0.05), (0.094, 0.19, 0.045), (0.075, 0.245, 0.04), (0.052, 0.29, 0.035)):
             parts.append(prim("uv_sphere", "crowntier", "gold", (0, 0.015, HZ + z_), (r_, r_ * 1.1, h_), segments=14, ring_count=8))
         parts.append(prim("cone", "crownspire", "gold", (0, 0.015, HZ + 0.36), (0.028, 0.028, 0.05), vertices=10))
-        both(lambda sx: prim("uv_sphere", "crownwing", "gold", (sx * 0.118, 0.02, HZ + 0.1), (0.016, 0.05, 0.075), (0, sx * 0.25, 0), segments=10, ring_count=8))
         for k in range(8):
-            a = k / 8 * math.tau; parts.append(prim("uv_sphere", "crowngem", "red", (math.sin(a) * 0.106, 0.015 - math.cos(a) * 0.117, HZ + 0.135), (0.01, 0.01, 0.013), segments=6, ring_count=6))
-    elif H["crown"] == "kirita":   # the diadem: a peaked plate in front, a low cap behind it
+            a = k / 8 * math.tau; parts.append(prim("uv_sphere", "crowngem", "gem", (math.sin(a) * 0.106, 0.015 - math.cos(a) * 0.117, HZ + 0.135), (0.01, 0.01, 0.013), segments=6, ring_count=6))
+    elif CR == "kirita":
         parts.append(prim("cone", "crownpeak", "gold", (0, -0.085, HZ + 0.16), (0.05, 0.016, 0.075), vertices=8))
-        parts.append(prim("uv_sphere", "crowncap", "gold", (0, 0.02, HZ + 0.105), (0.098, 0.108, 0.07), segments=14, ring_count=8))
-        parts.append(prim("uv_sphere", "crowntip", "gold", (0, 0.02, HZ + 0.185), (0.02, 0.02, 0.028), segments=8, ring_count=6))
         both(lambda sx: prim("cone", "crownpeak", "gold", (sx * 0.06, -0.085, HZ + 0.125), (0.026, 0.012, 0.045), vertices=6))
-# The matted hair of the forest years: a heavy coil on the crown, locks down the back and over the shoulders
+    else:   # a diadem: a band with a leaf over the brow
+        parts.append(prim("cone", "crownpeak", "gold", (0, -0.1, HZ + 0.115), (0.03, 0.012, 0.045), vertices=8))
+for o in parts[n0:]: rigid(o, "H")
+since(n0, "crown"); n0 = len(parts)
+bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.014, HZ + 0.03), segments=24, ring_count=14); hm = bpy.context.object; hm.name = "helmet"; hm.scale = (0.116, 0.132, 0.14); bpy.ops.object.transform_apply(scale=True)
+bm = bmesh.new(); bm.from_mesh(hm.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < HZ + 0.022 - (0.0 if v.co.y < -0.045 else 0.125)], context="VERTS"); bm.to_mesh(hm.data); bm.free(); hm.data.materials.append(M["iron"])
+for p in hm.data.polygons: p.use_smooth = True
+hm.select_set(False); parts.append(hm)
+parts.append(prim("torus", "helmetrim", "gold", (0, 0.014, HZ + 0.03), (1, 1.14, 1.8), major_radius=0.117, minor_radius=0.008, major_segments=24, minor_segments=6))
+parts.append(prim("cone", "helmetknob", "gold", (0, 0.014, HZ + 0.19), (0.022, 0.022, 0.035), vertices=10))
+parts.append(prim("cube", "helmetnose", "iron", (0, -0.118, HZ + 0.0), (0.009, 0.006, 0.04), size=2))
+for o in parts[n0:]: rigid(o, "H")
+since(n0, "helmet"); n0 = len(parts)
+for r_, z_, mr, tl in ((0.1, 0.07, 0.036, 0.25), (0.092, 0.105, 0.034, -0.2), (0.075, 0.14, 0.032, 0.15)):
+    parts.append(prim("torus", "turban", "red", (0, 0.02, HZ + z_), (1, 1.12, 1.25), (tl * 0.4, tl * 0.3, 0), major_radius=r_, minor_radius=mr, major_segments=20, minor_segments=8))
+parts.append(prim("uv_sphere", "turban", "red", (0, 0.02, HZ + 0.13), (0.08, 0.09, 0.05), segments=12, ring_count=6))
+for o in parts[n0:]: rigid(o, "H")
+since(n0, "turban"); n0 = len(parts)
 parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.13), (1, 1, 1.3), major_radius=0.05, minor_radius=0.03, major_segments=16, minor_segments=8))
 parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.175), (1, 1, 1.3), major_radius=0.034, minor_radius=0.026, major_segments=14, minor_segments=8))
 parts.append(prim("uv_sphere", "jata", "hair", (0, 0.03, HZ + 0.215), (0.03, 0.03, 0.026), segments=10, ring_count=6))
-for i, (x, y, l) in enumerate(((-0.07, 0.085, 0.3), (-0.035, 0.105, 0.34), (0, 0.11, 0.36), (0.035, 0.105, 0.34), (0.07, 0.085, 0.3), (0.1, 0.03, 0.22), (-0.1, 0.03, 0.22))):
-    parts.append(prim("uv_sphere", "jata", "hair", (x, y + 0.02, HZ - 0.02 - l / 2), (0.017, 0.017, l / 2), segments=8, ring_count=8))
-# A beard for the forest years, to go with it
-parts.append(prim("uv_sphere", "beard", "hair", (0, -0.075, HZ - 0.125), (0.062, 0.05, 0.05), segments=14, ring_count=8))
+for o in parts[n0:]: rigid(o, "H")
+since(n0, "jata"); n0 = len(parts)
+# a woman's hair: drawn back to a knot low behind, and a long plait down the back
+parts.append(prim("uv_sphere", "bun", "hair", (0, 0.115, HZ - 0.03), (0.055, 0.045, 0.055), segments=12, ring_count=8)); rigid(parts[-1], "H"); since(n0, "bun"); n0 = len(parts)
+for j in range(9): parts.append(prim("uv_sphere", "braid", "hair", (0, 0.125 + (0.02 if j > 1 else 0), HZ - 0.1 - j * 0.058), (0.028 - j * 0.0012, 0.026, 0.04), segments=8, ring_count=6)); rigid(parts[-1], "H" if j < 2 else "T")
+since(n0, "braid"); n0 = len(parts)
+def hairfall(name, ln, wd):
+    me = bpy.data.meshes.new(name); rows = 12; vs = []; fs = []; C_ = 7
+    for r in range(rows + 1):
+        t = r / rows; z = HZ + 0.06 - ln * t
+        for c in range(C_):
+            u = c / (C_ - 1) - 0.5; back = 0.118 + 0.03 * math.sin(t * 2.2) - 0.045 * (2 * u) ** 2 + (0.035 if z < 1.52 else 0) * sm(1.52, 1.4, z); vs.append((u * wd * (1 + 0.25 * sm(0, 0.5, t)) + 0.006 * math.sin(c * 2.1 + r), back + 0.004 * (c % 2), z))
+    for r in range(rows):
+        for c in range(C_ - 1): a = r * C_ + c; fs.append((a, a + 1, a + C_ + 1, a + C_))
+    me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M["hair"])
+    for p in o.data.polygons: p.use_smooth = True
+    gh, gt = o.vertex_groups.new(name="H"), o.vertex_groups.new(name="T")
+    for v in o.data.vertices:
+        k = sm(1.4, 1.56, v.co.z)
+        if k > 0.02: gh.add([v.index], k, "REPLACE")
+        if k < 0.98: gt.add([v.index], 1 - k, "REPLACE")
+    parts.append(o); return o
+hairfall("longhair", 0.62 if SHE else 0.42, 0.2); since(n0, "longhair"); n0 = len(parts)
+for nm, fz, fy in (("feather", 0.36, -0.07), ("featherlow", 0.2, -0.03)):   # a peacock's eye-feather: over the crown, or in the knot when he wears none
+    parts.append(prim("uv_sphere", nm, "band", (0.02, fy, HZ + fz), (0.035, 0.008, 0.075), (-0.25, 0.1, 0), segments=10, ring_count=8)); rigid(parts[-1], "H")
+    parts.append(prim("uv_sphere", nm + "eye", "gem", (0.02, fy - 0.01, HZ + fz + 0.025), (0.016, 0.006, 0.024), (-0.25, 0.1, 0), segments=8, ring_count=6)); rigid(parts[-1], "H"); since(n0, nm); n0 = len(parts)
+# beards: close-cut (the skin of the jaw itself, darkened and stood off), full, long; and a tuft on the chin alone
+shell("beardS", "hair", lambda c: c.z < HZ - 0.066 and c.y < 0.02 and not (abs(c.x) < 0.032 and HZ - 0.108 < c.z < HZ - 0.084 and c.y < -0.1), 0.004, Hd); since(n0, "beardS"); n0 = len(parts)
+parts.append(prim("uv_sphere", "beardF", "hair", (0, -0.072, HZ - 0.135), (0.066, 0.052, 0.055), segments=14, ring_count=8)); rigid(parts[-1], "H"); since(n0, "beardF"); n0 = len(parts)
+parts.append(prim("uv_sphere", "beardL", "hair", (0, -0.085, HZ - 0.2), (0.06, 0.04, 0.12), segments=14, ring_count=10)); rigid(parts[-1], "H"); since(n0, "beardL"); n0 = len(parts)
+parts.append(prim("uv_sphere", "goatee", "hair", (0, -0.092, HZ - 0.15), (0.024, 0.022, 0.04), segments=10, ring_count=6)); rigid(parts[-1], "H"); since(n0, "goatee"); n0 = len(parts)
+if H.get("stubble"): shell("stubble", "stubble", lambda c: c.z < HZ - 0.062 and c.y < -0.005 and not (abs(c.x) < 0.03 and HZ - 0.106 < c.z < HZ - 0.086 and c.y < -0.1), 0.0012, Hd); since(n0, "face"); n0 = len(parts)
+# the head-cloth of an elder woman, over the hair and down the back; a band over the eyes
+bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.03, HZ + 0.03), segments=24, ring_count=14); vl = bpy.context.object; vl.name = "veil"; vl.scale = (0.122, 0.14, 0.13); bpy.ops.object.transform_apply(scale=True)
+bm = bmesh.new(); bm.from_mesh(vl.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.y < -0.045 and v.co.z < HZ + 0.1 or v.co.z < HZ - 0.11], context="VERTS"); bm.to_mesh(vl.data); bm.free(); vl.data.materials.append(M["cloth2"])
+for p in vl.data.polygons: p.use_smooth = True
+vl.select_set(False); rigid(vl, "H"); parts.append(vl)
+fall("veilfall", "cloth2", 0.0, 0.15, HZ - 0.08, 0.75, 0.15, top="T", edge=False); since(n0, "veil"); n0 = len(parts)
+parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + 0.0), (1, 1.15, 3.2), major_radius=0.1 * F["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
+# a mark on the brow
+parts.append(prim("uv_sphere", "tilak", "gem", (0, -0.119, HZ + 0.045), (0.006, 0.004, 0.014), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "tilak"); n0 = len(parts)
 
-PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair",
-  "girdle": "girdle", "panel": "panel", "paneledge": "panel", "sashendedge": "sash", "shawlendedge": "shawl", "stubble": "face", "harness": "harness", "shawl": "shawl", "shawledge": "shawl", "shawlend": "shawl", "knot": "knot", "knotband": "knot", "hem": "dhoti", "hemline": "dhoti", "pleat": "dhoti", "dhoti": "dhoti", "dhotiband": "dhoti", "dhotiline": "dhoti", "strap": "uttariya", "strapedge": "uttariya", "strapstud": "uttariya", "straplean": "uttariyalean", "strapedgelean": "uttariyalean", "strapstudlean": "uttariyalean", "hem": "dhoti", "pleats": "dhoti", "pleatend": "dhoti", "sash": "sash", "knotsash": "sash", "sashend": "sash", "clasp": "sash",
-  "necklace": "gold", "pendant": "gold", "pendantgem": "gold", "earring": "gold", "armlet": "bands", "armletgem": "bands", "wrist": "bands", "locks": "locks", "cuirass": "cuirass", "cuirassbelt": "cuirass", "pauldron": "cuirass",
-  "hide": "hide", "uttariya": "uttariya", "uttariyaend": "uttariya", "uttariyalean": "uttariyalean", "jata": "jata", "beard": "beard" }
+PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair", "knot": "knot", "knotband": "knot", "locks": "locks" }
 def part_of(o):
-    n = o.name.split(".")[0]; return "crown" if n.startswith("crown") else PART.get(n, n)
-def bone_for(o):
-    n = o.name.split(".")[0]; x = sum((o.matrix_world @ v.co).x for v in o.data.vertices) / max(1, len(o.data.vertices)); sd = "L" if x > 0 else "R"
-    if n in ("eye", "iris", "lid", "browhair", "lip", "stache", "stache2", "haircap", "knot", "knotband", "backhair", "earring", "jata", "beard") or n.startswith("crown"): return "H"
-    if n in ("necklace", "pendant", "pendantgem", "cuirassbelt", "uttariyaend"): return "T"
-    if n == "locks": return "H"
-    if n == "armletgem": return "a" + sd
-    if n == "pauldron": return "a" + sd
-    if n == "armlet": return "a" + sd
-    if n == "wrist": return "e" + sd
-    if n == "anklet": return "k" + sd
-    if n in ("hem", "hemline"): return "k" + sd
-    return "P"
+    return o.get("part") or PART.get(o.name.split(".")[0], o.name.split(".")[0])
 for o in parts:
-    if o.vertex_groups: continue          # (it kept the body's own weights when it was taken from the body)
-    rigid(o, bone_for(o))
-print("parts", len(parts))
-
-# ---- A look at it
+    if not o.vertex_groups: rigid(o, "H" if part_of(o) in ("face", "stache", "hair", "knot", "locks") else "P")
+for o in parts:
+    if part_of(o) == "knot" and o.name.startswith("knotband"): o.data.materials.clear(); o.data.materials.append(M["red"])
+print("parts", len(parts), sorted({part_of(o) for o in parts}))
+LOOKS = H["looks"]; BASE = ["body", "head", "hands", "face"]
+def setcol(m, h): M[m].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin(hexc(h)), 1)
 def look(name, loc, at, lens=60):
     cam = bpy.data.cameras.new(name); cam.lens = lens; co = bpy.data.objects.new(name, cam); S.collection.objects.link(co); co.location = loc
     d = Vector(at) - Vector(loc); co.rotation_euler = d.to_track_quat("-Z", "Y").to_euler(); return co
 def lights():
-    for n, loc, e, sz in (("key", (2.2, -3.2, 3.2), 550, 2.5), ("fill", (-3, -2, 1.6), 160, 4), ("rim", (0.5, 3.2, 2.6), 380, 2)):
+    for n, loc, e, sz in (("key", (2.2, -3.2, 3.2), 230, 2.5), ("fill", (-3, -2, 1.6), 90, 4), ("rim", (0.5, 3.2, 2.6), 160, 2)):
         l = bpy.data.lights.new(n, "AREA"); l.energy = e; l.size = sz; o = bpy.data.objects.new(n, l); S.collection.objects.link(o); o.location = loc
         o.rotation_euler = (Vector((0, 0, 1.1)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
     w = bpy.data.worlds.new("w"); S.world = w; w.use_nodes = True; w.node_tree.nodes["Background"].inputs[0].default_value = (0.16, 0.15, 0.15, 1); w.node_tree.nodes["Background"].inputs[1].default_value = 0.6
@@ -469,55 +554,43 @@ def render(tag, shots, res=(560, 800), samples=24):
     S.render.resolution_x, S.render.resolution_y = res; S.render.film_transparent = False
     for n, loc, at, lens in shots:
         S.camera = look(n, loc, at, lens); S.render.filepath = f"{OUT}/{tag}_{n}.png"; bpy.ops.render.render(write_still=True)
-if STAGE in ("body", "dress"):
-    LOOK = argv[2] if len(argv) > 2 else "prince"; print("hero", HERO, "look", LOOK)
-    HIDE = { "prince": {"jata", "beard", "hide", "cuirass", "knot"}, "war": {"jata", "beard", "hide", "knot", "uttariya", "harness", "shawl"}, "exile": {"crown", "knot", "sash", "gold", "bands", "uttariya", "locks", "girdle", "panel", "harness", "shawl", "cuirass"} }[LOOK]
-    for o in parts: o.hide_render = part_of(o) in HIDE
-
-    lights(); render(HERO + "_" + LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" and len(argv) < 5 else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70)] if LOOK == "prince" else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("torso", (0.9, -2.5, 1.35), (0, 0, 1.2), 70)] if LOOK == "anatomy" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
-
-if STAGE == "sheet":   # every look of this hero, for the art brief: at home, at court, at war, in the forest, as a youth
-    HERO_ = HERO; lights()
-    HIDES = { "home": {"jata", "beard", "hide", "cuirass", "knot", "crown", "harness", "shawl", "uttariya"}, "court": {"jata", "beard", "hide", "cuirass", "knot"},
-              "war": {"jata", "beard", "hide", "knot", "uttariya", "harness", "shawl"}, "forest": {"crown", "knot", "sash", "gold", "bands", "uttariya", "locks", "girdle", "panel", "harness", "shawl", "cuirass"},
-              "youth": {"jata", "beard", "hide", "cuirass", "locks", "crown", "bands", "harness", "shawl", "uttariya", "stache"} }
-    def setcol(m, h): M[m].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin(hexc(h)), 1)
-    setcol("armour", 0x3d4149)
-    for lk, hide in HIDES.items():
-        setcol("cloth", 0xa07a44 if lk == "forest" else H["cloth"]); setcol("red", 0x6a4a26 if lk == "forest" else H["accent"])
-        for o in parts:
-            o.hide_render = part_of(o) in hide or (lk == "youth" and o.name.split(".")[0] == "stubble")
-        render(HERO_ + "_" + lk, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70)] + ([("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70)] if lk == "court" else []), res=(420, 640), samples=20)
+if STAGE == "looks":
+    lights()
+    for lk, L in LOOKS.items():
+        for r, v in ROLE0.items():
+            if r != "stubble": setcol(r, L.get("cols", {}).get(r, v))
+        show = set(BASE + L["parts"])
+        for o in [B, Hd] + HANDS + parts: o.hide_render = (part_of(o) if o in parts else {B: "body", Hd: "head"}.get(o, "hands")) not in show
+        render(HERO + "_" + lk, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70)] + ([("face", (0.25, -1.6, 1.72), (0, 0, 1.66), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70)] if len(argv) > 3 else []), res=(420, 640), samples=16)
 
 if STAGE == "export":
     import json, base64, struct
-    for o in (B, Hd): o["part"] = o.name
+    B["part"] = "body"; Hd["part"] = "head"
     for o in HANDS: o["part"] = "hands"
-    for o in parts: o["part"] = part_of(o)
-    objs = sorted([B, Hd] + HANDS + parts, key=lambda o: o["part"]); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; roles = []; cols = []; base = 0; ranges = {}; HIDDEN = []
+    used = set(BASE); [used.update(L["parts"]) for L in LOOKS.values()]
+    objs = sorted([o for o in [B, Hd] + HANDS + parts if part_of(o) in used], key=lambda o: part_of(o)); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; roles = []; cols = []; base = 0; ranges = {}; HIDDEN = []
     for o in objs:
         me = o.data; me.calc_loop_triangles(); mt = o.data.materials[0]; names = [g.name for g in o.vertex_groups]
-        if mt.name not in roles:
-            roles.append(mt.name); c = mt.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value; cols.append([round(255 * (x ** (1 / 2.2))) for x in c[:3]])
+        if mt.name not in roles: roles.append(mt.name); c = mt.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value; cols.append([round(255 * (x ** (1 / 2.2))) for x in c[:3]])
         ci = roles.index(mt.name); i0 = len(I_)
         for v in me.vertices:
-            x, y, z = o.matrix_world @ v.co; nx, ny, nz = (o.matrix_world.to_3x3() @ v.normal).normalized()   # (where it stands in the world, not in its own frame)
-            P_ += [x, z, -y]; N_ += [nx, nz, -ny]; C_.append(ci)          # Blender (x, y, z) -> the game's (x, up, front)
+            x, y, z = o.matrix_world @ v.co; nx, ny, nz = (o.matrix_world.to_3x3() @ v.normal).normalized()
+            P_ += [x, z, -y]; N_ += [nx, nz, -ny]; C_.append(ci)
             ws = sorted(((g.weight, JOINTS.index(names[g.group])) for g in v.groups if names[g.group] in JOINTS and g.weight > 0.01), reverse=True)[:2]
             if not ws: ws = [(1.0, 0)]
             if len(ws) == 1: ws.append((0.0, ws[0][1]))
             t = ws[0][0] + ws[1][0]; J_ += [ws[0][1], ws[1][1]]; W_.append(round(255 * ws[0][0] / t))
         for t in me.loop_triangles:
             tri = [base + t.vertices[0], base + t.vertices[1], base + t.vertices[2]]
-            # (the thighs are always under the lower cloth: left out of the body, so a wide stance cannot push them through it)
-            if o is B and all(0.37 < me.vertices[i].co.z < 0.9 and abs(me.vertices[i].co.x) > 0.015 for i in t.vertices) and all(sum(g.weight for g in me.vertices[i].groups if names[g.group][0] in "lk") > 0.5 for i in t.vertices): HIDDEN.extend(tri)
+            if o is B and all(0.47 < me.vertices[i].co.z < 0.9 and abs(me.vertices[i].co.x) > 0.015 for i in t.vertices) and all(sum(g.weight for g in me.vertices[i].groups if names[g.group][0] in "lk") > 0.5 for i in t.vertices): HIDDEN.extend(tri)
             else: I_ += tri
-        base += len(me.vertices); r = ranges.setdefault(o["part"], [i0, 0]); r[1] = len(I_) - r[0]
+        base += len(me.vertices); r = ranges.setdefault(part_of(o), [i0, 0]); r[1] = len(I_) - r[0]
     ranges["thighs"] = [len(I_), len(HIDDEN)]; I_ += HIDDEN
     n = base; assert n < 65536, n
     b64 = lambda fmt, a: base64.b64encode(struct.pack("<%d%s" % (len(a), fmt), *a)).decode()
-    data = { "n": n, "joints": JOINTS, "scale": 8192, "roles": roles, "cols": cols, "parts": ranges,
+    looks = { lk: { "parts": BASE + L["parts"], "cols": { r: "#%06x" % v for r, v in L.get("cols", {}).items() } } for lk, L in LOOKS.items() }
+    data = { "n": n, "joints": JOINTS, "scale": 8192, "wide": WIDE, "size": H.get("size", 1), "sided": bool(H.get("sided")), "roles": roles, "cols": cols, "parts": ranges, "looks": looks,
              "pos": b64("h", [max(-32767, min(32767, round(v * 8192))) for v in P_]), "nor": b64("b", [max(-127, min(127, round(v * 127))) for v in N_]),
              "col": b64("B", C_), "jnt": b64("B", J_), "wgt": b64("B", W_), "idx": b64("H", I_) }
-    open(OUT + "/hero_" + HERO + ".js", "w").write("/* " + HERO + ": body, face, hair, cloth, gold and armour, modelled in Blender by tools/blender/heroes.py (see tools/blender/README.md). Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.MODELS = G.MODELS || {})." + HERO + " = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")
-    print("exported verts", n, "tris", len(I_) // 3, "roles", roles, "parts", {k: v[1] // 3 for k, v in ranges.items()})
+    open(OUT + "/m_" + HERO + ".js", "w").write("/* " + HERO + ": modelled in Blender by tools/blender/cast.py from the artist's sheets. Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.MODELS = G.MODELS || {})." + HERO + " = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")
+    print("exported", HERO, "verts", n, "tris", len(I_) // 3)

@@ -131,6 +131,7 @@
       if (!U.b3d.on()) { finished = true; U.games2D[kind](box, done, c); return; }
       // The test's own ground. A kind may build more on it (ctx.setup) before the card comes up.
       const stageKey = K.val(t.stage) || STAGE_FOR[kind] || "stage_training_ground";
+      G.lookHint = ""; /* (a test is not a battle: everyday dress, or the student's cloth under the teachers) */
       ctx.st = G.setStage(stageKey, { clear: SETUP[kind] && SETUP[kind].clear ? SETUP[kind].clear : 9 });
       const c0 = ctx.st.cam || { look: [0, 1.1, 0], dist: 8, yaw: 0.2, pitch: 0.13 };
       G.cam.rate = 3.2;

@@ -1,7 +1,8 @@
-/* Heroes modelled in Blender (tools/blender), worn on the same joints the code-built figures have.
-   A model is one set of points with named parts (body, head, hair, crown, cloth, gold, armour...) and colour roles (skin,
-   cloth, accent, gold, hair...). Which parts show, and what colour each role is, come from the figure's own look, so the
-   same model changes its dress with the acts and its build with the years, and takes each wearer's colours. */
+/* The cast modelled in Blender (tools/blender/cast.py) from the artist's reference sheets, worn on the same joints the
+   code-built figures have. One model is one character at one age: a set of points with named parts (body, head, hair,
+   crown, each cloth, gold, armour...) and colour roles (skin, cloth, border, second cloth, gold, hair...). Each of its
+   looks (home, court, student, forest, disguise, war, mourning) names the parts shown and the colours of the roles, so
+   the same person changes dress with the story's hour and grows up through the models of his ages. */
 (function (K) {
   "use strict";
   const G = (K.G3 = K.G3 || {}), T = window.THREE;
@@ -13,27 +14,34 @@
     const n8 = new Int8Array(bytes(M.nor).buffer), nor = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) nor[i] = n8[i] / 127;
     const j = bytes(M.jnt), w = bytes(M.wgt), ji = new Uint16Array(n * 4), jw = new Float32Array(n * 4);
     for (let i = 0; i < n; i++) { ji[i * 4] = j[i * 2]; ji[i * 4 + 1] = j[i * 2 + 1]; jw[i * 4] = w[i] / 255; jw[i * 4 + 1] = 1 - w[i] / 255; }
+    M.pos = M.nor = M.jnt = M.wgt = null; /* (the text they came in is not needed again) */
     return (M._d = { pos, nor, ji, jw, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
   }
-  // Which parts a look wears.
-  G.modelParts = function (sp, M) {
-    const gear = sp.gear || [], young = sp.stage === "child" || sp.stage === "youth", crowned = /^(crown|kirita|mukuta)$/.test(sp.headgear || "");
-    const forest = sp.headgear === "jata" || gear.includes("deerskin"), armour = !young && (!!sp.armour || gear.includes("cuirass") || gear.includes("scale"));
-    const p = [(young || sp.slim) && M.parts.bodylean ? "bodylean" : "body", "head", "hands", "face", "hair", "dhoti"];
-    if (sp.whiskers && !young) p.push("stache");
-    if (forest) { p.push("jata", "hide"); if (!young) p.push("beard"); }
-    else { // court or field: loose hair when grown, the waist's dress, gold; then armour, or what is worn across the chest
-      p.push(young ? "knot" : "locks", "sash", "girdle", "panel", "gold"); if (crowned) p.push("crown"); if (!young) p.push("bands");
-      if (armour) p.push("cuirass"); else if (!young) p.push("uttariya", "harness", "shawl");
-    }
-    return p.filter((k) => M.parts[k]);   // (each hero's file holds only what he wears: Bhima a strap and sash, his brothers a girdle and chains, the eldest a shawl)
+  const ORDER = { child: ["child", "youth", "adult", "elder"], youth: ["youth", "adult", "child", "elder"], adult: ["adult", "elder", "youth", "child"], elder: ["elder", "adult", "youth", "child"] };
+  // The model a figure wears at its age: its own where the artist drew that age, else the nearest age drawn.
+  G.modelFor = function (sp) {
+    const id = sp && sp.model, all = G.MODELS; if (!id || !all) return null;
+    for (const s of ORDER[sp.stage] || ORDER.adult) if (all[id + "_" + s]) return all[id + "_" + s];
+    return null;
+  };
+  // Which of its looks: what the figure itself asks for (a disguise), else what the hour calls for, else its everyday dress.
+  // G.lookHint is set by the fight for everyone in it ("war" on a battlefield); the forest years show in the figure's own gear.
+  G.modelLook = function (sp, M) {
+    const L = M.looks, gear = sp.gear || [], S = K.S, act = S ? S.act : 0, want = [];
+    if (sp.look) want.push(sp.look);
+    if (G.lookHint) want.push(G.lookHint);
+    if (sp.headgear === "jata" && gear.includes("deerskin")) want.push("forest");
+    if (act >= 6 || sp.armour || gear.includes("cuirass") || gear.includes("scale") || sp.headgear === "helmet") want.push("war");
+    if (act === 2 && (sp.stage === "youth" || sp.stage === "child")) want.push("student");
+    want.push("court", "home");
+    for (const k of want) if (L[k]) return k;
+    return Object.keys(L)[0];
   };
   let MAT = null;
-  // c: { skin, cloth, accent, gold, hair, hide, armour } as hex numbers; anything left out keeps the model's own colour.
+  // c: role colours as hex numbers that override the look's own (sp.wear: one model worn in another's colours).
   G.modelSkin = function (f, sp, body, c) {
-    const M = G.MODELS[sp.model], D = decode(M), parts = G.modelParts(sp, M);
-    const role = { skin: c.skin, cloth: c.cloth, red: c.accent, gold: c.gold, hair: c.hair, hide: c.hide, armour: c.armour != null ? c.armour : 0x3d4149 };   // (armour: dark iron, so it reads against gold skin and yellow cloth)
-    if (parts.includes("hide") && !sp.wear) { role.cloth = 0xa07a44; role.red = 0x6a4a26; }   // (the forest years: bark-dyed cloth, nothing bright)
+    const M = G.modelFor(sp), D = decode(M), look = G.modelLook(sp, M), LK = M.looks[look], parts = LK.parts.filter((k) => M.parts[k]);
+    const role = Object.assign({}, LK.cols, c || {});
     const cols = M.roles.map((r, i) => (role[r] != null ? new T.Color(role[r]) : new T.Color().setRGB(M.cols[i][0] / 255, M.cols[i][1] / 255, M.cols[i][2] / 255, T.SRGBColorSpace)));
     const key = parts.join(",") + "|" + cols.map((x) => x.getHexString()).join("");
     let geo = D.geo.get(key);
@@ -48,7 +56,7 @@
     if (!MAT) { MAT = new T.MeshPhongMaterial({ vertexColors: true, shininess: 26, specular: 0x3a2e20, side: T.DoubleSide }); /* (cloth is one skin, seen from both sides) */ MAT.userData.keep = true; }
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
-    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh;
+    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
     return mesh;
   };
 })(window.K = window.K || {});
