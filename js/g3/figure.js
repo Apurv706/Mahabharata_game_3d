@@ -580,7 +580,7 @@
     }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
     // A hero modelled in Blender wears that model on these same joints; the code-built body stands down (js/g3/model.js).
-    if (!LITE && sp.model && G.MODELS && G.MODELS[sp.model] && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign({ skin: sp.tone ? new T.Color(sp.tone).getHex() : skin, cloth, accent, gold: trim, hair }, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (tone, wear: a modelled hero's own skin and cloth colours) */ }
+    if (!LITE && sp.model && G.MODELS && G.MODELS[sp.model] && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign({ skin: sp.tone ? new T.Color(sp.tone).getHex() : skin, cloth, accent, hair }, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (tone, wear: a modelled hero's own skin and cloth colours) */ }
     if (!opt.noBlob) { // a soft dark patch under the feet: it holds the figure to the ground whether or not the sun casts shadows
       f.blob = new T.Mesh(BLOB_GEO || (BLOB_GEO = G.keep(new T.CircleGeometry(0.62, 14).rotateX(-PI / 2))), BLOB_MAT || (BLOB_MAT = G.keep(new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false, fog: false }))));
       f.blob.position.y = 0.03; f.blob.scale.setScalar(size * (sp.big ? 1.2 : 1)); f.blob.renderOrder = 1; f.root.add(f.blob);
@@ -775,7 +775,7 @@
     // Arjuna in the year of hiding: "decked in the ornaments of women, and wearing large ear-rings and beautiful
     // conch-bracelets overlaid with gold", "a braid to hang down from my head". Bhima at the bride-choice, as a brahmin.
     brihannala: { face: "oval", pronoun: "she", palette: ["#7a4a2a", "#b2432a", "#e2b55a"], stage: "adult", hair: "braid", gear: ["earrings", "bangles"], item: "bow", size: 1.14 },
-    bhima_brahmin: { model: "hero", tone: "#b97a42", face: "broad", pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
+    bhima_brahmin: { model: "bhima", tone: "#b97a42", face: "broad", pronoun: "he", palette: ["#a8622f", "#efe6cf", "#c9a24e"], stage: "adult", headgear: "jata", hair: "matted", gear: ["thread", "deerskin"], item: "club", big: true, size: 1.25 },
     bhurishravas: { face: "gaunt", pronoun: "he", palette: ["#b8703b", "#7a1f2a", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2f7d55", tall: 0.9 }, gear: ["cuirass"], item: "sword", size: 1.1 },
     kritavarma: { face: "square", pronoun: "he", palette: ["#9a5a30", "#2c4c86", "#e2b55a"], stage: "adult", headgear: "crown", crown: { gem: "#2c4c86", tall: 0.85 }, gear: ["cuirass"], item: "bow", size: 1.08 },
     vrishasena: { face: "long", pronoun: "he", palette: ["#c9813f", "#b2432a", "#f3d27a"], stage: "youth", headgear: "mukuta", gear: ["cuirass"], item: "bow" },

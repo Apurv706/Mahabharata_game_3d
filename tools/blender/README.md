@@ -1,5 +1,12 @@
 # Heroes built in Blender
 
+**Now five: the Pandavas.** `heroes.py` builds one hero a run from a table of parameters (`HEROES`: frame, girth of trunk, arms and legs, the cast of the face, crown, dress, colours) and writes `hero_<name>.js`:
+
+    python3 tools/blender/heroes.py -- <out dir> dress prince <hero> quick    # front and face renders
+    python3 tools/blender/heroes.py -- <out dir> export <hero>                # <out dir>/hero_<hero>.js -> js/g3/models/
+
+Bhima follows an old print the user sent (strap, sash, plumed band, moustache); the other four follow a still of the five in court dress (girdle, a pleated fall of a second colour, gold chains crossed on the chest, the eldest's shawl and tall crown). Builds and the cast of each face are taken from it in general terms only (heavier or slighter, longer or rounder, sterner or gentler); no one's likeness is copied. What follows describes the first, single-hero version and still holds for parts and roles.
+
 `bhima.py` builds a hero by script in Blender's Python module (`pip install bpy`, Blender 5.3), in the game's own rest pose and
 units (hips 0.92, shoulders 1.41, head joint 1.47; front is Blender -Y, his left is +X), on a skeleton with the game's own
 joint names, and writes `js/g3/models/hero.js`.

@@ -16,20 +16,22 @@
     return (M._d = { pos, nor, ji, jw, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
   }
   // Which parts a look wears.
-  G.modelParts = function (sp) {
-    const gear = sp.gear || [], young = sp.stage === "child" || sp.stage === "youth", lean = young || !!sp.slim, crowned = /^(crown|kirita|mukuta)$/.test(sp.headgear || "");
-    const forest = sp.headgear === "jata" || gear.includes("deerskin"), armour = !lean && (!!sp.armour || gear.includes("cuirass") || gear.includes("scale"));
-    const p = [lean ? "bodylean" : "body", "head", "hands", "face", "hair", "dhoti"];
+  G.modelParts = function (sp, M) {
+    const gear = sp.gear || [], young = sp.stage === "child" || sp.stage === "youth", crowned = /^(crown|kirita|mukuta)$/.test(sp.headgear || "");
+    const forest = sp.headgear === "jata" || gear.includes("deerskin"), armour = !young && (!!sp.armour || gear.includes("cuirass") || gear.includes("scale"));
+    const p = [(young || sp.slim) && M.parts.bodylean ? "bodylean" : "body", "head", "hands", "face", "hair", "dhoti"];
     if (sp.whiskers && !young) p.push("stache");
-    if (forest) p.push("jata", "hide"); else { p.push(young ? "knot" : "locks", "sash", "gold"); if (crowned) p.push("crown"); if (!lean) p.push("bands"); } // (grown, his hair falls loose to the shoulders, as the old prints have it)
-    if (forest && !young) p.push("beard");
-    if (armour) p.push("cuirass"); else if (!forest && (crowned || sp.rich)) p.push(lean ? "uttariyalean" : "uttariya");
-    return p;
+    if (forest) { p.push("jata", "hide"); if (!young) p.push("beard"); }
+    else { // court or field: loose hair when grown, the waist's dress, gold; then armour, or what is worn across the chest
+      p.push(young ? "knot" : "locks", "sash", "girdle", "panel", "gold"); if (crowned) p.push("crown"); if (!young) p.push("bands");
+      if (armour) p.push("cuirass"); else if (!young) p.push("uttariya", "harness", "shawl");
+    }
+    return p.filter((k) => M.parts[k]);   // (each hero's file holds only what he wears: Bhima a strap and sash, his brothers a girdle and chains, the eldest a shawl)
   };
   let MAT = null;
   // c: { skin, cloth, accent, gold, hair, hide, armour } as hex numbers; anything left out keeps the model's own colour.
   G.modelSkin = function (f, sp, body, c) {
-    const M = G.MODELS[sp.model], D = decode(M), parts = G.modelParts(sp).filter((k) => M.parts[k]);
+    const M = G.MODELS[sp.model], D = decode(M), parts = G.modelParts(sp, M);
     const role = { skin: c.skin, cloth: c.cloth, red: c.accent, gold: c.gold, hair: c.hair, hide: c.hide, armour: c.armour != null ? c.armour : 0x3d4149 };   // (armour: dark iron, so it reads against gold skin and yellow cloth)
     if (parts.includes("hide") && !sp.wear) { role.cloth = 0xa07a44; role.red = 0x6a4a26; }   // (the forest years: bark-dyed cloth, nothing bright)
     const cols = M.roles.map((r, i) => (role[r] != null ? new T.Color(role[r]) : new T.Color().setRGB(M.cols[i][0] / 255, M.cols[i][1] / 255, M.cols[i][2] / 255, T.SRGBColorSpace)));
@@ -43,7 +45,7 @@
       geo.setAttribute("skinIndex", new T.BufferAttribute(D.ji, 4)); geo.setAttribute("skinWeight", new T.BufferAttribute(D.jw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1));
       geo.userData.keep = true; D.geo.set(key, geo);   // (shared by every figure dressed alike, and kept between places)
     }
-    if (!MAT) { MAT = new T.MeshPhongMaterial({ vertexColors: true, shininess: 26, specular: 0x3a2e20 }); MAT.userData.keep = true; }
+    if (!MAT) { MAT = new T.MeshPhongMaterial({ vertexColors: true, shininess: 26, specular: 0x3a2e20, side: T.DoubleSide }); /* (cloth is one skin, seen from both sides) */ MAT.userData.keep = true; }
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
     f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh;
