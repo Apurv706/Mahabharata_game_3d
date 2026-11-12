@@ -30,7 +30,8 @@
   // c: { skin, cloth, accent, gold, hair, hide, armour } as hex numbers; anything left out keeps the model's own colour.
   G.modelSkin = function (f, sp, body, c) {
     const M = G.MODELS[sp.model], D = decode(M), parts = G.modelParts(sp).filter((k) => M.parts[k]);
-    const role = { skin: c.skin, cloth: c.cloth, red: c.accent, gold: c.gold, hair: c.hair, hide: c.hide, armour: c.armour };
+    const role = { skin: c.skin, cloth: c.cloth, red: c.accent, gold: c.gold, hair: c.hair, hide: c.hide, armour: c.armour != null ? c.armour : 0x3d4149 };   // (armour: dark iron, so it reads against gold skin and yellow cloth)
+    if (parts.includes("hide") && !sp.wear) { role.cloth = 0xa07a44; role.red = 0x6a4a26; }   // (the forest years: bark-dyed cloth, nothing bright)
     const cols = M.roles.map((r, i) => (role[r] != null ? new T.Color(role[r]) : new T.Color().setRGB(M.cols[i][0] / 255, M.cols[i][1] / 255, M.cols[i][2] / 255, T.SRGBColorSpace)));
     const key = parts.join(",") + "|" + cols.map((x) => x.getHexString()).join("");
     let geo = D.geo.get(key);

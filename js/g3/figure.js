@@ -23,7 +23,15 @@
         along(new T.BoxGeometry(0.075, 0.82, 0.018), 0.55, blade, kind === "woodsword" ? 0xb09060 : 0xeef0f4); along(new T.ConeGeometry(0.04, 0.12, 4), 1.02, blade); tip = 1.05; break;
       }
       case "dagger": along(new T.CylinderGeometry(0.02, 0.02, 0.14, 5), 0, WOOD); b.box(0.12, 0.03, 0.04, 0, -0.015, 0.08, GOLD); along(new T.BoxGeometry(0.055, 0.34, 0.014), 0.27, STEEL, 0xeef0f4); along(new T.ConeGeometry(0.03, 0.1, 4), 0.49, STEEL); tip = 0.52; break;
-      case "mace": along(new T.CylinderGeometry(0.03, 0.035, 1.05, 6), 0.42, 0x7a5a36); b.sph(0.14, 0, 0, 1.0, col || GOLD, 1, 7); for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283; b.geo(new T.BoxGeometry(0.04, 0.04, 0.24), Math.cos(a) * 0.125, Math.sin(a) * 0.125, 1.0, 0, 0, a, G.shade(col || GOLD, 0.8)); } along(new T.ConeGeometry(0.06, 0.13, 6), 1.19, col || GOLD); along(new T.CylinderGeometry(0.05, 0.05, 0.06, 6), -0.12, GOLD); tip = 1.2; break;
+      case "mace": { // the gada of the old prints: a ribbed haft, a great lobed head like a lotus bud, tiers and a point above it
+        const g1 = col || GOLD, g2 = G.shade(g1, 0.8);
+        along(new T.CylinderGeometry(0.028, 0.032, 0.92, 8), 0.36, g2);
+        for (let i = 0; i < 7; i++) b.sph(0.05 - i * 0.002, 0, 0, 0.12 + i * 0.1, i % 2 ? g1 : g2, 1, 8, 1, 0.6);
+        b.sph(0.05, 0, 0, -0.11, g1, 1, 8, 1, 0.8); b.sph(0.085, 0, 0, 0.84, g1, 1, 10, 1, 0.5);
+        b.sph(0.15, 0, 0, 1.01, g2, 1, 12, 1, 1.05);
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; b.sph(0.07, Math.cos(a) * 0.105, Math.sin(a) * 0.105, 1.01, g1, 1, 8, 1, 1.9); }
+        b.sph(0.105, 0, 0, 1.2, g1, 1, 10, 1, 0.5); b.sph(0.075, 0, 0, 1.27, g2, 1, 8, 1, 0.6); b.sph(0.05, 0, 0, 1.33, g1, 1, 8, 1, 0.7);
+        along(new T.ConeGeometry(0.035, 0.12, 8), 1.42, g1); tip = 1.46; break; }
       case "club": along(new T.CylinderGeometry(0.1, 0.03, 1.05, 6), 0.4, 0x6a4a2e, 0x8a6a46); tip = 0.95; break;
       case "hammer": along(new T.CylinderGeometry(0.028, 0.028, 0.75, 5), 0.3, WOOD); b.box(0.14, 0.14, 0.3, 0, -0.07, 0.66, 0x55565c); tip = 0.8; break;
       case "staff": along(new T.CylinderGeometry(0.028, 0.032, 1.9, 5), 0.3, 0x7a5a36); tip = 1.25; break;
@@ -570,7 +578,7 @@
     }
     f.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
     // A hero modelled in Blender wears that model on these same joints; the code-built body stands down (js/g3/model.js).
-    if (!LITE && sp.model && G.MODELS && G.MODELS[sp.model] && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign({ skin: sp.tone ? new T.Color(sp.tone).getHex() : skin, cloth, accent, gold: trim, hair, armour: armour ? plate : null }, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (tone, wear: a modelled hero's own skin and cloth colours) */ }
+    if (!LITE && sp.model && G.MODELS && G.MODELS[sp.model] && G.modelSkin) { f.root.traverse((o) => { if (o.isMesh) o.visible = false; }); G.modelSkin(f, sp, body, Object.assign({ skin: sp.tone ? new T.Color(sp.tone).getHex() : skin, cloth, accent, gold: trim, hair }, sp.wear ? Object.fromEntries(Object.entries(sp.wear).map(([k, v]) => [k, new T.Color(v).getHex()])) : null)); /* (tone, wear: a modelled hero's own skin and cloth colours) */ }
     if (!opt.noBlob) { // a soft dark patch under the feet: it holds the figure to the ground whether or not the sun casts shadows
       f.blob = new T.Mesh(BLOB_GEO || (BLOB_GEO = G.keep(new T.CircleGeometry(0.62, 14).rotateX(-PI / 2))), BLOB_MAT || (BLOB_MAT = G.keep(new T.MeshBasicMaterial({ map: G.tex("glow"), color: 0x000000, transparent: true, opacity: 0.42, depthWrite: false, fog: false }))));
       f.blob.position.y = 0.03; f.blob.scale.setScalar(size * (sp.big ? 1.2 : 1)); f.blob.renderOrder = 1; f.root.add(f.blob);
