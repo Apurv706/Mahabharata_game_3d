@@ -70,7 +70,7 @@ const CASES = {
     check(Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 0.5, "W moves your fighter (" + Math.hypot(p1[0] - p0[0], p1[1] - p0[1]).toFixed(1) + " m)");
     await page.evaluate(() => { window.K.UI.battleBot = true; window.K.UI.battleSpeed = 10; });
     // (a fight lost once is offered again: the bot takes the second try)
-    const out = await until(() => page.evaluate(() => window.__out), 90000, 500);
+    const out = await until(() => page.evaluate(() => window.__out), 240000, 500); // (every figure on the field is a modelled one now: a software renderer needs minutes for it)
     check(["win", "lose", "flee", "spare"].includes(out), "the fight is played to its end and the story is told how it went (" + out + ")");
     check(await until(() => page.evaluate(() => !document.body.classList.contains("in3d")), 6000), "and the page is the 2D game's again");
     check(!errs.length, "no error on the page" + (errs.length ? ": " + [...new Set(errs)].slice(0, 3).join(" | ") : ""));
@@ -102,7 +102,7 @@ const CASES = {
     const fits = await page.evaluate(() => { const bad = []; for (const el of document.querySelectorAll(".bhud .b-btn, .bhud .b-ico")) { const r = el.getBoundingClientRect(); if (r.width && (r.left < -1 || r.right > innerWidth + 1 || r.top < -1 || r.bottom > innerHeight + 1)) bad.push(el.dataset.a || el.className); } return bad; });
     check(!fits.length, "every button is on the screen" + (fits.length ? ": off it: " + fits.join(", ") : ""));
     await page.evaluate(() => { window.K.UI.battleBot = true; window.K.UI.battleSpeed = 10; });
-    const out = await until(() => page.evaluate(() => window.__out), 90000, 500);
+    const out = await until(() => page.evaluate(() => window.__out), 240000, 500); // (every figure on the field is a modelled one now: a software renderer needs minutes for it)
     check(["win", "lose", "flee", "spare"].includes(out), "the fight ends (" + out + ")");
     check(!errs.length, "no error on the page" + (errs.length ? ": " + [...new Set(errs)].slice(0, 3).join(" | ") : ""));
     await ctx.close();

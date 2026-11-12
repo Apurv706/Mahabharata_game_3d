@@ -7,7 +7,7 @@
 (function (K) {
   "use strict";
   const T = window.THREE;
-  const G = (K.G3 = { ok: false, t: 0, dt: 0, q: { shadows: true, crowd: 1, dpr: 1.5, name: "med" } });
+  const G = (K.G3 = Object.assign(K.G3 || {}, { ok: false, t: 0, dt: 0, q: { shadows: true, crowd: 1, dpr: 1.5, name: "med" } })); // (kept, not replaced: a model fetched before this script ran has already put itself in K.G3.MODELS)
   if (!T) return;
   const V3 = T.Vector3;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));

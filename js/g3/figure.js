@@ -17,30 +17,32 @@
     const b = B(); b.ao = 0.9; let tip = 0.8;
     const along = (g, z, c, c2) => b.geo(g.rotateX(PI / 2), 0, 0, z, 0, 0, 0, c, c2);
     switch (kind) {
-      case "sword": case "woodsword": {
-        const blade = kind === "woodsword" ? 0x9a7a4a : STEEL;
-        along(new T.CylinderGeometry(0.022, 0.022, 0.2, 5), 0.0, WOOD); b.box(0.2, 0.035, 0.05, 0, -0.017, 0.11, kind === "woodsword" ? WOOD : GOLD);
-        along(new T.BoxGeometry(0.075, 0.82, 0.018), 0.55, blade, kind === "woodsword" ? 0xb09060 : 0xeef0f4); along(new T.ConeGeometry(0.04, 0.12, 4), 1.02, blade); tip = 1.05; break;
+      case "sword": case "woodsword": { // the khadga of the sheets: a broad straight blade swelling toward its point, a gilt guard and pommel, a bound grip
+        const wood = kind === "woodsword", blade = wood ? 0x9a7a4a : STEEL;
+        b.surf(wood ? "wood" : "rope", 0x3a2414, 0.03); along(new T.CylinderGeometry(0.022, 0.022, 0.2, 6), 0.0, wood ? WOOD : 0x4a3020);
+        b.surf(wood ? "wood" : "gold"); b.box(0.2, 0.035, 0.05, 0, -0.017, 0.11, wood ? WOOD : GOLD); if (!wood) { b.sph(0.034, 0, 0, -0.12, GOLD, 1, 6); b.sph(0.022, 0.1, 0, 0.11, 0xf4d67a, 1, 5); b.sph(0.022, -0.1, 0, 0.11, 0xf4d67a, 1, 5); }
+        b.surf(wood ? "wood" : "blade", 0x8a9098, 0.075); along(new T.BoxGeometry(0.075, 0.6, 0.018), 0.44, blade, wood ? 0xb09060 : 0xeef0f4); along(new T.BoxGeometry(0.092, 0.24, 0.018), 0.84, blade, wood ? 0xb09060 : 0xeef0f4); along(new T.ConeGeometry(0.048, 0.13, 4), 1.02, blade); b.surf(); tip = 1.05; break;
       }
-      case "dagger": along(new T.CylinderGeometry(0.02, 0.02, 0.14, 5), 0, WOOD); b.box(0.12, 0.03, 0.04, 0, -0.015, 0.08, GOLD); along(new T.BoxGeometry(0.055, 0.34, 0.014), 0.27, STEEL, 0xeef0f4); along(new T.ConeGeometry(0.03, 0.1, 4), 0.49, STEEL); tip = 0.52; break;
-      case "mace": { // the gada of the old prints: a ribbed haft, a great lobed head like a lotus bud, tiers and a point above it
-        const g1 = col || GOLD, g2 = G.shade(g1, 0.8);
-        along(new T.CylinderGeometry(0.028, 0.032, 0.92, 8), 0.36, g2);
-        for (let i = 0; i < 7; i++) b.sph(0.05 - i * 0.002, 0, 0, 0.12 + i * 0.1, i % 2 ? g1 : g2, 1, 8, 1, 0.6);
+      case "dagger": b.surf("rope", 0x3a2414, 0.03); along(new T.CylinderGeometry(0.02, 0.02, 0.14, 5), 0, 0x4a3020); b.surf("gold"); b.box(0.12, 0.03, 0.04, 0, -0.015, 0.08, GOLD); b.surf("blade", 0x8a9098, 0.055); along(new T.BoxGeometry(0.055, 0.34, 0.014), 0.27, STEEL, 0xeef0f4); along(new T.ConeGeometry(0.03, 0.1, 4), 0.49, STEEL); b.surf(); tip = 0.52; break;
+      case "mace": { // the gada of the sheets: a banded haft, a great flanged head of dark iron bound and capped in gold, tiers and a point above it
+        const g1 = col || GOLD, g2 = G.shade(g1, 0.8), IR = 0x4a4a50, IR2 = 0x6a6a72;
+        b.surf("rings", g1, 0.2); along(new T.CylinderGeometry(0.028, 0.032, 0.92, 8), 0.36, 0x3a3a40);
+        b.surf("gold"); for (let i = 0; i < 4; i++) b.sph(0.046, 0, 0, 0.14 + i * 0.2, i % 2 ? g1 : g2, 1, 8, 1, 0.5);
         b.sph(0.05, 0, 0, -0.11, g1, 1, 8, 1, 0.8); b.sph(0.085, 0, 0, 0.84, g1, 1, 10, 1, 0.5);
-        b.sph(0.15, 0, 0, 1.01, g2, 1, 12, 1, 1.05);
-        for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; b.sph(0.07, Math.cos(a) * 0.105, Math.sin(a) * 0.105, 1.01, g1, 1, 8, 1, 1.9); }
+        b.surf("iron"); b.sph(0.15, 0, 0, 1.01, IR, 1, 12, 1, 1.05);
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.283; b.sph(0.07, Math.cos(a) * 0.105, Math.sin(a) * 0.105, 1.01, i % 2 ? IR2 : IR, 1, 8, 1, 1.9); }
+        b.surf("gold"); b.geo(new T.TorusGeometry(0.168, 0.016, 5, 16), 0, 0, 1.01, 0, 0, 0, g1); b.geo(new T.TorusGeometry(0.12, 0.014, 5, 14), 0, 0, 0.9, 0, 0, 0, g1); b.geo(new T.TorusGeometry(0.12, 0.014, 5, 14), 0, 0, 1.13, 0, 0, 0, g1);
         b.sph(0.105, 0, 0, 1.2, g1, 1, 10, 1, 0.5); b.sph(0.075, 0, 0, 1.27, g2, 1, 8, 1, 0.6); b.sph(0.05, 0, 0, 1.33, g1, 1, 8, 1, 0.7);
-        along(new T.ConeGeometry(0.035, 0.12, 8), 1.42, g1); tip = 1.46; break; }
-      case "club": along(new T.CylinderGeometry(0.1, 0.03, 1.05, 6), 0.4, 0x6a4a2e, 0x8a6a46); tip = 0.95; break;
-      case "hammer": along(new T.CylinderGeometry(0.028, 0.028, 0.75, 5), 0.3, WOOD); b.box(0.14, 0.14, 0.3, 0, -0.07, 0.66, 0x55565c); tip = 0.8; break;
-      case "staff": along(new T.CylinderGeometry(0.028, 0.032, 1.9, 5), 0.3, 0x7a5a36); tip = 1.25; break;
-      case "spear": along(new T.CylinderGeometry(0.022, 0.026, 2.3, 5), 0.5, 0x7a5a36); along(new T.ConeGeometry(0.055, 0.3, 4), 1.8, STEEL); along(new T.CylinderGeometry(0.04, 0.04, 0.05, 5), 1.63, GOLD); b.box(0.02, 0.1, 0.16, 0, -0.05, 1.5, 0xc8402c); tip = 1.95; break;
-      case "whip": along(new T.CylinderGeometry(0.018, 0.022, 0.7, 5), 0.3, WOOD); b.rod(0, 0, 0.65, 0, -0.5, 1.0, 0.008, 0x3a2414, 3); tip = 0.7; break;
+        along(new T.ConeGeometry(0.035, 0.12, 8), 1.42, g1); b.surf(); tip = 1.46; break; }
+      case "club": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.1, 0.03, 1.05, 7), 0.4, 0x6a4a2e, 0x8a6a46); b.surf("iron"); for (let i = 0; i < 3; i++) b.geo(new T.TorusGeometry(0.075 + i * 0.012, 0.012, 4, 10), 0, 0, 0.62 + i * 0.13, 0, 0, 0, 0x55524c); b.surf(); tip = 0.95; break;
+      case "hammer": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.028, 0.028, 0.75, 6), 0.3, WOOD); b.surf("iron"); b.box(0.14, 0.14, 0.3, 0, -0.07, 0.66, 0x55565c); b.surf(); tip = 0.8; break;
+      case "staff": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.028, 0.032, 1.9, 6), 0.3, 0x7a5a36); b.surf(); tip = 1.25; break;
+      case "spear": b.surf("rings", 0x8a2a20, 0.46); along(new T.CylinderGeometry(0.022, 0.026, 2.3, 6), 0.5, 0x8a6a3e); /* (bamboo, bound in red at its joints) */ b.surf("blade", 0x8a9098, 0.06); along(new T.ConeGeometry(0.058, 0.34, 4), 1.82, STEEL); b.surf("gold"); along(new T.CylinderGeometry(0.04, 0.034, 0.07, 6), 1.63, GOLD); b.sph(0.03, 0, 0, -0.66, GOLD, 1, 5); b.surf("silk"); b.box(0.02, 0.1, 0.16, 0, -0.05, 1.5, 0xc8402c); b.surf(); tip = 1.95; break;
+      case "whip": b.surf("rope", 0x3a2414, 0.03); along(new T.CylinderGeometry(0.018, 0.022, 0.7, 5), 0.3, WOOD); b.surf(); b.rod(0, 0, 0.65, 0, -0.5, 1.0, 0.008, 0x3a2414, 3); tip = 0.7; break;
       case "scroll": along(new T.CylinderGeometry(0.04, 0.04, 0.34, 6), 0.05, 0xe8dcc0); tip = 0.2; break;
       case "bowl": b.geo(new T.SphereGeometry(0.11, 8, 4, 0, PI * 2, PI / 2, PI / 2), 0, 0.06, 0.08, 0, 0, 0, 0xb5793a); tip = 0.2; break;
       case "lute": b.sph(0.14, 0, 0, 0.1, 0x8a5a2c, 0.6); along(new T.CylinderGeometry(0.02, 0.025, 0.7, 5), 0.5, WOOD); tip = 0.8; break;
-      case "flute": along(new T.CylinderGeometry(0.014, 0.014, 0.5, 5), 0.1, 0xc9a24e); tip = 0.35; break;
+      case "flute": b.surf("rings", 0x6a4a1e, 0.1); along(new T.CylinderGeometry(0.014, 0.014, 0.5, 6), 0.1, 0xc9a24e); b.surf(); tip = 0.35; break;
       case "torch": along(new T.CylinderGeometry(0.03, 0.025, 0.8, 5), 0.3, WOOD); b.sph(0.07, 0, 0, 0.72, 0x2a1a10); tip = 0.75; break;
       case "dice": b.box(0.05, 0.05, 0.12, 0, -0.02, 0.06, 0xf0e6cc); tip = 0.1; break;
       default: return null;
@@ -51,8 +53,8 @@
   function bow(col) {
     const g = new T.Group(), b = B(); b.ao = 0.9;
     const pts = []; for (let i = 0; i <= 10; i++) { const a = -1.15 + (i / 10) * 2.3; pts.push(new V3(0, -Math.cos(a) * 0.36 + 0.14, Math.sin(a) * 0.78)); }
-    b.geo(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 14, 0.022, 5), 0, 0, 0, 0, 0, 0, col || 0x8a5a2c, 0xc9a24e);
-    b.cyl(0.03, 0.03, 0.14, 0, -0.29, 0, GOLD, 6, 0, PI / 2);
+    b.surf("rings", 0xa3302a, 0.2); b.geo(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 18, 0.022, 6), 0, 0, 0, 0, 0, 0, col || 0x8a5a2c, 0xc9a24e); // the limbs: horn and wood, bound with red lac at every span
+    b.surf("gold"); b.cyl(0.03, 0.03, 0.14, 0, -0.29, 0, GOLD, 6, 0, PI / 2); for (const e of [pts[0], pts[10]]) b.sph(0.03, e.x, e.y, e.z, 0xf4d67a, 1, 5); b.surf();
     g.add(b.mesh());
     const sg = new T.BufferGeometry().setFromPoints([pts[0].clone(), new V3(0, 0.0, 0), pts[10].clone()]);
     const str = new T.Line(sg, G.keep(new T.LineBasicMaterial({ color: 0xf2e6c8 })));
@@ -68,16 +70,16 @@
     const b = B(); b.ao = 0.85;
     if (kind === "hide") { // a foot soldier's: hide stretched on cane, painted with a band of his host's colour, a boss of horn
       const hide = 0x8a6238;
-      b.geo(new T.SphereGeometry(0.4, 10, 4, 0, PI * 2, 0, PI / 2.7).rotateZ(-PI / 2).scale(0.36, 1, 1), 0.05, 0, 0, 0, 0, 0, hide, G.shade(hide, 1.25));
+      b.surf("rings", col || 0x7a3a2a, 0.15); b.geo(new T.SphereGeometry(0.4, 14, 5, 0, PI * 2, 0, PI / 2.7).rotateZ(-PI / 2).scale(0.36, 1, 1), 0.05, 0, 0, 0, 0, 0, hide, G.shade(hide, 1.25)); b.surf("leather"); // (painted in rings of his host's colour)
       b.geo(new T.CircleGeometry(0.365, 12).rotateY(-PI / 2), 0.105, 0, 0, 0, 0, 0, G.shade(hide, 0.55));
-      b.torus(0.25, 0.04, 0.15, 0, 0, col || 0x7a3a2a, 0, PI / 2, 0, 14); b.torus(0.355, 0.02, 0.11, 0, 0, G.shade(hide, 0.6), 0, PI / 2, 0, 14); b.sph(0.065, 0.19, 0, 0, 0xd8cdb0, 1, 6);
+      b.torus(0.355, 0.02, 0.11, 0, 0, G.shade(hide, 0.6), 0, PI / 2, 0, 14); b.surf("iron"); b.sph(0.075, 0.19, 0, 0, 0x8a8880, 1, 7); for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2; b.sph(0.018, 0.115, Math.sin(a) * 0.33, Math.cos(a) * 0.33, 0x8a8880, 1, 4); } b.surf();
       return b.mesh();
     }
-    b.geo(new T.SphereGeometry(0.42, 12, 5, 0, PI * 2, 0, PI / 2.6).rotateZ(-PI / 2).scale(0.42, 1, 1), 0.05, 0, 0, 0, 0, 0, col || 0x7a3a2a, G.shade(col || 0x7a3a2a, 1.3));
+    b.surf("rings", trim || GOLD, 0.2); b.geo(new T.SphereGeometry(0.42, 16, 6, 0, PI * 2, 0, PI / 2.6).rotateZ(-PI / 2).scale(0.42, 1, 1), 0.05, 0, 0, 0, 0, 0, col || 0x7a3a2a, G.shade(col || 0x7a3a2a, 1.3)); b.surf("leather"); // (a painted face, ringed in gold)
     b.geo(new T.CircleGeometry(0.385, 14).rotateY(-PI / 2), 0.11, 0, 0, 0, 0, 0, G.shade(col || 0x7a3a2a, 0.6));
-    b.torus(0.37, 0.025, 0.115, 0, 0, trim || GOLD, 0, PI / 2, 0, 16); b.sph(0.08, 0.2, 0, 0, trim || GOLD);
+    b.surf("gold"); b.torus(0.37, 0.025, 0.115, 0, 0, trim || GOLD, 0, PI / 2, 0, 16); b.sph(0.08, 0.2, 0, 0, trim || GOLD);
     for (let i = 0; i < 6; i++) { const a = (i / 6) * PI * 2; b.sph(0.022, 0.16, Math.sin(a) * 0.24, Math.cos(a) * 0.24, trim || GOLD, 1, 5); } // studs
-    return b.mesh();
+    b.surf(); return b.mesh();
   }
   G.held = held; G.bow = bow;
   // An arrow lying along +Z, its head at the origin's far end (used by fights and tests).

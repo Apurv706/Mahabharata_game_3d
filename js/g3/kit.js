@@ -16,7 +16,8 @@
     vc: keepM(new T.MeshLambertMaterial({ vertexColors: true })),
     vcFlat: keepM(new T.MeshLambertMaterial({ vertexColors: true, flatShading: true })),
     vcDouble: keepM(new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide })),
-    vcGlow: keepM(new T.MeshBasicMaterial({ vertexColors: true })) // lit from within: flames' cores, lamp bowls, gems
+    vcGlow: keepM(new T.MeshBasicMaterial({ vertexColors: true })), // lit from within: flames' cores, lamp bowls, gems
+    surf: G.surfMat ? G.surfMat({ map: 0 }) : null, surfD: G.surfMat ? G.surfMat({ map: 0, side: T.DoubleSide }) : null, surfSide: G.surfMat ? G.surfMat({ map: 2 }) : null // what a thing is made of (js/g3/surf.js): wood, worked metal, leather, painted and woven things
   };
   G.shade = (hex, k) => { _c.set(hex); _c.multiplyScalar(k); return _c.getHex(); };
   G.mix = (a, b, k) => { _c.set(a); _c2.set(b); _c.lerp(_c2, k); return _c.getHex(); };
@@ -32,6 +33,15 @@
     this.m.multiply(new T.Matrix4().compose(_p, _q, _s));
     fn(this);
     this.m.copy(this.stack.pop());
+    return this;
+  };
+  // What the solids added from here on are made of (js/g3/surf.js): b.surf("wood"), b.surf("gold"), b.surf("paint", 0xd9a53a, 0.2, "rim", 0xd9a53a, 0.03); b.surf() ends it.
+  //   p: the surface, c2: its figure's colour, cell: the figure's size in metres, b / c3 / bw: a border, its colour and its width (on a board's faces, a pole's ends)
+  const _sa = new Uint8Array(4), _sb = new Uint8Array(4), _sc = new Uint8Array(4), _e1 = new V3(), _e2 = new V3(), _du = new V3(), _dv = new V3();
+  BP.surf = function (p, c2, cell, b, c3, bw) {
+    if (!G.surfPut) return this;
+    if (!this.sA && p) { const n = this.pos.length / 3; this.sP = new Array(n * 4).fill(0); this.sA = new Array(n * 4).fill(0); this.sB = new Array(n * 4).fill(0); this.sC = new Array(n * 4).fill(0); }
+    this.sf = p ? { p, c2, cell, b, c3, bw } : null;
     return this;
   };
   BP.geo = function (g, x, y, z, rx, ry, rz, col, col2) {
@@ -50,6 +60,26 @@
       _n.fromBufferAttribute(N, i).applyMatrix3(_nm).normalize(); nor.push(_n.x, _n.y, _n.z);
       if (col2 != null) cl.push((_c.r + (_c2.r - _c.r) * ky) * sh, (_c.g + (_c2.g - _c.g) * ky) * sh, (_c.b + (_c2.b - _c.b) * ky) * sh);
       else cl.push(_c.r * sh, _c.g * sh, _c.b * sh);
+    }
+    if (this.sA) { // the surface's own coordinates: metres across each face (a board) or round and along (a pole), from the solid's own mapping
+      const sf = this.sf, UV = ng.attributes.uv, n = P.count, sP = this.sP, sA = this.sA, sB = this.sB, sC = this.sC, base = pos.length - n * 3;
+      if (!sf || !UV) { for (let i = 0; i < n; i++) { sP.push(0, 0, 99, 99); sA.push(0, 0, 0, 0); sB.push(0, 0, 255, 0); sC.push(0, 0, 0, 0); } }
+      else {
+        const flat = g.type === "BoxGeometry" || g.type === "PlaneGeometry", swap = g.type === "TubeGeometry" || g.type === "TorusGeometry", ends = g.type === "CylinderGeometry", su = new Float32Array(n), sv = new Float32Array(n);
+        let au = 0, av = 0, aw = 0;
+        for (let i = 0; i < n; i += 3) {
+          const o = base + i * 3; _e1.set(pos[o + 3] - pos[o], pos[o + 4] - pos[o + 1], pos[o + 5] - pos[o + 2]); _e2.set(pos[o + 6] - pos[o], pos[o + 7] - pos[o + 1], pos[o + 8] - pos[o + 2]);
+          const u1 = UV.getX(i + 1) - UV.getX(i), v1 = UV.getY(i + 1) - UV.getY(i), u2 = UV.getX(i + 2) - UV.getX(i), v2 = UV.getY(i + 2) - UV.getY(i), det = u1 * v2 - u2 * v1;
+          let a = 0, c = 0; if (Math.abs(det) > 1e-9) { _du.copy(_e1).multiplyScalar(v2).addScaledVector(_e2, -v1).divideScalar(det); _dv.copy(_e2).multiplyScalar(u1).addScaledVector(_e1, -u2).divideScalar(det); a = _du.length(); c = _dv.length(); }
+          su[i] = su[i + 1] = su[i + 2] = a; sv[i] = sv[i + 1] = sv[i + 2] = c; const ar = _e1.cross(_e2).length(); if (a < 50 && c < 50) { au += a * ar; av += c * ar; aw += ar; }
+        }
+        au /= aw || 1; av /= aw || 1;
+        for (let i = 0; i < n; i++) {
+          const a = flat ? su[i] : au, c = flat ? sv[i] : av, u = UV.getX(i), v = UV.getY(i); let pu = (u - 0.5) * a, pv = (v - 0.5) * c, hx = flat ? a / 2 : 99, hy = flat || ends ? c / 2 : 99;
+          if (swap || (flat && a > c)) { let t = pu; pu = pv; pv = t; t = hx; hx = hy; hy = t; }
+          G.surfPut(_sa, _sb, _sc, 0, sf, 1); sP.push(pu, pv, hx, hy); sA.push(_sa[0], _sa[1], _sa[2], _sa[3]); sB.push(_sb[0], _sb[1], _sb[2], _sb[3]); sC.push(_sc[0], _sc[1], _sc[2], _sc[3]);
+        }
+      }
     }
     if (ng !== g) ng.dispose();
     g.dispose();
@@ -78,6 +108,7 @@
     g.setAttribute("normal", new T.Float32BufferAttribute(this.nor, 3));
     g.setAttribute("color", new T.Float32BufferAttribute(this.col, 3));
     g.computeBoundingSphere();
+    if (this.sA) { G.surfAttrs(g, new Uint8Array(this.sA), new Uint8Array(this.sB), new Uint8Array(this.sC), new T.Float32BufferAttribute(this.sP, 4)); mat = mat === G.mat.vcDouble ? G.mat.surfD : !mat || mat === G.mat.vc ? G.mat.surf : mat; }
     const m = new T.Mesh(g, mat || G.mat.vc);
     m.castShadow = !noShadow; m.receiveShadow = true;
     return m;
@@ -370,8 +401,13 @@
     const p16 = new Int16Array(b64(P.pos).buffer), pos = new Float32Array(P.n * 3); for (let i = 0; i < P.n * 3; i++) pos[i] = p16[i] / P.scale;
     const n8 = new Int8Array(b64(P.nor).buffer), nor = new Float32Array(P.n * 3); for (let i = 0; i < P.n * 3; i++) nor[i] = n8[i] / 127;
     P.pos = P.nor = null;
-    return (P._d = { pa: new T.BufferAttribute(pos, 3), na: new T.BufferAttribute(nor, 3), col: b64(P.col), idx: new Uint16Array(b64(P.idx).buffer), geo: new Map() });
+    const D = (P._d = { pos, pa: new T.BufferAttribute(pos, 3), na: new T.BufferAttribute(nor, 3), col: b64(P.col), idx: new Uint16Array(b64(P.idx).buffer), geo: new Map() });
+    if (G.surfEdges) G.surfEdges(P, D, p16, { tack: 2, cloth: 2 }); // (how far each point of a saddle-cloth lies from its edge: where its border is woven)
+    return D;
   }
+  // What a beast's coat and trappings are made of (js/g3/surf.js): a groomed coat, a mane, gilt bosses on studded leather, a silk cloth sewn with gold flowers inside a gold-thread border.
+  const PROP_SURF = { coat: { p: "skin" }, dark: { p: "hair" }, gold: { p: "gold" }, eye: { p: "gem" }, leather: { p: "leather", c2: 0xd9a53a, cell: 0.08 }, pale: { p: "silk" } };
+  const propSurf = (name, role, col) => role === "tack" ? { p: "buti", c2: 0xd9a53a, cell: name === "elephant" ? 0.2 : 0.1, b: "zari", c3: 0xd9a53a, bw: name === "elephant" ? 0.14 : 0.05 } : role === "coat" && name === "elephant" ? { p: "leather" } : PROP_SURF[role] || null;
   // The named parts of a prop as one mesh, its roles coloured as asked ({ coat: 0x7a4a2a, tack: 0x8a1f24 }).
   G.propMesh = function (name, parts, roleCols) {
     const P = G.PROPS && G.PROPS[name]; if (!P) return null;
@@ -384,8 +420,14 @@
       let len = 0; for (const k of list) len += P.parts[k][1];
       const idx = new Uint16Array(len); let o = 0; for (const k of list) { const [st, l] = P.parts[k]; idx.set(D.idx.subarray(st, st + l), o); o += l; }
       geo = new T.BufferGeometry(); geo.setAttribute("position", D.pa); geo.setAttribute("normal", D.na); geo.setAttribute("color", ca); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.userData.keep = true; D.geo.set(key, geo);
+      if (G.surfPut && D.edge) {
+        let sa = D.geo.get("s|" + ck);
+        if (!sa) { const A = new Uint8Array(P.n * 4), B2 = new Uint8Array(P.n * 4), C = new Uint8Array(P.n * 4), memo = {}; for (let i = 0; i < P.n; i++) { const r = P.roles[D.col[i]]; G.surfPut(A, B2, C, i, r in memo ? memo[r] : (memo[r] = propSurf(name, r)), D.edge[i], D.half[i]); }
+          sa = [new T.BufferAttribute(A, 4, true), new T.BufferAttribute(B2, 4, true), new T.BufferAttribute(C, 4, true)]; D.geo.set("s|" + ck, sa); }
+        geo.setAttribute("surfA", sa[0]); geo.setAttribute("surfB", sa[1]); geo.setAttribute("surfC", sa[2]); geo.setAttribute("surfP", D.pa);
+      }
     }
-    const m = new T.Mesh(geo, G.mat.vc), pv = P.pivots[list[0]]; if (pv) m.position.set(pv[0], pv[1], pv[2]); m.frustumCulled = false;
+    const m = new T.Mesh(geo, geo.attributes.surfA && G.mat.surfSide ? G.mat.surfSide : G.mat.vc), pv = P.pivots[list[0]]; if (pv) m.position.set(pv[0], pv[1], pv[2]); m.frustumCulled = false;
     return m;
   };
   function beast(name, body, legs, rc, extra) {   // a body, four legs that swing from the shoulder and the hip, and anything else that moves
@@ -432,55 +474,70 @@
   G.gallop = function (horse, t, speed) { const L = horse.userData.legs; if (!L) return; const a = 0.75 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[1].rotation.x = Math.sin(t + 0.6) * a; L[2].rotation.x = Math.sin(t + PI) * a; L[3].rotation.x = Math.sin(t + PI + 0.6) * a; horse.children[0].position.y = Math.abs(Math.sin(t)) * 0.07 * Math.min(1, speed); };
   // A war chariot: the car and pole in one piece, two wheels that turn, a team of horses, a standard.
   // o: { col, trim, horses (2), horseCol, flag: [bg, fg, device], canopy }
+  // A war chariot, after the artist's sheet: an open car of framed timber on two twelve-spoked wheels, its front and
+  // sides panelled in the owner's colour with a gold sun, cane lattice behind, gilt caps and bosses, a bow case and a
+  // quiver standing at the front posts, a pole and yoke for the team. A king's white parasol stands on its own staff
+  // behind him, its rim well above the tallest head; his standard flies from the rear corner.
+  //   o: { col (the panels), trim, flag, canopy (the parasol's colour), horses, horseCol, tack }
   G.chariot = function (o) {
-    o = o || {}; const col = o.col || 0x7a4e24, trim = o.trim || 0xd9a53a, lite = G.shade(col, 1.22), deep = G.shade(col, 0.72), IRON = 0x3a342c;
-    const g = new T.Group(), b = new Builder();
-    b.box(1.5, 0.12, 1.9, 0, 0.72, 0, deep);                                                                   // the floor
-    // The breastwork: a curved front, panelled, with a gold boss on each panel and a rail along its top; lower sides; open behind.
-    b.geo(new T.CylinderGeometry(0.75, 0.75, 0.66, 14, 1, true, -PI / 2, PI).scale(1, 1, 0.5), 0, 1.17, 0.58, 0, 0, 0, col, lite);
-    b.geo(new T.TorusGeometry(0.75, 0.04, 6, 14, PI).rotateX(PI / 2).scale(1, 1, 0.5), 0, 1.5, 0.58, 0, PI, 0, trim);
-    b.geo(new T.TorusGeometry(0.76, 0.03, 5, 14, PI).rotateX(PI / 2).scale(1, 1, 0.5), 0, 0.86, 0.58, 0, PI, 0, trim);
-    for (let i = -2; i <= 2; i++) { const a = i * 0.52; b.geo(new T.CylinderGeometry(0.075, 0.075, 0.03, 10).rotateX(PI / 2), Math.sin(a) * 0.76, 1.18, 0.58 + Math.cos(a) * 0.385, 0, a, 0, trim); b.sph(0.03, Math.sin(a) * 0.775, 1.18, 0.58 + Math.cos(a) * 0.395, 0xf4d67a, 1, 6); }
-    for (const sx of [-1, 1]) { b.box(0.08, 0.46, 1.5, sx * 0.72, 0.84, -0.2, col, 0, 0, 0, lite); b.box(0.1, 0.05, 1.54, sx * 0.72, 1.3, -0.2, trim);
-      for (let k = 0; k < 4; k++) b.cyl(0.03, 0.03, 0.5, sx * 0.72, 0.82, -0.86 + k * 0.42, deep, 6);
-      b.geo(new T.CylinderGeometry(0.06, 0.06, 0.035, 9).rotateZ(PI / 2), sx * 0.765, 1.06, -0.24, 0, 0, 0, trim); }
-    // Carving, as the paintings have it: a lotus wheel on each side, bosses along the rails, a scroll curling up behind and a prow under the front.
-    for (const sx of [-1, 1]) {
-      b.geo(new T.CylinderGeometry(0.2, 0.2, 0.03, 14).rotateZ(PI / 2), sx * 0.77, 1.0, -0.2, 0, 0, 0, trim); b.sph(0.05, sx * 0.79, 1.0, -0.2, 0xf4d67a, 1, 6);
-      for (let k = 0; k < 8; k++) { const a = (k / 8) * PI * 2; b.sph(0.034, sx * 0.785, 1.0 + Math.sin(a) * 0.13, -0.2 + Math.cos(a) * 0.13, 0xf4d67a, 1, 4); }
-      for (let k = 0; k < 6; k++) b.sph(0.03, sx * 0.72, 1.35, -0.9 + k * 0.28, 0xf4d67a, 1, 4);
-      b.geo(new T.BoxGeometry(0.03, 0.2, 0.5), sx * 0.765, 0.98, 0.3, 0, 0, 0, trim); b.geo(new T.BoxGeometry(0.03, 0.2, 0.36), sx * 0.765, 0.98, -0.68, 0, 0, 0, trim);
-      b.geo(new T.TorusGeometry(0.3, 0.045, 6, 12, PI * 1.35).rotateY(PI / 2), sx * 0.72, 1.42, -0.98, 0, 0, 0, trim); b.sph(0.07, sx * 0.72, 1.42, -0.98, 0xf4d67a, 1, 6);
+    o = o || {}; const trim = o.trim || 0xd9a53a, BR = 0xf4d67a, WOOD = 0x8a5a2c, DEEP = 0x5e3a1c, IRON = 0x55524c, LEATH = 0x5a3a22;
+    const pc = o.col == null ? 0x8e1c22 : o.col, ph = new T.Color(pc).getHSL({}), panel = ph.s < 0.5 && ph.h > 0.04 && ph.h < 0.12 ? 0x8e1c22 : pc; // (a plain brown car is panelled in the royal dark red)
+    const g = new T.Group(), b = new Builder(), W = 0.74, ZF = 0.94, ZB = -0.94, Y0 = 0.78, HS = 0.56, HF = 0.72;
+    b.surf("wood", DEEP, 0.1);
+    b.box(1.52, 0.1, 1.92, 0, 0.7, 0, WOOD); b.box(1.6, 0.05, 2.0, 0, 0.68, 0, DEEP);                             // the floor, on its bed
+    for (const sx of [-1, 1]) { // the four posts and the rails between them
+      b.box(0.075, HF + 0.08, 0.075, sx * W, Y0, ZF, WOOD); b.box(0.07, HS + 0.06, 0.07, sx * W, Y0, ZB, WOOD); b.box(0.06, HS, 0.06, sx * W, Y0, 0.02, WOOD);
+      b.box(0.065, 0.055, ZF - ZB, sx * W, Y0 + HS, (ZF + ZB) / 2, WOOD); b.box(0.06, 0.05, ZF - ZB, sx * W, Y0 + 0.02, (ZF + ZB) / 2, DEEP);
     }
-    b.geo(new T.TorusGeometry(0.22, 0.05, 6, 10, PI * 1.2).rotateY(PI / 2), 0, 0.62, 1.02, 0, 0, 0, trim); b.box(1.56, 0.05, 1.96, 0, 0.7, 0, trim);
-    // A case of arrows on the right rail and a spare bow on the left; the pole, the yoke with its two saddles; the axle.
-    b.cyl(0.085, 0.07, 0.6, 0.6, 0.9, -0.62, 0x5a3a22, 8); for (let k = 0; k < 5; k++) b.rod(0.6 + (k - 2) * 0.025, 1.5, -0.62 + (k % 2) * 0.03, 0.6 + (k - 2) * 0.03, 1.72, -0.62 + (k % 2) * 0.03, 0.009, k % 2 ? 0xa3302a : 0xe8e0d0, 3);
-    b.geo(new T.TorusGeometry(0.42, 0.018, 4, 10, PI * 0.9).rotateY(PI / 2), -0.64, 1.25, -0.5, 0, 0, 0.5, 0x6a4a26);
-    b.rod(0, 0.76, 0.9, 0, 1.0, 3.62, 0.06, 0x5a3a22, 7); b.rod(-1.05, 1.06, 3.5, 1.05, 1.06, 3.5, 0.05, 0x5a3a22, 6); for (const sx of [-1, 1]) { b.sph(0.07, sx * 1.05, 1.06, 3.5, trim, 1, 6); b.torus(0.16, 0.03, sx * 0.5, 1.12, 3.5, 0x3a2414, 0, 0, 0, 8); }
-    b.rod(-1.0, 0.72, -0.1, 1.0, 0.72, -0.1, 0.06, IRON, 6);
-    for (const sx of [-1, 1]) b.rod(sx * 0.35, 1.5, 0.95, sx * 0.5, 1.98, 4.6, 0.008, 0x2a1a10, 3);                // the reins
-    if (o.canopy) { // the umbrella of a king, domed in two tiers on gilded posts: ribs, a hanging fringe, a pot-and-point finial
-      for (const sx of [-1, 1]) { b.rod(sx * 0.66, 0.86, -0.85, sx * 0.66, 2.72, -0.85, 0.034, trim, 6); for (const y of [1.5, 2.1]) b.sph(0.05, sx * 0.66, y, -0.85, 0xf4d67a, 1, 5); }
-      const cz = -0.4, dk = G.shade(o.canopy, 0.84);
-      b.geo(new T.SphereGeometry(1.0, 18, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.38, 0.9), 0, 2.7, cz, 0, 0, 0, o.canopy, dk);
-      b.geo(new T.SphereGeometry(0.5, 14, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.62, 0.9), 0, 3.02, cz, 0, 0, 0, o.canopy, dk);
-      for (let k = 0; k < 10; k++) { const a = (k / 10) * PI * 2; b.rod(0, 3.1, cz, Math.sin(a) * 1.0, 2.71, cz + Math.cos(a) * 0.9, 0.013, trim, 3); }
-      b.geo(new T.TorusGeometry(1.0, 0.035, 5, 22).rotateX(PI / 2).scale(1, 1, 0.9), 0, 2.69, cz, 0, 0, 0, trim); b.geo(new T.TorusGeometry(0.5, 0.03, 5, 16).rotateX(PI / 2).scale(1, 1, 0.9), 0, 3.03, cz, 0, 0, 0, trim);
-      for (let k = 0; k < 20; k++) { const a = (k / 20) * PI * 2, x = Math.sin(a) * 1.0, z = cz + Math.cos(a) * 0.9; b.cone(0.045, 0.16, x, 2.69, z, k % 2 ? trim : 0xa3302a, 5, 0, PI); b.sph(0.026, x, 2.52, z, 0xf4d67a, 1, 4); }
-      b.sph(0.1, 0, 3.4, cz, trim, 1, 8); b.cyl(0.05, 0.07, 0.08, 0, 3.3, cz, trim, 7); b.cone(0.045, 0.2, 0, 3.48, cz, 0xf4d67a, 6);
+    b.box(W * 2, 0.06, 0.07, 0, Y0 + HF, ZF, WOOD); b.box(W * 2, 0.05, 0.06, 0, Y0 + 0.02, ZF, DEEP); b.box(W * 2, 0.055, 0.065, 0, Y0 + HS * 0.72, ZB, WOOD); b.box(W * 2, 0.05, 0.06, 0, Y0 + 0.02, ZB, DEEP);
+    // Panels: painted boards in the owner's colour, each with a gold sun and a gold edge; cane lattice in the rear bays and across the back.
+    b.surf("sun", trim, 0.2, "rim", trim, 0.028);
+    b.box(W * 2 - 0.1, HF - 0.1, 0.035, 0, Y0 + 0.07, ZF, panel);
+    for (const sx of [-1, 1]) b.box(0.035, HS - 0.1, ZF - 0.12, sx * W, Y0 + 0.07, (ZF + 0.02) / 2 + 0.01, panel);
+    b.surf("sun", trim, 0.15, "rim", trim, 0.024); b.box(0.56, HS * 0.72 - 0.1, 0.03, 0, Y0 + 0.07, ZB, panel);
+    b.surf("cane", 0xd8b878, 0.045);
+    for (const sx of [-1, 1]) { b.box(0.03, HS - 0.1, 0.02 - ZB - 0.1, sx * W, Y0 + 0.07, (0.02 + ZB) / 2, 0xb08a4e); b.box(0.4, HS * 0.72 - 0.1, 0.025, sx * 0.5, Y0 + 0.07, ZB, 0xb08a4e); }
+    // Gilt: caps on the posts, bosses along the rails, a boss at the pole's root.
+    b.surf("gold");
+    for (const sx of [-1, 1]) { b.sph(0.06, sx * W, Y0 + HF + 0.11, ZF, trim, 1.15, 7); b.cone(0.03, 0.09, sx * W, Y0 + HF + 0.16, ZF, BR, 6); b.sph(0.05, sx * W, Y0 + HS + 0.09, ZB, trim, 1.1, 6); b.sph(0.042, sx * W, Y0 + HS + 0.06, 0.02, trim, 1, 6);
+      for (let k = 0; k < 5; k++) b.sph(0.026, sx * (W + 0.035), Y0 + HS + 0.027, ZB + 0.2 + k * 0.37, BR, 1, 5);
+      b.geo(new T.CylinderGeometry(0.05, 0.05, 0.03, 8).rotateZ(PI / 2), sx * (W + 0.04), Y0 + 0.045, ZF - 0.06, 0, 0, 0, trim); b.geo(new T.CylinderGeometry(0.05, 0.05, 0.03, 8).rotateZ(PI / 2), sx * (W + 0.04), Y0 + 0.045, ZB + 0.06, 0, 0, 0, trim); }
+    for (let k = -2; k <= 2; k++) b.sph(0.026, k * 0.3, Y0 + HF + 0.03, ZF + 0.04, BR, 1, 5);
+    b.sph(0.07, 0, 0.72, ZF + 0.08, trim, 1, 7);
+    // A quiver at the right front post and a cased bow at the left; the pole, the yoke and its saddles; the axle.
+    b.surf("leather", trim, 0.06); b.cyl(0.085, 0.07, 0.66, 0.56, Y0 + 0.04, ZF - 0.14, LEATH, 8); b.cyl(0.06, 0.05, 0.9, -0.58, Y0 + 0.04, ZF - 0.14, 0x4a2e1a, 7);
+    b.surf("gold"); b.torus(0.086, 0.014, 0.56, Y0 + 0.66, ZF - 0.14, trim, PI / 2, 0, 0, 10); b.torus(0.08, 0.012, 0.56, Y0 + 0.2, ZF - 0.14, trim, PI / 2, 0, 0, 10); b.torus(0.062, 0.012, -0.58, Y0 + 0.9, ZF - 0.14, trim, PI / 2, 0, 0, 8);
+    b.surf("rings", 0xa3302a, 0.12); for (let k = 0; k < 6; k++) b.rod(0.56 + (k - 2.5) * 0.022, Y0 + 0.66, ZF - 0.14 + (k % 2) * 0.03, 0.56 + (k - 2.5) * 0.03, Y0 + 0.98, ZF - 0.14 + (k % 2) * 0.035, 0.008, 0xe8dcc0, 3);
+    b.geo(new T.TorusGeometry(0.5, 0.017, 4, 12, PI * 0.8).rotateY(PI / 2), -0.58, Y0 + 1.28, ZF - 0.14, 0, 0, -0.42, 0x6a4a26);                                        // the spare bow, standing in its case
+    b.surf("wood", DEEP, 0.1); b.rod(0, 0.7, ZF, 0, 1.0, 3.62, 0.055, 0x7a4e26, 7); b.rod(-1.6, 1.06, 3.5, 1.6, 1.06, 3.5, 0.045, 0x7a4e26, 6);
+    b.surf("gold"); for (const sx of [-1, 1]) { b.sph(0.06, sx * 1.6, 1.06, 3.5, trim, 1, 6); } b.sph(0.065, 0, 1.02, 3.66, trim, 1, 6);
+    b.surf("leather"); for (const sx of [-1.5, -0.5, 0.5, 1.5]) b.torus(0.15, 0.028, sx, 1.1, 3.5, 0x3a2414, 0, 0, 0, 8);
+    for (const sx of [-1, 1]) { b.rod(sx * (W + 0.02), 0.74, ZF, sx * 1.52, 1.04, 3.5, 0.014, 0x3a2414, 4); b.rod(sx * 0.3, Y0 + HF, ZF, sx * 0.5, 1.98, 4.6, 0.008, 0x2a1a10, 3); }                   // the outer traces, and the reins
+    b.surf("iron"); b.rod(-1.0, 0.72, -0.1, 1.0, 0.72, -0.1, 0.055, IRON, 6);
+    if (o.canopy) { // the royal parasol: a white dome on a gilt staff with a fringe of gold drops and a finial
+      const cx = 0.12, cz = -0.72, RY = 3.34, R = 0.78, dk = G.shade(o.canopy, 0.84);
+      b.surf("gold"); b.rod(cx, 0.76, cz - 0.14, cx, RY + 0.34, cz - 0.02, 0.03, trim, 7); for (const y of [1.5, 2.2, 2.9]) b.sph(0.05, cx, y, cz - 0.14 + (y - 0.76) * 0.04, BR, 0.8, 6);
+      b.surf("silk"); b.geo(new T.SphereGeometry(R, 20, 6, 0, PI * 2, 0, PI / 2).scale(1, 0.46, 1), cx, RY, cz, 0, 0, 0, o.canopy, dk);
+      b.geo(new T.SphereGeometry(R * 0.985, 20, 3, 0, PI * 2, 0, PI / 2).scale(1, 0.44, 1), cx, RY - 0.012, cz, 0, 0, 0, dk);                                              // (its underside, seen from below)
+      b.surf("gold"); for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.rod(cx, RY + 0.35, cz, cx + Math.sin(a) * R, RY + 0.012, cz + Math.cos(a) * R, 0.009, trim, 3); }
+      b.geo(new T.TorusGeometry(R, 0.028, 5, 24).rotateX(PI / 2), cx, RY, cz, 0, 0, 0, trim);
+      for (let k = 0; k < 24; k++) { const a = (k / 24) * PI * 2, x = cx + Math.sin(a) * R, z = cz + Math.cos(a) * R; b.cone(0.03, 0.1, x, RY - 0.005, z, k % 2 ? trim : BR, 4, 0, PI); }
+      b.sph(0.075, cx, RY + 0.42, cz, trim, 1, 8); b.cyl(0.04, 0.06, 0.07, cx, RY + 0.33, cz, trim, 7); b.cone(0.035, 0.17, cx, RY + 0.49, cz, BR, 6);
     }
-    g.add(b.mesh());
+    b.surf(); g.add(b.mesh());
     g.userData.wheels = [];
-    for (const sx of [-1, 1]) { // a wheel: eight spokes, a wooden felloe shod with iron, a nave capped in gold
-      const wb = new Builder(); wb.torus(0.68, 0.06, 0, 0, 0, 0x6a4a26, 0, PI / 2, 0, 22); wb.torus(0.73, 0.03, 0, 0, 0, IRON, 0, PI / 2, 0, 22);
-      for (let i = 0; i < 6; i++) wb.geo(new T.BoxGeometry(0.045, 1.34, 0.05), 0, 0, 0, (i / 6) * PI, 0, 0, 0x8a6236); for (let i = 0; i < 12; i++) { const a = (i / 12) * PI * 2; wb.sph(0.022, 0, Math.sin(a) * 0.705, Math.cos(a) * 0.705, trim, 1, 4); }
-      wb.cyl(0.14, 0.14, 0.2, -0.1, 0, 0, 0x5a3a22, 8, 0, 0, PI / 2); wb.cyl(0.09, 0.07, 0.07, sx * 0.13 - 0.035, 0, 0, trim, 8, 0, 0, PI / 2);
+    for (const sx of [-1, 1]) { // a wheel: twelve spokes, a wooden felloe shod with iron and studded, a nave capped in gold
+      const wb = new Builder(); wb.surf("wood", DEEP, 0.1); wb.torus(0.66, 0.06, 0, 0, 0, 0x7a5028, 0, PI / 2, 0, 24);
+      for (let i = 0; i < 6; i++) wb.geo(new T.BoxGeometry(0.04, 1.3, 0.045), 0, 0, 0, (i / 6) * PI, 0, 0, 0x8a6236);
+      wb.cyl(0.13, 0.13, 0.2, -0.1, 0, 0, 0x5a3a22, 10, 0, 0, PI / 2);
+      wb.surf("iron"); wb.torus(0.715, 0.032, 0, 0, 0, IRON, 0, PI / 2, 0, 24); for (let i = 0; i < 12; i++) { const a = ((i + 0.5) / 12) * PI * 2; wb.sph(0.02, sx * 0.03, Math.sin(a) * 0.72, Math.cos(a) * 0.72, 0x8a8880, 1, 4); }
+      wb.surf("gold"); wb.cyl(0.085, 0.065, 0.08, sx * 0.14 - 0.04, 0, 0, trim, 8, 0, 0, PI / 2); wb.sph(0.045, sx * 0.19, 0, 0, BR, 1, 6); wb.geo(new T.TorusGeometry(0.135, 0.016, 4, 12).rotateY(PI / 2), sx * 0.1, 0, 0, 0, 0, 0, trim);
       const w = wb.mesh(); w.position.set(sx * 0.98, 0.72, -0.1); g.add(w); g.userData.wheels.push(w);
     }
     g.userData.horses = [];
     const n = o.horses == null ? 2 : o.horses;
     for (let i = 0; i < n; i++) { const h = G.horse(o.horseCol != null ? o.horseCol : undefined, o.tack || 0xa3302a); h.position.set((i - (n - 1) / 2) * 1.0, 0, 3.4); g.add(h); g.userData.horses.push(h); }
-    if (o.flag) { const f = G.banner(o.canopy ? 4.05 : 3.35, o.flag[0], o.flag[1], o.flag[2], 0.7); /* (tall: the cloth flies above the heads, and above the umbrella) */ f.position.set(-0.74, 0.86, -0.92); g.add(f); g.userData.banner = f; } // the standard, at the rear corner, clear of the one who rides
+    if (o.flag) { const f = G.banner(o.canopy ? 4.5 : 3.4, o.flag[0], o.flag[1], o.flag[2], 0.7); /* (tall: the cloth flies above the heads, and above the parasol) */ f.position.set(-0.74, 0.86, -0.94); g.add(f); g.userData.banner = f; } // the standard, at the rear corner, clear of the one who rides
     g.userData.deck = 0.86;
     return g;
   };

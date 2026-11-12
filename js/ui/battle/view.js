@@ -149,7 +149,7 @@
       const ride = (obj, y, tick) => { obj.traverse((m) => { if (m.isMesh) m.castShadow = true; }); obj.rotation.y = dirX > 0 ? Math.PI / 2 : -Math.PI / 2; G.actors.add(obj); let t = 0; const z = -rad - 3.5, x0 = -dirX * (rad + 9), x1 = dirX * (rad + 9);
         F.run((dt, cut) => { t += dt; const k = t / (secs + 0.6); obj.position.set(x0 + (x1 - x0) * k, y, z); if (tick) tick(t, (x1 - x0) * k); if (Math.random() < dt * 14) F.burst("dust", obj.position.clone().setY(0.1), { n: 2 }); if (k >= 1 || cut) { G.actors.remove(obj); G.dispose(obj); return true; } return false; }); };
       if (kind === "horse") { for (let i = 0; i < 3; i++) { const h = G.horse([0x6a4a2a, 0x3a2a1c, 0xd8d0c0][i], 0xa3302a); h.position.z = i * 1.6; const g = new T.Group(); g.add(h); setTimeout(() => { if (!closed) ride(g, 0, (t) => G.gallop(h, t * 12 + i, 1)); }, i * 160); } sfx("drum"); }
-      else if (kind === "chariot") { const c = G.chariot({ col: 0x6e3a1e, trim: 0xe2b55a, flag: [mine ? "#2d5aa0" : "#a3302a", "#f2ead2", "sun"], horses: 2 }); ride(c, 0, (t, d) => G.roll(c, d, t, 1)); sfx("drum"); }
+      else if (kind === "chariot") { const c = G.chariot({ col: G.shade(mine ? "#2d5aa0" : "#a3302a", 0.82), trim: 0xe2b55a, flag: [mine ? "#2d5aa0" : "#a3302a", "#f2ead2", "sun"], horses: 2 }); ride(c, 0, (t, d) => G.roll(c, d, t, 1)); sfx("drum"); }
       else if (kind === "elephant") { const el = G.elephant(mine ? 0x2d5aa0 : 0xa3302a); ride(el, 0, (t) => { G.stomp(el, t * 5, 1); if (Math.floor(t * 2.5) !== Math.floor((t - 0.016) * 2.5)) G.shake(0.18, 0.2); }); sfx("gong"); }
       else if (kind === "arrows") { for (let i = 0; i < 16; i++) setTimeout(() => { if (closed) return; const to = new V3(rs(rad * 0.9), 0.05, -rad * 0.2 - Math.random() * rad * 0.9), from = new V3(to.x - dirX * (14 + Math.random() * 6), 15 + Math.random() * 4, to.z - 6); F.arrow(from, to, 0.75, 3, () => F.burst("dust", to, { n: 2 })); }, i * 70); sfx("tap"); }
       else if (kind === "fire" || kind === "glow") { F.flash(kind === "glow" ? "rgba(255,236,170,.4)" : "rgba(255,140,50,.22)", 900); for (let i = 0; i < 9; i++) setTimeout(() => { if (closed) return; const at = new V3(-dirX * rad * 0.9 + dirX * i * rad * 0.22 + rs(0.8), 0.1, -rad - 1.5 + rs(1.2)); if (kind === "glow") F.burst("light", at.clone().setY(3 + Math.random() * 3), { n: 14, col: 0xfff0a0 }); else F.fall(at, 0xff7a2a, 0.3, "fire", () => { F.burst("ember", at, { n: 12, s: 1.6 }); F.burst("smoke", at, { n: 3 }); }); }, i * 130); sfx("gong"); }
@@ -332,7 +332,7 @@
         if (g.car) { // a chariot: the archer on its deck, a driver at the rail, the hero's own standard behind
           const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, who = u.person || (/Brihannala/.test(String(u.src || u.name)) ? "brihannala" : null), flag = STANDARD[who === "brihannala" ? "arjuna" : who] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
           const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
-          v.car = G.chariot({ col: car ? car[0] : great ? 0x6e3a1e : 0x5a4026, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
+          v.car = G.chariot({ col: car ? car[0] : G.shade(theirs, great ? 0.82 : 0.66) /* (panelled in his host's colour) */, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
           v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
@@ -349,7 +349,7 @@
         const hero = u.person;
         if (!g.car && hero && u.side !== "player" && (STANDARD[hero] || STEEDS[hero]) && st && !st.indoor && (R.line || K.S.act >= 6)) {
           const steeds = STEEDS[hero], car = CAR[hero], side = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE;
-          v.parked = G.chariot({ col: car ? car[0] : 0x6e3a1e, trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
+          v.parked = G.chariot({ col: car ? car[0] : G.shade(side, 0.82), trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           const a = Math.atan2(g.x, g.z) + (u.side === "ally" ? 0.55 : -0.4), r = R.rad + 3.6;
           v.parked.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); v.parked.rotation.y = a + Math.PI; v.parked.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.parked);
         }
@@ -904,8 +904,11 @@
       if (s.face != null) { // end on his face: in front of where his head is turned, a little to one side and above, clear of his horses, his standard and his umbrella
         const v = views.get(s.face), f = v && v.figs[0];
         if (f) { f.root.updateWorldMatrix(true, true); const hp = f.j.H.getWorldPosition(new T.Vector3()), sc = f.j.H.getWorldScale(new T.Vector3()).y, fw = new T.Vector3(0, 0, 1).applyQuaternion((v.car || f.j.H).getWorldQuaternion(new T.Quaternion())); // (a rider is framed by the way his car points, clear of the team, whichever way he looks)
-          const ang = Math.atan2(fw.x, fw.z) + (v.car ? 1.0 : 0.55) /* (wide of a team of four) */, d = (v.car ? 5.0 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
-          to = [[hp.x + Math.sin(ang) * d, hp.y + (v.car ? -0.55 : 0.12), hp.z + Math.cos(ang) * d], [hp.x, hp.y - 0.22, hp.z], 32]; } } // (under a king's umbrella the camera looks up from below its rim)
+          let ang = Math.atan2(fw.x, fw.z) + 0.55; const d = (v.car ? 6.3 : 3.8) * Math.max(1, sc); hp.y += 0.2 * sc;
+          if (v.car) { // from the flank he is turned toward (an archer on a car faces his mark, not his horses), never from among the team
+            const face = new T.Vector3(0, 0, 1).applyQuaternion(f.root.getWorldQuaternion(new T.Quaternion())), ca = Math.atan2(fw.x, fw.z), fa = Math.atan2(face.x, face.z); let best = -2;
+            for (const o of [1.22, -1.22, 1.95, -1.95, 2.7, -2.7]) { const c = Math.cos(ca + o - fa) - Math.abs(o) * 0.04; if (c > best) { best = c; ang = ca + o; } } }
+          to = [[hp.x + Math.sin(ang) * d, hp.y + (v.car ? -0.1 : 0.12), hp.z + Math.cos(ang) * d], [hp.x, hp.y - (v.car ? 0.5 : 0.22), hp.z], 32]; } } // (a rider is shown with his car under him and his parasol over him)
       G.camSet(mix(s.a[0], to[0]), mix(s.a[1], to[1]), s.a[2] + (to[2] - s.a[2]) * k, true);
       if (intro.t >= s.hold) introNext();
     }

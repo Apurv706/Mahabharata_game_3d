@@ -197,3 +197,28 @@ war (cuirass). See `tools/blender/README.md`. Everyone else is still code-built.
 - Palaces (`hall` in `js/g3/sets.js`): carved pillars, an arcade of cusped arches, pierced-stone windows with shafts of light, a beamed roof, a great arch and a gold sun behind the dais, a courtyard in the sun past the open end. What hangs overhead is hidden when the view is from above the roof.
 - Mountains: two ranges between the built ground and the painted horizon (`G.ridges`), in the distance's own colours, so they move against the picture as the view turns.
 - Ground, rocks and trees: stones with broken faces in clusters, trees with forking boles and masses of leaf, grass tufts.
+
+## Surfaces: what things are made of (Nov 12, evening)
+
+Asked for: cloth, skin, chariots, weapons and armour to look of ancient India in colour, pattern and texture; Bhishma's chariot put right; and the story's choices (home's colour, gender, age) carried into the 3D fights.
+
+**How it is drawn.** `js/g3/surf.js` is one shader added to the figures' and the props' materials. Every vertex names a surface, a second colour for its figure, and a border (colour, width, distance from the cloth's edge). The figure is computed in the cloth's own space (a body's rest pose wrapped round its axis; a board's face or a pole's length for built things), so it stays put as the body moves and nothing is fetched: no texture files. Far away each figure fades to its mean colour, so nothing shimmers. `?nosurf=1` on the address shows the old flat colours for comparison.
+- Cloth: hand-loomed cotton, silk with a soft sheen, bands, pinstripes, checks, small woven flowers (buti), tie-dye rings (bandhani), ikat chevrons, gold-thread brocade, bark cloth.
+- Borders: two dyed lines (working people, soldiers), a broad dyed band with gold lines and flowers (a prince's everyday cloth), gold-thread brocade (court), temple teeth, a gold edge on plate. A narrow piece (a pleat, a sash) gets a border a third of its half-width.
+- Armour and metal: overlapping scales edged in gold, lamellar plates with lacing, quilted leather with bronze studs, plate, worked gold (darker, with a coloured highlight), hammered iron, a blade's bright edge.
+- The rest: leather with studs, wood grain, cane lattice, hair in strands, spotted deerskin, rudraksha beads, painted rings, a gold sun and a lotus for panels and shields.
+- Skin takes a soft edge-light and, where the sun's light ends, the warm red of light passing through it.
+
+**Who wears what** (`js/g3/dress.js`) is read from each model's look, after the artist's sheets: undyed cotton with two madder lines for working people and soldiers; dyed silk with broad gold borders at court, gold tissue with woven flowers for a king's upper cloth; scale coats edged in gold for the heroes, lamellar for the allied kings, quilted and studded leather for the rank and file; bark and deerskin in the forest; plain white with no border in mourning.
+
+**Form.** When a model is first worn, `cavity` in `js/g3/model.js` measures how hollow or proud the surface is at each point and deepens the colour in the hollows (between muscles, in folds, under a rim), as a painter would. `edges` finds each cloth's open edge so borders follow hems and pleats.
+
+**The chariot** (`G.chariot`) is rebuilt to the artist's "War chariot with team of four": a framed timber car, panels in the owner's host colour with a gold sun and gilt edge, cane lattice in the rear bays, gilt caps and bosses, a quiver and a cased bow at the front posts, twelve-spoked wheels shod and studded with iron. The royal parasol is now a white dome on its own gilt staff behind the rider, rim at 3.3 m: clear of Bhishma's head (it used to sit at face height). The "Against you" shot of a chariot warrior is now taken from the flank he is turned toward, never from behind him or among his horses.
+
+**Weapons.** Swords have a broad swelling blade with a bright edge, a gilt guard and a bound grip; the mace is dark flanged iron bound in gold; bows are bound with red lac at every span; spears are bamboo bound at the joints; shields are painted in rings of the bearer's host colour with an iron or gilt boss.
+
+**Beasts.** Coats have a groomed sheen, manes are stranded, harness is studded leather, and saddle-cloths are silk with gold flowers inside a brocade border.
+
+**Your own figure** now wears the story's choices: your skin, your home's colour on the lower cloth and its second colour on borders and sash (the same palette the 2D puppet wears), as a man or a woman, at each of the four ages. In the forest years the cloth is bark and only the sash keeps the colour.
+
+**A fault found on the way.** A model file that arrived before the 3D engine's script had run was thrown away when the engine started (it replaced `K.G3` instead of adding to it), so its people fell back to the plain code-built figures. Most likely on a second visit, when the files come from the phone's cache at once. Fixed in `js/g3/core.js`.

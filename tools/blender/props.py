@@ -32,6 +32,7 @@ def keep(o, role, part, pivot=None):
     if pivot: o["pivot"] = list(pivot)
     for p in o.data.polygons: p.use_smooth = True
     o.select_set(False); OBJS.append(o); return o
+LOD = 0.5   # (a team of four and its shadows is drawn many times over on a battlefield: half the points, the same outline)
 def blob(name, balls, role, part, res, ratio, pivot=None, thr=0.6):
     mb = bpy.data.metaballs.new(name); mb.resolution = res; mb.render_resolution = res; mb.threshold = thr
     ob = bpy.data.objects.new(name, mb); S.collection.objects.link(ob)
@@ -40,7 +41,7 @@ def blob(name, balls, role, part, res, ratio, pivot=None, thr=0.6):
         k = 0.93 / math.sqrt(1 - (thr / e.stiffness) ** (1 / 3)); e.size_x, e.size_y, e.size_z = sx * k, sy * k, sz * k
         if len(b) > 3 and b[3]: e.rotation = b[3]
     bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.context.view_layer.update(); bpy.ops.object.convert(target="MESH"); o = bpy.context.object; o.name = name
-    d = o.modifiers.new("dec", "DECIMATE"); d.ratio = ratio; bpy.ops.object.modifier_apply(modifier="dec"); return keep(o, role, part, pivot)
+    d = o.modifiers.new("dec", "DECIMATE"); d.ratio = ratio * LOD; bpy.ops.object.modifier_apply(modifier="dec"); return keep(o, role, part, pivot)
 def prim(kind, role, part, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), pivot=None, **kw):
     getattr(bpy.ops.mesh, "primitive_" + kind + "_add")(location=loc, rotation=rotv, **kw); o = bpy.context.object; o.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True); return keep(o, role, part, pivot)
