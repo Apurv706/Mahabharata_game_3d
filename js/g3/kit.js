@@ -605,7 +605,7 @@
 
   // ---------- Crowds and armies (instanced) ----------
   // One simple person as a single geometry: legs, body, head, and (for soldiers) a shield and an upright spear.
-  let personGeo = null, soldierGeo = null, sitterGeo = null;
+  let personGeo = null, soldierGeo = null, sitterGeo = null, farGeo = null;
   // A person in a crowd, seen from across a yard: legs, a wrapped lower cloth, a bare trunk with an upper cloth over
   // one shoulder, arms, a head with its hair knotted. Only the cloth (left white here) takes the person's own dye:
   // the crowd's material tints what is white and leaves skin, hair, wood and iron as they are.
@@ -615,6 +615,12 @@
       b.cyl(0.3, 0.34, 0.2, 0, 0, 0.04, W, 7); b.cyl(0.15, 0.2, 0.46, 0, 0.18, 0, SKIN, C6); b.box(0.36, 0.1, 0.1, 0, 0.44, 0.02, W, 0, 0, 0.6);
       for (const sx of [-1, 1]) b.rod(sx * 0.2, 0.6, 0, sx * 0.24, 0.24, 0.16, 0.045, SKIN, 5);
       b.sph(0.125, 0, 0.8, 0, SKIN, 1, 7); b.sph(0.13, 0, 0.83, -0.025, HAIR, 0.8, 7); b.sph(0.055, 0, 0.95, -0.04, HAIR, 1, 5);
+    } else if (kind === "far") { // a soldier in a host's far blocks, a few pixels tall: the same man in under half the faces
+      for (const sx of [-1, 1]) b.box(0.09, 0.5, 0.1, sx * 0.08, 0, 0, SKIN);
+      b.cyl(0.17, 0.21, 0.56, 0, 0.42, 0, W, 5); b.cyl(0.2, 0.17, 0.42, 0, 0.98, 0, 0x5a3a24, 5); b.box(0.4, 0.08, 0.27, 0, 0.9, 0, W);
+      for (const sx of [-1, 1]) b.rod(sx * 0.215, 1.37, 0, sx * 0.25, 0.86, 0.03, 0.042, SKIN, 3);
+      b.sph(0.125, 0, 1.57, 0, SKIN, 1.08, 5); b.sph(0.14, 0, 1.63, 0, 0x6a655c, 0.72, 5);
+      b.cyl(0.3, 0.3, 0.05, -0.25, 1.1, 0.14, 0x8a6238, 6, 0, PI / 2); b.rod(0.27, 0.2, 0.05, 0.27, 2.5, 0.05, 0.018, 0x7a5a36, 3); b.cone(0.045, 0.24, 0.27, 2.48, 0.05, 0xd8d8d8, 3);
     } else {
       for (const sx of [-1, 1]) { b.cyl(0.05, 0.045, 0.5, sx * 0.08, 0, 0, SKIN, 5); b.box(0.09, 0.04, 0.2, sx * 0.08, 0, 0.04, SKIN); }
       b.cyl(0.17, 0.21, 0.56, 0, 0.42, 0, W, 7); b.cyl(0.19, 0.19, 0.07, 0, 0.94, 0, W, 7);                       // the lower cloth, and its roll at the waist
@@ -639,7 +645,7 @@
   }
   // spots: [[x, z, ry, scale]]; cols: colours picked per person (tints the white cloth); kind: "stand" | "sit" | "soldier"
   G.crowd = function (spots, cols, kind, rnd) {
-    const geo = kind === "sit" ? (sitterGeo = sitterGeo || simple("sit")) : kind === "soldier" ? (soldierGeo = soldierGeo || simple("soldier")) : (personGeo = personGeo || simple("stand"));
+    const geo = kind === "sit" ? (sitterGeo = sitterGeo || simple("sit")) : kind === "soldier" ? (spots.length >= 150 ? (farGeo = farGeo || simple("far")) : (soldierGeo = soldierGeo || simple("soldier"))) : (personGeo = personGeo || simple("stand")); // (a block of 150 and more stands far off and throws no shadow: the lighter man)
     const n = spots.length, im = new T.InstancedMesh(geo, crowdMaterial(), n), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), c = new T.Color();
     rnd = rnd || Math.random;
     for (let i = 0; i < n; i++) {

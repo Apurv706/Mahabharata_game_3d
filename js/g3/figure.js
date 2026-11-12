@@ -26,7 +26,7 @@
       case "dagger": b.surf("rope", 0x3a2414, 0.03); along(new T.CylinderGeometry(0.02, 0.02, 0.14, 5), 0, 0x4a3020); b.surf("gold"); b.box(0.12, 0.03, 0.04, 0, -0.015, 0.08, GOLD); b.surf("blade", 0x8a9098, 0.055); along(new T.BoxGeometry(0.055, 0.34, 0.014), 0.27, STEEL, 0xeef0f4); along(new T.ConeGeometry(0.03, 0.1, 4), 0.49, STEEL); b.surf(); tip = 0.52; break;
       case "mace": { // the gada of the sheets: a banded haft, a great flanged head of dark iron bound and capped in gold, tiers and a point above it
         const g1 = col || GOLD, g2 = G.shade(g1, 0.8), IR = 0x4a4a50, IR2 = 0x6a6a72;
-        b.surf("rings", g1, 0.2); along(new T.CylinderGeometry(0.028, 0.032, 0.92, 8), 0.36, 0x3a3a40);
+        b.surf("rings", g1, 0.2); along(new T.CylinderGeometry(0.027, 0.027, 0.92, 8), 0.36, 0x3a3a40);
         b.surf("gold"); for (let i = 0; i < 4; i++) b.sph(0.046, 0, 0, 0.14 + i * 0.2, i % 2 ? g1 : g2, 1, 8, 1, 0.5);
         b.sph(0.05, 0, 0, -0.11, g1, 1, 8, 1, 0.8); b.sph(0.085, 0, 0, 0.84, g1, 1, 10, 1, 0.5);
         b.surf("iron"); b.sph(0.15, 0, 0, 1.01, IR, 1, 12, 1, 1.05);
@@ -54,7 +54,7 @@
     const g = new T.Group(), b = B(); b.ao = 0.9;
     const pts = []; for (let i = 0; i <= 10; i++) { const a = -1.15 + (i / 10) * 2.3; pts.push(new V3(0, -Math.cos(a) * 0.36 + 0.14, Math.sin(a) * 0.78)); }
     b.surf("rings", 0xa3302a, 0.2); b.geo(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 18, 0.022, 6), 0, 0, 0, 0, 0, 0, col || 0x8a5a2c, 0xc9a24e); // the limbs: horn and wood, bound with red lac at every span
-    b.surf("gold"); b.cyl(0.03, 0.03, 0.14, 0, -0.29, 0, GOLD, 6, 0, PI / 2); for (const e of [pts[0], pts[10]]) b.sph(0.03, e.x, e.y, e.z, 0xf4d67a, 1, 5); b.surf();
+    b.surf("gold"); b.cyl(0.027, 0.027, 0.14, 0, -0.22, -0.07, GOLD, 6, 0, PI / 2); /* (the bound grip, on the middle of the stave) */ for (const e of [pts[0], pts[10]]) b.sph(0.03, e.x, e.y, e.z, 0xf4d67a, 1, 5); b.surf();
     g.add(b.mesh());
     const sg = new T.BufferGeometry().setFromPoints([pts[0].clone(), new V3(0, 0.0, 0), pts[10].clone()]);
     const str = new T.Line(sg, G.keep(new T.LineBasicMaterial({ color: 0xf2e6c8 })));
@@ -595,8 +595,9 @@
       if (f.item) { f.item.parent.remove(f.item); G.dispose(f.item); f.item = null; }
       if (f.bow) { f.bow.parent.remove(f.bow); G.dispose(f.bow); f.bow = null; }
       f.itemKind = item || null;
-      if (item === "bow") { f.bow = bow(); f.bow.position.set(0, 0.25, 0.03); f.bow.rotation.set(0.12, 0, 0.16); f.j.wL.add(f.bow); }
-      else { const m = held(item, sp.maceCol); if (m) { m.position.set(0, -0.03, 0.02); m.castShadow = true; f.j.wR.add(m); f.item = m; } }
+      // (A modelled figure's hand is closed round a haft: the weapon is set in the hollow of that hand, f.gripR / f.gripL from the model, and is a little larger than life, as its hands are.)
+      if (item === "bow") { f.bow = bow(); f.bow.rotation.set(0.12, 0, 0.16); if (f.gripL) f.bow.position.copy(f.gripL).sub(new V3(0, -0.22 * f.bow.scale.y, 0).applyEuler(f.bow.rotation)); else f.bow.position.set(0, 0.25, 0.03); /* (the middle of the stave, where its grip is bound, lies in the hollow of the bow hand) */ f.j.wL.add(f.bow); }
+      else { const m = held(item, sp.maceCol); if (m) { if (f.gripR) { m.position.copy(f.gripR); m.scale.setScalar(1.12); } else m.position.set(0, -0.03, 0.02); m.castShadow = true; f.j.wR.add(m); f.item = m; } }
       return f;
     };
     f.setShield = function (on, col, kind) {

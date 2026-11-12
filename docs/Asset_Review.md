@@ -70,7 +70,7 @@ The 2D game's 452 paintings set the look: warm, late-afternoon light, earth and 
 | 5 Flat colour on cloth, metal, skin | Fixed: surfaces. |
 | 6 Player ignored the story | Fixed: skin, home colours, gender, age, and the amulet, manuscript, purse and eye patch. |
 | 7 Portraits and models disagree | Open: needs new portraits or a decision on which is right. |
-| 8 Hands, squad followers | Open. |
+| 8 Hands, squad followers | Hands fixed (the fist closes on the haft; see the end of Conversion Notes). Squad followers still the plain figures. |
 | 9 Crowd pegs | Fixed. |
 | 10 Heavy beasts | Fixed: halved. |
 | 11 Toy elephant, blunt horse | Partly: hide, harness and cloth have surfaces; the howdah has its pennon and quiver. Shapes unchanged. |
@@ -79,7 +79,7 @@ The 2D game's 452 paintings set the look: warm, late-afternoon light, earth and 
 | 14 Arrows | Fixed (bound reed shaft, iron head). Quivers still plain. |
 | 15, 16 Flat built things, plain tents | Fixed for huts, houses, walls, towers, gates, pavilions, temples, steps, pillars, tents, stalls, thrones, pots. Halls' floors and the ground are unchanged. |
 | 17 Dark night tests | Open. |
-| 18 Performance | Shadows now drop on a phone that stays slow. Not measured on a real phone. |
+| 18 Performance | Shadows now drop on a phone that stays slow. Figures are 40% lighter and the far ranks under half. Not measured on a real phone. |
 | 19 Models thrown away on a cached visit | Fixed. |
 
 ## Order of work

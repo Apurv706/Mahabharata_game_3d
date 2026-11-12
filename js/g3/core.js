@@ -27,7 +27,7 @@
 
   // ---------- Quality ----------
   // "auto" starts from the device (a phone: medium) and then follows the measured frame time by changing the render scale.
-  const QUALITY = { low: { shadows: false, crowd: 0.3, dpr: 1, shadowMap: 0 }, med: { shadows: true, crowd: 0.55, dpr: 1.5, shadowMap: 1024 }, high: { shadows: true, crowd: 1, dpr: 2, shadowMap: 2048 } };
+  const QUALITY = { low: { shadows: false, crowd: 0.3, dpr: 1, shadowMap: 0, outline: false }, med: { shadows: true, crowd: 0.55, dpr: 1.5, shadowMap: 1024 }, high: { shadows: true, crowd: 1, dpr: 2, shadowMap: 2048 } };
   const coarse = () => !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
   let scale = 1, slowT = 0, fastT = 0, auto = true;
   G.setQuality = function (name) {
@@ -35,7 +35,7 @@
     auto = pref === "auto";
     const base = auto ? (coarse() ? "med" : "high") : pref;
     const q = QUALITY[base] || QUALITY.med;
-    G.q = { name: base, shadows: q.shadows, crowd: q.crowd, dpr: q.dpr, shadowMap: q.shadowMap };
+    G.q = { name: base, shadows: q.shadows, crowd: q.crowd, dpr: q.dpr, shadowMap: q.shadowMap, outline: q.outline !== false && !/[?&]noline=1/.test(location.search) }; if (G.outlines) G.outlines(G.q.outline); // (the dark line round each figure draws it a second time: the lowest setting goes without)
     scale = 1;
     if (!renderer) return;
     renderer.shadowMap.enabled = q.shadows;
@@ -47,7 +47,7 @@
     if (dt > 0.03) { slowT += dt; fastT = 0; } else if (dt < 0.0175) { fastT += dt; slowT = Math.max(0, slowT - dt); } else { fastT = 0; }
     if (slowT > 1.5 && scale > 0.55) { scale = Math.max(0.55, scale - 0.15); slowT = 0; resize(); }
     else if (slowT > 3 && scale <= 0.55 && G.q.shadows && G.sun) { // still slow at the smallest drawing size: a modest phone. Shadows go (every figure is drawn twice for them) and later scenes are built with thinner ranks; this lasts until the page is opened again.
-      G.q.shadows = false; G.q.crowd = Math.min(G.q.crowd, 0.3); G.sun.castShadow = false; slowT = 0; }
+      G.q.shadows = false; G.q.crowd = Math.min(G.q.crowd, 0.3); G.sun.castShadow = false; G.q.outline = false; if (G.outlines) G.outlines(false); slowT = 0; }
     else if (fastT > 6 && scale < 1) { scale = Math.min(1, scale + 0.1); fastT = 0; resize(); }
   }
 

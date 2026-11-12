@@ -117,17 +117,24 @@ arms = sym([
   ((AX, 0.0, 0.94), (0.046, 0.05, 0.09)),                   # forearm, tapering
   ((AX, 0.0, 0.86), (0.032, 0.038, 0.045)),                 # wrist
 ])
+HAFT = 0.024   # the hollow of the closed hand: a haft of this radius lies in it (hands are grown by HANDK afterwards)
+def grip_at(sx): return (sx * (AX + 0.016) - sx * (0.002 + HAFT + 0.0100), -0.002, 0.706)
 def hand(sx):
+    # A hand closed round a haft, as a fist on a mace or a sword's grip: the haft runs front to back under the palm's
+    # lower edge; each finger goes down its outer side, under it and up the inner side, three joints laid on a circle
+    # about the haft's line; the thumb closes over the top from the front.
     px = sx * (AX + 0.016)                                   # the palm stands a little out, so what is held lies against it
+    cx, _, cz = grip_at(sx); R = HAFT + 0.0100
     balls = [((px, -0.004, 0.778), (0.016, 0.042, 0.046)),                              # palm
              ((px - sx * 0.002, -0.004, 0.815), (0.02, 0.034, 0.03)),                   # heel of the hand, into the wrist
              ((px - sx * 0.018, -0.046, 0.795), (0.012, 0.014, 0.026), 1.8, rot(0.5, 0, 0)),   # thumb, base
-             ((px - sx * 0.03, -0.058, 0.775), (0.0105, 0.012, 0.02), 1.8, rot(0.2, sx * 0.5, 0))]  # thumb, end, closing over
-    for i, fy in enumerate((-0.034, -0.012, 0.01, 0.031)):       # four fingers, loosely closed round a haft
-        k = (0.95, 1.0, 0.95, 0.82)[i]
-        balls.append(((px - sx * 0.002, fy, 0.728), (0.0105, 0.0108, 0.026 * k), 1.8))                          # first joint, down from the knuckle
-        balls.append(((px - sx * 0.017, fy, 0.7 + (1 - k) * 0.02), (0.0098, 0.0102, 0.02 * k), 1.8, rot(0, -sx * 0.9, 0)))   # second, turning in
-        balls.append(((px - sx * 0.032, fy, 0.712 + (1 - k) * 0.02), (0.009, 0.0095, 0.016 * k), 1.8, rot(0, -sx * 1.9, 0)))  # the tip, coming back up
+             ((px - sx * 0.036, -0.052, 0.757), (0.0105, 0.012, 0.021), 1.8, rot(0.15, sx * 0.7, 0))]  # thumb, end, closing over the haft
+    for i, fy in enumerate((-0.034, -0.012, 0.01, 0.031)):       # four fingers
+        k = (0.95, 1.0, 0.95, 0.84)[i]; up = (1 - k) * 0.03
+        balls.append(((px - sx * 0.002, fy, cz + 0.008 + up * 0.3), (0.0105, 0.0108, 0.026), 1.8))                # first joint, down from the knuckle
+        for ph, half, th in ((-64 - 0 * k, 0.021 * k, 0.0098), (-64 - 35.4 * k - 28.6 * k * 0.95, 0.017 * k, 0.009)):   # second, turning under; the tip, coming back up
+            a = math.radians(ph)
+            balls.append(((cx + sx * R * math.cos(a), fy, cz + R * math.sin(a)), (th, th + 0.0005, half), 1.8, rot(0, -sx * a, 0)))
     return balls
 def lean(balls, k=0.86):   # a youth's build: the same frame with less on it; nothing is moved, and none of the cut lines
     return [((b[0]), (b[1][0] * k, b[1][1] * k, b[1][2])) + tuple(b[2:]) for b in balls if not (len(b) > 4 and b[4])]
@@ -162,6 +169,14 @@ if SHE:   # a woman's frame: breasts (not a girl), fuller hips and seat
 if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["belly"], 0.11), 1.7)]
 B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])), [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
+# Hands a little larger than life, as game figures have them: they are what holds the weapon, and they must read from
+# across a field. Grown about the wrist. GRIP is the hollow of each closed hand, where a haft lies (the game sets the
+# weapon there: js/g3/figure.js).
+HANDK = 1.14
+for o_, sx_ in zip(HANDS, (1, -1)):
+    w_ = Vector((sx_ * (SHX + 0.008), 0, 0.82))
+    for v in o_.data.vertices: v.co = w_ + (v.co - w_) * HANDK
+GRIP = [tuple(Vector((sx_ * (SHX + 0.008), 0, 0.82)) + (Vector(grip_at(sx_)) - Vector((sx_ * (SHX + 0.008), 0, 0.82))) * HANDK) for sx_ in (1, -1)]
 # ---- The head: broad, heavy-jawed. Built at the head joint (z 1.47) with the skull's centre about 0.16 above it.
 HZ = 1.47 + 0.19
 JW, CH, LG, CK, NS, BR = F["jaw"], F["chin"], F["long"], F["cheek"], F["nose"], F["brow"]
@@ -192,7 +207,9 @@ print("body verts", len(B.data.vertices), "head verts", len(Hd.data.vertices))
 # ---- The skeleton: the game's own joints, by the game's own names, where the game has them -----------------------
 JOINTS = ["P", "T", "H", "aL", "eL", "wL", "aR", "eR", "wR", "lL", "kL", "lR", "kR"]
 LOD = H.get("lod", 1.0)
-for o, r in ((B, 0.24 * LOD), (Hd, 0.42 * LOD), (HANDS[0], 0.28 * LOD), (HANDS[1], 0.28 * LOD)):
+# (A figure in a fight is seen from above at seventy to ninety pixels tall, and a field holds dozens of them with their
+#  shadows: the meshes are a third of what they were. Smooth normals and the shaded hollows keep the forms.)
+for o, r in ((B, 0.115 * LOD), (Hd, 0.3 * LOD), (HANDS[0], 0.2 if LOD >= 1 else 0.13), (HANDS[1], 0.2 if LOD >= 1 else 0.13)):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
@@ -227,6 +244,8 @@ rigid(Hd, "H"); rigid(HANDS[0], "wL"); rigid(HANDS[1], "wR")
 
 # ---- What he wears and carries on him ---------------------------------------------------------------------------
 def prim(kind, name, m, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), **kw):
+    if "segments" in kw: kw["segments"] = max(5, round(kw["segments"] * 0.72))            # (beads, bands, eyes: fewer faces round each)
+    if "ring_count" in kw: kw["ring_count"] = max(3, round(kw["ring_count"] * 0.72))
     getattr(bpy.ops.mesh, "primitive_" + kind + "_add")(location=loc, rotation=rotv, **kw); o = bpy.context.object; o.name = name; o.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True); o.data.materials.append(M[m])
     for p in o.data.polygons: p.use_smooth = True
@@ -267,7 +286,7 @@ def clothw(o, top="P", side=None):   # the wrap's own holding: the hips above (o
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
 def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red", gather=0.82, deep=1.0):   # a hanging length of cloth, a little waved, with a gold edge at its foot
-    me = bpy.data.meshes.new(name); rows = 10; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1
+    me = bpy.data.meshes.new(name); rows = 7; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1
     for r in range(rows + 1):
         t = r / rows
         for c in range(C_):
@@ -285,12 +304,14 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side); parts.append(e)
     return o
-def shell(name, role, keep, off, src=None, cut=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean
+def shell(name, role, keep, off, src=None, cut=None, sides=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
     bm = bmesh.new(); bm.from_mesh(o.data)
     if cut:
         for z_, up in ((cut[0], -1), (cut[1], 1)):
             if z_ is not None: bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, z_), plane_no=(0, 0, up), clear_outer=True)
+    if sides:
+        for sx_ in (-1, 1): bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(sx_ * sides, 0, 0), plane_no=(sx_, 0, 0), clear_outer=True)
     dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")
@@ -342,9 +363,9 @@ def backy(z, x=0.0):
     h = BVB.ray_cast(Vector((x, 1.0, z)), Vector((0, -1, 0)), 2.0); return h[0].y if h[0] is not None else 0.12
 def hang(z0, z1, x=0.0, side=-1):   # where a cloth hanging between these heights lies: off the part of the body that stands furthest out
     ys = [front(z0 + (z1 - z0) * i / 8, x) if side < 0 else backy(z0 + (z1 - z0) * i / 8, x) for i in range(9)]; return (min(ys) - 0.01) if side < 0 else (max(ys) + 0.01)
-def ring(name, role, z, minor, zs=1.0, grow=0.008, cx=0.0, cy=None, capx=None, N=32, bone=None):   # a band round the trunk or a limb, following its own outline
+def ring(name, role, z, minor, zs=1.0, grow=0.008, cx=0.0, cy=None, capx=None, N=22, bone=None):   # a band round the trunk or a limb, following its own outline
     if cy is None: cy = (front(z, cx) + backy(z, cx)) / 2
-    c = Vector((cx, cy, z)); me = bpy.data.meshes.new(name); vs = []; fs = []; M_ = 6
+    c = Vector((cx, cy, z)); me = bpy.data.meshes.new(name); vs = []; fs = []; M_ = 5
     for i in range(N):
         a = i / N * math.tau; d = Vector((math.cos(a), math.sin(a), 0)); h = BVB.ray_cast(c, d, 0.6); p = (h[0] if h[0] is not None else c + d * 0.15) + d * grow
         if capx is not None and abs(p.x - cx) > capx: p = c + d * (capx / max(1e-4, abs(d.x)))
@@ -393,7 +414,7 @@ for k in range(22):
     a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
 since(n0, "beads"); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.44 and trunk(c), 0.013, cut=(1.03, None))
+shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451 and trunk(c), 0.013, cut=(1.03, 1.45), sides=SHX - 0.022)
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 for (dx_, z_, sc_, tilt) in ((0.0, 1.425, (0.098, 0.108, 0.046), 0.28), (0.052, 1.39, (0.088, 0.104, 0.04), 0.62), (0.092, 1.342, (0.074, 0.096, 0.036), 0.95)):   # three lapped plates down the shoulder, each tipped further over the arm
@@ -428,7 +449,7 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
     for v in src.data.vertices: kd.insert(v.co, v.index)
     kd.balance(); gn = [g.name for g in src.vertex_groups]
     p0, p1 = Vector((P0[0] * FX, 0, P0[1])), Vector((P1[0] * WX, 0, P1[1])); u = (p1 - p0).normalized(); yh = Vector((0, 1, 0)); n = u.cross(yh).normalized(); c = (p0 + p1) / 2
-    N = 72; ring = []
+    N = 48; ring = []
     for i in range(N):
         a = i / N * math.tau; d = (u * math.cos(a) + yh * math.sin(a)).normalized(); hit = None; o_ = c + d * 0.6
         h = bvh.ray_cast(o_, -d, 0.6)                                    # from outside in... but only the trunk counts, not an arm in the way
@@ -605,7 +626,7 @@ if STAGE == "export":
     n = base; assert n < 65536, n
     b64 = lambda fmt, a: base64.b64encode(struct.pack("<%d%s" % (len(a), fmt), *a)).decode()
     looks = { lk: { "parts": BASE + L["parts"], "cols": { r: "#%06x" % v for r, v in L.get("cols", {}).items() } } for lk, L in LOOKS.items() }
-    data = { "n": n, "joints": JOINTS, "scale": 8192, "wide": WIDE, "size": H.get("size", 1), "sided": bool(H.get("sided")), "roles": roles, "cols": cols, "parts": ranges, "looks": looks,
+    data = { "n": n, "joints": JOINTS, "scale": 8192, "wide": WIDE, "size": H.get("size", 1), "sided": bool(H.get("sided")), "grip": [[round(g_[0], 4), round(g_[2], 4), round(-g_[1], 4)] for g_ in GRIP], "roles": roles, "cols": cols, "parts": ranges, "looks": looks,
              "pos": b64("h", [max(-32767, min(32767, round(v * 8192))) for v in P_]), "nor": b64("b", [max(-127, min(127, round(v * 127))) for v in N_]),
              "col": b64("B", C_), "jnt": b64("B", J_), "wgt": b64("B", W_), "idx": b64("H", I_) }
     open(OUT + "/m_" + HERO + ".js", "w").write("/* " + HERO + ": modelled in Blender by tools/blender/cast.py from the artist's sheets. Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.MODELS = G.MODELS || {})." + HERO + " = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")

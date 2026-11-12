@@ -119,6 +119,23 @@
     for (const k of want) if (L[k]) return k;
     return Object.keys(L)[0];
   };
+  // A dark painted line round each figure, as the leather puppets have and as hand-painted game figures do: the same
+  // mesh drawn again, back faces only, each point pushed out along its normal by a fixed width on the screen. It lifts
+  // a figure off the ground it stands on when seen small and from above. (G.q.outline false turns it off.)
+  let OUT = null;
+  G.outline = function (f, mesh) {
+    if (!OUT) {
+      OUT = new T.MeshBasicMaterial({ color: 0x24140c, side: T.BackSide, fog: true }); OUT.userData.keep = true; OUT.userData.px = { value: new T.Vector2(0.004, 0.004) };
+      OUT.onBeforeCompile = (sh) => { sh.uniforms.uOut = OUT.userData.px; sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform vec2 uOut;").replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 cn = projectionMatrix * vec4(normalize(normalMatrix * objectNormal), 0.0); /* (not transformedNormal: three turns that round for a material that draws back faces) */ float l = length(cn.xy); if (l > 1e-5) gl_Position.xy += cn.xy / l * uOut * gl_Position.w; }"); };
+      OUT.customProgramCacheKey = () => "outline"; OUT.visible = !(G.q && G.q.outline === false);
+    }
+    const o = new T.SkinnedMesh(mesh.geometry, OUT); o.frustumCulled = false; o.castShadow = false; o.receiveShadow = false; o.renderOrder = -1;
+    mesh.parent.add(o); o.updateMatrixWorld(true); o.bind(f.modelSkeleton, mesh.matrixWorld); f.outline = o;
+    o.onBeforeRender = (r) => { const s = r.getDrawingBufferSize(SZ), w = 1.5 * Math.max(1, s.y / 900); OUT.userData.px.value.set((2 * w) / s.x, (2 * w) / s.y); }; // (about a pixel and a half on a phone, wider on a large screen)
+    return o;
+  };
+  const SZ = new T.Vector2();
+  G.outlines = function (on) { if (OUT) OUT.visible = !!on; }; // (all of them at once: the quality setting, and a phone that stays slow)
   let MAT = null;
   // c: role colours as hex numbers that override the look's own (sp.wear: one model worn in another's colours).
   G.modelSkin = function (f, sp, body, c) {
@@ -155,6 +172,10 @@
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
     f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
     if (/^player_/.test(sp.model || "") && (sp.heir || sp.eye)) keepsakes(f, sp, M, D, mesh);
+    if (M.grip) { // the hollow of each closed hand, in its wrist's own space: a haft is set there, so the fingers are round it (figure.js)
+      const at = (j, g) => new T.Vector3(g[0], g[1], g[2]).applyMatrix4(mesh.matrixWorld).applyMatrix4(new T.Matrix4().copy(f.j[j].matrixWorld).invert());
+      f.gripL = at("wL", M.grip[0]); f.gripR = at("wR", M.grip[1]); }
+    if (G.outline) G.outline(f, mesh);
     return mesh;
   };
   // What the story put on you, as the 2D puppet shows it: the family amulet on your breast (cracked once it has turned
