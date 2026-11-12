@@ -7,7 +7,7 @@ OUT = argv[0] if argv else "."
 STAGE = argv[1] if len(argv) > 1 else "all"
 bpy.ops.wm.read_factory_settings(use_empty=True)
 S = bpy.context.scene
-HERO = argv[2] if len(argv) > 2 and STAGE == "export" else (argv[3] if len(argv) > 3 else "bhima")
+HERO = argv[2] if len(argv) > 2 and STAGE in ("export", "sheet") else (argv[3] if len(argv) > 3 else "bhima")
 # Each as the user's reference shows him (a still of the five in court dress, eldest on the right; Bhima after an old print):
 # build, the cast of the face, hair, and dress. girth/arm/leg scale the muscle on a frame set by `wide`; face scales the skull's parts.
 HEROES = {
@@ -280,7 +280,7 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
     for p in o.data.polygons: p.use_smooth = True
     clothw(o, top, side); parts.append(o)
     if edge:
-        e = prim("cube", name + "edge", "gold", (x + lean_ * ln, y - (0.003 if y < 0 else -0.003), z_top - ln + 0.012), (wd * 1.02, 0.004, 0.012), size=2); clothw(e, top, side)
+        e = prim("cube", name + "edge", "gold", (x + lean_ * ln, y - (0.003 if y < 0 else -0.003), z_top - ln + 0.012), (wd * 1.02, 0.004, 0.012), size=2); clothw(e, top, side); parts.append(e)
     return o
 if H["dress"] == "print":
     parts.append(prim("torus", "sash", "red", (0, 0.008, 0.995), (1, 0.86, 2.1), major_radius=0.19, minor_radius=0.024, major_segments=28, minor_segments=8))
@@ -332,7 +332,25 @@ def wrap(name, role, z0, z1, rows):   # a ring of the wrapped cloth between two 
     for p in o.data.polygons: p.use_smooth = True
     clothw(o)
     parts.append(o); return o
-wrap("dhoti", "cloth", 1.0, 0.3, 26); wrap("dhotiband", "red", 0.3, 0.255, 2); wrap("dhotiline", "gold", 0.31, 0.298, 1); wrap("dhotiline", "gold", 0.255, 0.24, 1)
+# The lower cloth as it is worn: wound round the hips, drawn between the legs and tucked behind, so it folds round each leg
+# separately and hangs loose to the calf, with pleats falling in front. Taken from the body's own surface, so it moves as the legs do.
+def dhoti():
+    o = shell("dhoti", "cloth", lambda c: 0.26 < c.z < 1.0, 0.012)
+    for v in o.data.vertices:
+        x, y, z = v.co; sd = 1 if x > 0 else -1; a = math.atan2(y, x - sd * HPX); t = sm(0.92, 0.3, z); inner = max(0.0, -sd * math.cos(a))   # t: 0 at the hips, 1 at the hem
+        d = Vector((math.cos(a), math.sin(a), 0))
+        loose = (0.012 + 0.03 * t) * (1 - 0.75 * inner * sm(0.9, 0.6, z))                                      # looser down the leg; kept in between the thighs so the two sides do not cross
+        fold = (0.004 + 0.012 * t) * math.sin(a * 5 * sd + z * 26) + 0.005 * t * math.sin(a * 11 - z * 40)      # folds winding down round the leg
+        v.co += d * (loose + fold * (1 - 0.6 * inner))
+        if z < 0.31: v.co.z -= (0.31 - z) * 0.4 * math.sin(a * 5 * sd) ** 2                                      # an uneven hem
+    return o
+dhoti()
+for sx in (1, -1):   # the worked border at each calf
+    for nm, role, zz, mr in (("hem", "red", 0.285, 0.014), ("hemline", "gold", 0.31, 0.006), ("hemline", "gold", 0.262, 0.006)):
+        parts.append(prim("torus", nm, role, (sx * (HPX + 0.008), 0.012, zz), (1, 1.12, 1.6 if nm == "hem" else 1), major_radius=0.105 * (0.8 + 0.2 * H["leg"]), minor_radius=mr, major_segments=22, minor_segments=6))
+# gathered pleats between the legs, front and back (the tuck)
+fall("pleat", "cloth", 0.0, -0.165 * (0.95 if not H["soft"] else 1.0), 0.97, 0.5, 0.05, edge=False)
+fall("pleat", "cloth", 0.0, 0.175 * (0.95 if not H["soft"] else 1.0), 0.95, 0.36, 0.04, edge=False)
 shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
 parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.8, 1), major_radius=0.145 * WX, minor_radius=0.02, major_segments=28, minor_segments=8))
 both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105 * H["arm"], 0.105 * H["arm"], 0.09 * H["arm"]), segments=14, ring_count=8))
@@ -369,6 +387,7 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
         p, d = ring[i]; s_ = prim("uv_sphere", names[2] + suffix, "gold", tuple(p + d * 0.014), (0.0075, 0.0075, 0.0075), segments=6, ring_count=5)
         sv = src.data.vertices[kd.find(p)[1]]
         for g in sorted(sv.groups, key=lambda g: -g.weight)[:2]: (s_.vertex_groups.get(gn[g.group]) or s_.vertex_groups.new(name=gn[g.group])).add(range(len(s_.data.vertices)), g.weight, "REPLACE")
+        parts.append(s_)
 if H["dress"] == "print": ribbon(B, "")
 else:   # the gold worn across the chest: two chains crossing, studded close
     ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
@@ -413,7 +432,7 @@ for i, (x, y, l) in enumerate(((-0.07, 0.085, 0.3), (-0.035, 0.105, 0.34), (0, 0
 parts.append(prim("uv_sphere", "beard", "hair", (0, -0.075, HZ - 0.125), (0.062, 0.05, 0.05), segments=14, ring_count=8))
 
 PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair",
-  "girdle": "girdle", "panel": "panel", "paneledge": "panel", "sashendedge": "sash", "shawlendedge": "shawl", "stubble": "face", "harness": "harness", "shawl": "shawl", "shawledge": "shawl", "shawlend": "shawl", "knot": "knot", "knotband": "knot", "dhoti": "dhoti", "dhotiband": "dhoti", "dhotiline": "dhoti", "strap": "uttariya", "strapedge": "uttariya", "strapstud": "uttariya", "straplean": "uttariyalean", "strapedgelean": "uttariyalean", "strapstudlean": "uttariyalean", "hem": "dhoti", "pleats": "dhoti", "pleatend": "dhoti", "sash": "sash", "knotsash": "sash", "sashend": "sash", "clasp": "sash",
+  "girdle": "girdle", "panel": "panel", "paneledge": "panel", "sashendedge": "sash", "shawlendedge": "shawl", "stubble": "face", "harness": "harness", "shawl": "shawl", "shawledge": "shawl", "shawlend": "shawl", "knot": "knot", "knotband": "knot", "hem": "dhoti", "hemline": "dhoti", "pleat": "dhoti", "dhoti": "dhoti", "dhotiband": "dhoti", "dhotiline": "dhoti", "strap": "uttariya", "strapedge": "uttariya", "strapstud": "uttariya", "straplean": "uttariyalean", "strapedgelean": "uttariyalean", "strapstudlean": "uttariyalean", "hem": "dhoti", "pleats": "dhoti", "pleatend": "dhoti", "sash": "sash", "knotsash": "sash", "sashend": "sash", "clasp": "sash",
   "necklace": "gold", "pendant": "gold", "pendantgem": "gold", "earring": "gold", "armlet": "bands", "armletgem": "bands", "wrist": "bands", "locks": "locks", "cuirass": "cuirass", "cuirassbelt": "cuirass", "pauldron": "cuirass",
   "hide": "hide", "uttariya": "uttariya", "uttariyaend": "uttariya", "uttariyalean": "uttariyalean", "jata": "jata", "beard": "beard" }
 def part_of(o):
@@ -428,7 +447,7 @@ def bone_for(o):
     if n == "armlet": return "a" + sd
     if n == "wrist": return "e" + sd
     if n == "anklet": return "k" + sd
-    if n == "hem": return "k" + sd
+    if n in ("hem", "hemline"): return "k" + sd
     return "P"
 for o in parts:
     if o.vertex_groups: continue          # (it kept the body's own weights when it was taken from the body)
@@ -456,6 +475,19 @@ if STAGE in ("body", "dress"):
     for o in parts: o.hide_render = part_of(o) in HIDE
 
     lights(); render(HERO + "_" + LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" and len(argv) < 5 else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70)] if LOOK == "prince" else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("torso", (0.9, -2.5, 1.35), (0, 0, 1.2), 70)] if LOOK == "anatomy" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
+
+if STAGE == "sheet":   # every look of this hero, for the art brief: at home, at court, at war, in the forest, as a youth
+    HERO_ = HERO; lights()
+    HIDES = { "home": {"jata", "beard", "hide", "cuirass", "knot", "crown", "harness", "shawl", "uttariya"}, "court": {"jata", "beard", "hide", "cuirass", "knot"},
+              "war": {"jata", "beard", "hide", "knot", "uttariya", "harness", "shawl"}, "forest": {"crown", "knot", "sash", "gold", "bands", "uttariya", "locks", "girdle", "panel", "harness", "shawl", "cuirass"},
+              "youth": {"jata", "beard", "hide", "cuirass", "locks", "crown", "bands", "harness", "shawl", "uttariya", "stache"} }
+    def setcol(m, h): M[m].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin(hexc(h)), 1)
+    setcol("armour", 0x3d4149)
+    for lk, hide in HIDES.items():
+        setcol("cloth", 0xa07a44 if lk == "forest" else H["cloth"]); setcol("red", 0x6a4a26 if lk == "forest" else H["accent"])
+        for o in parts:
+            o.hide_render = part_of(o) in hide or (lk == "youth" and o.name.split(".")[0] == "stubble")
+        render(HERO_ + "_" + lk, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70)] + ([("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70)] if lk == "court" else []), res=(420, 640), samples=20)
 
 if STAGE == "export":
     import json, base64, struct
