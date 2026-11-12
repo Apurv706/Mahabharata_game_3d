@@ -21,7 +21,7 @@
     const forest = sp.headgear === "jata" || gear.includes("deerskin"), armour = !lean && (!!sp.armour || gear.includes("cuirass") || gear.includes("scale"));
     const p = [lean ? "bodylean" : "body", "head", "hands", "face", "hair", "dhoti"];
     if (sp.whiskers && !young) p.push("stache");
-    if (forest) p.push("jata", "hide"); else { p.push(crowned ? "crown" : "knot", "sash", "gold"); if (!lean) p.push("bands"); }
+    if (forest) p.push("jata", "hide"); else { p.push(young ? "knot" : "locks", "sash", "gold"); if (crowned) p.push("crown"); if (!lean) p.push("bands"); } // (grown, his hair falls loose to the shoulders, as the old prints have it)
     if (forest && !young) p.push("beard");
     if (armour) p.push("cuirass"); else if (!forest && (crowned || sp.rich)) p.push(lean ? "uttariyalean" : "uttariya");
     return p;

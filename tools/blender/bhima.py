@@ -15,7 +15,7 @@ def mat(name, col, rough=0.6, metal=0.0, emit=None):
     return m
 def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
-M = { "skin": mat("skin", lin(hexc(0x8f5126)), 0.5), "cloth": mat("cloth", lin(hexc(0xefe6cf)), 0.85), "red": mat("red", lin(hexc(0x9a2a1e)), 0.8),
+M = { "skin": mat("skin", lin(hexc(0xb97a42)), 0.5), "cloth": mat("cloth", lin(hexc(0xe0a92e)), 0.85), "red": mat("red", lin(hexc(0xc22a1a)), 0.8),
       "gold": mat("gold", lin(hexc(0xd9a53a)), 0.32, 1.0), "hair": mat("hair", lin(hexc(0x14100c)), 0.5), "white": mat("white", (0.9, 0.88, 0.82), 0.3),
       "iris": mat("iris", (0.03, 0.02, 0.015), 0.2), "hide": mat("hide", lin(hexc(0xc79a5a)), 0.8), "armour": mat("armour", lin(hexc(0xc9a24e)), 0.35, 0.9), "lip": mat("lip", lin(hexc(0x7a3a26)), 0.5), "iron": mat("iron", lin(hexc(0x4a4a50)), 0.4, 0.9) }
 
@@ -51,11 +51,11 @@ AX = SHX + 0.03   # the arm's own line: it hangs a little out from the joint, pu
 # deltoids, a trapezius sloping from a thick neck, the belly's wall in rows, thighs with their outer sweep and the
 # teardrop over the knee, calves in two heads. z is height: collar 1.44, nipples 1.30, ribs' end 1.14, navel 1.05, crotch 0.86.
 torso = sym([
-  ((0, 0.005, 1.33), (0.175, 0.12, 0.13)),                  # ribcage, upper
-  ((0, 0.0, 1.2), (0.15, 0.108, 0.1)),                      # ribcage, lower
-  ((0, -0.005, 1.09), (0.122, 0.098, 0.1)),                 # waist: narrow
-  ((0, -0.012, 1.0), (0.128, 0.102, 0.08)),                 # lower belly
-  ((0, 0.01, 0.93), (0.158, 0.118, 0.095)),                 # pelvis
+  ((0, 0.005, 1.33), (0.182, 0.128, 0.13)),                 # ribcage, upper
+  ((0, -0.005, 1.2), (0.165, 0.12, 0.1)),                   # ribcage, lower
+  ((0, -0.012, 1.09), (0.152, 0.118, 0.1)),                 # waist: thick, a wrestler's
+  ((0, -0.022, 1.0), (0.158, 0.122, 0.085)),                # lower belly, full
+  ((0, 0.01, 0.93), (0.17, 0.125, 0.095)),                  # pelvis
   ((0.125, 0.015, 0.94), (0.055, 0.08, 0.07), 1.5),         # hips: the muscle over the hip bone
   ((0.095, -0.1, 1.31), (0.108, 0.082, 0.082), 1.5),       # pectorals: broad, deep, squared below
   ((0.085, -0.082, 1.375), (0.085, 0.05, 0.04), 1.5),       # their upper part, under the collar bone
@@ -68,17 +68,11 @@ torso = sym([
   ((0.14, 0.035, 1.17), (0.055, 0.075, 0.09), 1.5),         # and its taper to the waist
   ((0.045, 0.1, 1.1), (0.034, 0.03, 0.15), 1.5),            # the columns either side of the spine
   ((0, 0.15, 1.2), (0.011, 0.022, 0.24), 1.4, None, True),  # the spine's furrow
-  ((0.036, -0.1, 1.2), (0.028, 0.012, 0.022), 1.7),       # the belly's wall: three rows of two, low in relief
-  ((0.036, -0.103, 1.14), (0.028, 0.012, 0.022), 1.7),
-  ((0.035, -0.103, 1.08), (0.027, 0.012, 0.023), 1.7),
-  ((0, -0.1, 1.005), (0.05, 0.012, 0.045), 1.7),          # and the plate below the navel
-  ((0, -0.14, 1.13), (0.005, 0.02, 0.12), 1.4, None, True), # the line down its middle
-  ((0.145, -0.068, 1.225), (0.017, 0.018, 0.011), 1.7), ((0.14, -0.072, 1.19), (0.017, 0.018, 0.011), 1.7), ((0.132, -0.075, 1.155), (0.017, 0.018, 0.011), 1.7),  # serratus: the fingers on the ribs
   ((0.112, -0.045, 1.07), (0.034, 0.058, 0.06), 1.5),       # obliques
   ((0.09, 0.085, 0.9), (0.098, 0.085, 0.095), 1.5),         # glutes
   ((0.07, 0.035, 1.475), (0.08, 0.058, 0.055), 1.6, rot(0, 0.55, 0)),   # trapezius: from the neck
   ((0.135, 0.035, 1.42), (0.07, 0.055, 0.028), 1.6),        # down to the shoulder's point
-  ((0, 0.012, 1.53), (0.06, 0.066, 0.09)),                  # neck
+  ((0, 0.012, 1.53), (0.068, 0.072, 0.09)),                 # neck: a bull's
   ((0.034, -0.035, 1.505), (0.017, 0.02, 0.07), 1.5, rot(0.25, 0.2, 0)),   # its cords
   ((0.075, -0.088, 1.428), (0.06, 0.011, 0.009), 1.7),      # collar bones
   ((SHX, 0.0, 1.372), (0.068, 0.072, 0.068)),               # deltoid: the core over the joint
@@ -104,16 +98,16 @@ torso = sym([
 ])
 arms = sym([
   ((SHX + 0.012, 0.0, 1.345), (0.06, 0.064, 0.07)),         # the arm's head, inside the deltoid
-  ((AX, 0.0, 1.25), (0.06, 0.064, 0.125)),                  # upper arm
-  ((AX - 0.006, -0.046, 1.25), (0.05, 0.044, 0.082), 1.5),  # biceps, with its peak
+  ((AX, 0.0, 1.25), (0.07, 0.074, 0.13)),                   # upper arm: heavy
+  ((AX - 0.006, -0.05, 1.25), (0.054, 0.046, 0.085), 1.5),  # biceps
   ((AX + 0.022, 0.04, 1.275), (0.04, 0.04, 0.078), 1.5),    # triceps: outer head
   ((AX - 0.016, 0.05, 1.245), (0.04, 0.04, 0.098), 1.5),    # triceps: long head
   ((AX, 0.006, 1.125), (0.042, 0.046, 0.045)),              # elbow
   ((AX + 0.004, 0.045, 1.125), (0.02, 0.02, 0.022), 1.7),   # its point
   ((AX + 0.016, -0.012, 1.055), (0.05, 0.05, 0.08), 1.5),   # forearm: the mass on the thumb side
   ((AX - 0.012, 0.0, 1.04), (0.046, 0.05, 0.09), 1.5),      # and on the other
-  ((AX, 0.0, 0.94), (0.04, 0.044, 0.09)),                   # forearm, tapering
-  ((AX, 0.0, 0.86), (0.027, 0.034, 0.045)),                 # wrist
+  ((AX, 0.0, 0.94), (0.046, 0.05, 0.09)),                   # forearm, tapering
+  ((AX, 0.0, 0.86), (0.032, 0.038, 0.045)),                 # wrist
 ])
 def hand(sx):
     px = sx * (AX + 0.016)                                   # the palm stands a little out, so what is held lies against it
@@ -216,8 +210,9 @@ both(lambda sx: prim("uv_sphere", "lid", "skin", (sx * 0.037, -0.1045, HZ + 0.00
 both(lambda sx: prim("uv_sphere", "browhair", "hair", (sx * 0.04, -0.121, HZ + 0.024), (0.027, 0.008, 0.007), (0, -sx * 0.22, 0), segments=10, ring_count=6))
 parts.append(prim("uv_sphere", "lip", "lip", (0, -0.126, HZ - 0.098), (0.028, 0.012, 0.0085), segments=12, ring_count=6))
 # The moustache of a wrestler: thick over the lip, swept out and up at the ends
-both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.026, -0.128, HZ - 0.078), (0.03, 0.014, 0.011), (0, sx * 0.25, sx * 0.2), segments=12, ring_count=6))
-both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.06, -0.112, HZ - 0.07), (0.018, 0.01, 0.009), (0, -sx * 0.7, sx * 0.5), segments=10, ring_count=6))
+both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.03, -0.128, HZ - 0.078), (0.036, 0.017, 0.015), (0, sx * 0.2, sx * 0.2), segments=12, ring_count=6))
+both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.072, -0.108, HZ - 0.062), (0.026, 0.012, 0.012), (0, -sx * 0.8, sx * 0.6), segments=10, ring_count=6))
+both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.09, -0.094, HZ - 0.04), (0.012, 0.009, 0.014), segments=8, ring_count=6))
 # Hair: a cap over the skull, cut away from the face; a knot on the crown; the rest falling to the shoulders behind
 bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.018, HZ + 0.032), segments=28, ring_count=18); hc = bpy.context.object; hc.name = "haircap"; hc.scale = (0.104, 0.121, 0.114); bpy.ops.object.transform_apply(scale=True)
 bm = bmesh.new(); bm.from_mesh(hc.data)
@@ -228,20 +223,26 @@ hc.select_set(False); parts.append(hc)
 parts.append(prim("uv_sphere", "knot", "hair", (0, 0.03, HZ + 0.155), (0.05, 0.052, 0.042), segments=14, ring_count=8))
 parts.append(prim("torus", "knotband", "gold", (0, 0.03, HZ + 0.128), (1, 1, 1), major_radius=0.04, minor_radius=0.008, major_segments=16, minor_segments=6))
 parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085, 0.045, 0.1), segments=14, ring_count=8))
+for k, (x, y) in enumerate(((-0.105, 0.03), (-0.092, 0.07), (-0.06, 0.1), (-0.02, 0.112), (0.02, 0.112), (0.06, 0.1), (0.092, 0.07), (0.105, 0.03))):   # locks, each a wave of three
+    for j in range(4):
+        w = math.sin(j * 1.9 + k) * 0.012; parts.append(prim("uv_sphere", "locks", "hair", (x * (1 + j * 0.07) + w, y + j * 0.008, HZ - 0.06 - j * 0.058), (0.026, 0.026, 0.04), segments=8, ring_count=6))
 # The lower cloth, drawn up to the knee as a fighting man wears it: taken from the body's own surface and stood off it
 DHOTI_AT = len(parts)   # (made further down, once shells can be cut by the skin's weights)
-both(lambda sx: prim("torus", "hem", "red", (sx * (HPX + 0.008), 0.0, 0.505), (1, 1.06, 1), major_radius=0.083, minor_radius=0.012, major_segments=20, minor_segments=6))
-parts.append(prim("torus", "sash", "red", (0, 0.0, 0.995), (1, 0.78, 1), major_radius=0.15, minor_radius=0.024, major_segments=28, minor_segments=8))
-parts.append(prim("cube", "pleats", "cloth", (0, -0.135, 0.8), (0.05, 0.012, 0.17), size=2))
-parts.append(prim("cube", "pleatend", "red", (0, -0.137, 0.635), (0.052, 0.013, 0.02), size=2))
-parts.append(prim("uv_sphere", "knotsash", "red", (0.1, -0.12, 0.99), (0.035, 0.03, 0.03), segments=10, ring_count=6))
-parts.append(prim("cube", "sashend", "red", (0.105, -0.13, 0.86), (0.028, 0.008, 0.11), size=2))
+both(lambda sx: prim("torus", "hem", "red", (sx * (HPX + 0.01), 0.005, 0.235), (1, 1.1, 1.8), major_radius=0.082, minor_radius=0.012, major_segments=20, minor_segments=6))
+both(lambda sx: prim("torus", "hem", "gold", (sx * (HPX + 0.01), 0.005, 0.262), (1, 1.1, 1), major_radius=0.083, minor_radius=0.006, major_segments=20, minor_segments=6))
+parts.append(prim("torus", "sash", "red", (0, -0.005, 0.995), (1, 0.8, 2.1), major_radius=0.168, minor_radius=0.024, major_segments=28, minor_segments=8))
+parts.append(prim("uv_sphere", "knotsash", "red", (0.035, -0.165, 0.985), (0.06, 0.04, 0.05), segments=12, ring_count=8))
+for dx, zz, ln, wd, ry in ((0.0, 0.76, 0.2, 0.07, 0.04), (0.075, 0.8, 0.16, 0.055, -0.1)):   # the two ends, one over the other
+    parts.append(prim("cube", "sashend", "red", (dx, -0.172, zz), (wd, 0.01, ln), (0, ry, 0), size=2))
+    parts.append(prim("cube", "sashend", "gold", (dx - ry * ln, -0.174, zz - ln + 0.012), (wd * 1.02, 0.011, 0.012), (0, ry, 0), size=2))
 # Gold: a broad necklace, armlets, wristbands, anklets, earrings, a clasp on the sash
-parts.append(prim("torus", "necklace", "gold", (0, -0.03, 1.455), (1, 0.9, 1), (0.5, 0, 0), major_radius=0.105, minor_radius=0.013, major_segments=28, minor_segments=8))
-parts.append(prim("uv_sphere", "pendant", "gold", (0, -0.118, 1.395), (0.022, 0.012, 0.026), segments=10, ring_count=6))
-both(lambda sx: prim("torus", "armlet", "gold", (sx * AX, 0, 1.2), (1, 1.05, 1), major_radius=0.07, minor_radius=0.012, major_segments=20, minor_segments=6))
-both(lambda sx: prim("torus", "wrist", "gold", (sx * AX, 0, 0.87), (1, 1.1, 1), major_radius=0.037, minor_radius=0.011, major_segments=16, minor_segments=6))
-both(lambda sx: prim("torus", "anklet", "gold", (sx * (HPX + 0.005), 0.005, 0.1), (1, 1.05, 1), major_radius=0.05, minor_radius=0.009, major_segments=16, minor_segments=6))
+for k in range(15):
+    a = (k - 7) / 7 * 1.25; parts.append(prim("uv_sphere", "necklace", "gold", (math.sin(a) * 0.105, -0.058 - math.cos(a) * 0.06, 1.47 - math.cos(a) * 0.075), (0.0125, 0.0125, 0.0125), segments=8, ring_count=6))
+parts.append(prim("uv_sphere", "pendant", "gold", (0, -0.128, 1.375), (0.024, 0.012, 0.028), segments=10, ring_count=6))
+parts.append(prim("uv_sphere", "pendantgem", "red", (0, -0.138, 1.375), (0.011, 0.006, 0.013), segments=8, ring_count=6))
+both(lambda sx: prim("torus", "armlet", "gold", (sx * AX, 0, 1.2), (1, 1.05, 2.6), major_radius=0.077, minor_radius=0.011, major_segments=20, minor_segments=6))
+both(lambda sx: prim("uv_sphere", "armletgem", "red", (sx * (AX + 0.02), -0.085, 1.2), (0.016, 0.008, 0.02), segments=8, ring_count=6))
+both(lambda sx: prim("torus", "wrist", "gold", (sx * AX, 0, 0.875), (1, 1.1, 3.2), major_radius=0.041, minor_radius=0.009, major_segments=16, minor_segments=6))
 both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104, 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
 parts.append(prim("cylinder", "clasp", "gold", (0, -0.128, 0.995), (0.03, 0.03, 0.008), (math.pi / 2, 0, 0), vertices=12))
 # ---- What changes with the years and the acts: each is a part the game shows or leaves out ---------------------
@@ -255,23 +256,25 @@ def shell(name, role, keep, off, src=None):   # a garment taken from the body's 
 trunk = lambda c: not (c.z > 1.4 and abs(c.x) < 0.085)
 def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
     ux, uz = -0.3, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.14) * uz - (c.z - 1.44) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
-dh = shell("dhoti", "cloth", lambda c: 0.5 < c.z < 1.0, 0.014)
+dh = shell("dhoti", "cloth", lambda c: 0.235 < c.z < 1.0, 0.012)
+for v in dh.data.vertices:   # it hangs looser the lower it goes, and falls in folds
+    a = math.atan2(v.co.y, v.co.x - (HPX if v.co.x > 0 else -HPX)); t = max(0, min(1, (0.9 - v.co.z) / 0.6)); d = Vector((math.cos(a), math.sin(a), 0))
+    v.co += d * (t * 0.022 + t * 0.011 * math.sin(a * 7 + v.co.z * 9))
 shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
 parts.append(prim("torus", "cuirassbelt", "gold", (0, 0.0, 1.04), (1, 0.8, 1), major_radius=0.145, minor_radius=0.02, major_segments=28, minor_segments=8))
 both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105, 0.105, 0.09), segments=14, ring_count=8))
 shell("hide", "hide", lambda c: band(c, 0.085), 0.017)
-shell("uttariya", "cloth", lambda c: band(c, 0.06), 0.015)
+shell("uttariya", "red", lambda c: band(c, 0.03), 0.014)
 shell("uttariyalean", "cloth", lambda c: band(c, 0.06), 0.013, BL)
-parts.append(prim("cube", "uttariyaend", "cloth", (0.15, 0.13, 1.25), (0.05, 0.012, 0.2), size=2))
+
 # A prince's crown: a gold band, a tall plate in front with a red stone, points round it
-parts.append(prim("torus", "crown", "gold", (0, 0.015, HZ + 0.085), (1, 1.12, 1), major_radius=0.102, minor_radius=0.014, major_segments=28, minor_segments=8))
-parts.append(prim("cylinder", "crowncap", "gold", (0, 0.015, HZ + 0.135), (0.092, 0.105, 0.05), vertices=20))
-parts.append(prim("cone", "crownpeak", "gold", (0, 0.015, HZ + 0.22), (0.07, 0.08, 0.06), vertices=16))
-parts.append(prim("uv_sphere", "crowntip", "gold", (0, 0.015, HZ + 0.285), (0.018, 0.018, 0.022), segments=8, ring_count=6))
-parts.append(prim("cube", "crownplate", "gold", (0, -0.1, HZ + 0.13), (0.03, 0.008, 0.05), size=2))
-parts.append(prim("uv_sphere", "crowngem", "red", (0, -0.11, HZ + 0.135), (0.014, 0.008, 0.018), segments=8, ring_count=6))
-for i in range(8):
-    a = i / 8 * math.tau + 0.39; parts.append(prim("cone", "crownpoint", "gold", (math.sin(a) * 0.1, 0.015 - math.cos(a) * 0.112, HZ + 0.125), (0.014, 0.014, 0.035), vertices=6))
+parts.append(prim("torus", "crown", "gold", (0, 0.012, HZ + 0.072), (1, 1.14, 2.4), (0.12, 0, 0), major_radius=0.103, minor_radius=0.009, major_segments=28, minor_segments=8))
+for k in range(7):
+    a = (k - 3) * 0.3; parts.append(prim("uv_sphere", "crowngem", "red", (math.sin(a) * 0.105, 0.012 - math.cos(a) * 0.122, HZ + 0.062 + abs(k - 3) * 0.004), (0.009, 0.006, 0.011), segments=6, ring_count=6))
+parts.append(prim("uv_sphere", "crownboss", "gold", (0, -0.112, HZ + 0.1), (0.022, 0.012, 0.028), segments=10, ring_count=6))
+for k, (dx, hh, lean_) in enumerate(((0, 0.13, 0), (-0.035, 0.105, 0.35), (0.035, 0.105, -0.35))):   # the plumes: dark, each with a gold eye
+    parts.append(prim("uv_sphere", "crownplume", "hair", (dx, -0.085, HZ + 0.12 + hh / 2), (0.022, 0.008, hh / 2), (-0.2, lean_, 0), segments=8, ring_count=8))
+    parts.append(prim("uv_sphere", "crowneye", "gold", (dx - lean_ * 0.035, -0.097, HZ + 0.12 + hh * 0.78), (0.011, 0.005, 0.014), segments=8, ring_count=6))
 # The matted hair of the forest years: a heavy coil on the crown, locks down the back and over the shoulders
 parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.13), (1, 1, 1.3), major_radius=0.05, minor_radius=0.03, major_segments=16, minor_segments=8))
 parts.append(prim("torus", "jata", "hair", (0, 0.03, HZ + 0.175), (1, 1, 1.3), major_radius=0.034, minor_radius=0.026, major_segments=14, minor_segments=8))
@@ -283,19 +286,21 @@ parts.append(prim("uv_sphere", "beard", "hair", (0, -0.075, HZ - 0.125), (0.062,
 
 PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair",
   "knot": "knot", "knotband": "knot", "dhoti": "dhoti", "hem": "dhoti", "pleats": "dhoti", "pleatend": "dhoti", "sash": "sash", "knotsash": "sash", "sashend": "sash", "clasp": "sash",
-  "necklace": "gold", "pendant": "gold", "earring": "gold", "armlet": "bands", "wrist": "bands", "anklet": "bands", "cuirass": "cuirass", "cuirassbelt": "cuirass", "pauldron": "cuirass",
+  "necklace": "gold", "pendant": "gold", "pendantgem": "gold", "earring": "gold", "armlet": "bands", "armletgem": "bands", "wrist": "bands", "locks": "locks", "cuirass": "cuirass", "cuirassbelt": "cuirass", "pauldron": "cuirass",
   "hide": "hide", "uttariya": "uttariya", "uttariyaend": "uttariya", "uttariyalean": "uttariyalean", "jata": "jata", "beard": "beard" }
 def part_of(o):
     n = o.name.split(".")[0]; return "crown" if n.startswith("crown") else PART.get(n, n)
 def bone_for(o):
     n = o.name.split(".")[0]; x = sum((o.matrix_world @ v.co).x for v in o.data.vertices) / max(1, len(o.data.vertices)); sd = "L" if x > 0 else "R"
     if n in ("eye", "iris", "lid", "browhair", "lip", "stache", "stache2", "haircap", "knot", "knotband", "backhair", "earring", "jata", "beard") or n.startswith("crown"): return "H"
-    if n in ("necklace", "pendant", "cuirassbelt", "uttariyaend"): return "T"
+    if n in ("necklace", "pendant", "pendantgem", "cuirassbelt", "uttariyaend"): return "T"
+    if n == "locks": return "H"
+    if n == "armletgem": return "a" + sd
     if n == "pauldron": return "a" + sd
     if n == "armlet": return "a" + sd
     if n == "wrist": return "e" + sd
     if n == "anklet": return "k" + sd
-    if n == "hem": return "l" + sd
+    if n == "hem": return "k" + sd
     return "P"
 for o in parts:
     if o.vertex_groups: continue          # (it kept the body's own weights when it was taken from the body)
@@ -319,8 +324,8 @@ def render(tag, shots, res=(560, 800), samples=24):
         S.camera = look(n, loc, at, lens); S.render.filepath = f"{OUT}/{tag}_{n}.png"; bpy.ops.render.render(write_still=True)
 if STAGE in ("body", "dress"):
     LOOK = argv[2] if len(argv) > 2 else "prince"
-    SHOW = { "prince": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "uttariya"}, "exile": {"face", "stache", "hair", "dhoti", "jata", "beard", "hide"},
-             "war": {"face", "stache", "hair", "dhoti", "sash", "gold", "bands", "crown", "cuirass"}, "youth": {"face", "hair", "knot", "dhoti", "sash", "gold", "uttariyalean"}, "anatomy": {"face", "stache", "hair", "knot", "dhoti"} }[LOOK]
+    SHOW = { "prince": {"face", "stache", "hair", "locks", "dhoti", "sash", "gold", "bands", "crown", "uttariya"}, "exile": {"face", "stache", "hair", "dhoti", "jata", "beard", "hide"},
+             "war": {"face", "stache", "hair", "locks", "dhoti", "sash", "gold", "bands", "crown", "cuirass"}, "youth": {"face", "hair", "knot", "dhoti", "sash", "gold", "uttariyalean"}, "anatomy": {"face", "stache", "hair", "knot", "dhoti"} }[LOOK]
     for o in parts: o.hide_render = part_of(o) not in SHOW
     B.hide_render = LOOK == "youth"; BL.hide_render = LOOK != "youth"
     lights(); render(LOOK, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("face", (0.3, -1.7, 1.7), (0, 0, 1.66), 70), ("back", (-2.2, 4.6, 1.5), (0, 0, 0.95), 70)] if LOOK == "prince" else [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70), ("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70), ("torso", (0.9, -2.5, 1.35), (0, 0, 1.2), 70)] if LOOK == "anatomy" else [("three", (2.6, -4.4, 1.5), (0, 0, 0.95), 70)])
