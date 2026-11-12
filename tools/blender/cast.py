@@ -266,14 +266,14 @@ def clothw(o, top="P", side=None):   # the wrap's own holding: the hips above (o
         w = {"T": tt, "P": hp * (1 - tt), "lL": (1 - hp) * (1 - kn) * wl, "lR": (1 - hp) * (1 - kn) * (1 - wl), "kL": (1 - hp) * kn * wl, "kR": (1 - hp) * kn * (1 - wl)}
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
-def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red"):   # a hanging length of cloth, a little waved, with a gold edge at its foot
+def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red", gather=0.82, deep=1.0):   # a hanging length of cloth, a little waved, with a gold edge at its foot
     me = bpy.data.meshes.new(name); rows = 10; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1
     for r in range(rows + 1):
         t = r / rows
         for c in range(C_):
-            u = c / (C_ - 1) - 0.5; fold = (1 if c % 2 else -1) * (0.0015 + 0.009 * t) * (0 if C_ == 3 else 1)       # gathered above, opening into pleats below
+            u = c / (C_ - 1) - 0.5; fold = (1 if c % 2 else -1) * (0.0015 + 0.009 * t) * deep * (0 if C_ == 3 else 1)       # gathered above, opening into pleats below
             z = z_top - ln * t - (0.012 * (c % 2) * t if C_ > 3 else 0)                                               # and the foot of each pleat a little lower than the next
-            vs.append((x + u * wd * 2 * (0.82 + 0.18 * t) + lean_ * ln * t, y - fwd * (fold + 0.012 * math.sin(t * 3.0)), z))
+            vs.append((x + u * wd * 2 * (gather + (1 - gather) * t ** 0.7) + lean_ * ln * t, y - fwd * (fold + 0.012 * math.sin(t * 3.0)), z))
     for r in range(rows):
         for c in range(C_ - 1): a = r * C_ + c; fs.append((a, a + 1, a + C_ + 1, a + C_))
     me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
@@ -305,8 +305,8 @@ def tag(objs, part):
     for o in (objs if isinstance(objs, (list, tuple)) else [objs]): o["part"] = part
 def since(n0, part): tag(parts[n0:], part)
 # ---- Lower cloth: wound round the hips and drawn between the legs, so it folds round each leg; three lengths.
-def dhoti(name, zlow, flare=1.0):
-    n0 = len(parts); o = shell(name, "cloth", lambda c: zlow - 0.001 < c.z < 1.001, 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
+def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt of armour over the cloth: no hem band, no pleats)
+    n0 = len(parts); o = shell(name, role, lambda c: zlow - 0.001 < c.z < 1.001, 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
     for v in o.data.vertices:
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
@@ -318,6 +318,7 @@ def dhoti(name, zlow, flare=1.0):
         if z < zlow + 0.045: hemv.append(v.index)
         v.co.x = cx + math.cos(a) * r; v.co.y = math.sin(a) * r
         v.co.z += inner * 0.09 * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
+    if plain: since(n0, name); return
     hb = o.copy(); hb.data = o.data.copy(); S.collection.objects.link(hb); hb.name = name + "hem"; bm = bmesh.new(); bm.from_mesh(hb.data); bm.verts.ensure_lookup_table(); keep = set(hemv)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.index not in keep], context="VERTS")
     for v in bm.verts:
@@ -389,7 +390,8 @@ since(n0, "beads"); n0 = len(parts)
 shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.44 and trunk(c), 0.013, cut=(1.03, None))
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
-both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105 * H["arm"], 0.105 * H["arm"], 0.085 * H["arm"]), segments=14, ring_count=8))
+for (dx_, z_, sc_, tilt) in ((0.0, 1.425, (0.098, 0.108, 0.046), 0.28), (0.052, 1.39, (0.088, 0.104, 0.04), 0.62), (0.092, 1.342, (0.074, 0.096, 0.036), 0.95)):   # three lapped plates down the shoulder, each tipped further over the arm
+    both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + dx_ * H["arm"]), 0, z_), tuple(k * H["arm"] for k in sc_), (0, sx * tilt, 0), segments=12, ring_count=6))
 for o in parts[n0:]: rigid(o, "aL" if sum(v.co.x for v in o.data.vertices) > 0 else "aR")
 since(n0, "pauldron"); n0 = len(parts)
 def limbshell(name, role, z0, z1, bones, off):
@@ -402,8 +404,9 @@ def limbshell(name, role, z0, z1, bones, off):
 limbshell("vambrace", "leather", 0.885, 1.075, "ew", 0.009); since(n0, "vambrace"); n0 = len(parts)
 limbshell("greave", "leather", 0.1, 0.41, "k", 0.009); since(n0, "greave"); n0 = len(parts)
 # bands of trim round a cuirass, and a boss on the breast
-for zz in (1.1, 1.17, 1.24, 1.31): ring("lames", "gold", zz, 0.006, 1.4, 0.018, capx=SHX - 0.03, bone="T")
+for zz in (1.12, 1.27): ring("lames", "gold", zz, 0.0045, 1.3, 0.016, capx=SHX - 0.03, bone="T")
 since(n0, "lames"); n0 = len(parts)
+dhoti("tasset", 0.79, 1.13, role="armour", plain=True); n0 = len(parts)   # the skirt of scales that hangs from the belt, over the cloth
 parts.append(prim("uv_sphere", "boss", "gold", (0, front(1.3) - 0.016, 1.3), (0.05, 0.016, 0.05), segments=12, ring_count=6)); rigid(parts[-1], "T")
 parts.append(prim("uv_sphere", "bossgem", "gem", (0, front(1.3) - 0.03, 1.3), (0.02, 0.008, 0.02), segments=8, ring_count=6)); rigid(parts[-1], "T"); since(n0, "boss"); n0 = len(parts)
 # the lower cloth's own rolled top, knotted in front (plain people: no sash over it)
@@ -454,11 +457,9 @@ ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=
 ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="cloth2", half=0.085, names=("shawl", "shawledge", "shawledge"), stud=99, edge="red")
 fall("shawlend", "cloth2", 0.17 * FX, hang(0.6, 1.36, 0.17 * FX), 1.36, 0.9, 0.08, top="T", side=0.85, edge=False, border=True)
 fall("shawlend", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.85, 0.08, top="T", side=0.85, edge=False, border=True); since(n0, "shawl"); n0 = len(parts)
-# hung straight down from the left shoulder only (the folded cloth of a plain man: no wrap across the chest)
-DX = 0.15 * FX; DF, DB = hang(0.7, 1.44, DX), hang(0.7, 1.44, DX, 1)
-fall("drape", "cloth2", DX, DF, 1.45, 0.82, 0.05, top="T", side=0.85, edge=False, border=True)
-fall("drape", "cloth2", DX, DB, 1.45, 0.72, 0.05, top="T", side=0.85, edge=False, border=True)
-parts.append(prim("uv_sphere", "drapetop", "cloth2", (DX, (DF + DB) / 2, 1.452), (0.05, (DB - DF) / 2 + 0.004, 0.012), segments=10, ring_count=6)); rigid(parts[-1], "T"); since(n0, "drape"); n0 = len(parts)
+# a plain man's upper cloth: a folded length over the left shoulder and across the chest to the right hip, its end hanging behind
+ribbon(B, "", P0=(0.15, 1.455), P1=(-0.13, 1.03), mid="cloth2", half=0.06, names=("drape", "drapeedge", "drapeedge"), stud=99, edge="red")
+fall("drape", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.62, 0.065, top="T", side=0.85, edge=False, gather=0.6, deep=1.6); since(n0, "drape"); n0 = len(parts)
 fall("apron", "leather", 0.0, hang(0.6, 1.3), 1.3, 0.75, 0.15, top="T", edge=False); since(n0, "apron"); n0 = len(parts)
 # ---- Head: crowns, a helmet, a turban, matted hair, beards, a veil, a blindfold
 CR = H.get("crown")

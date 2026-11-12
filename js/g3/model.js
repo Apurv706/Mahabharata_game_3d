@@ -36,7 +36,7 @@
       for (let v = 0; v < n; v++) if (cnt[v]) cav[v] = cav[v] * 0.5 + (sm[v] / cnt[v]) * 0.5; }
     const f = (D.shade = new Float32Array(n)); for (let v = 0; v < n; v++) { const c = cav[w[v]]; f[v] = Math.max(0.56, Math.min(1.1, c > 0 ? 1 - c * 2.1 : 1 - c * 0.55)); }
   }
-  const EDGED = { dhoti: 1, dhotiS: 1, dhotiL: 1, sash: 2, panel: 2, tuck: 2, shawl: 2, drape: 2, veil: 2, bandeau: 2, baldric: 2, pauldron: 2, vambrace: 2, greave: 2, apron: 2, turban: 2 }, REACH = 0.12;
+  const EDGED = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1, drape: 2, sash: 2, panel: 2, tuck: 2, shawl: 2, drape: 2, veil: 2, bandeau: 2, baldric: 2, pauldron: 2, vambrace: 2, greave: 2, apron: 2, turban: 2 }, REACH = 0.12;
   function edges(M, D, p16, EDGED) {
     const n = M.n, names = Object.keys(M.parts), part = new Uint8Array(n), edge = new Float32Array(n).fill(1), half = new Float32Array(n).fill(1), idx = D.idx, pos = D.pos, weld = new Int32Array(n), par = new Int32Array(n);
     const find = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }, cell = REACH, gk = (x, y, z) => (Math.floor(x / cell) + 512) * 1048576 + (Math.floor(y / cell) + 512) * 1024 + (Math.floor(z / cell) + 512);
@@ -116,6 +116,28 @@
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
     f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
+    if (/^player_/.test(sp.model || "") && (sp.heir || sp.eye)) keepsakes(f, sp, M, D, mesh);
     return mesh;
   };
+  // What the story put on you, as the 2D puppet shows it: the family amulet on your breast (cracked once it has turned
+  // a blow), the palm-leaf manuscript or the purse of the family's debt at your waist, a patch over a lost eye.
+  // Each is found a place on this body's own surface and pinned to the joint that carries it.
+  function keepsakes(f, sp, M, D, mesh) {
+    if (!G.Builder) return;
+    const pos = D.pos, part = D.part, names = D.partNames, body = names.indexOf("body"), PI = Math.PI;
+    const front = (x0, x1, y0, y1, of) => { let z = -9; for (let i = 0; i < M.n; i++) { if (part[i] !== of) continue; const x = pos[i * 3], y = pos[i * 3 + 1]; if (x >= x0 && x <= x1 && y >= y0 && y <= y1 && pos[i * 3 + 2] > z) z = pos[i * 3 + 2]; } return z; };
+    const pin = (joint, x, y, z, b) => { const j = f.j[joint], m = b.mesh(); if (!j) return; m.matrixAutoUpdate = false; m.matrix.copy(j.matrixWorld).invert().multiply(mesh.matrixWorld).multiply(new T.Matrix4().makeTranslation(x, y, z)); m.castShadow = false; j.add(m); };
+    const k = M.scaleY || 1, trim = sp.palette && sp.palette[2] ? sp.palette[2] : 0xd9a53a;
+    let top = -9; for (let i = 0; i < M.n; i++) if (part[i] === body && pos[i * 3 + 1] > top) top = pos[i * 3 + 1];   // the base of the neck: this body's own measure of height
+    const h = top / 1.47;
+    if (sp.heir === "amulet") { const y = 1.3 * h, z = front(-0.03, 0.03, y - 0.03, y + 0.03, body); if (z > -9) { const b = new G.Builder(); b.surf("gold");
+      b.geo(new T.CylinderGeometry(0.03 * h, 0.03 * h, 0.008, 12).rotateX(PI / 2), 0, 0, 0, 0, 0, 0, sp.cracked ? 0x8a7a4a : trim); b.sph(0.011 * h, 0, 0, 0.006, sp.cracked ? 0x3a2a1a : 0xb2432a, 1, 6);
+      b.surf("rope", 0x1a0e08, 0.02); for (const sx of [-1, 1]) b.rod(0, 0.02 * h, 0, sx * 0.07 * h, 0.15 * h, -0.035 * h, 0.004, 0x3a2414, 4); pin("T", 0, y, z + 0.012, b); } }
+    if (sp.heir === "manuscript" || sp.heir === "debt") { const y = 1.0 * h, x = (sp.heir === "debt" ? -0.1 : 0.1) * h, z = front(x - 0.025, x + 0.025, y - 0.04, y + 0.04, body); if (z > -9) { const b = new G.Builder();
+      if (sp.heir === "manuscript") { b.surf("rings", 0xa3302a, 0.05); b.geo(new T.CylinderGeometry(0.02 * h, 0.02 * h, 0.13 * h, 8).rotateZ(PI / 2), 0, 0, 0, 0, 0, 0, 0xe8dcc0); }
+      else { b.surf("leather"); b.sph(0.04 * h, 0, -0.02 * h, 0, 0x6a4a2a, 1.15, 8, 1, 0.8); b.cyl(0.014 * h, 0.022 * h, 0.03 * h, 0, 0.012 * h, 0, 0x4a3018, 6); }
+      pin("P", x, y, z + 0.05 * h, b); } }
+    if (sp.eye) { const iris = M.roles.indexOf("iris"), face = names.indexOf("face"); let n = 0, ex = 0, ey = 0, ez = 0; for (let i = 0; i < M.n; i++) if (part[i] === face && D.col[i] === iris && pos[i * 3] > 0) { ex += pos[i * 3]; ey += pos[i * 3 + 1]; ez += pos[i * 3 + 2]; n++; }
+      if (n) { const b = new G.Builder(); b.surf("leather"); b.geo(new T.SphereGeometry(0.026 * h, 8, 6).scale(1, 0.85, 0.45), 0, 0, 0, 0, 0, 0, 0x1c120c); b.rod(-0.02 * h, 0.012 * h, 0, -0.11 * h, 0.05 * h, -0.07 * h, 0.004, 0x1c120c, 3); b.rod(0.02 * h, 0.012 * h, 0, 0.05 * h, 0.05 * h, -0.09 * h, 0.004, 0x1c120c, 3); pin("H", ex / n, ey / n, ez / n + 0.008, b); } }
+  }
 })(window.K = window.K || {});

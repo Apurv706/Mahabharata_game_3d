@@ -78,7 +78,7 @@ def soldier(kind, cm, build, parts, beard="", crown=None, **kw):
 soldier("foot", 176, "fit", "hair helmet cuirass vambrace greave dhotiS sash", "beardS stache")
 soldier("archer", 174, "fit", "hair knot cuirass strap vambrace dhotiS sash tilak")
 soldier("charioteer", 172, "fit", "hair turban cuirass vambrace dhotiS sash")
-soldier("cw", 184, "strong", "hair locks knot crown cuirass pauldron lames baldric vambrace girdle dhotiS sash ear", "beardS stache", crown="circlet")
+soldier("cw", 184, "strong", "hair locks knot crown cuirass pauldron lames tasset baldric vambrace girdle dhotiS sash ear", "beardS stache", crown="circlet")
 CAST["soldier_cw_adult"]["looks"]["war"]["cols"].update(armour=0x8a8780, leather=0x8a8780, gold=0xc9a040, gem=0x2e4993)
 
 # ---- The five Pandavas, each in his own colours: child (home), youth (student), grown (home, court, forest, disguise, war, mourning).
@@ -93,7 +93,7 @@ def pandava(name, skin, build, face, cms, crown, gem, c1, c2, shawl, forest, dis
       "court":    L("hair locks crown gold ear bands anklets girdle panel shawl dhoti" + st, cloth=c1, red=c2, cloth2=shawl, hem=0xd9a53a, gem=gem),
       "forest":   L("hair jata beardF stache hide dhoti tuck beads", cloth=forest, red=BARKD, hem=forest, hide=HIDE),
       "disguise": disguise,
-      "war":      L("hair locks crown cuirass pauldron lames boss vambrace greave dhotiS sash" + st, cloth=c1, red=c2, hem=0xd9a53a, **dict(dict(armour=GOLD_A, leather=0xb08a3a, gem=gem), **kw)),
+      "war":      L("hair locks crown cuirass pauldron lames tasset boss vambrace greave dhotiS sash" + st, cloth=c1, red=c2, hem=0xd9a53a, **dict(dict(armour=GOLD_A, leather=0xb08a3a, gem=gem), **kw)),
       "mourning": L("hair locks longhair dhoti tuck shawl" + st, **white) })
 pandava("yudhishthira", 0x9b643f, "slim", "long", (135, 172, 188), "mukuta", 0xc82036, 0x672c85, 0xd32c57, 0xf4ecd8, 0xad7036,
         L("hair locks dhoti tuck shawl stache", cloth=0xb6b2b1, red=0x8a7f75, cloth2=0xdbd2c7), stache=True)
@@ -132,17 +132,17 @@ add("karna_child", "child", "child", KA, BLACK, 134, looks={"home": L("hair knot
 add("karna_youth", "youthB", "firm", KA, BLACK, 180, rich=True, looks={"tournament": L("hair locks knot cuirass boss ear bands dhoti sash girdle", cloth=0xfebd35, red=0x1a4420, armour=0xecad3e, gem=0xfdd739, hem=0xd9a53a)})
 add("karna_adult", "strong", "stern", KA, BLACK, 190, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache beardS", cloth=0xfab834, red=0x1a451d, cloth2=0x1a451d, hem=0xd9a53a, gem=0xfdd341),
-  "war":   L("hair locks crown cuirass pauldron lames vambrace greave dhotiS sash stache beardS", cloth=0xfebe3b, red=0x1a4e24, hem=0xd9a53a, armour=0xb89a5a, leather=0xa08040, gem=0xfdd93d) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset vambrace greave dhotiS sash stache beardS", cloth=0xfebe3b, red=0x1a4e24, hem=0xd9a53a, armour=0xb89a5a, leather=0xa08040, gem=0xfdd93d) })
 DU = 0xa96845
 add("duryodhana_child", "childB", "child", DU, BLACK, 138, rich=True, looks={"home": L("hair knot dhoti sash gold bands tilak", cloth=0x6d1c43, red=0x2a1420, hem=0xdea347)})
 add("duryodhana_youth", "youthB", "stern", DU, BLACK, 176, looks={"student": L("hair knot dhotiS tuck thread", cloth=0xf4ecdc, red=0x5b3823, hem=0xf4ecdc)})
 add("duryodhana_adult", "strong", "stern", DU, BLACK, 192, crown="mukuta", rich=True, stache=True, wide=1.14, looks={
   "court":   L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache goatee", cloth=0x6e1c48, red=0x1c1c1b, cloth2=0xdaa850, hem=0xd9a53a, gem=0x304695),
   "student": L("hair knot dhotiS tuck thread stache goatee", cloth=0xf2e8da, red=0x64442a, hem=0xf2e8da),
-  "war":     L("hair locks crown cuirass pauldron lames boss vambrace greave dhotiS sash stache goatee", cloth=0x74204e, red=0x232322, hem=0xd9a53a, armour=0x262422, leather=0x2c2a28, gem=0x2d479a) })
+  "war":     L("hair locks crown cuirass pauldron lames tasset boss vambrace greave dhotiS sash stache goatee", cloth=0x74204e, red=0x232322, hem=0xd9a53a, armour=0x262422, leather=0x2c2a28, gem=0x2d479a) })
 add("bhishma_elder", "oldking", "old", 0xc68b58, WHITE, 192, crown="circlet", wide=1.06, mu=0.7, belly=0, stache=True, looks={
   "court": L("hair locks longhair crown beardF beardL stache dhoti sash shawl beads gold bands", cloth=0xf4efe4, red=0xb5ac9f, cloth2=0xf4efe4, gem=0xd9d9d9),
-  "war":   L("hair locks longhair crown beardF beardL stache cuirass pauldron lames vambrace greave dhotiS sash beads", cloth=0xf4efe4, red=0xb5ac9f, armour=0xbab7ae, leather=0xa9a69e, gold=0xcfc8b0, gem=0xd9d9d9) })
+  "war":   L("hair locks longhair crown beardF beardL stache cuirass pauldron lames tasset vambrace greave dhotiS sash beads", cloth=0xf4efe4, red=0xb5ac9f, armour=0xbab7ae, leather=0xa9a69e, gold=0xcfc8b0, gem=0xd9d9d9) })
 add("drona_elder", "old", "old", 0xac744a, 0xdcd6cd, 178, mu=0.6, stache=True, looks={
   "teacher": L("hair knot beardF stache dhoti tuck thread beads tilak", cloth=0xf4e2c5, red=0xb76c58),
   "war":     L("hair knot beardF stache cuirass pauldron vambrace dhotiS tuck thread beads", cloth=0xf0dcc0, red=0xab6a4d, armour=0x827d77, leather=0x5a4636) })
@@ -152,15 +152,15 @@ add("dushasana_child", "childB", "child", 0xab6742, BLACK, 132, rich=True, looks
 add("dushasana_youth", "youthB", "stern", 0xb87048, BLACK, 174, looks={"student": L("hair knot dhotiS tuck thread", cloth=0xf8f3e7, red=0x8a6a4a, hem=0xf8f3e7)})
 add("dushasana_adult", "strong", "stern", 0xa96541, BLACK, 188, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache goatee", cloth=0x791f3d, red=0x282828, cloth2=0x434446, hem=0xd9a53a, gem=0x9d1126),
-  "war":   L("hair locks crown cuirass pauldron lames boss vambrace greave dhotiS sash stache goatee", cloth=0x7e203c, red=0x282828, hem=0xd9a53a, armour=0x6a5238, leather=0x5a4630, gem=0x7d0918) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset boss vambrace greave dhotiS sash stache goatee", cloth=0x7e203c, red=0x282828, hem=0xd9a53a, armour=0x6a5238, leather=0x5a4630, gem=0x7d0918) })
 add("shakuni_elder", "slim", "lean", 0xc48e66, 0x4a4642, 176, crown="circlet", rich=True, mu=0.5, stache=True, looks={
   "court": L("hair locks crown gold ear bands girdle shawl dhoti stache goatee", cloth=0x115770, red=0x0a3a4c, cloth2=0xa9a39c, hem=0xbdb6aa, gem=0x1a3a9a),
-  "war":   L("hair locks crown cuirass pauldron lames vambrace dhotiS sash stache goatee", cloth=0x0b4a5e, red=0x01205c, hem=0xbdb6aa, armour=0x8e8a88, leather=0x3b291f, gem=0x1a3a9a) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset vambrace dhotiS sash stache goatee", cloth=0x0b4a5e, red=0x01205c, hem=0xbdb6aa, armour=0x8e8a88, leather=0x3b291f, gem=0x1a3a9a) })
 AS = 0xbc7a50
 add("ashwatthama_child", "child", "child", AS, BLACK, 128, looks={"home": L("hair knot dhoti tuck thread tilak", cloth=0xf2e6d2, red=0xd8c8b0, gem=0xc0202a)})
 add("ashwatthama_youth", "youth", "stern", AS, BLACK, 170, looks={"student": L("hair knot longhair dhotiS tuck thread tilak", cloth=0xf2e6d2, red=0xd8c8b0, gem=0xc0202a)})
 add("ashwatthama_adult", "strong", "stern", AS, BLACK, 186, crown="circlet", rich=True, stache=True, looks={
-  "war": L("hair locks knot crown cuirass pauldron lames boss vambrace greave dhoti sash stache beardS tilak", cloth=0xaa232d, red=0xd46627, hem=0xd9a53a, armour=0x4b4f4f, leather=0x3c4040, gem=0xb80624) })
+  "war": L("hair locks knot crown cuirass pauldron lames tasset boss vambrace greave dhoti sash stache beardS tilak", cloth=0xaa232d, red=0xd46627, hem=0xd9a53a, armour=0x4b4f4f, leather=0x3c4040, gem=0xb80624) })
 add("kripa_elder", "old", "old", 0xc48a58, 0xd2cdc4, 179, stache=True, looks={"court": L("hair knot beardS stache dhoti tuck shawl thread beads", cloth=0xf2e8d4, red=0xd9c8a8, cloth2=0xf2e8d4)})
 add("vidura_elder", "old", "old", 0x74503a, 0x9a958c, 172, girth=0.8, arm=0.66, looks={"court": L("hair beardS stache dhoti tuck shawl", cloth=0xf3e6cc, red=0xd8c8a8, cloth2=0xf6f0e0)})
 add("dhritarashtra_elder", "oldking", "old", 0xd9a070, WHITE, 185, crown="mukuta", rich=True, belly=0.8, stache=True, looks={
@@ -177,35 +177,35 @@ add("balarama_adult", "strong", "broad", 0xf0c896, BLACK, 192, crown="circlet", 
 AB = 0xc98850
 add("abhimanyu_youth", "youth", "young", AB, BLACK, 172, crown="circlet", rich=True, mu=0.75, arm=0.8, looks={
   "home": L("hair locks crown gold ear bands girdle shawl dhoti", cloth=0xf6f0e2, red=0x1a3774, cloth2=0x66a7f3, hem=0x1a3774, gem=0x004efe),
-  "war":  L("hair locks helmet cuirass pauldron lames vambrace greave baldric dhotiS sash", cloth=0xf6f0e2, red=0x2567e8, hem=0x1a3774, armour=0xb9b4a8, leather=0x9a968c, iron=0xb0aca0, gem=0x004efe) })
+  "war":  L("hair locks helmet cuirass pauldron lames tasset vambrace greave baldric dhotiS sash", cloth=0xf6f0e2, red=0x2567e8, hem=0x1a3774, armour=0xb9b4a8, leather=0x9a968c, iron=0xb0aca0, gem=0x004efe) })
 add("ghatotkacha_adult", "heavy", "broad", 0xa46037, BLACK, 215, rich=True, facefix=dict(brow=1.3, jaw=1.06), looks={
   "war": L("ear bands anklets harness girdle shawl dhoti", cloth=0x29211e, red=0xa1241a, cloth2=0xbe2825, hem=0xcc6635, gold=0x8a6a3a, gem=0xa1241a) })
 add("drupada_elder", "oldking", "old", 0xcf9a68, 0xa9a39a, 180, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks longhair crown beardF stache gold ear bands girdle panel shawl dhoti", cloth=0xa3371e, red=0x671c0f, cloth2=0xa3371e, hem=0xd9a53a, gem=0xb0202a),
-  "war":   L("hair locks longhair crown beardF stache cuirass pauldron lames vambrace greave baldric dhotiS sash", cloth=0x9e361c, red=0x8a2a16, hem=0xd9a53a, armour=0x9a968e, leather=0x86827a, gem=0xb0202a) })
+  "war":   L("hair locks longhair crown beardF stache cuirass pauldron lames tasset vambrace greave baldric dhotiS sash", cloth=0x9e361c, red=0x8a2a16, hem=0xd9a53a, armour=0x9a968e, leather=0x86827a, gem=0xb0202a) })
 DH = 0x8c5736
 add("dhrishtadyumna_youth", "youth", "firm", DH, BLACK, 170, looks={"student": L("hair knot dhotiS tuck thread", cloth=0xf2e8d8, red=0xd8c6b2, hem=0xf2e8d8)})
 add("dhrishtadyumna_adult", "strong", "firm", DH, BLACK, 186, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache beardS", cloth=0x771628, red=0xfc6013, cloth2=0x8d2125, hem=0xd9a53a, gem=0xf43015),
-  "war":   L("hair locks crown cuirass pauldron lames vambrace greave baldric dhotiS sash stache beardS", cloth=0x861b27, red=0xfb671b, hem=0xd9a53a, armour=0xa9a59c, leather=0x96928a, gem=0xf43015) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset vambrace greave baldric dhotiS sash stache beardS", cloth=0x861b27, red=0xfb671b, hem=0xd9a53a, armour=0xa9a59c, leather=0x96928a, gem=0xf43015) })
 add("shikhandi_adult", "slim", "fine", 0xd19563, BLACK, 176, crown="circlet", rich=True, looks={
   "court": L("hair locks knot crown gold ear bands anklets girdle shawl dhoti", cloth=0x822434, red=0x5a1420, cloth2=0x8a2a3a, hem=0xdca342, gem=0xd92d3b),
   "war":   L("hair locks knot crown cuirass pauldron vambrace greave baldric dhotiS sash", cloth=0x8f2533, red=0x6a1826, hem=0xe3a740, armour=0xacacac, leather=0x9a9a98, gem=0xd92d3b) })
 add("satyaki_adult", "strong", "firm", 0x573928, BLACK, 188, crown="circlet", rich=True, stache=True, looks={
   "court": L("hair locks knot crown gold ear bands anklets girdle shawl dhoti stache beardS", cloth=0x285ca0, red=0xfea128, cloth2=0xfea128, hem=0xd9a53a, gem=0x285ca0),
-  "war":   L("hair locks knot crown cuirass pauldron lames vambrace greave baldric dhotiS sash stache beardS", cloth=0x22528e, red=0xf5a930, hem=0xd9a53a, armour=0x9b9b99, leather=0x8a8a88, gem=0x285ca0) })
+  "war":   L("hair locks knot crown cuirass pauldron lames tasset vambrace greave baldric dhotiS sash stache beardS", cloth=0x22528e, red=0xf5a930, hem=0xd9a53a, armour=0x9b9b99, leather=0x8a8a88, gem=0x285ca0) })
 add("jayadratha_adult", "strong", "stern", 0xc98850, BLACK, 184, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache goatee", cloth=0xe8a02d, red=0x7a1d16, cloth2=0x3c2011, hem=0x864c1b, gem=0x7a1d16),
-  "war":   L("hair locks crown cuirass pauldron lames vambrace greave dhotiS sash stache goatee", cloth=0xe49a2d, red=0x3b2212, hem=0x864c1b, armour=0x62452f, leather=0x4a3424, gem=0x7a1d16) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset vambrace greave dhotiS sash stache goatee", cloth=0xe49a2d, red=0x3b2212, hem=0x864c1b, armour=0x62452f, leather=0x4a3424, gem=0x7a1d16) })
 add("shalya_adult", "strong", "firm", 0xe4ab74, 0x55524e, 186, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks crown gold ear bands anklets girdle panel shawl dhoti stache beardS", cloth=0x542376, red=0x2c1240, cloth2=0xbfbbb7, hem=0xc8c4c8, gold=0xc8c8cc, gem=0x7a3ab0),
-  "war":   L("hair locks crown cuirass pauldron lames vambrace greave baldric dhotiS sash stache beardS", cloth=0x581f86, red=0x8a84a0, hem=0xc8c4c8, armour=0xc5c1bc, leather=0xb0aca8, gold=0xc8c8cc, gem=0x7a3ab0) })
+  "war":   L("hair locks crown cuirass pauldron lames tasset vambrace greave baldric dhotiS sash stache beardS", cloth=0x581f86, red=0x8a84a0, hem=0xc8c4c8, armour=0xc5c1bc, leather=0xb0aca8, gold=0xc8c8cc, gem=0x7a3ab0) })
 add("virata_elder", "oldking", "old", 0xd99c68, 0xc9c4ba, 178, crown="mukuta", rich=True, belly=0.7, stache=True, looks={
   "court": L("hair locks longhair crown beardF stache gold ear bands girdle panel shawl dhoti", cloth=0x964b23, red=0x642a12, cloth2=0xe9d8a8, hem=0xd9a53a, gem=0xb0202a),
-  "war":   L("hair locks longhair crown beardF stache cuirass pauldron lames vambrace greave dhotiS sash shawl", cloth=0x96471c, red=0x5f240c, cloth2=0xe9d8a8, hem=0xd9a53a, armour=0xb9873a, leather=0xa07030, gem=0xb0202a) })
+  "war":   L("hair locks longhair crown beardF stache cuirass pauldron lames tasset vambrace greave dhotiS sash shawl", cloth=0x96471c, red=0x5f240c, cloth2=0xe9d8a8, hem=0xd9a53a, armour=0xb9873a, leather=0xa07030, gem=0xb0202a) })
 add("uttara_adult", "youth", "young", 0xc4824f, BLACK, 179, crown="circlet", rich=True, mu=0.7, looks={
   "court": L("hair locks knot crown gold ear bands girdle shawl dhoti", cloth=0xf0e4c9, red=0xc9223d, cloth2=0xc9223d, hem=0xd9a53a, gem=0xc9223d),
-  "war":   L("hair locks knot crown cuirass pauldron lames vambrace baldric dhotiS sash", cloth=0xf0e2c7, red=0xc7213b, hem=0xd9a53a, armour=0x7a7876, leather=0x6a6866, gem=0xc9223d) })
+  "war":   L("hair locks knot crown cuirass pauldron lames tasset vambrace baldric dhotiS sash", cloth=0xf0e2c7, red=0xc7213b, hem=0xd9a53a, armour=0x7a7876, leather=0x6a6866, gem=0xc9223d) })
 EK = 0x8a5a36
 add("ekalavya_youth", "youth", "young", EK, BLACK, 168, looks={"forest": L("hair knot hide strap dhoti tuck", cloth=0x8f6543, red=0x6a4426, hide=0x2a2420)})
 add("ekalavya_adult", "fit", "plain", EK, BLACK, 180, stache=True, looks={"forest": L("hair knot beardS stache hide strap dhoti tuck", cloth=0x8f5e38, red=0x6a4426, hide=0x2a2420)})

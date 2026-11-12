@@ -12,7 +12,7 @@
   "use strict";
   const T = window.THREE, G = (K.G3 = K.G3 || {});
   if (!T) return;
-  const ID = { plain: 0, cotton: 1, silk: 2, bands: 3, pin: 4, check: 5, buti: 6, bandhani: 7, ikat: 8, zari: 9, gem: 10, scale: 11, lamellar: 12, quilt: 13, gold: 14, iron: 15, leather: 16, wood: 17, sun: 18, cane: 19, hair: 20, skin: 21, hide: 22, beads: 23, lotus: 24, tiger: 25, rings: 26, blade: 27, rope: 28, plate: 29, bark: 30, paint: 31, feather: 32 };
+  const ID = { plain: 0, cotton: 1, silk: 2, bands: 3, pin: 4, check: 5, buti: 6, bandhani: 7, ikat: 8, zari: 9, gem: 10, scale: 11, lamellar: 12, quilt: 13, gold: 14, iron: 15, leather: 16, wood: 17, sun: 18, cane: 19, hair: 20, skin: 21, hide: 22, beads: 23, lotus: 24, tiger: 25, rings: 26, blade: 27, rope: 28, plate: 29, bark: 30, paint: 31, feather: 32, thatch: 33, plaster: 34, stone: 35, mud: 36, carve: 37, terracotta: 38 };
   const BORDER = { none: 0, band: 1, lines: 2, zari: 3, temple: 4, royal: 5, rim: 6 };
   G.SURF = { id: ID, border: BORDER };
 
@@ -42,7 +42,7 @@
     float fq = max(fwidth(q.x), fwidth(q.y)), aa = clamp(1.6 - 1.7 * fq, 0., 1.), w = clamp(fq * .75, .01, .5);
     float fm = max(fwidth(qm.x), fwidth(qm.y)), nr = clamp(1.5 - fm * 110., 0., 1.), mid = clamp(1.5 - fm * 40., 0., 1.);
     float m = 0., mavg = 0., dk = 1., spS = .1; vec3 spC = vec3(1.);
-    if (sid < .5) { }
+    if (sid < .5) { spS = 0.; }
     else if (sid < 1.5) { dk = 1. + .09 * mid * (sN(qm * vec2(34., 120.)) + sN(qm * vec2(150., 30.)) - 1.); spS = .05; }
     else if (sid < 2.5) { dk = 1. + .07 * mid * (sN(qm * vec2(16., 190.)) - .5); spS = .2; surfShn = 13.; spC = mix(vec3(1.), base * 3. + .1, .7); surfRim = .6; }
     else if (sid < 3.5) { float f = fract(q.y); m = sB(f, .1, .42, w) + sB(f, .56, .62, w) + sB(f, .74, .8, w); mavg = .44; spS = .06; dk = 1. + .07 * mid * (sN(qm * vec2(34., 120.)) - .5); }
@@ -86,9 +86,21 @@
     else if (sid < 29.5) { dk = .9 + .2 * mix(.5, sN(qm * 22.), mid); spS = .7; surfShn = 46.; spC = mix(vec3(1.), base * 2.2 + .15, .55); surfRim = .35; }
     else if (sid < 30.5) { dk = .8 + .34 * mix(.5, sN(vec2(qm.x * 50., qm.y * 9.)), mid) + .1 * (sN(qm * 6.) - .5); spS = .03; }
     else if (sid < 31.5) { float f = fract(q.y); m = sB(f, .0, .5, w); mavg = .5; spS = .18; surfShn = 20.; }
-    else { float r = length(q), a = atan(q.y, q.x); m = 1. - smoothstep(.2, .24, r * (1. + .3 * cos(a))); dk = .8 + .4 * abs(sin(a * 14.)) * nr; mavg = .1; spS = .4; surfShn = 30.; surfRim = .6; }
+    else if (sid < 32.5) { float r = length(q), a = atan(q.y, q.x); m = 1. - smoothstep(.2, .24, r * (1. + .3 * cos(a))); dk = .8 + .4 * abs(sin(a * 14.)) * nr; mavg = .1; spS = .4; surfShn = 30.; surfRim = .6; }
+    else if (sid < 33.5) { float f = fract(qm.y / .42 + sN(vec2(qm.x * 3., 0.)) * .3); dk = (.7 + .5 * mix(.5, sN(vec2(qm.x * 60., qm.y * 5.)), mid)) * mix(.76, 1.08, f); spS = .02; }   // thatch: strands running down, laid in courses
+    else if (sid < 34.5) { dk = .9 + .16 * (sN(qm * 2.6) - .5) + .1 * mid * (sN(qm * 19.) - .5); m = smoothstep(.62, .8, sN(qm * 1.3 + 7.)) * .25; mavg = .05; spS = .03; }                   // lime plaster: mottled, patched
+    else if (sid < 35.5) { vec2 g = qm / vec2(cell * 2., cell); g.x += mod(floor(g.y), 2.) * .5; vec2 f = fract(g); float h = sH(floor(g)), e2 = min(min(f.x, 1. - f.x) * 2., min(f.y, 1. - f.y));
+      dk = mix(.94, (.84 + .24 * h) * (1. - .34 * (1. - smoothstep(0., .07, e2))), aa) * (.94 + .12 * mid * sN(qm * 14.)); spS = .04; }                                                        // dressed stone or brick, laid in courses
+    else if (sid < 36.5) { dk = .88 + .2 * (sN(qm * 2.2) - .5) + .12 * mid * (sN(vec2(qm.x * 26., qm.y * 5.)) - .5); m = smoothstep(.55, .85, sN(qm * 1.1 + 3.)) * .3; mavg = .08; spS = .02; } // mud wall: hand-smoothed, darker where it is damp
+    else if (sid < 37.5) { float f = fract(q.y), z = abs(fract(q.x * 2. + floor(q.y) * .5) - .5) * 2.; float cut = sB(f, .04, .1, w) + sB(f, .9, .96, w) + (1. - smoothstep(-.06, .06, abs(f - .5) * 2. - (.25 + .45 * z))) * sB(f, .16, .84, w);
+      dk = mix(.92, 1. - .3 * cut, aa) * (.94 + .1 * mid * sN(qm * 16.)); spS = .08; surfShn = 16.; }                                                                                           // a carved band: fillets, and a row of lotus petals between them
+    else { dk = .9 + .16 * mid * (sN(qm * 9.) - .5); float f = fract(q.y); m = sB(f, .3, .38, w) + sB(f, .44, .47, w); mavg = .11; spS = .14; surfShn = 18.; }                                  // fired clay, a painted line round the shoulder
     m = mix(mavg, m, aa);
     vec3 col = mix(base, c2, clamp(m, 0., 1.)) * dk;
+    if (sid > .5 && sid < 9.5) col = mix(vec3(dot(col, vec3(.299, .587, .114))), col, .87) * vec3(1.02, 1., .95); // (vegetable dyes: a little greyer and warmer than a paint-box colour)
+    #if SURF_MAP == 1
+      col *= mix(.88, 1.05, smoothstep(0., 1.7, vSp.y)); // (a painter's gradient: a figure is a little deeper toward the ground)
+    #endif
     // The woven border: within its width of the cloth's edge.
     float bs = floor(vSc.a * 255. + .5), bw = min(vSb.y * .32, vSb.w * .32 * .36), e = vSb.z * .32; // (a narrow piece, a pleat or a sash, has a narrower border: a third of its half-width)
     #if SURF_MAP == 0

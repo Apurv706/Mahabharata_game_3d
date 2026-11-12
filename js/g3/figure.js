@@ -85,9 +85,9 @@
   // An arrow lying along +Z, its head at the origin's far end (used by fights and tests).
   G.arrowMesh = function (len) {
     len = len || 0.85; const b = B(); b.ao = 1;
-    b.geo(new T.CylinderGeometry(0.012, 0.012, len, 4).rotateX(PI / 2), 0, 0, 0, 0, 0, 0, 0xe6c98c);
-    b.geo(new T.ConeGeometry(0.03, 0.1, 4).rotateX(PI / 2), 0, 0, len / 2 + 0.04, 0, 0, 0, 0xdcd7c8);
-    b.box(0.07, 0.005, 0.14, 0, 0, -len / 2 + 0.06, 0xc8402c); b.box(0.005, 0.07, 0.14, 0, -0.035, -len / 2 + 0.06, 0xc8402c);
+    b.surf("rings", 0x8a2a20, 0.28); b.geo(new T.CylinderGeometry(0.012, 0.012, len, 4).rotateX(PI / 2), 0, 0, 0, 0, 0, 0, 0xe6c98c);   // a reed shaft, bound in red below the head and at the nock
+    b.surf("blade", 0x8a9098, 0.03); b.geo(new T.ConeGeometry(0.03, 0.1, 4).rotateX(PI / 2), 0, 0, len / 2 + 0.04, 0, 0, 0, 0xdcd7c8);
+    b.surf("hair"); b.box(0.07, 0.005, 0.14, 0, 0, -len / 2 + 0.06, 0xc8402c); b.box(0.005, 0.07, 0.14, 0, -0.035, -len / 2 + 0.06, 0xc8402c); b.surf();
     const m = b.mesh(G.mat.vcDouble, true); m.geometry.userData.keep = false; return m;
   };
 

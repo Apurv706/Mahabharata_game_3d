@@ -38,6 +38,7 @@
   // What the solids added from here on are made of (js/g3/surf.js): b.surf("wood"), b.surf("gold"), b.surf("paint", 0xd9a53a, 0.2, "rim", 0xd9a53a, 0.03); b.surf() ends it.
   //   p: the surface, c2: its figure's colour, cell: the figure's size in metres, b / c3 / bw: a border, its colour and its width (on a board's faces, a pole's ends)
   const _sa = new Uint8Array(4), _sb = new Uint8Array(4), _sc = new Uint8Array(4), _e1 = new V3(), _e2 = new V3(), _du = new V3(), _dv = new V3();
+  const LEVEL = { stone: 1, plaster: 1, mud: 1, thatch: 1, sun: 1, lotus: 1, cane: 1, bands: 1, carve: 1 }; // (surfaces whose figure runs level on a wall, whichever way the wall is longer)
   BP.surf = function (p, c2, cell, b, c3, bw) {
     if (!G.surfPut) return this;
     if (!this.sA && p) { const n = this.pos.length / 3; this.sP = new Array(n * 4).fill(0); this.sA = new Array(n * 4).fill(0); this.sB = new Array(n * 4).fill(0); this.sC = new Array(n * 4).fill(0); }
@@ -65,7 +66,7 @@
       const sf = this.sf, UV = ng.attributes.uv, n = P.count, sP = this.sP, sA = this.sA, sB = this.sB, sC = this.sC, base = pos.length - n * 3;
       if (!sf || !UV) { for (let i = 0; i < n; i++) { sP.push(0, 0, 99, 99); sA.push(0, 0, 0, 0); sB.push(0, 0, 255, 0); sC.push(0, 0, 0, 0); } }
       else {
-        const flat = g.type === "BoxGeometry" || g.type === "PlaneGeometry", swap = g.type === "TubeGeometry" || g.type === "TorusGeometry", ends = g.type === "CylinderGeometry", su = new Float32Array(n), sv = new Float32Array(n);
+        const flat = g.type === "BoxGeometry" || g.type === "PlaneGeometry", swap = g.type === "TubeGeometry" || g.type === "TorusGeometry", ends = g.type === "CylinderGeometry", level = LEVEL[sf.p] === 1, su = new Float32Array(n), sv = new Float32Array(n);
         let au = 0, av = 0, aw = 0;
         for (let i = 0; i < n; i += 3) {
           const o = base + i * 3; _e1.set(pos[o + 3] - pos[o], pos[o + 4] - pos[o + 1], pos[o + 5] - pos[o + 2]); _e2.set(pos[o + 6] - pos[o], pos[o + 7] - pos[o + 1], pos[o + 8] - pos[o + 2]);
@@ -76,7 +77,7 @@
         au /= aw || 1; av /= aw || 1;
         for (let i = 0; i < n; i++) {
           const a = flat ? su[i] : au, c = flat ? sv[i] : av, u = UV.getX(i), v = UV.getY(i); let pu = (u - 0.5) * a, pv = (v - 0.5) * c, hx = flat ? a / 2 : 99, hy = flat || ends ? c / 2 : 99;
-          if (swap || (flat && a > c)) { let t = pu; pu = pv; pv = t; t = hx; hx = hy; hy = t; }
+          if (swap || (flat && a > c && !level)) { let t = pu; pu = pv; pv = t; t = hx; hx = hy; hy = t; }
           G.surfPut(_sa, _sb, _sc, 0, sf, 1); sP.push(pu, pv, hx, hy); sA.push(_sa[0], _sa[1], _sa[2], _sa[3]); sB.push(_sb[0], _sb[1], _sb[2], _sb[3]); sC.push(_sc[0], _sc[1], _sc[2], _sc[3]);
         }
       }
@@ -243,35 +244,36 @@
   // ---------- Buildings ----------
   G.hut = function (b, x, z, ry, s, wall, roof) {
     b.at(x, 0, z, ry, s || 1, (b) => {
-      b.cyl(1.7, 1.8, 1.9, 0, 0, 0, wall || 0xc9a878, 10);
-      b.cone(2.5, 1.9, 0, 1.8, 0, roof || 0xb08a4a, 10, 0, 0, 0, 0xd2b070);
-      b.box(0.8, 1.4, 0.2, 0, 0, 1.72, 0x3a2416); b.box(1.0, 0.12, 0.3, 0, 1.4, 1.74, 0x7a5232);
+      b.surf("mud", 0x8a6a48); b.cyl(1.7, 1.8, 1.9, 0, 0, 0, wall || 0xc9a878, 10);
+      b.surf("thatch"); b.cone(2.5, 1.9, 0, 1.8, 0, roof || 0xb08a4a, 10, 0, 0, 0, 0xd2b070);
+      b.surf("wood", 0x24160c, 0.1); b.box(0.8, 1.4, 0.2, 0, 0, 1.72, 0x3a2416); b.box(1.0, 0.12, 0.3, 0, 1.4, 1.74, 0x7a5232); b.surf();
     });
   };
   // A flat-roofed house of plaster or stone, with a door, windows and a parapet. o: { w, d, h, wall, trim, lamp, awning }
   G.house = function (b, x, z, ry, o) {
     o = o || {}; const w = o.w || 5, d = o.d || 4, h = o.h || 3, wall = o.wall || 0xd8b98c, trim = o.trim || 0x8a4a2a;
     b.at(x, 0, z, ry, 1, (b) => {
-      b.box(w, h, d, 0, 0, 0, wall, 0, 0, 0, G.shade(wall, 1.12));
-      b.box(w + 0.3, 0.22, d + 0.3, 0, h, 0, trim);
+      b.surf("plaster", G.shade(wall, 0.72)); b.box(w, h, d, 0, 0, 0, wall, 0, 0, 0, G.shade(wall, 1.12));
+      b.surf("wood", G.shade(trim, 0.6), 0.1); b.box(w + 0.3, 0.22, d + 0.3, 0, h, 0, trim); b.surf("plaster", G.shade(wall, 0.72));
       b.box(w + 0.1, 0.4, 0.14, 0, h + 0.2, d / 2, G.shade(wall, 0.92)); b.box(w + 0.1, 0.4, 0.14, 0, h + 0.2, -d / 2, G.shade(wall, 0.92));
       b.box(0.14, 0.4, d, w / 2, h + 0.2, 0, G.shade(wall, 0.92)); b.box(0.14, 0.4, d, -w / 2, h + 0.2, 0, G.shade(wall, 0.92));
-      b.box(1.0, 1.9, 0.12, 0, 0, d / 2 + 0.02, 0x2e1c10); b.box(1.3, 0.18, 0.2, 0, 1.9, d / 2 + 0.04, trim);
+      b.surf("wood", 0x1a0e08, 0.1); b.box(1.0, 1.9, 0.12, 0, 0, d / 2 + 0.02, 0x2e1c10); b.box(1.3, 0.18, 0.2, 0, 1.9, d / 2 + 0.04, trim);
       for (const sx of [-1, 1]) if (w > 4) { b.box(0.6, 0.7, 0.1, sx * w * 0.32, 1.4, d / 2 + 0.02, 0x2e1c10); b.box(0.8, 0.1, 0.16, sx * w * 0.32, 1.3, d / 2 + 0.06, trim); }
-      b.box(w + 0.5, 0.3, d + 0.5, 0, -0.05, 0, G.shade(wall, 0.8));
-      if (o.awning) { b.box(w * 0.7, 0.06, 1.3, 0, 2.25, d / 2 + 0.7, o.awning, 0, 0.22); b.rod(-w * 0.33, 0, d / 2 + 1.3, -w * 0.33, 2.1, d / 2 + 1.3, 0.05, 0x5a3a22); b.rod(w * 0.33, 0, d / 2 + 1.3, w * 0.33, 2.1, d / 2 + 1.3, 0.05, 0x5a3a22); }
+      b.surf("stone", 0, 0.3); b.box(w + 0.5, 0.3, d + 0.5, 0, -0.05, 0, G.shade(wall, 0.8)); b.surf();
+      if (o.awning) { b.surf("bands", G.shade(o.awning, 0.62), 0.32); b.box(w * 0.7, 0.06, 1.3, 0, 2.25, d / 2 + 0.7, o.awning, 0, 0.22); b.surf(); b.rod(-w * 0.33, 0, d / 2 + 1.3, -w * 0.33, 2.1, d / 2 + 1.3, 0.05, 0x5a3a22); b.rod(w * 0.33, 0, d / 2 + 1.3, w * 0.33, 2.1, d / 2 + 1.3, 0.05, 0x5a3a22); }
     });
   };
   // A carved pillar: plinth, shaft, flared capital, a gilt band.
   G.pillar = function (b, x, z, h, r, col, gold) {   // a stepped foot, a pot-bellied base, an eight-sided shaft banded in gold, a lotus cap under a square slab with brackets
     h = h || 5; r = r || 0.34; col = col || 0xb98a62; gold = gold == null ? 0xd9a53a : gold; const dk = G.shade(col, 0.8), lt = G.shade(col, 1.14);
-    b.box(r * 3.3, 0.16, r * 3.3, x, 0, z, dk); b.box(r * 2.8, 0.16, r * 2.8, x, 0.16, z, G.shade(col, 0.9));
+    b.surf("carve", 0, Math.max(0.16, r * 0.7)); b.box(r * 3.3, 0.16, r * 3.3, x, 0, z, dk); b.box(r * 2.8, 0.16, r * 2.8, x, 0.16, z, G.shade(col, 0.9));
     b.geo(new T.SphereGeometry(r * 1.32, 10, 6).scale(1, 0.62, 1), x, 0.54, z, 0, 0, 0, dk, col);
     b.cyl(r * 0.86, r * 0.98, h - 1.75, x, 0.76, z, col, 8, 0, 0, 0, lt);
-    if (gold) { b.cyl(r * 1.04, r * 1.04, 0.1, x, 0.86, z, gold, 8); b.cyl(r * 1.0, r * 1.0, 0.08, x, 1.5, z, gold, 8); b.cyl(r * 0.95, r * 0.95, 0.08, x, h - 1.55, z, gold, 8); b.cyl(r * 0.93, r * 0.93, 0.06, x, h - 1.3, z, gold, 8); }
+    if (gold) { b.surf("gold"); b.cyl(r * 1.04, r * 1.04, 0.1, x, 0.86, z, gold, 8); b.cyl(r * 1.0, r * 1.0, 0.08, x, 1.5, z, gold, 8); b.cyl(r * 0.95, r * 0.95, 0.08, x, h - 1.55, z, gold, 8); b.cyl(r * 0.93, r * 0.93, 0.06, x, h - 1.3, z, gold, 8); b.surf("carve", 0, Math.max(0.16, r * 0.7)); }
     for (let i = 0; i < 3 && h > 4.5; i++) b.cyl(r * 0.95, r * 0.95, 0.045, x, 2.2 + i * ((h - 4.4) / 3), z, dk, 8);
     b.geo(new T.SphereGeometry(r * 1.2, 10, 5).scale(1, 0.5, 1), x, h - 0.98, z, 0, 0, 0, col, lt); b.cyl(r * 1.55, r * 1.0, 0.3, x, h - 0.9, z, lt, 10); b.box(r * 3.5, 0.26, r * 3.5, x, h - 0.6, z, G.shade(col, 0.92));
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.box(dx ? r * 1.5 : r * 0.9, 0.34, dz ? r * 1.5 : r * 0.9, x + dx * r * 1.9, h - 0.34, z + dz * r * 1.9, dk);
+    b.surf();
   };
   // A cusped arch between two points at a height, with the wall over it up to the roof.
   G.arch = function (b, ax, az, bx, bz, y, top, col, gold) {
@@ -285,52 +287,53 @@
   G.wall = function (b, ax, az, bx, bz, h, t, col, merlons) {
     const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ry = Math.atan2(-dz, dx);
     b.at((ax + bx) / 2, 0, (az + bz) / 2, ry, 1, (b) => {
-      b.box(len, h, t, 0, 0, 0, col, 0, 0, 0, G.shade(col, 1.14));
+      b.surf("stone", 0, 0.42); b.box(len, h, t, 0, 0, 0, col, 0, 0, 0, G.shade(col, 1.14));
       b.box(len, 0.2, t + 0.3, 0, h, 0, G.shade(col, 0.86));
       if (merlons !== false) for (let i = 0, n = Math.floor(len / 1.6); i < n; i++) b.box(0.8, 0.6, t + 0.1, -len / 2 + 0.8 + i * (len / n), h + 0.2, 0, col);
+      b.surf();
     });
   };
   G.tower = function (b, x, z, r, h, col, roof) {
-    b.cyl(r, r * 1.1, h, x, 0, z, col, 10, 0, 0, 0, G.shade(col, 1.14)); b.cyl(r * 1.2, r * 1.2, 0.5, x, h, z, G.shade(col, 0.88), 10);
+    b.surf("stone", 0, 0.42); b.cyl(r, r * 1.1, h, x, 0, z, col, 10, 0, 0, 0, G.shade(col, 1.14)); b.cyl(r * 1.2, r * 1.2, 0.5, x, h, z, G.shade(col, 0.88), 10); b.surf();
     if (roof) b.cone(r * 1.25, r * 1.6, x, h + 0.5, z, roof, 10); else for (let i = 0; i < 8; i++) { const a = (i / 8) * 6.28; b.box(0.5, 0.6, 0.4, x + Math.cos(a) * r * 1.1, h + 0.5, z + Math.sin(a) * r * 1.1, col, -a); }
   };
   // A gateway: two piers, a lintel, a crest.
   G.gate = function (b, x, z, ry, w, h, col, gold) {
     b.at(x, 0, z, ry, 1, (b) => {
-      for (const s of [-1, 1]) { b.box(1.3, h, 1.5, s * (w / 2 + 0.65), 0, 0, col, 0, 0, 0, G.shade(col, 1.14)); b.box(1.6, 0.3, 1.8, s * (w / 2 + 0.65), h, 0, G.shade(col, 0.85)); b.dome(0.7, s * (w / 2 + 0.65), h + 0.3, 0, gold || 0xd9a53a, 1.2); }
-      b.box(w + 2.6, 0.8, 1.3, 0, h - 0.9, 0, G.shade(col, 0.94)); b.box(w + 1, 0.5, 1.0, 0, h - 0.1, 0, col); b.cone(0.5, 1.1, 0, h + 0.4, 0, gold || 0xd9a53a, 6);
+      for (const s of [-1, 1]) { b.surf("stone", 0, 0.42); b.box(1.3, h, 1.5, s * (w / 2 + 0.65), 0, 0, col, 0, 0, 0, G.shade(col, 1.14)); b.surf("carve", 0, 0.3); b.box(1.6, 0.3, 1.8, s * (w / 2 + 0.65), h, 0, G.shade(col, 0.85)); b.surf("gold"); b.dome(0.7, s * (w / 2 + 0.65), h + 0.3, 0, gold || 0xd9a53a, 1.2); }
+      b.surf("carve", 0, 0.4); b.box(w + 2.6, 0.8, 1.3, 0, h - 0.9, 0, G.shade(col, 0.94)); b.box(w + 1, 0.5, 1.0, 0, h - 0.1, 0, col); b.surf("gold"); b.cone(0.5, 1.1, 0, h + 0.4, 0, gold || 0xd9a53a, 6); b.surf();
     });
   };
   // An open pavilion: a plinth, four pillars, a dome and finial.
   G.pavilion = function (b, x, z, s, col, roof, ry) {
     b.at(x, 0, z, ry || 0, s || 1, (b) => {
-      b.box(5.4, 0.45, 5.4, 0, 0, 0, G.shade(col || 0xc9a47a, 0.9)); b.box(4.8, 0.2, 4.8, 0, 0.45, 0, col || 0xc9a47a);
+      b.surf("stone", 0, 0.45); b.box(5.4, 0.45, 5.4, 0, 0, 0, G.shade(col || 0xc9a47a, 0.9)); b.box(4.8, 0.2, 4.8, 0, 0.45, 0, col || 0xc9a47a); b.surf();
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) G.pillar(b, sx * 2, sz * 2, 3.6, 0.2, col || 0xc9a47a);
-      b.box(5.2, 0.35, 5.2, 0, 3.6 + 0.65, 0, G.shade(col || 0xc9a47a, 0.9));
-      b.dome(2.3, 0, 4.6, 0, roof || 0xb2432a, 0.75, 12); b.cyl(0.08, 0.12, 0.8, 0, 6.2, 0, 0xd9a53a, 6); b.sph(0.2, 0, 7.05, 0, 0xd9a53a);
+      b.surf("carve", 0, 0.35); b.box(5.2, 0.35, 5.2, 0, 3.6 + 0.65, 0, G.shade(col || 0xc9a47a, 0.9));
+      b.surf("terracotta", G.shade(roof || 0xb2432a, 0.6), 0.5); b.dome(2.3, 0, 4.6, 0, roof || 0xb2432a, 0.75, 12); b.surf("gold"); b.cyl(0.08, 0.12, 0.8, 0, 6.2, 0, 0xd9a53a, 6); b.sph(0.2, 0, 7.05, 0, 0xd9a53a); b.surf();
     });
   };
   // A small temple: plinth, cell, a stepped spire and its finial.
   G.temple = function (b, x, z, s, col, ry) {
     col = col || 0xc7ae8c;
     b.at(x, 0, z, ry || 0, s || 1, (b) => {
-      b.box(6, 0.6, 6, 0, 0, 0, G.shade(col, 0.86)); b.box(3.6, 2.6, 3.6, 0, 0.6, 0, col, 0, 0, 0, G.shade(col, 1.12));
-      b.box(1.0, 1.7, 0.1, 0, 0.6, 1.82, 0x24140c);
-      for (let i = 0; i < 6; i++) { const k = 1 - i * 0.14; b.box(3.4 * k, 0.75, 3.4 * k, 0, 3.2 + i * 0.75, 0, i % 2 ? G.shade(col, 0.92) : col); }
-      b.sph(0.5, 0, 8.0, 0, 0xd9a53a, 0.6); b.cone(0.16, 0.9, 0, 8.25, 0, 0xd9a53a, 6);
+      b.surf("stone", 0, 0.4); b.box(6, 0.6, 6, 0, 0, 0, G.shade(col, 0.86)); b.box(3.6, 2.6, 3.6, 0, 0.6, 0, col, 0, 0, 0, G.shade(col, 1.12));
+      b.surf(); b.box(1.0, 1.7, 0.1, 0, 0.6, 1.82, 0x24140c);
+      b.surf("carve", 0, 0.75); for (let i = 0; i < 6; i++) { const k = 1 - i * 0.14; b.box(3.4 * k, 0.75, 3.4 * k, 0, 3.2 + i * 0.75, 0, i % 2 ? G.shade(col, 0.92) : col); }
+      b.surf("gold"); b.sph(0.5, 0, 8.0, 0, 0xd9a53a, 0.6); b.cone(0.16, 0.9, 0, 8.25, 0, 0xd9a53a, 6); b.surf();
       for (const sx of [-1, 1]) G.pillar(b, sx * 1.3, 2.6, 2.6, 0.16, col);
-      b.box(3.6, 0.25, 1.4, 0, 3.2, 2.5, G.shade(col, 0.9));
+      b.surf("carve", 0, 0.25); b.box(3.6, 0.25, 1.4, 0, 3.2, 2.5, G.shade(col, 0.9)); b.surf();
     });
   };
   // Steps going down toward -z from (x, z): a river ghat.
   G.steps = function (b, x, z, ry, w, n, col, top) {
-    b.at(x, 0, z, ry, 1, (b) => { for (let i = 0; i < n; i++) b.box(w, 0.26, 0.9, 0, (top || 0) - (i + 1) * 0.26, -i * 0.9 - 0.45, i % 2 ? G.shade(col, 0.92) : col); });
+    b.at(x, 0, z, ry, 1, (b) => { b.surf("stone", 0, 0.5); for (let i = 0; i < n; i++) b.box(w, 0.26, 0.9, 0, (top || 0) - (i + 1) * 0.26, -i * 0.9 - 0.45, i % 2 ? G.shade(col, 0.92) : col); b.surf(); });
   };
   G.tent = function (b, x, z, ry, s, col, trim) {
     col = col || 0xd8c49a; trim = trim || 0xa3302a;
     b.at(x, 0, z, ry, s || 1, (b) => {
-      b.cone(2.2, 2.9, 0, 0, 0, col, 8, 0, 0, 0, G.shade(col, 1.1)); b.cone(0.85, 1.05, 0, 2.05, 0, trim, 8);
-      b.cyl(0.04, 0.04, 0.9, 0, 3, 0, 0x5a3a22, 4); b.box(0.5, 0.26, 0.02, 0.27, 3.55, 0, trim);
+      b.surf("pin", trim, 0.7, "band", trim, 0.2); b.cone(2.2, 2.9, 0, 0, 0, col, 8, 0, 0, 0, G.shade(col, 1.1)); b.surf("cotton"); b.cone(0.85, 1.05, 0, 2.05, 0, trim, 8); /* (cotton canvas, a stripe of the host's colour down each panel) */
+      b.surf("wood", 0x24160c, 0.1); b.cyl(0.04, 0.04, 0.9, 0, 3, 0, 0x5a3a22, 4); b.surf("silk"); b.box(0.5, 0.26, 0.02, 0.27, 3.55, 0, trim); b.surf();
       b.box(0.9, 1.5, 0.06, 0, 0, 2.02, 0x2a1a10, 0, -0.42);
     });
   };
@@ -338,13 +341,13 @@
   G.stall = function (b, x, z, ry, col, rnd) {
     b.at(x, 0, z, ry, 1, (b) => {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 1.3, 0, sz * 0.9, sx * 1.3, sz < 0 ? 2.5 : 2.1, sz * 0.9, 0.05, 0x5a3a22);
-      b.box(3.0, 0.07, 2.2, 0, 2.28, 0, col, 0, 0.19); b.box(3.0, 0.3, 0.05, 0, 1.92, 1.08, G.shade(col, 0.8));
-      b.box(2.4, 0.8, 0.9, 0, 0, 0.2, 0x8a6240);
+      b.surf("bands", G.shade(col, 0.6), 0.44); b.box(3.0, 0.07, 2.2, 0, 2.28, 0, col, 0, 0.19); b.box(3.0, 0.3, 0.05, 0, 1.92, 1.08, G.shade(col, 0.8));
+      b.surf("wood", 0x3a2414, 0.1); b.box(2.4, 0.8, 0.9, 0, 0, 0.2, 0x8a6240); b.surf();
       for (let i = 0; i < 5; i++) b.sph(0.14 + rnd() * 0.08, -0.9 + i * 0.45, 0.94, 0.2 + (rnd() - 0.5) * 0.3, [0xe8a030, 0xc0392b, 0x7aa040, 0xe8d060, 0xb07040][i]);
     });
   };
-  G.well = function (b, x, z) { b.cyl(0.9, 1.0, 0.8, x, 0, z, 0x9a8f80, 10); b.cyl(0.7, 0.7, 0.05, x, 0.78, z, 0x1a2a30, 10); b.rod(x - 0.95, 0, z, x - 0.95, 2, z, 0.06, 0x5a3a22); b.rod(x + 0.95, 0, z, x + 0.95, 2, z, 0.06, 0x5a3a22); b.rod(x - 1.05, 2, z, x + 1.05, 2, z, 0.06, 0x5a3a22); };
-  G.pot = function (b, x, z, s, col) { s = s || 1; b.sph(0.26 * s, x, 0.24 * s, z, col || 0xa8562e, 0.95); b.cyl(0.12 * s, 0.09 * s, 0.12 * s, x, 0.44 * s, z, col || 0xa8562e, 8); };
+  G.well = function (b, x, z) { b.surf("stone", 0, 0.26); b.cyl(0.9, 1.0, 0.8, x, 0, z, 0x9a8f80, 10); b.surf(); b.cyl(0.7, 0.7, 0.05, x, 0.78, z, 0x1a2a30, 10); b.rod(x - 0.95, 0, z, x - 0.95, 2, z, 0.06, 0x5a3a22); b.rod(x + 0.95, 0, z, x + 0.95, 2, z, 0.06, 0x5a3a22); b.rod(x - 1.05, 2, z, x + 1.05, 2, z, 0.06, 0x5a3a22); };
+  G.pot = function (b, x, z, s, col) { s = s || 1; const was = b.sf; b.surf("terracotta", 0xe8dcc0, 0.5 * s); b.sph(0.26 * s, x, 0.24 * s, z, col || 0xa8562e, 0.95); b.cyl(0.12 * s, 0.09 * s, 0.12 * s, x, 0.44 * s, z, col || 0xa8562e, 8); b.sf = was || null; };
   // A lamp on a stand; the flame itself is added by the stage (fx.js) at the returned height.
   G.lampStand = function (b, x, z, h) { b.cyl(0.22, 0.3, 0.12, x, 0, z, 0x8a6a2a, 8); b.cyl(0.035, 0.05, h, x, 0.1, z, 0xb08a3a, 6); b.cyl(0.2, 0.06, 0.1, x, h + 0.1, z, 0xd9a53a, 8); return h + 0.24; };
   G.rack = function (b, x, z, ry) {
@@ -361,8 +364,8 @@
   };
   G.throne = function (b, x, z, ry, col) {
     b.at(x, 0, z, ry, 1, (b) => {
-      b.box(2.2, 0.3, 1.8, 0, 0, 0, 0x7a5232); b.box(1.5, 0.5, 1.2, 0, 0.3, 0, col || 0x8a1f24); b.box(1.6, 1.9, 0.2, 0, 0.3, -0.6, 0xd9a53a, 0, 0, 0, 0xf0c860);
-      b.box(0.2, 0.5, 1.2, -0.8, 0.8, 0, 0xd9a53a); b.box(0.2, 0.5, 1.2, 0.8, 0.8, 0, 0xd9a53a); b.sph(0.22, 0, 2.35, -0.6, 0xd9a53a);
+      b.surf("carve", 0, 0.3); b.box(2.2, 0.3, 1.8, 0, 0, 0, 0x7a5232); b.surf("buti", 0xd9a53a, 0.16, "zari", 0xd9a53a, 0.07); b.box(1.5, 0.5, 1.2, 0, 0.3, 0, col || 0x8a1f24); b.surf("sun", 0x8a5a1a, 0.55, "rim", 0xf4d67a, 0.06); b.box(1.6, 1.9, 0.2, 0, 0.3, -0.6, 0xd9a53a, 0, 0, 0, 0xf0c860);
+      b.surf("gold"); b.box(0.2, 0.5, 1.2, -0.8, 0.8, 0, 0xd9a53a); b.box(0.2, 0.5, 1.2, 0.8, 0.8, 0, 0xd9a53a); b.sph(0.22, 0, 2.35, -0.6, 0xd9a53a); b.surf();
     });
   };
   G.cushion = function (b, x, z, col, s) { b.geo(new T.SphereGeometry(0.36 * (s || 1), 8, 5).scale(1, 0.26, 1), x, 0.09, z, 0, 0, 0, col || 0xa3302a); };
@@ -546,12 +549,15 @@
   // A war elephant with a howdah; its legs and trunk are pivots.
   function howdah(b, cloth, GOLDE) {
     // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.
-    b.box(1.6, 0.14, 1.7, 0, 3.72, -0.2, 0x5a3a22); for (const sx of [-1, 1]) { b.box(0.07, 0.5, 1.7, sx * 0.78, 3.86, -0.2, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(0.09, 0.05, 1.74, sx * 0.78, 4.36, -0.2, GOLDE); }
+    b.surf("wood", 0x24160c, 0.1); b.box(1.6, 0.14, 1.7, 0, 3.72, -0.2, 0x5a3a22); b.surf("carve", 0, 0.5); for (const sx of [-1, 1]) { b.box(0.07, 0.5, 1.7, sx * 0.78, 3.86, -0.2, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(0.09, 0.05, 1.74, sx * 0.78, 4.36, -0.2, GOLDE); }
     for (const sz of [-1, 1]) { b.box(1.6, 0.5, 0.07, 0, 3.86, -0.2 + sz * 0.83, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(1.64, 0.05, 0.09, 0, 4.36, -0.2 + sz * 0.83, GOLDE); for (let k = -1; k <= 1; k++) b.sph(0.05, k * 0.5, 4.1, -0.2 + sz * 0.87, GOLDE, 1, 6); }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.72, 4.36, -0.2 + sz * 0.77, sx * 0.72, 5.32, -0.2 + sz * 0.77, 0.035, GOLDE, 6);
+    b.surf("gold"); for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.72, 4.36, -0.2 + sz * 0.77, sx * 0.72, 5.32, -0.2 + sz * 0.77, 0.035, GOLDE, 6);
     b.geo(new T.SphereGeometry(1.1, 14, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.38, 1.05), 0, 5.3, -0.2, 0, 0, 0, GOLDE, 0xf0cf70); b.sph(0.09, 0, 5.74, -0.2, GOLDE, 1.4, 7);
     for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.sph(0.04, Math.sin(a) * 1.1, 5.24, -0.2 + Math.cos(a) * 1.15, k % 2 ? cloth : 0xf4ecd6, 1.6, 4); }
     b.rod(0.35, 3.8, 1.2, 0.35, 4.7, 1.3, 0.02, 0x3a342c, 4); b.cone(0.05, 0.14, 0.35, 4.7, 1.3, 0x8a8a8a, 5);
+    // "banners and standards": a pennon of the host's colour on a staff at the howdah's back, and a quiver hung at its side
+    b.surf("wood", 0x24160c, 0.1); b.rod(-0.72, 4.36, -0.97, -0.72, 6.9, -0.97, 0.03, 0x5a3a22, 5); b.surf("silk", 0, 0, "zari", GOLDE, 0.05); b.box(0.02, 0.5, 0.9, -0.72, 6.3, -1.45, cloth); b.surf("gold"); b.cone(0.05, 0.16, -0.72, 6.9, -0.97, GOLDE, 5);
+    b.surf("leather", GOLDE, 0.08); b.cyl(0.09, 0.07, 0.6, 0.84, 3.9, -0.5, 0x5a3a22, 7); b.surf();
   }
   G.elephant = function (cloth) {
     if (G.PROPS && G.PROPS.elephant) { const g = beast("elephant", ["body", "cloth"], ["legFL", "legFR", "legHL", "legHR"], { tack: cloth || 0xa3302a }, { trunk: "trunk" }), hb = new Builder(); howdah(hb, cloth || 0xa3302a, 0xd9a53a); g.children[0].add(hb.mesh()); /* (it rides the body, and rocks with it) */ return g; }
@@ -600,19 +606,41 @@
   // ---------- Crowds and armies (instanced) ----------
   // One simple person as a single geometry: legs, body, head, and (for soldiers) a shield and an upright spear.
   let personGeo = null, soldierGeo = null, sitterGeo = null;
+  // A person in a crowd, seen from across a yard: legs, a wrapped lower cloth, a bare trunk with an upper cloth over
+  // one shoulder, arms, a head with its hair knotted. Only the cloth (left white here) takes the person's own dye:
+  // the crowd's material tints what is white and leaves skin, hair, wood and iron as they are.
   function simple(kind) {
-    const b = new Builder(); b.ao = 0.8;
-    if (kind === "sit") { b.box(0.5, 0.22, 0.5, 0, 0, 0, 0xffffff); b.cyl(0.17, 0.22, 0.5, 0, 0.2, 0, 0xffffff, 6); b.sph(0.13, 0, 0.83, 0, 0xc98a5a); b.sph(0.135, 0, 0.87, -0.02, 0x2a1a12, 0.8); }
-    else {
-      b.cyl(0.13, 0.17, 0.8, 0, 0, 0, 0xddd2c0, 6); b.cyl(0.2, 0.16, 0.55, 0, 0.8, 0, 0xffffff, 6); b.sph(0.14, 0, 1.52, 0, 0xc98a5a); b.sph(0.145, 0, 1.56, -0.02, 0x2a1a12, 0.8);
-      if (kind === "soldier") { b.sph(0.16, 0, 1.6, 0, 0x8a7a5a, 0.7); b.cyl(0.3, 0.3, 0.05, -0.24, 1.1, 0.14, 0xb08a4a, 9, 0, PI / 2); b.rod(0.26, 0.2, 0.05, 0.26, 2.5, 0.05, 0.018, 0x7a5a36, 3); b.cone(0.045, 0.22, 0.26, 2.48, 0.05, 0xd8d8d8, 4); }
+    const b = new Builder(); b.ao = 0.86; const SKIN = 0xb8794a, HAIR = 0x1c120c, W = 0xffffff, C6 = 6;
+    if (kind === "sit") {
+      b.cyl(0.3, 0.34, 0.2, 0, 0, 0.04, W, 7); b.cyl(0.15, 0.2, 0.46, 0, 0.18, 0, SKIN, C6); b.box(0.36, 0.1, 0.1, 0, 0.44, 0.02, W, 0, 0, 0.6);
+      for (const sx of [-1, 1]) b.rod(sx * 0.2, 0.6, 0, sx * 0.24, 0.24, 0.16, 0.045, SKIN, 5);
+      b.sph(0.125, 0, 0.8, 0, SKIN, 1, 7); b.sph(0.13, 0, 0.83, -0.025, HAIR, 0.8, 7); b.sph(0.055, 0, 0.95, -0.04, HAIR, 1, 5);
+    } else {
+      for (const sx of [-1, 1]) { b.cyl(0.05, 0.045, 0.5, sx * 0.08, 0, 0, SKIN, 5); b.box(0.09, 0.04, 0.2, sx * 0.08, 0, 0.04, SKIN); }
+      b.cyl(0.17, 0.21, 0.56, 0, 0.42, 0, W, 7); b.cyl(0.19, 0.19, 0.07, 0, 0.94, 0, W, 7);                       // the lower cloth, and its roll at the waist
+      b.cyl(0.2, 0.15, 0.42, 0, 0.98, 0, SKIN, C6);
+      if (kind !== "soldier") b.box(0.4, 0.09, 0.26, 0, 1.12, 0, W, 0, 0, 0.75);                                   // the upper cloth, over one shoulder
+      for (const sx of [-1, 1]) b.rod(sx * 0.215, 1.37, 0, sx * 0.25, 0.86, 0.03, 0.042, SKIN, 5);
+      b.cyl(0.05, 0.06, 0.08, 0, 1.4, 0, SKIN, 5); b.sph(0.125, 0, 1.57, 0, SKIN, 1.08, 7); b.sph(0.13, 0, 1.6, -0.025, HAIR, 0.85, 7);
+      if (kind === "soldier") { b.sph(0.14, 0, 1.63, 0, 0x6a655c, 0.72, 7); b.cone(0.03, 0.08, 0, 1.72, 0, 0x8a8478, 4); b.cyl(0.2, 0.16, 0.36, 0, 1.0, 0, 0x5a3a24, C6);   // an iron cap, a leather coat
+        b.cyl(0.3, 0.3, 0.05, -0.25, 1.1, 0.14, 0x8a6238, 9, 0, PI / 2); b.cyl(0.07, 0.07, 0.07, -0.25, 1.1, 0.16, 0x8a8478, 6, 0, PI / 2); b.box(0.4, 0.08, 0.27, 0, 0.9, 0, W);    // a hide shield with its boss, a sash in his host's colour
+        b.rod(0.27, 0.2, 0.05, 0.27, 2.5, 0.05, 0.018, 0x7a5a36, 4); b.cone(0.045, 0.24, 0.27, 2.48, 0.05, 0xd8d8d8, 4); }
+      else b.sph(0.055, 0, 1.74, -0.04, HAIR, 1, 5);
     }
     const m = b.mesh(); m.geometry.userData.keep = true; return m.geometry;
+  }
+  let crowdMat = null;
+  function crowdMaterial() {
+    if (crowdMat) return crowdMat;
+    crowdMat = new T.MeshLambertMaterial({ vertexColors: true }); crowdMat.userData.keep = true;
+    crowdMat.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", "vColor = vec4(1.0);\n#ifdef USE_COLOR\nvColor.rgb *= color.rgb;\n#endif\n#ifdef USE_INSTANCING_COLOR\nvColor.rgb *= mix(vec3(1.0), instanceColor.rgb, step(0.55, min(color.r, min(color.g, color.b))));\n#endif"); };
+    crowdMat.customProgramCacheKey = () => "crowd";
+    return crowdMat;
   }
   // spots: [[x, z, ry, scale]]; cols: colours picked per person (tints the white cloth); kind: "stand" | "sit" | "soldier"
   G.crowd = function (spots, cols, kind, rnd) {
     const geo = kind === "sit" ? (sitterGeo = sitterGeo || simple("sit")) : kind === "soldier" ? (soldierGeo = soldierGeo || simple("soldier")) : (personGeo = personGeo || simple("stand"));
-    const n = spots.length, im = new T.InstancedMesh(geo, G.mat.vc, n), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), c = new T.Color();
+    const n = spots.length, im = new T.InstancedMesh(geo, crowdMaterial(), n), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), c = new T.Color();
     rnd = rnd || Math.random;
     for (let i = 0; i < n; i++) {
       const sp = spots[i], s = (sp[3] || 1) * (0.94 + rnd() * 0.12);

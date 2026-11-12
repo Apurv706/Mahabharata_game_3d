@@ -46,6 +46,8 @@
     if (!auto || dt <= 0) return;
     if (dt > 0.03) { slowT += dt; fastT = 0; } else if (dt < 0.0175) { fastT += dt; slowT = Math.max(0, slowT - dt); } else { fastT = 0; }
     if (slowT > 1.5 && scale > 0.55) { scale = Math.max(0.55, scale - 0.15); slowT = 0; resize(); }
+    else if (slowT > 3 && scale <= 0.55 && G.q.shadows && G.sun) { // still slow at the smallest drawing size: a modest phone. Shadows go (every figure is drawn twice for them) and later scenes are built with thinner ranks; this lasts until the page is opened again.
+      G.q.shadows = false; G.q.crowd = Math.min(G.q.crowd, 0.3); G.sun.castShadow = false; slowT = 0; }
     else if (fastT > 6 && scale < 1) { scale = Math.min(1, scale + 0.1); fastT = 0; resize(); }
   }
 

@@ -222,3 +222,17 @@ Asked for: cloth, skin, chariots, weapons and armour to look of ancient India in
 **Your own figure** now wears the story's choices: your skin, your home's colour on the lower cloth and its second colour on borders and sash (the same palette the 2D puppet wears), as a man or a woman, at each of the four ages. In the forest years the cloth is bark and only the sash keeps the colour.
 
 **A fault found on the way.** A model file that arrived before the 3D engine's script had run was thrown away when the engine started (it replaced `K.G3` instead of adding to it), so its people fell back to the plain code-built figures. Most likely on a second visit, when the files come from the phone's cache at once. Fixed in `js/g3/core.js`.
+
+## Three rounds of review (Nov 12, night)
+
+Asked for: a full review of every asset (`docs/Asset_Review.md`), then three rounds of two played lives (archer and mace, a frame every 30 seconds), issues flagged, game-art references consulted, assets improved.
+
+**Round 1** (lives from birth: a woman of Panchala with the mace, a man of Matsya with the bow).
+- Seen: shoulder plates were dark balls; a man's upper cloth hung like a board; the watchers round a ring were pegs tinted head to foot; the opening dream is fought before a gender is chosen, so its figure is always the man's.
+- Reference: write-ups of Raji: An Ancient Epic (motifs as stamps, occlusion and curvature to push form, little micro-detail) and of hand-painted stylised assets (gradients on flat colour, warm light and cool shadow, a rim to lift figures off the ground).
+- Changed: hollows deepened and ridges lifted on every model; a top-to-bottom gradient on figures; dyes toned toward vegetable colours; shoulder plates take the coat's scales; crowds redrawn as people (legs, a wrapped cloth, a bare trunk, an upper cloth, arms, a knotted head) and only their cloth takes the dye.
+
+**Round 2** (lives from the eve of the war: a Pandava mace-fighter, a Kaurava archer).
+- Remodelled in Blender (`tools/blender/cast.py`, all 79 rebuilt): shoulder plates are three lapped plates; a skirt of scales hangs from the belt over the cloth (as on Bhishma's sheet) and the hoops round the coat are two slim bands; a plain man's upper cloth now crosses the chest from the left shoulder to the right hip with its end behind.
+- Built things take surfaces: mud walls and thatch on huts, lime plaster and timber on houses, dressed stone in courses on walls, towers, gates, plinths, steps and wells, carved bands on pillars and lintels, striped canvas on tents and awnings, a brocade seat and a gilt sun on thrones, painted clay pots.
+- Reference: accounts of elephants and chariots in the epic and on the Sanchi reliefs (neck ropes and bells, rugs, banners; riders in threes).

@@ -52,7 +52,8 @@
         case "iron": s = IRON; break;
         case "gold": s = part === "lames" ? { p: "scale", c2: silvery(cols.gold) ? GOLD : shade(cols.gold, 0.55), cell: 0.05 } : GOLDW; break;
         case "armour":
-          if (part === "pauldron") s = { p: "plate", b: "rim", c3: rim, bw: 0.018 };
+          if (part === "tasset") s = { p: LAMELLAR.test(id) ? "lamellar" : "scale", c2: LAMELLAR.test(id) ? THONG : rim, cell: 0.05, b: "rim", c3: rim, bw: 0.02 }; /* (the skirt of scales below the belt, its hem edged in gold) */
+          else if (part === "pauldron" && !QUILT.test(id) && !LAMELLAR.test(id)) s = { p: "scale", c2: rim, cell: 0.045, b: "rim", c3: rim, bw: 0.016 }; /* (a shoulder-piece of the same scales as the coat, edged in gold) */
           else if (QUILT.test(id)) s = { p: "quilt", c2: BRONZE, cell: 0.075 };
           else if (LAMELLAR.test(id)) s = { p: "lamellar", c2: THONG, cell: 0.06 };
           else s = { p: "scale", c2: rim, cell: 0.052 };
