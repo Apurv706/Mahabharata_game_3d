@@ -461,7 +461,7 @@
     const hips = new T.Group(); hips.position.y = 0.92; tilt.add(hips); f.j.P = hips;
     const torso = new T.Group(); hips.add(torso); f.j.T = torso;
     torso.add(torsoMesh(sp, skin, cloth, trim, she, wide, accent));
-    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(headK * (MDL && headK < 1.15 ? 0.92 : 1)); /* (a modelled adult's head is nearer life size) */ torso.add(head); f.j.H = head;
+    const head = new T.Group(); head.position.y = 0.55; head.scale.setScalar(MDL ? ({ child: 1.2, youth: 0.98 })[sp.stage] || 0.88 : headK); /* (a modelled figure's head is nearer life size, as the artist drew it: about seven heads tall when grown) */ /* (a modelled adult's head is nearer life size) */ torso.add(head); f.j.H = head;
     head.add(headMesh(sp, skin, hair, accent, trim, she));
     // Dress. Nothing here is cut or sewn: the epic's people wear lengths of cloth. The lower cloth (antariya) is wound
     // round the hips, its pleats gathered in front; fighting men and working men draw it up between the legs to the

@@ -192,6 +192,12 @@
         for (let i = 0; i < hp.count; i++) { const k = Math.round((0.5 - hp.getY(i)) * 3); hp.setY(i, ys[3 - k]); hc[i * 4] = strip.r; hc[i * 4 + 1] = strip.g; hc[i * 4 + 2] = strip.b; hc[i * 4 + 3] = al[3 - k]; }
         hz.setAttribute("color", new T.BufferAttribute(hc, 4));
         const haze = new T.Mesh(hz, new T.MeshBasicMaterial({ side: T.BackSide, fog: false, transparent: true, vertexColors: true, depthWrite: false })); haze.renderOrder = -4.5; haze.frustumCulled = false; haze.position.y = 1.2; m.add(haze); haze.position.y = 1.2 - m.userData.y;
+        // Between the built ground and the painted horizon, two ranges of the distance's own colour: nearer than the
+        // picture, so they slide against it as the view turns (open country only: not where the picture is of woods or water).
+        if (G.ridges && /war|field|battle|plain|road|camp|village|track|ground|mountain|shiva|path|gate|muster|array/.test(key) && !/lake|river|sea|forest|grove|garden|night_city/.test(key)) {
+          const rr = G.rand(G.hash(key) + 11), high = /mountain|shiva|path/.test(key);
+          for (const [r, h, k] of [[158, high ? 46 : 20, 0.35], [124, high ? 22 : 9, 0.7]]) { const crest = hor.clone().lerp(strip, k).multiplyScalar(0.84), rg = G.ridges({ r, h, base: -2, col: strip.getHex(), top: crest.getHex(), snow: high && k < 0.5 ? 0xe8ecf2 : null }, rr); rg.position.y = 0; st.group.add(rg); st.offs.push(() => { rg.geometry.dispose(); rg.material.dispose(); }); }
+        }
         const gm = st.lastGround;
         if (gm && gm.position.y > -1 && gm.geometry.attributes.color && gm.material && !Array.isArray(gm.material)) {
           const P = gm.geometry.attributes.position, C = gm.geometry.attributes.color, n = P.count, out = new Float32Array(n * 4), half = (gm.geometry.parameters && gm.geometry.parameters.width || 160) / 2;
@@ -211,21 +217,38 @@
     U.fieldEvent3d = fieldEvent; // (so a check can ask for each kind)
     function buildEdge(key) {
       const rad = R.rad, rnd = G.rand(G.hash(enc.id) + 3), b = new G.Builder(), PI = Math.PI, night = /night|cave|fire/.test(st.sky || "");
-      const kind = st.indoor || /training|yard|ring|swayamvara|arena|court|hall|corridor|drupada/.test(key) ? "yard" : /war|battlefield|chakravyuha|camp|carts|gate/.test(key) ? "war" : "wild";
+      // What rings the field belongs to the place (js/g3/sets.js names its kind): a painted line and lamps in a hall, a bank
+      // and a roped fence round a yard, the litter and standards of war with the ranks standing off, a wattle fence in a
+      // village, stones, brush and grass in wild country.
+      const SK = st.kind, indoor = !!st.indoor || SK === "hall" || SK === "room" || SK === "lac";
+      const kind = indoor ? "hall" : SK === "field" || SK === "camp" || /war|battlefield|chakravyuha|vyuha|array|muster/.test(key) ? "war" : SK === "yard" || SK === "city" ? "yard" : SK === "village" ? "village" : "wild", Q = G.q.crowd || 1;
       // The worn band: darkest at the edge itself, fading inward and outward.
       { const geo = new T.RingGeometry(rad - 2.2, rad + 2.4, 72, 4).rotateX(-PI / 2), pos = geo.attributes.position, col = new Float32Array(pos.count * 4), c = new T.Color(kind === "wild" ? 0x4a3c20 : 0x33230f);
         for (let i = 0; i < pos.count; i++) { const r = Math.hypot(pos.getX(i), pos.getZ(i)), d = Math.abs(r - (rad + 0.3)) / 2.3, a = Math.max(0, 1 - d * d) * (kind === "yard" ? 0.24 : 0.32); col[i * 4] = c.r; col[i * 4 + 1] = c.g; col[i * 4 + 2] = c.b; col[i * 4 + 3] = a; }
         geo.setAttribute("color", new T.BufferAttribute(col, 4));
         const m = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false })); m.position.y = 0.03; m.renderOrder = 1; st.group.add(m); }
       const at = (a, r) => [Math.sin(a) * r, Math.cos(a) * r];
-      if (kind === "yard") {
+      const watchers = (n, r0, r1, cols, geo) => { const sp = []; for (let i = 0; i < Math.round(n * Q); i++) { const a = rnd() * PI * 2, [x, z] = at(a, r0 + rnd() * (r1 - r0)); sp.push([x, z, a + PI + (rnd() - 0.5) * 0.5, 1]); } if (sp.length) st.group.add(G.crowd(sp, cols, geo || "stand", rnd)); };
+      if (kind === "hall") {
+        b.geo(new T.RingGeometry(rad + 0.3, rad + 0.42, 72).rotateX(-PI / 2), 0, 0.035, 0, 0, 0, 0, 0xb08a3a);                                             // a line of gold paint on the floor, a red one outside it
+        b.geo(new T.RingGeometry(rad + 0.5, rad + 0.56, 72).rotateX(-PI / 2), 0, 0.035, 0, 0, 0, 0, 0x7a1c22);
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2 + 0.39, [x, z] = at(a, rad + 1.1); if (z > rad * 0.62 || Math.abs(x) > 8.4) continue; const y = G.lampStand(b, x, z, 1.25); if (st.flame) st.flame(x, y, z, 0.3, false); }
+      } else if (kind === "yard") {
         b.geo(new T.TorusGeometry(rad + 1.0, 0.22, 6, 56).rotateX(PI / 2).scale(1, 0.5, 1), 0, 0.02, 0, 0, 0, 0, 0x8a6a44, 0xa88458);                      // the bank of earth
-        b.geo(new T.RingGeometry(rad + 0.3, rad + 0.44, 72).rotateX(-PI / 2), 0, 0.035, 0, 0, 0, 0, 0xf0e8d4);                                             // the limed line
+        b.geo(new T.RingGeometry(rad + 0.32, rad + 0.41, 72).rotateX(-PI / 2), 0, 0.035, 0, 0, 0, 0, 0xdccfb2);                                            // the limed line, trodden
+        if (!(st.o && st.o.arena)) watchers(14, rad + 7.2, rad + 9, [0xe8dcc0, 0xc9a66a, 0xb2432a, 0x8a6a4a]);                                             // (an arena has its own tiers of people)
         const n = 14; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + 0.22, [x, z] = at(a, rad + 1.0); if (z > rad * 0.62) continue;           // (none across the near side, where you look in)
           b.cyl(0.06, 0.075, 1.15, x, 0.05, z, 0x5a3a1e, 8); b.sph(0.08, x, 1.22, z, i % 2 ? 0xa3302a : 0xd9a53a, 1, 8);
           const a2 = ((i + 1) / n) * PI * 2 + 0.22, [x2, z2] = at(a2, rad + 1.0); if (z2 <= rad * 0.62) { const mx = (x + x2) / 2 * 0.995, mz = (z + z2) / 2 * 0.995; b.rod(x, 1.0, z, mx, 0.86, mz, 0.018, 0xc8b088, 5); b.rod(mx, 0.86, mz, x2, 1.0, z2, 0.018, 0xc8b088, 5); } // a rope, sagging
           if ((night || st.indoor) && i % 2 === 0 && st.flame) st.flame(x, 1.3, z, 0.35, true); }
       } else if (kind === "war") {
+        if (SK === "field" || !SK) { // the two hosts stand off round the field, yours to the left; where they stood the ground is cut by wheels
+          const red = [0xa3302a, 0x8a2a24, 0xb2432a], blue = [0x2d5aa0, 0x27467e, 0x3b6fb0], mineC = K.S.side === "kaurava" ? red : blue, theirC = K.S.side === "kaurava" ? blue : red, sp = [[], []];
+          for (let row = 0; row < 3; row++) { const r = rad + 9.2 + row * 1.2, n = Math.round(r * 1.7 * Q); for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + row * 0.05, [x, z] = at(a, r + (rnd() - 0.5) * 0.3); if (Math.abs(x) < 2.2) continue; sp[x < 0 ? 0 : 1].push([x, z, a + PI + (rnd() - 0.5) * 0.25, 1]); } }
+          if (sp[0].length) st.group.add(G.crowd(sp[0], mineC, "soldier", rnd)); if (sp[1].length) st.group.add(G.crowd(sp[1], theirC, "soldier", rnd));
+          for (const sx of [-1, 1]) if (G.wreck) G.wreck(b, sx * (rad + 4.2), -rad * 0.55 - rnd() * 3, rnd);
+          for (let i = 0; i < 3; i++) { const ry = rnd() * PI, off = (rnd() - 0.5) * rad; for (const d of [-0.75, 0.75]) { const m = new T.Mesh(new T.PlaneGeometry(0.2, rad * 2.6).rotateX(-PI / 2), new T.MeshBasicMaterial({ color: 0x2e2010, transparent: true, opacity: 0.2, depthWrite: false })); m.rotation.y = ry; m.position.set(Math.cos(ry) * (off + d), 0.024, -Math.sin(ry) * (off + d)); m.renderOrder = 1; st.group.add(m); } }
+        }
         const n = 30; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + rnd() * 0.16, [x, z] = at(a, rad + 0.7 + rnd() * 2.0), k = Math.floor(rnd() * 7);
           if (z > rad * 0.8 && k !== 0) continue;
           if (k <= 1) G.arrowsStuck(b, x, z, 2 + Math.floor(rnd() * 4), 0.7, rnd);
@@ -236,7 +259,16 @@
           else G.rock(b, x, z, 0.22 + rnd() * 0.3, rnd, 0x7a6a54); }
         for (let i = 0; i < 10; i++) { const a = (i / 10) * PI * 2 + 0.3, [x, z] = at(a, rad + 1.3); if (z > rad * 0.5) continue; const mine = x < 0, colr = mine ? 0x2d5aa0 : 0xa3302a; // the hosts' standards, yours to the left
           b.rod(x, 0, z, x, 3.1, z, 0.035, 0x3a2414, 6); b.sph(0.06, x, 3.14, z, 0xd9a53a, 1.4, 6); b.box(0.74, 0.44, 0.02, x + 0.39, 2.55, z, colr); b.box(0.74, 0.07, 0.024, x + 0.39, 2.5, z, 0xd9a53a); b.geo(new T.ConeGeometry(0.22, 0.36, 3).rotateZ(-PI / 2), x + 0.92, 2.77, z, 0, 0, 0, colr); }
+      } else if (kind === "village") { // a wattle fence with two ways through it, pots and a rick by it, the neighbours looking on
+        const n = 64; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2, [x, z] = at(a, rad + 0.9); if (z > rad * 0.7 || i % 16 === 7 || i % 16 === 8) continue;
+          b.cyl(0.035, 0.045, 0.95 + (i % 3) * 0.05, x, 0, z, 0x6a4a2a, 5); const [x2, z2] = at(((i + 1) / n) * PI * 2, rad + 0.9); if ((i + 1) % 16 !== 7 && z2 <= rad * 0.7) for (const y of [0.3, 0.55, 0.8]) b.rod(x, y, z, x2, y + ((i + (y > 0.5 ? 1 : 0)) % 2 ? 0.05 : -0.05), z2, 0.022, 0x8a6a40, 4); }
+        for (let i = 0; i < 6; i++) { const a = -2.4 + i * 0.95 + rnd() * 0.3, [x, z] = at(a + PI, rad + 1.9 + rnd()); if (i % 3 === 2) { b.cone(0.8, 1.5, x, 0, z, 0xc9a85a, 8, 0, 0, 0, 0xe0c878); } else G.pot(b, x, z, 0.9 + rnd() * 0.5, i % 2 ? 0xa8562e : 0x8a4a2a); }
+        for (let i = 0; i < 14; i++) { const a = rnd() * PI * 2, [x, z] = at(a, rad * (0.55 + rnd() * 0.6)); G.tuft(b, x, z, 0.9 + rnd() * 0.5, rnd, 0x8a9648); }
+        watchers(12, rad + 7.2, rad + 9, [0xe8dcc0, 0xc9a66a, 0xa8562e, 0x8a6a4a, 0x6f8a3a]);
       } else {
+        const low = SK === "mountain" ? ["rock", "bush"] : ["bush", "bush", "rock"], grass = SK === "mountain" ? 0x8a8a5a : SK === "river" ? 0x6f9a48 : 0x7a8a42;
+        for (let i = 0; i < 16; i++) { const a = rnd() * PI * 2, [x, z] = at(a, rad + 1.6 + rnd() * 2.2); if (z > rad * 0.7) continue; const k = low[Math.floor(rnd() * low.length)]; if (k === "rock") G.rock(b, x, z, 0.4 + rnd() * 0.5, rnd, SK === "mountain" ? 0x8f8a84 : 0x8a8478); else G.tree(b, x, z, "bush", 0.55 + rnd() * 0.35, rnd); }
+        for (let i = 0; i < 40; i++) { const a = rnd() * PI * 2, [x, z] = at(a, rad * (0.35 + rnd() * 0.95)); G.tuft(b, x, z, 0.8 + rnd() * 0.7, rnd, grass); }   // grass, thin in the middle where feet have been
         const n = 34; for (let i = 0; i < n; i++) { const a = (i / n) * PI * 2 + rnd() * 0.14, [x, z] = at(a, rad + 0.5 + rnd() * 1.5), k = Math.floor(rnd() * 6);
           if (z > rad * 0.85 && k > 1) continue;
           if (k <= 1) G.rock(b, x, z, 0.25 + rnd() * 0.5, rnd, 0x8a8478);

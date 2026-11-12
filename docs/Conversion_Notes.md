@@ -177,3 +177,23 @@ war (cuirass). See `tools/blender/README.md`. Everyone else is still code-built.
 - All five Pandavas are now Blender-built (`tools/blender/heroes.py` → `js/g3/models/hero_<name>.js`), each with his own build, face, crown and dress by act. The dhoti is a wrapped cloth with folds round each leg, not a skirt. Mace wind-ups start above the head with a bent elbow.
 - An art brief for the reference pictures of every character, age and attire is in `docs/brief/`.
 - Replay of a mace life (141 frames, one every 30 s) found: the modelled Pandavas appear in few scenes of an ordinary life (the player and soldiers are still the old puppets); the top view in pillared halls was black on an upright phone (camera above the roof) — the roof is now one-sided; the "With you" opening shot stood inside a spread company — it now stands clear.
+
+## The cast from the artist's sheets, and the surroundings (Nov 12, later)
+
+**The sheets.** The artist delivered 181 reference pictures against `docs/brief/`: all 160 asked for, 20 detail sheets and one extra. The review, and what the brief itself left out, is in `docs/Art_Sheet_Review.md`. The sheets are not in the repository.
+
+**The cast.** `tools/blender/cast.py` builds one character at one age from `tools/blender/cast_specs.py`; `python3 tools/blender/build_cast.py` builds all of them into `js/g3/models/m_<name>_<age>.js` (79 models, about 37 MB) and lists them in `index.html`.
+- A spec is a frame (width, girth, limbs, how much muscle shows), a face, skin and hair, and a set of **looks**. A look names the parts shown and the colours of the cloth: home, court, student, forest, disguise, war, mourning, as the sheets have them.
+- The parts are fitted to that body by casting onto its surface: three lengths of lower cloth with straight hems and pleated falls, sash, girdle and panel, the rolled waist of plain people, upper cloths (wrapped, hung from one shoulder), hide, breast-band, veil, blindfold, cuirass with trim and boss, shoulder plates, forearm and shin guards, crowns (tiered, diadem), helmet, turban, matted hair, plait, knot, unbound hair, four beards, gold.
+- In the game `js/g3/model.js` picks the model by age (the nearest age drawn) and the look by the hour: what the figure asks for (a disguise); `G.lookHint` ("war" on a field where companies meet, and in Act VI); the forest in deer-skins; the student's cloth in Act II; else court or home. Height and frame come from the model; a modelled head is nearer life size (about seven heads tall when grown).
+- The player is modelled too (`player_m`, `player_f`, four ages, four looks). The rank and file and the villagers are one model each, dyed in the wearer's colour (`sided`). People the brief left out wear the nearest model; gandharvas, rakshasas, nagas and yakshas are still the code-built figures.
+- Differences from the sheets, on purpose: Karna at war has no ear-rings; Draupadi is darker than drawn and her hair is unbound in disguise (both as the brief asked).
+- Models load after the page (`async`); a fight that starts before a model has arrived shows the code-built figure. The two-part build sends them as `m1.js`..`m4.js` and the story's files as one `content.js`.
+- Known gaps: faces are simple and alike; cloth has no woven pattern; armour is a plain shell with bands; the squads behind a leader are still the plain code-built figures; hands do not close on a haft.
+
+**The surroundings, all seven.**
+- Horses and elephants: `tools/blender/props.py` → `js/g3/models/p_horse.js`, `p_elephant.js`, after the artist's sheets; `G.horse` and `G.elephant` use them (legs and trunk swing as before) and fall back to the code-built beasts until the files arrive. Chariots take the new horses.
+- Boundaries (`buildEdge` in `js/ui/battle/view.js`) follow the place: a painted line and lamps in a hall; bank, trodden lime and onlookers round a yard; on a battlefield the two hosts standing off in their colours, wrecks and wheel ruts; a wattle fence, pots, a rick and neighbours in a village; stones, brush and grass in wild country.
+- Palaces (`hall` in `js/g3/sets.js`): carved pillars, an arcade of cusped arches, pierced-stone windows with shafts of light, a beamed roof, a great arch and a gold sun behind the dais, a courtyard in the sun past the open end. What hangs overhead is hidden when the view is from above the roof.
+- Mountains: two ranges between the built ground and the painted horizon (`G.ridges`), in the distance's own colours, so they move against the picture as the view turns.
+- Ground, rocks and trees: stones with broken faces in clusters, trees with forking boles and masses of leaf, grass tufts.

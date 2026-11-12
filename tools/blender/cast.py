@@ -267,13 +267,15 @@ def clothw(o, top="P", side=None):   # the wrap's own holding: the hips above (o
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
 def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red"):   # a hanging length of cloth, a little waved, with a gold edge at its foot
-    me = bpy.data.meshes.new(name); rows = 10; vs = []; fs = []
+    me = bpy.data.meshes.new(name); rows = 10; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1
     for r in range(rows + 1):
-        t = r / rows; z = z_top - ln * t
-        for c in range(4):
-            u = c / 3 - 0.5; vs.append((x + u * wd * 2 * (1 - 0.12 * t) + lean_ * ln * t, y - 0.004 * (c % 2) - 0.012 * math.sin(t * 3.0) * (1 if y < 0 else -1), z))
+        t = r / rows
+        for c in range(C_):
+            u = c / (C_ - 1) - 0.5; fold = (1 if c % 2 else -1) * (0.0015 + 0.009 * t) * (0 if C_ == 3 else 1)       # gathered above, opening into pleats below
+            z = z_top - ln * t - (0.012 * (c % 2) * t if C_ > 3 else 0)                                               # and the foot of each pleat a little lower than the next
+            vs.append((x + u * wd * 2 * (0.82 + 0.18 * t) + lean_ * ln * t, y - fwd * (fold + 0.012 * math.sin(t * 3.0)), z))
     for r in range(rows):
-        for c in range(3): a = r * 4 + c; fs.append((a, a + 1, a + 5, a + 4))
+        for c in range(C_ - 1): a = r * C_ + c; fs.append((a, a + 1, a + C_ + 1, a + C_))
     me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
     for p in o.data.polygons: p.use_smooth = True
     clothw(o, top, side); parts.append(o)
@@ -283,9 +285,13 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side); parts.append(e)
     return o
-def shell(name, role, keep, off, src=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights
+def shell(name, role, keep, off, src=None, cut=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
-    bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    if cut:
+        for z_, up in ((cut[0], -1), (cut[1], 1)):
+            if z_ is not None: bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, z_), plane_no=(0, 0, up), clear_outer=True)
+    dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")
     for v in bm.verts: v.co += v.normal * off
@@ -300,7 +306,7 @@ def tag(objs, part):
 def since(n0, part): tag(parts[n0:], part)
 # ---- Lower cloth: wound round the hips and drawn between the legs, so it folds round each leg; three lengths.
 def dhoti(name, zlow, flare=1.0):
-    n0 = len(parts); o = shell(name, "cloth", lambda c: zlow - 0.07 < c.z < 1.0, 0.012); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
+    n0 = len(parts); o = shell(name, "cloth", lambda c: zlow - 0.001 < c.z < 1.001, 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
     for v in o.data.vertices:
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
@@ -380,16 +386,17 @@ for k in range(22):
     a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
 since(n0, "beads"); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.03 < c.z < 1.44 and trunk(c), 0.013)
+shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.44 and trunk(c), 0.013, cut=(1.03, None))
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 both(lambda sx: prim("uv_sphere", "pauldron", "armour", (sx * (SHX + 0.02), 0, 1.395), (0.105 * H["arm"], 0.105 * H["arm"], 0.085 * H["arm"]), segments=14, ring_count=8))
 for o in parts[n0:]: rigid(o, "aL" if sum(v.co.x for v in o.data.vertices) > 0 else "aR")
 since(n0, "pauldron"); n0 = len(parts)
 def limbshell(name, role, z0, z1, bones, off):
-    o = B.copy(); o.data = B.data.copy(); S.collection.objects.link(o); o.name = name; bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active
-    bi = {i for i, g in enumerate(B.vertex_groups) if g.name[0] in bones}
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (z0 < v.co.z < z1 and sum(w for i, w in v[dl].items() if i in bi) > 0.5)], context="VERTS")
+    o = B.copy(); o.data = B.data.copy(); S.collection.objects.link(o); o.name = name; bm = bmesh.new(); bm.from_mesh(o.data)
+    for z_, up in ((z0, -1), (z1, 1)): bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, z_), plane_no=(0, 0, up), clear_outer=True)
+    dl = bm.verts.layers.deform.active; bi = {i for i, g in enumerate(B.vertex_groups) if g.name[0] in bones}
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (z0 - 0.001 < v.co.z < z1 + 0.001 and sum(w for i, w in v[dl].items() if i in bi) > 0.5)], context="VERTS")
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
 limbshell("vambrace", "leather", 0.885, 1.075, "ew", 0.009); since(n0, "vambrace"); n0 = len(parts)
@@ -404,7 +411,7 @@ ring("tuck", "cloth", 0.995, 0.019, 1.8, 0.013); ring("tuckline", "red", 0.978, 
 parts.append(prim("uv_sphere", "tuckknot", "cloth", (0.0, WY - 0.01, 0.99), (0.04, 0.028, 0.036), segments=10, ring_count=6)); since(n0, "tuck"); n0 = len(parts)
 # ---- Across the chest
 shell("hide", "hide", lambda c: band(c, 0.11), 0.017); since(n0, "hide"); n0 = len(parts)
-shell("bandeau", "band", lambda c: 1.215 < c.z < 1.37 and trunk(c), 0.01); since(n0, "bandeau"); n0 = len(parts)
+shell("bandeau", "band", lambda c: 1.214 < c.z < 1.371 and trunk(c), 0.01, cut=(1.215, 1.37)); since(n0, "bandeau"); n0 = len(parts)
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02, names=("strap", "strapedge", "strapstud"), stud=3, edge="gold", off=0.011):

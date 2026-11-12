@@ -67,14 +67,52 @@
     },
     // ----- A pillared hall: the court, the dice hall, a corridor, a healer's ward, a cellar -----
     hall(b, o, rnd, st) {
-      const w = o.narrow ? 4.2 : 9.5, len = 26, stone = o.dark ? 0x6a5444 : 0xb48a64, hgt = o.low ? 3.2 : 7;
-      st.ground({ col: (x, z) => (Math.abs(x) < w + 2 && z > -len + 6 && z < 16 ? (o.dark ? 0x7a6652 : 0xc09a74) : 0x1a100a), size: 90, seg: 40, tex: "flags", rep: 22 });
+      const w = o.narrow ? 4.2 : 9.5, len = 26, stone = o.dark ? 0x6a5444 : 0xb48a64, hgt = o.low ? 3.2 : 7, grand = !o.narrow && !o.low, lit = grand && !o.dark, GOLD = 0xd9a53a, wood = o.dark ? 0x2e2018 : 0x4a2e1c;
+      // (Beyond the open near end of a lit hall lies its courtyard in the sun; elsewhere outside the walls is dark.)
+      st.ground({ col: (x, z) => (Math.abs(x) < w + 2 && z > -len + 6 && z < 16 ? (o.dark ? 0x7a6652 : 0xc09a74) : lit && z >= 16 && Math.abs(x) < 34 ? 0xd2b88c : 0x1a100a), size: 90, seg: 40, tex: "flags", rep: 22 });
+      const step = o.narrow ? 3.2 : 4.2, ob = new G.Builder(); /* (ob: what hangs overhead, the arches and the beams) */
       for (const sx of [-1, 1]) {
-        for (let z = -len + 10; z <= 12; z += o.narrow ? 3.2 : 4.2) { G.pillar(b, sx * w, z, hgt, o.narrow ? 0.3 : 0.42, stone); if (!o.dark && (Math.round(z) % 2 === 0)) { const y = G.lampStand(b, sx * (w - 1.3), z + 2.1, 1.5); st.flame(sx * (w - 1.3), y, z + 2.1, 0.32, false); } }
+        for (let z = -len + 10; z <= 12; z += step) {
+          G.pillar(b, sx * w, z, hgt, o.narrow ? 0.3 : 0.42, stone);
+          if (hgt > 5 && z + step <= 12) G.arch(ob, sx * w, z, sx * w, z + step, hgt - 2.5, hgt, stone, o.dark ? null : GOLD);   // an arcade down each side
+          if (!o.dark && (Math.round(z) % 2 === 0)) { const y = G.lampStand(b, sx * (w - 1.3), z + 2.1, 1.5); st.flame(sx * (w - 1.3), y, z + 2.1, 0.32, false); }
+        }
         b.box(0.6, hgt, len + 8, sx * (w + 2.6), 0, -2, G.shade(stone, 0.62), 0, 0, 0, G.shade(stone, 0.8));
-        if (!o.narrow && !o.low) for (let z = -len + 12; z <= 10; z += 8.4) b.box(0.1, 3, 2.2, sx * (w + 2.25), 2.4, z, sx > 0 ? 0x8a1f24 : 0x2d4a7a, 0, 0, 0, 0xd9a53a); // hangings
+        if (grand) {
+          ob.box(0.5, 0.42, len + 8, sx * w, hgt - 0.42, -2, wood);                                                             // the beam over each row of pillars
+          b.box(0.16, 0.5, len + 8, sx * (w + 2.25), 0, -2, G.shade(stone, 0.95)); b.box(0.12, 0.12, len + 8, sx * (w + 2.22), 1.1, -2, o.dark ? G.shade(stone, 1.1) : GOLD);   // a plinth and a rail along the wall
+          for (let z = -len + 12, i = 0; z <= 10; z += 4.2, i++) {
+            const x = sx * (w + 2.26);
+            if (i % 2) { b.box(0.1, 3, 2.2, sx * (w + 2.25), 2.4, z, sx > 0 ? 0x8a1f24 : 0x2d4a7a, 0, 0, 0, 0xd9a53a); b.box(0.12, 0.1, 2.4, sx * (w + 2.24), 5.4, z, GOLD); continue; }   // a hanging
+            // A window of pierced stone with the day behind it: its light lies in a shaft across the floor.
+            const day = !o.dark && !/night|cave|fire/.test(st.sky || ""), wc = day ? 0xffe9b8 : 0x1c2a48;
+            const win = new T.Mesh(new T.PlaneGeometry(1.7, 2.7), new T.MeshBasicMaterial({ color: wc, fog: false })); win.position.set(x - sx * 0.02, 3.75, z); win.rotation.y = -sx * PI / 2; st.add(win);
+            for (let k = -2; k <= 2; k++) b.box(0.06, 2.7, 0.05, x - sx * 0.05, 2.4, z + k * 0.34, G.shade(stone, 0.5));
+            for (let k = 0; k < 7; k++) b.box(0.06, 0.05, 1.7, x - sx * 0.05, 2.5 + k * 0.4, z, G.shade(stone, 0.5));
+            G.arch(b, x - sx * 0.1, z - 1.0, x - sx * 0.1, z + 1.0, 5.1, 5.1, G.shade(stone, 0.85), o.dark ? null : GOLD); b.box(0.2, 0.14, 2.1, x - sx * 0.08, 2.3, z, G.shade(stone, 0.9));
+            if (day) {
+              const g = new T.BufferGeometry(), x1 = x - sx * 5.6; g.setAttribute("position", new T.Float32BufferAttribute([x, 5.1, z - 0.85, x, 5.1, z + 0.85, x, 2.4, z - 0.85, x, 2.4, z + 0.85, x1 + sx * 2.2, 0.03, z - 1.1, x1 + sx * 2.2, 0.03, z + 1.1, x1, 0.03, z - 1.3, x1, 0.03, z + 1.3], 3)); g.setIndex([0, 1, 4, 1, 5, 4, 2, 3, 6, 3, 7, 6, 4, 5, 6, 5, 7, 6]);
+              const sh = new T.Mesh(g, new T.MeshBasicMaterial({ color: 0xffdf9a, transparent: true, opacity: 0.11, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false })); sh.renderOrder = 2; st.add(sh);
+            }
+          }
+        }
       }
+      if (grand) for (let z = -len + 10; z <= 12; z += step * 2) ob.box(2 * w, 0.34, 0.4, 0, hgt - 0.34, z, wood);                 // cross-beams: the roof in coffers
       b.box(2 * (w + 3), hgt, 0.6, 0, 0, -len + 5, G.shade(stone, 0.7), 0, 0, 0, G.shade(stone, 0.9));
+      if (grand) { // the end wall: a great arch over the dais, a sun in gold within it, a niche with a lamp either side
+        const zb = -len + 5.4; G.pillar(b, -3.6, zb, hgt - 1.2, 0.36, stone); G.pillar(b, 3.6, zb, hgt - 1.2, 0.36, stone); G.arch(ob, -3.6, zb, 3.6, zb, hgt - 3.4, hgt, stone, o.dark ? null : GOLD);
+        b.box(6.6, hgt - 3.2, 0.1, 0, 0, zb - 0.02, o.dark ? 0x3a2a24 : 0x6a1c22, 0, 0, 0, o.dark ? 0x2a1c18 : 0x4a1218);
+        if (!o.dark) { b.geo(new T.CylinderGeometry(0.85, 0.85, 0.06, 20).rotateX(PI / 2), 0, 4.3, zb + 0.06, 0, 0, 0, GOLD); for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.geo(new T.ConeGeometry(0.13, 0.5, 4).rotateZ(-PI / 2 + 0), Math.cos(a) * 1.15, 4.3 + Math.sin(a) * 1.15, zb + 0.06, 0, 0, a, GOLD); } }
+        for (const sx of [-1, 1]) { b.box(1.2, 2.2, 0.12, sx * 6.6, 1.6, zb - 0.05, G.shade(stone, 0.5)); G.arch(b, sx * 6.6 - 0.7, zb + 0.05, sx * 6.6 + 0.7, zb + 0.05, 3.6, 3.6, G.shade(stone, 0.9), o.dark ? null : GOLD); if (st.flame) st.flame(sx * 6.6, 2.0, zb + 0.25, 0.3, false); b.cyl(0.12, 0.16, 0.1, sx * 6.6, 1.82, zb + 0.25, GOLD, 8); }
+      }
+      if (lit) { // the courtyard past the open end: an arcade across it, trees and a pool in the sun, the sky beyond
+        const zc = 30, sky = new T.Mesh(new T.PlaneGeometry(120, 44), new T.MeshBasicMaterial({ color: /night|cave|fire/.test(st.sky || "") ? 0x18243e : 0xe9d9b4, fog: false })); sky.position.set(0, 20, zc + 22); sky.rotation.y = PI; st.add(sky);
+        for (let i = -4; i <= 4; i++) { G.pillar(b, i * 4.2, zc, 5.4, 0.36, 0xc9a67c); if (i < 4) G.arch(b, i * 4.2, zc, (i + 1) * 4.2, zc, 3.4, 6.2, 0xc9a67c, GOLD); }
+        b.box(40, 0.5, 0.9, 0, 6.2, zc, 0xb8946a); for (let i = -9; i <= 9; i++) b.box(0.9, 0.5, 0.9, i * 2.1, 6.7, zc, 0xb8946a);
+        b.cyl(2.6, 2.8, 0.4, 0, 0, 23, 0xb8a078, 16); b.cyl(2.3, 2.3, 0.06, 0, 0.38, 23, 0x3a7a8a, 16);
+        for (const sx of [-1, 1]) { G.tree(b, sx * 13, 24, "mango", 1.25, rnd); G.tree(b, sx * 20, 34, "palm", 1.2, rnd); G.tree(b, sx * 7, 36, "sal", 1.1, rnd); b.box(0.6, 3.2, 22, sx * 26, 0, 27, 0xc0a078); }
+      }
+      if (!ob.empty()) { const over = ob.mesh(); st.add(over); st.offs.push(G.onFrame(() => { over.visible = G.camera.position.y < hgt - 0.4; })); } /* (seen from under the roof only: a view from above it, on an upright phone, looks down past them to the floor) */
       if (!o.open) { const c = new T.Mesh(new T.PlaneGeometry(2 * (w + 3.4), len + 9).rotateX(PI / 2), new T.MeshBasicMaterial({ color: 0x2a1a10 })); c.position.set(0, hgt, -2); st.add(c); } /* one-sided: seen from below only, so a camera standing above the roof (an upright phone) looks straight through it */ // (open: no roof, for a scene looked down on from above)
       if (o.dice || o.court) { b.box(7, 0.35, 3.2, 0, 0, -len + 8, G.shade(stone, 0.9)); b.box(5.6, 0.3, 2.4, 0, 0.35, -len + 8, stone); G.throne(b, 0, -len + 8, 0, 0x8a1f24); b.at(0, 0.65, 0, 0, 1, () => {}); for (const sx of [-1, 1]) G.throne(b, sx * 2.3, -len + 8.3, -sx * 0.25, sx > 0 ? 0x2d4a7a : 0x5a2a6a); }
       if (o.dice) { const m = new T.Mesh(new T.PlaneGeometry(4.6, 4.6).rotateX(-PI / 2), new T.MeshLambertMaterial({ map: G.tex("chaupar") })); m.position.set(0, 0.03, -1.5); m.receiveShadow = true; st.add(m); for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2 + 0.4; G.cushion(b, Math.sin(a) * 3.3, -1.5 + Math.cos(a) * 3.3, i % 2 ? 0xa3302a : 0x2d4a7a, 1.2); } }

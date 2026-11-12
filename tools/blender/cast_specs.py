@@ -3,6 +3,7 @@
 BLACK, GREY, WHITE = 0x15120f, 0x8f8b85, 0xe4e0d8
 CREAM, MADDER, BARK, BARKD, HIDE = 0xf2e6cc, 0xb2533b, 0x8c633f, 0x6c482b, 0xcfa678
 SC = {"child": 0.62, "youth": 0.9, "adult": 1.0, "elder": 0.97}   # js/g3/figure.js STAGE
+HEADK = {"child": 1.2, "youth": 0.98, "adult": 0.88, "elder": 0.88}   # and the head's scale on a modelled figure (same file)
 BUILD = {
   "heavy":   dict(mu=1.0, wide=1.2,  girth=1.0,  arm=1.0,  leg=1.0,  soft=True,  abs=False, shape=dict(chest=1.0,  trap=1.0,  neck=1.0,  waist=1.0,  lat=1.0)),
   "strong":  dict(mu=1.0, wide=1.1,  girth=1.0,  arm=1.0,  leg=1.0,  soft=False, abs=True,  shape=dict(chest=1.05, trap=1.0,  neck=1.0,  waist=0.94, lat=1.06)),
@@ -39,7 +40,7 @@ def L(parts, **cols):
     return dict(parts=parts.split(), cols=cols)
 CAST = {}
 def add(key, build, face, skin, hair=BLACK, cm=None, looks=None, **kw):
-    st = key.rsplit("_", 1)[1]; CAST[key] = dict(build=build, face=face, skin=skin, hair=hair, looks=looks or {}, size=round(cm / (180 * SC[st]), 3) if cm else 1, **kw)
+    st = key.rsplit("_", 1)[1]; CAST[key] = dict(build=build, face=face, skin=skin, hair=hair, looks=looks or {}, size=round(cm / (100 * (1.47 + 0.33 * HEADK[st]) * SC[st]), 3) if cm else 1, **kw)
 def resolve(key):
     c = CAST[key]; H = dict(sex="m", stache=False, stubble=False, crown=None, locks=4, rich=False, belly=0); H.update({k: (dict(v) if isinstance(v, dict) else v) for k, v in BUILD[c["build"]].items()})
     H["face"] = dict(FACE[c["face"]]); H["face"].update(c.get("facefix", {}))

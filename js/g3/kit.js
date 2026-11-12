@@ -128,41 +128,76 @@
     if (!b.empty()) (main.far = main.far || []).push(b.mesh());
   };
 
-  // ---------- Growing things ----------
+  // ---------- Growing things, and stone ----------
+  // A shape made uneven: every point is pushed in or out by an amount that depends only on where it is (so the corners
+  // of its faces stay together), and it is left faceted. Rocks and the masses of leaf on a tree are made of these.
+  const h3 = (x, y, z) => { const v = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return v - Math.floor(v); };
+  function lumpy(r, detail, amp, seed) {
+    const g = new T.IcosahedronGeometry(r, detail), P = g.attributes.position, q = 40 / r;
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), k = 1 + amp * (h3(Math.round(x * q) + seed, Math.round(y * q), Math.round(z * q)) - 0.5) * 2; P.setXYZ(i, x * k, y * k, z * k); }
+    g.computeVertexNormals(); return g;
+  }
+  G.lumpy = lumpy;
   const GREENS = [0x4f7a3a, 0x5c8a40, 0x456b35, 0x6a9248, 0x3f6a3a];
+  // A mass of leaves: dark underneath, light where the sun is on it.
+  const leaf = (b, r, x, y, z, g, rnd, sy) => b.geo(lumpy(r, 1, 0.2, Math.floor(rnd() * 97)).scale(1, sy || 0.78, 1), x, y, z, 0, rnd() * 6.28, 0, G.shade(g, 0.62), G.shade(g, 1.28));
   G.tree = function (b, x, z, kind, s, rnd) {
     s = s || 1; rnd = rnd || Math.random;
-    const g = GREENS[Math.floor(rnd() * GREENS.length)], g2 = G.shade(g, 1.25), bark = 0x5a4030;
+    const g = GREENS[Math.floor(rnd() * GREENS.length)], g2 = G.shade(g, 1.18), bark = 0x5a4030, barkD = 0x45301f;
     b.at(x, 0, z, rnd() * 6.28, s, (b) => {
       if (kind === "palm") {
         const lean = (rnd() - 0.5) * 0.9;
-        b.rod(0, 0, 0, lean, 5.6, 0, 0.2, 0x7a6248, 6, 0.13);
-        for (let i = 0; i < 7; i++) { const a = (i / 7) * 6.28; b.geo(new T.ConeGeometry(0.34, 2.6, 4, 1).translate(0, 1.3, 0).scale(1, 1, 0.18), lean, 5.5, 0, 1.25 + rnd() * 0.3, a, 0, g, g2); }
-        b.sph(0.22, lean, 5.45, 0, 0x8a5a2c);
+        b.rod(0, 0, 0, lean * 0.4, 2.8, 0, 0.22, 0x7a6248, 7, 0.17); b.rod(lean * 0.4, 2.8, 0, lean, 5.6, 0, 0.17, 0x7a6248, 7, 0.12);
+        for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.28; b.geo(new T.ConeGeometry(0.34, 2.8, 4, 1).translate(0, 1.4, 0).scale(1, 1, 0.16), lean, 5.5, 0, 1.15 + rnd() * 0.45, a, 0, G.shade(g, 0.8), g2); }
+        b.sph(0.24, lean, 5.45, 0, 0x8a5a2c); for (let i = 0; i < 3; i++) b.sph(0.11, lean + Math.cos(i * 2.1) * 0.2, 5.25, Math.sin(i * 2.1) * 0.2, 0x6a7a2a, 1, 5);
       } else if (kind === "pine") {
-        b.cyl(0.14, 0.2, 1.6, 0, 0, 0, bark, 6);
-        for (let i = 0; i < 4; i++) b.cone(1.5 - i * 0.3, 1.7, 0, 1.1 + i * 1.05, 0, G.shade(0x2f5a3a, 1 + i * 0.08), 7);
-      } else if (kind === "sal") {
-        b.cyl(0.16, 0.26, 4.2, 0, 0, 0, bark, 6);
-        for (let i = 0; i < 3; i++) b.sph(1.5 - i * 0.25, (rnd() - 0.5) * 0.5, 4.3 + i * 1.1, (rnd() - 0.5) * 0.5, i ? g2 : g, 0.8, 7);
+        b.cyl(0.14, 0.22, 1.6, 0, 0, 0, bark, 6, 0, 0, 0, barkD);
+        for (let i = 0; i < 5; i++) b.cone(1.55 - i * 0.27, 1.6, 0, 1.0 + i * 0.92, 0, G.shade(0x2f5a3a, 0.8 + i * 0.1), 8, rnd() * 3, 0, 0, G.shade(0x2f5a3a, 1.15 + i * 0.08));
+      } else if (kind === "sal") { // tall and straight, its leaf in hanging tiers
+        b.cyl(0.15, 0.3, 4.6, 0, 0, 0, bark, 7, 0, 0, 0, barkD); b.cone(0.5, 0.5, 0, 0, 0, barkD, 7);
+        for (let i = 0; i < 4; i++) { const a = rnd() * 6.28, r = 0.5 + rnd() * 0.5; if (i < 3) b.rod(0, 3.2 + i * 0.7, 0, Math.cos(a) * r, 4.2 + i * 0.9, Math.sin(a) * r, 0.07, bark, 5, 0.03); leaf(b, 1.45 - i * 0.2, Math.cos(a) * r * 0.8, 4.4 + i * 1.0, Math.sin(a) * r * 0.8, i % 2 ? g2 : g, rnd, 0.82); }
       } else if (kind === "dead") {
-        b.cyl(0.1, 0.24, 2.6, 0, 0, 0, 0x4a3a2e, 5);
-        for (let i = 0; i < 4; i++) { const a = rnd() * 6.28, l = 0.9 + rnd() * 0.9; b.rod(0, 1.5 + i * 0.3, 0, Math.cos(a) * l, 2.2 + i * 0.4 + rnd() * 0.5, Math.sin(a) * l, 0.07, 0x4a3a2e, 4, 0.02); }
+        b.cyl(0.1, 0.26, 2.6, 0, 0, 0, 0x4a3a2e, 6);
+        for (let i = 0; i < 5; i++) { const a = rnd() * 6.28, l = 0.9 + rnd() * 0.9, y0 = 1.3 + i * 0.3, x1 = Math.cos(a) * l, y1 = 2.2 + i * 0.4 + rnd() * 0.5, z1 = Math.sin(a) * l; b.rod(0, y0, 0, x1, y1, z1, 0.07, 0x4a3a2e, 4, 0.03); b.rod(x1, y1, z1, x1 * 1.5 + rnd() * 0.3, y1 + 0.5 + rnd() * 0.4, z1 * 1.5, 0.03, 0x4a3a2e, 4, 0.01); }
       } else if (kind === "bush") {
-        for (let i = 0; i < 3; i++) b.sph(0.55 + rnd() * 0.3, (rnd() - 0.5) * 0.8, 0.4, (rnd() - 0.5) * 0.8, i ? g : g2, 0.75, 6);
+        for (let i = 0; i < 4; i++) leaf(b, 0.5 + rnd() * 0.3, (rnd() - 0.5) * 0.9, 0.38 + rnd() * 0.15, (rnd() - 0.5) * 0.9, i % 2 ? g : g2, rnd, 0.8);
       } else if (kind === "banyan") {
-        b.cyl(0.55, 0.95, 3.2, 0, 0, 0, bark, 8);
-        for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.28 + rnd(), r = 2.2 + rnd() * 1.6; b.rod(Math.cos(a) * r, 0, Math.sin(a) * r, Math.cos(a) * r * 0.9, 3.4, Math.sin(a) * r * 0.9, 0.07, 0x6a4c38, 4); }
-        for (let i = 0; i < 9; i++) { const a = rnd() * 6.28, r = rnd() * 3.2; b.sph(2 + rnd() * 1.2, Math.cos(a) * r, 4.6 + rnd() * 1.4, Math.sin(a) * r, i % 3 ? g : g2, 0.62, 7); }
-      } else { // mango / plain shade tree
-        b.cyl(0.2, 0.34, 2.4, 0, 0, 0, bark, 6);
-        b.sph(1.9, 0, 3.5, 0, g, 0.85, 8); b.sph(1.3, 0.9, 3.1, 0.4, g2, 0.8, 7); b.sph(1.2, -0.8, 3.2, -0.5, g, 0.8, 7);
+        b.cyl(0.55, 1.0, 3.2, 0, 0, 0, bark, 9, 0, 0, 0, barkD); b.cone(1.35, 0.9, 0, 0, 0, barkD, 9);
+        for (let i = 0; i < 7; i++) { const a = (i / 7) * 6.28 + rnd(), r = 2.2 + rnd() * 1.6; b.rod(Math.cos(a) * r, 0, Math.sin(a) * r, Math.cos(a) * r * 0.9, 3.6, Math.sin(a) * r * 0.9, 0.07, 0x6a4c38, 4); b.rod(0, 2.9, 0, Math.cos(a) * r * 0.9, 3.9, Math.sin(a) * r * 0.9, 0.16, bark, 5, 0.09); }
+        for (let i = 0; i < 10; i++) { const a = rnd() * 6.28, r = rnd() * 3.4; leaf(b, 1.9 + rnd() * 1.1, Math.cos(a) * r, 4.6 + rnd() * 1.5, Math.sin(a) * r, i % 3 ? g : g2, rnd, 0.66); }
+      } else { // mango / plain shade tree: a short bole that forks, a round head of leaf in several masses
+        b.cyl(0.21, 0.36, 2.0, 0, 0, 0, bark, 7, 0, 0, 0, barkD); b.cone(0.58, 0.5, 0, 0, 0, barkD, 7);
+        const n = 5;
+        for (let i = 0; i < n; i++) { const a = (i / n) * 6.28 + rnd() * 0.6, r = i ? 1.0 + rnd() * 0.5 : 0, y = i ? 3.0 + rnd() * 0.6 : 3.9; if (i) b.rod(0, 1.8, 0, Math.cos(a) * r * 0.85, y - 0.3, Math.sin(a) * r * 0.85, 0.13, bark, 5, 0.06); leaf(b, i ? 1.15 + rnd() * 0.35 : 1.55, Math.cos(a) * r, y, Math.sin(a) * r, i % 2 ? g2 : g, rnd); }
       }
     });
   };
+  // A stone: broken faces, darker toward the ground; a big one has a small one or two lying against it.
   G.rock = function (b, x, z, s, rnd, col) {
-    rnd = rnd || Math.random;
-    b.geo(new T.DodecahedronGeometry(s || 0.6, 0).scale(1 + rnd() * 0.5, 0.6 + rnd() * 0.4, 1 + rnd() * 0.5), x, (s || 0.6) * 0.3, z, rnd(), rnd() * 6, rnd() * 0.4, col || 0x8a8378, 0xa49c90);
+    rnd = rnd || Math.random; s = s || 0.6; col = col || 0x8a8378;
+    const one = (x, z, s) => b.geo(lumpy(s, 1, 0.24, Math.floor(rnd() * 97)).scale(1 + rnd() * 0.5, 0.62 + rnd() * 0.4, 1 + rnd() * 0.5), x, s * 0.26, z, rnd() * 0.4, rnd() * 6, rnd() * 0.3, G.shade(col, 0.72), G.shade(col, 1.2));
+    one(x, z, s);
+    if (s > 0.4) for (let i = 0, n = 1 + Math.floor(rnd() * 2); i < n; i++) { const a = rnd() * 6.28; one(x + Math.cos(a) * s * 1.15, z + Math.sin(a) * s * 1.15, s * (0.3 + rnd() * 0.25)); }
+  };
+  // Tufts of grass: a few blades each.
+  G.tuft = function (b, x, z, s, rnd, col) {
+    rnd = rnd || Math.random; s = s || 1; col = col || 0x7a8a42;
+    for (let i = 0, n = 4 + Math.floor(rnd() * 3); i < n; i++) { const a = rnd() * 6.28, l = (0.22 + rnd() * 0.2) * s; b.geo(new T.ConeGeometry(0.035 * s, l, 3).translate(0, l / 2, 0), x + Math.cos(a) * 0.08 * s, 0, z + Math.sin(a) * 0.08 * s, (rnd() - 0.5) * 0.7, a, (rnd() - 0.5) * 0.7, G.shade(col, 0.7), G.shade(col, 1.2)); }
+  };
+  // A far range seen edge-on: a wall of ground round the field whose top rises and falls, the colour of the distance at
+  // its foot and its own colour along the crest. Nearer than a painted horizon, so it moves against it as the view turns.
+  // o: { r, h, base, col (foot), top (crest), snow (crest colour above 0.8 h), n }
+  G.ridges = function (o, rnd) {
+    const n = o.n || 120, pos = [], col = [], idx = [], cb = new T.Color(o.col), ct = new T.Color(o.top == null ? o.col : o.top), cs = o.snow != null ? new T.Color(o.snow) : null, ph = [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28, rnd() * 6.28];
+    for (let i = 0; i <= n; i++) {
+      const a = (i % n) / n * PI * 2, k = 0.5 + 0.26 * Math.sin(a * 2 + ph[0]) + 0.2 * Math.sin(a * 5 + ph[1]) + 0.13 * Math.sin(a * 11 + ph[2]) + 0.08 * Math.sin(a * 23 + ph[3]), hh = Math.max(0.6, o.h * k);
+      const x = Math.sin(a) * o.r, z = Math.cos(a) * o.r, c = cs && k > 0.8 ? cs : ct;
+      pos.push(x, o.base == null ? -1 : o.base, z, x * 1.03, hh, z * 1.03); col.push(cb.r, cb.g, cb.b, c.r, c.g, c.b);
+      if (i < n) { const j = i * 2; idx.push(j, j + 2, j + 1, j + 1, j + 2, j + 3); }
+    }
+    const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new T.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+    const m = new T.Mesh(g, new T.MeshBasicMaterial({ vertexColors: true, fog: false, side: T.DoubleSide })); m.frustumCulled = false;
+    return m;
   };
   G.reeds = function (b, x, z, n, rnd, col) {
     for (let i = 0; i < (n || 8); i++) { const px = x + (rnd() - 0.5) * 1.6, pz = z + (rnd() - 0.5) * 1.6, h = 1 + rnd() * 1.1; b.rod(px, 0, pz, px + (rnd() - 0.5) * 0.4, h, pz + (rnd() - 0.5) * 0.4, 0.035, col || 0x6f8a44, 3, 0.01); if (rnd() < 0.35) b.cyl(0.05, 0.05, 0.22, px, h * 0.82, pz, 0x6a4a2a, 5); }
@@ -197,12 +232,23 @@
     });
   };
   // A carved pillar: plinth, shaft, flared capital, a gilt band.
-  G.pillar = function (b, x, z, h, r, col, gold) {
-    h = h || 5; r = r || 0.34; col = col || 0xb98a62; gold = gold == null ? 0xd9a53a : gold;
-    b.box(r * 3, 0.3, r * 3, x, 0, z, G.shade(col, 0.85)); b.cyl(r * 1.15, r * 1.3, 0.3, x, 0.3, z, col, 10);
-    b.cyl(r * 0.9, r, h - 1.3, x, 0.6, z, col, 10, 0, 0, 0, G.shade(col, 1.15));
-    if (gold) { b.cyl(r * 1.04, r * 1.04, 0.14, x, 1.25, z, gold, 10); b.cyl(r * 0.98, r * 0.98, 0.1, x, h - 1.05, z, gold, 10); }
-    b.cyl(r * 1.5, r * 0.9, 0.38, x, h - 0.7, z, G.shade(col, 1.08), 10); b.box(r * 3.3, 0.3, r * 3.3, x, h - 0.32, z, G.shade(col, 0.9));
+  G.pillar = function (b, x, z, h, r, col, gold) {   // a stepped foot, a pot-bellied base, an eight-sided shaft banded in gold, a lotus cap under a square slab with brackets
+    h = h || 5; r = r || 0.34; col = col || 0xb98a62; gold = gold == null ? 0xd9a53a : gold; const dk = G.shade(col, 0.8), lt = G.shade(col, 1.14);
+    b.box(r * 3.3, 0.16, r * 3.3, x, 0, z, dk); b.box(r * 2.8, 0.16, r * 2.8, x, 0.16, z, G.shade(col, 0.9));
+    b.geo(new T.SphereGeometry(r * 1.32, 10, 6).scale(1, 0.62, 1), x, 0.54, z, 0, 0, 0, dk, col);
+    b.cyl(r * 0.86, r * 0.98, h - 1.75, x, 0.76, z, col, 8, 0, 0, 0, lt);
+    if (gold) { b.cyl(r * 1.04, r * 1.04, 0.1, x, 0.86, z, gold, 8); b.cyl(r * 1.0, r * 1.0, 0.08, x, 1.5, z, gold, 8); b.cyl(r * 0.95, r * 0.95, 0.08, x, h - 1.55, z, gold, 8); b.cyl(r * 0.93, r * 0.93, 0.06, x, h - 1.3, z, gold, 8); }
+    for (let i = 0; i < 3 && h > 4.5; i++) b.cyl(r * 0.95, r * 0.95, 0.045, x, 2.2 + i * ((h - 4.4) / 3), z, dk, 8);
+    b.geo(new T.SphereGeometry(r * 1.2, 10, 5).scale(1, 0.5, 1), x, h - 0.98, z, 0, 0, 0, col, lt); b.cyl(r * 1.55, r * 1.0, 0.3, x, h - 0.9, z, lt, 10); b.box(r * 3.5, 0.26, r * 3.5, x, h - 0.6, z, G.shade(col, 0.92));
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) b.box(dx ? r * 1.5 : r * 0.9, 0.34, dz ? r * 1.5 : r * 0.9, x + dx * r * 1.9, h - 0.34, z + dz * r * 1.9, dk);
+  };
+  // A cusped arch between two points at a height, with the wall over it up to the roof.
+  G.arch = function (b, ax, az, bx, bz, y, top, col, gold) {
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2, d = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az) + PI / 2, R_ = d / 2 - 0.2;
+    b.geo(new T.TorusGeometry(R_, 0.13, 6, 14, PI).scale(1, 0.62, 1), mx, y, mz, 0, ry, 0, G.shade(col, 0.86), col);
+    if (gold) b.geo(new T.TorusGeometry(R_ - 0.16, 0.035, 5, 14, PI).scale(1, 0.62, 1), mx, y, mz, 0, ry, 0, gold);
+    for (let i = 1; i < 6; i++) { const a = (i / 6) * PI; b.sph(0.1, mx + Math.cos(ry) * Math.cos(a) * (R_ - 0.3), y + Math.sin(a) * (R_ - 0.3) * 0.62, mz - Math.sin(ry) * Math.cos(a) * (R_ - 0.3), gold || col, 1, 6); }
+    if (top > y + R_ * 0.62) b.box(d, top - (y + R_ * 0.62) + 0.05, 0.36, mx, y + R_ * 0.62 - 0.05, mz, G.shade(col, 0.9), 0, ry, 0, G.shade(col, 0.72));
   };
   // A wall from a to b with a walk and merlons.
   G.wall = function (b, ax, az, bx, bz, h, t, col, merlons) {
@@ -315,8 +361,41 @@
   // ---------- Things that move: built as small groups so their parts can turn ----------
   const HORSE_COLS = [0x8a5a34, 0xd8d0c0, 0x4a3426, 0xb08a5a, 0x6a6a6a];
   // A horse: legs are pivots at the shoulder and hip, swung by G.gallop.
+  // ---------- Beasts modelled in Blender (tools/blender/props.py, after the artist's sheets): G.PROPS ----------
+  // A prop is one set of points with named parts and colour roles; a part that swings (a leg, the trunk) is written about
+  // its own joint (pivots). Until a prop's file has arrived the code-built beast below stands in for it.
+  const b64 = (s) => { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+  function propData(P) {
+    if (P._d) return P._d;
+    const p16 = new Int16Array(b64(P.pos).buffer), pos = new Float32Array(P.n * 3); for (let i = 0; i < P.n * 3; i++) pos[i] = p16[i] / P.scale;
+    const n8 = new Int8Array(b64(P.nor).buffer), nor = new Float32Array(P.n * 3); for (let i = 0; i < P.n * 3; i++) nor[i] = n8[i] / 127;
+    P.pos = P.nor = null;
+    return (P._d = { pa: new T.BufferAttribute(pos, 3), na: new T.BufferAttribute(nor, 3), col: b64(P.col), idx: new Uint16Array(b64(P.idx).buffer), geo: new Map() });
+  }
+  // The named parts of a prop as one mesh, its roles coloured as asked ({ coat: 0x7a4a2a, tack: 0x8a1f24 }).
+  G.propMesh = function (name, parts, roleCols) {
+    const P = G.PROPS && G.PROPS[name]; if (!P) return null;
+    const D = propData(P), list = (Array.isArray(parts) ? parts : [parts]).filter((k) => P.parts[k]);
+    const cols = P.roles.map((r, i) => new T.Color(roleCols && roleCols[r] != null ? roleCols[r] : P.cols[i])), ck = cols.map((c) => c.getHexString()).join(""), key = list.join(",") + "|" + ck;
+    let geo = D.geo.get(key);
+    if (!geo) {
+      let ca = D.geo.get("c|" + ck);
+      if (!ca) { const col = new Float32Array(P.n * 3); for (let i = 0; i < P.n; i++) { const q = cols[D.col[i]]; col[i * 3] = q.r; col[i * 3 + 1] = q.g; col[i * 3 + 2] = q.b; } ca = new T.BufferAttribute(col, 3); D.geo.set("c|" + ck, ca); }
+      let len = 0; for (const k of list) len += P.parts[k][1];
+      const idx = new Uint16Array(len); let o = 0; for (const k of list) { const [st, l] = P.parts[k]; idx.set(D.idx.subarray(st, st + l), o); o += l; }
+      geo = new T.BufferGeometry(); geo.setAttribute("position", D.pa); geo.setAttribute("normal", D.na); geo.setAttribute("color", ca); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.userData.keep = true; D.geo.set(key, geo);
+    }
+    const m = new T.Mesh(geo, G.mat.vc), pv = P.pivots[list[0]]; if (pv) m.position.set(pv[0], pv[1], pv[2]); m.frustumCulled = false;
+    return m;
+  };
+  function beast(name, body, legs, rc, extra) {   // a body, four legs that swing from the shoulder and the hip, and anything else that moves
+    const g = new T.Group(); g.add(G.propMesh(name, body, rc)); g.userData.legs = legs.map((l) => { const m = G.propMesh(name, l, rc); g.add(m); return m; });
+    for (const k in extra || {}) { const m = G.propMesh(name, extra[k], rc); g.add(m); g.userData[k] = m; }
+    return g;
+  }
   G.horse = function (col, tack) {
     col = col == null ? HORSE_COLS[Math.floor(Math.random() * HORSE_COLS.length)] : col;
+    if (G.PROPS && G.PROPS.horse) { const t = !!tack, L = (k) => (t ? [k, k + "t"] : [k]); return beast("horse", t ? ["body", "tack"] : ["body"], [L("legFL"), L("legFR"), L("legHL"), L("legHR")], { coat: col, dark: G.shade(col, 0.5), tack: tack || 0x8a1f24 }); }
     const g = new T.Group(), b = new Builder(), dark = G.shade(col, 0.62), GOLDH = 0xd9a53a;
     b.geo(new T.SphereGeometry(0.42, 14, 9).scale(1, 0.95, 1.95), 0, 1.25, 0, 0, 0, 0, col);                    // the barrel
     b.geo(new T.SphereGeometry(0.4, 12, 8).scale(1.02, 1.05, 0.9), 0, 1.3, 0.55, 0, 0, 0, col);                 // the chest and shoulders
@@ -408,7 +487,17 @@
   // Turn a chariot's wheels and run its horses for a frame.
   G.roll = function (ch, dist, t, speed) { for (const w of ch.userData.wheels || []) w.rotation.x = dist / 0.72; (ch.userData.horses || []).forEach((h, i) => G.gallop(h, t * 11 + i * 1.3, speed)); if (ch.userData.banner) G.wave(ch.userData.banner, t); };
   // A war elephant with a howdah; its legs and trunk are pivots.
+  function howdah(b, cloth, GOLDE) {
+    // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.
+    b.box(1.6, 0.14, 1.7, 0, 3.72, -0.2, 0x5a3a22); for (const sx of [-1, 1]) { b.box(0.07, 0.5, 1.7, sx * 0.78, 3.86, -0.2, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(0.09, 0.05, 1.74, sx * 0.78, 4.36, -0.2, GOLDE); }
+    for (const sz of [-1, 1]) { b.box(1.6, 0.5, 0.07, 0, 3.86, -0.2 + sz * 0.83, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(1.64, 0.05, 0.09, 0, 4.36, -0.2 + sz * 0.83, GOLDE); for (let k = -1; k <= 1; k++) b.sph(0.05, k * 0.5, 4.1, -0.2 + sz * 0.87, GOLDE, 1, 6); }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.72, 4.36, -0.2 + sz * 0.77, sx * 0.72, 5.32, -0.2 + sz * 0.77, 0.035, GOLDE, 6);
+    b.geo(new T.SphereGeometry(1.1, 14, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.38, 1.05), 0, 5.3, -0.2, 0, 0, 0, GOLDE, 0xf0cf70); b.sph(0.09, 0, 5.74, -0.2, GOLDE, 1.4, 7);
+    for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.sph(0.04, Math.sin(a) * 1.1, 5.24, -0.2 + Math.cos(a) * 1.15, k % 2 ? cloth : 0xf4ecd6, 1.6, 4); }
+    b.rod(0.35, 3.8, 1.2, 0.35, 4.7, 1.3, 0.02, 0x3a342c, 4); b.cone(0.05, 0.14, 0.35, 4.7, 1.3, 0x8a8a8a, 5);
+  }
   G.elephant = function (cloth) {
+    if (G.PROPS && G.PROPS.elephant) { const g = beast("elephant", ["body", "cloth"], ["legFL", "legFR", "legHL", "legHR"], { tack: cloth || 0xa3302a }, { trunk: "trunk" }), hb = new Builder(); howdah(hb, cloth || 0xa3302a, 0xd9a53a); g.children[0].add(hb.mesh()); /* (it rides the body, and rocks with it) */ return g; }
     const g = new T.Group(), b = new Builder(), col = 0x7d7a76, dk = G.shade(col, 0.82), GOLDE = 0xd9a53a; cloth = cloth || 0xa3302a;
     b.geo(new T.SphereGeometry(1.25, 16, 11).scale(1, 1.05, 1.55), 0, 2.5, 0, 0, 0, 0, col);                                  // the body
     b.geo(new T.SphereGeometry(0.85, 14, 10).scale(1, 1.1, 1), 0, 3.0, 2.0, 0, 0, 0, col);                                   // the head, with its two domes
@@ -421,13 +510,7 @@
     for (const sx of [-1, 1]) { b.box(0.05, 0.1, 3.0, sx * 1.27, 2.62, -0.1, GOLDE); for (let k = 0; k < 6; k++) b.sph(0.06, sx * 1.27, 2.5, -1.35 + k * 0.5, k % 2 ? GOLDE : 0xf4ecd6, 1.5, 5); }
     b.geo(new T.SphereGeometry(0.87, 10, 5, 0, PI * 2, 0, PI * 0.42).scale(0.8, 1, 1), 0, 3.08, 2.02, 0.85, 0, 0, cloth); b.sph(0.12, 0, 3.5, 2.72, GOLDE, 1, 8); b.sph(0.07, 0, 3.25, 2.83, 0xb2432a, 1, 6);
     b.torus(1.3, 0.05, 0, 2.5, 0.6, 0x5a3a22, 0, 0, 0, 18); b.sph(0.11, 0, 1.2, 0.6, GOLDE, 1.2, 7);
-    // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.
-    b.box(1.6, 0.14, 1.7, 0, 3.72, -0.2, 0x5a3a22); for (const sx of [-1, 1]) { b.box(0.07, 0.5, 1.7, sx * 0.78, 3.86, -0.2, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(0.09, 0.05, 1.74, sx * 0.78, 4.36, -0.2, GOLDE); }
-    for (const sz of [-1, 1]) { b.box(1.6, 0.5, 0.07, 0, 3.86, -0.2 + sz * 0.83, 0x7a5232, 0, 0, 0, 0x9a6a3c); b.box(1.64, 0.05, 0.09, 0, 4.36, -0.2 + sz * 0.83, GOLDE); for (let k = -1; k <= 1; k++) b.sph(0.05, k * 0.5, 4.1, -0.2 + sz * 0.87, GOLDE, 1, 6); }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.rod(sx * 0.72, 4.36, -0.2 + sz * 0.77, sx * 0.72, 5.32, -0.2 + sz * 0.77, 0.035, GOLDE, 6);
-    b.geo(new T.SphereGeometry(1.1, 14, 5, 0, PI * 2, 0, PI / 2).scale(1, 0.38, 1.05), 0, 5.3, -0.2, 0, 0, 0, GOLDE, 0xf0cf70); b.sph(0.09, 0, 5.74, -0.2, GOLDE, 1.4, 7);
-    for (let k = 0; k < 12; k++) { const a = (k / 12) * PI * 2; b.sph(0.04, Math.sin(a) * 1.1, 5.24, -0.2 + Math.cos(a) * 1.15, k % 2 ? cloth : 0xf4ecd6, 1.6, 4); }
-    b.rod(0.35, 3.8, 1.2, 0.35, 4.7, 1.3, 0.02, 0x3a342c, 4); b.cone(0.05, 0.14, 0.35, 4.7, 1.3, 0x8a8a8a, 5);
+    howdah(b, cloth, GOLDE);
     b.rod(0, 2.7, -1.88, 0, 1.6, -2.18, 0.07, dk, 5, 0.03); b.sph(0.09, 0, 1.52, -2.2, 0x2a2420, 1.5, 5);                     // the tail
     g.add(b.mesh());
     const tb = new Builder(); tb.rod(0, 0, 0, 0, -1.0, 0.25, 0.27, col, 9, 0.19); tb.rod(0, -1.0, 0.25, 0, -1.9, 0.55, 0.19, col, 9, 0.1); tb.sph(0.11, 0, -1.92, 0.57, dk, 1, 6);
