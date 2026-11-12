@@ -190,7 +190,7 @@
   // =====================================================================================================
   // Steady: keep your hand inside the band while it drifts.
   // =====================================================================================================
-  SETUP.steady = { clear: 9, setup(ctx) { meAt(ctx, 0, 0.8, Math.PI * 0.8, ctx.t.horse ? "hold" : "kneel", { item: null }); if (ctx.t.horse) { const h = G.horse(0x7a4a2a, true); h.position.set(-1.4, 0, -0.4); h.rotation.y = 1; ctx.add(h); ctx.x = { h }; } ctx.cam([2.4, 1.9, 4.6], [-0.3, 1, 0.2], 40, true); } };
+  SETUP.steady = { clear: 9, setup(ctx) { meAt(ctx, 0, 0.8, Math.PI * 0.8, ctx.t.horse ? "hold" : "kneel", { item: null }); if (ctx.t.horse) { const h = G.horse(0x7a4a2a, true); h.position.set(-1.4, 0, -0.4); h.rotation.y = 1; ctx.add(h); ctx.x = { h }; } ctx.cam([2.4, 1.9, 4.6], [-0.3, 1, 0.2], 40, true, 1.7); } };
   PLAY.steady = function (ctx) {
     if (ctx.t.divine) return steadyDivine(ctx);
     const t = ctx.t, half = clamp(0.11 + ctx.power * 0.015, 0.1, 0.2), secs = t.secs || 15, g = gauge(ctx, "h");
@@ -446,7 +446,7 @@
   // =====================================================================================================
   SETUP.fuse = { clear: 9, setup(ctx) {
     meAt(ctx, 0, 2.4, Math.PI, "sneak", { item: "dagger" });
-    G.setSky(G.skyName, { amb: 0.75, hi: 1.1, si: 0.9, fd: 0.006 }); // (a cellar by lamplight, not a black screen)
+    G.setSky(G.skyName, { amb: 0.75, hi: 1.1, si: 0.9, fd: 0.006, top: 0x24160c, hor: 0x2e1c10, bot: 0x24160c }); // (a cellar by lamplight, not a black screen; what shows past the roof is dark timber, not a void)
     const lines = [-3, 0, 3].map((lx) => { const m = ctx.add(new T.Mesh(new T.BoxGeometry(0.3, 0.05, 6), basic(0xd9a53a, 0.85)), G.fxRoot); m.position.set(lx, 0.05, -1.4); return m; });
     const lamp = glow(0xffc070, 7); lamp.position.set(-3, 1.2, -1.5); ctx.add(lamp, G.fxRoot); const pool = ctx.add(new T.Mesh(new T.CircleGeometry(1.5, 28).rotateX(-Math.PI / 2), basic(0xffd27a, 0.3)), G.fxRoot); pool.position.set(-3, 0.04, -1.4);
     const pick = ctx.add(new T.Mesh(new T.RingGeometry(0.55, 0.7, 28).rotateX(-Math.PI / 2), basic(0x8fd0ff, 0.9)), G.fxRoot); pick.position.set(0, 0.07, 2.4);
@@ -612,7 +612,7 @@
     });
   };
   SETUP.escape = { clear: 14, setup(ctx) {
-    ctx.st = G.setStage("stage_lac_cellar", { clear: 14, open: true }); G.setSky("fire", { amb: 1.05, hi: 1.5, fd: 0.004 }); // (roofless: the view is from above, and under the cellar's roof it saw nothing at all)
+    ctx.st = G.setStage("stage_lac_cellar", { clear: 14, open: true }); G.setSky("fire", { amb: 1.5, hi: 1.9, si: 1.6, sun: 0xffc890, fd: 0.003 }); // (roofless: the view is from above, and under the cellar's roof it saw nothing at all)
     const sx = { door: 4, hall: 0, deep: -4 }[ctx.t.start] != null ? { door: 4, hall: 0, deep: -4 }[ctx.t.start] : 0;
     meAt(ctx, sx, -4, 0, "stand", { item: null });
     const walls = [[-3, -2, 0.5, 5], [1, 1.5, 6, 0.5], [4.5, -2.5, 0.5, 4], [-5, 3, 5, 0.5]];

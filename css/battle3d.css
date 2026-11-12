@@ -168,7 +168,7 @@ body.in3d #b3d { display: block; }
 @media (max-aspect-ratio: 21/20) {
   .bhud.touch .b-top { left: calc(10px + var(--safe-l)); transform: none; align-items: flex-start; text-align: left; max-width: calc(100% - 150px); padding: 4px 12px 5px; }
   .bhud.touch .b-line { left: calc(10px + var(--safe-l)); right: auto; transform: none; width: calc(100% - 150px); text-align: left; }
-  .bhud.touch .b-title { font-size: 1rem; }
+  .bhud.touch .b-title { font-size: 1rem; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; } /* (a long title takes a second line, not three dots) */
   .bhud.touch .b-line.in { animation-name: line-left; }
   .b-card.low { bottom: calc(10px + var(--safe-b)); }
 }
