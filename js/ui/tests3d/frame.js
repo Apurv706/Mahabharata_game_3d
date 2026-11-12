@@ -112,11 +112,12 @@
     // The card: what to do, what is at stake, how your stats help.
     const card = U.el('<div class="trialcard" role="dialog"></div>');
     function intro() {
+      const how3 = U.HOWTO3D && U.HOWTO3D[kind]; // (where the 3D test is played differently from the 2D one, it says so in its own words)
       card.innerHTML = '<span class="kind yours">' + U.tr(K.val(t.practice) ? "A first test" : "A test") + "</span><h2>" + U.t(K.val(c.t)) + "</h2>" +
         (t.practice ? '<p class="aside">' + U.tr("A first test. This one does not count; it shows you how tests work.") + "</p>" : "") +
-        (t.howto ? "" : t.rules ? '<p class="game-rules">' + U.t(K.val(t.rules)) + "</p>" : "") +
+        (t.howto || how3 ? "" : t.rules ? '<p class="game-rules">' + U.t(K.val(t.rules)) + "</p>" : "") +
         (t.twist && TWIST[t.twist] ? '<p class="aside">' + U.tr(TWIST[t.twist]) + "</p>" : "") +
-        (t.howto ? '<p class="cr-lbl">' + U.tr("How to play") + "</p><ol>" + K.val(t.howto).map((s) => "<li>" + U.t(K.val(s)) + "</li>").join("") + "</ol>" : "") +
+        (t.howto || how3 ? '<p class="cr-lbl">' + U.tr("How to play") + "</p><ol>" + (how3 || K.val(t.howto)).map((s) => "<li>" + U.t(K.val(s)) + "</li>").join("") + "</ol>" : "") +
         (ctx.how ? '<p class="aside">' + U.tr(ctx.how) + "</p>" : "") +
         (t.stakes ? '<ul class="stakes"><li class="win"><b>' + U.tr("If you succeed") + "</b> " + U.t(K.val(t.stakes[0])) + '</li><li class="lose"><b>' + U.tr("If you fail") + "</b> " + U.t(K.val(t.stakes[1])) + "</li></ul>" : "") +
         (t.attr || t.skill ? '<p class="small muted">' + U.tr("Helped by your {what}: {n}. The higher, the easier.", { what: statNames(t), n: power }) + "</p>" : "") + '<div class="btnrow"></div>';

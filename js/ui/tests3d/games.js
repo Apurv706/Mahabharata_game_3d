@@ -612,15 +612,19 @@
     });
   };
   SETUP.escape = { clear: 14, setup(ctx) {
-    ctx.st = G.setStage("stage_lac_cellar", { clear: 14 }); G.setSky("fire");
+    ctx.st = G.setStage("stage_lac_cellar", { clear: 14, open: true }); G.setSky("fire", { amb: 1.05, hi: 1.5, fd: 0.004 }); // (roofless: the view is from above, and under the cellar's roof it saw nothing at all)
     const sx = { door: 4, hall: 0, deep: -4 }[ctx.t.start] != null ? { door: 4, hall: 0, deep: -4 }[ctx.t.start] : 0;
     meAt(ctx, sx, -4, 0, "stand", { item: null });
     const walls = [[-3, -2, 0.5, 5], [1, 1.5, 6, 0.5], [4.5, -2.5, 0.5, 4], [-5, 3, 5, 0.5]];
-    for (const [x, z, wd, d] of walls) { const m = ctx.add(mesh((b) => b.box(wd, 2.2, d, 0, 0, 0, 0x7a2a1a))); m.position.set(x, 0, z); }
+    for (const [x, z, wd, d] of walls) { const m = ctx.add(mesh((b) => b.box(wd, 2.2, d, 0, 0, 0, 0xb0603c))); m.position.set(x, 0, z); }
     const hole = ctx.add(new T.Mesh(new T.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2), basic(0x7fe08a, 0.8)), G.fxRoot); hole.position.set(7, 0.06, 5.2);
     const sleepers = [[-1, 3.8], [3, -0.5]].map(([x, z]) => { const f = ctx.figure("soldier", { item: null }); f.place(x, z, 1); f.pose("sleep", true); f.root.position.y = 0.05; return { f, x, z, up: false }; });
-    ctx.x = { walls, sleepers, sx }; ctx.cam([0, 16, 12], [0, 0, 0], 46, true);
+    for (const s of sleepers) { const r = ctx.add(new T.Mesh(new T.RingGeometry(0.75, 0.9, 24).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.8)), G.fxRoot); r.position.set(s.x, 0.07, s.z); s.ring = r; }
+    const hr = ctx.add(new T.Mesh(new T.RingGeometry(1.0, 1.25, 28).rotateX(-Math.PI / 2), basic(0x7fe08a, 0.9)), G.fxRoot); hr.position.set(7, 0.07, 5.2);
+    const arrow = ctx.add(new T.Mesh(new T.ConeGeometry(0.28, 0.8, 3).rotateX(Math.PI / 2), basic(0x7fe08a, 0.95)), G.fxRoot);
+    ctx.x = { walls, sleepers, sx, arrow, hr }; ctx.cam([0, 16, 12], [0, 0, 0], 46, true);
   } };
+  U.HOWTO3D = { escape: ["Tap or hold the floor where you want to run. The red tide is the fire: stay ahead of it.", "The green arrow at your feet points to the tunnel: the green ring. Walls must be gone round.", "Run through a gold ring to wake a sleeper. Each one you wake slows you a little."] };
   PLAY.escape = function (ctx) {
     const t = ctx.t, x = ctx.x, per = (clamp(1.4 + ctx.power * 0.04, 1.4, 1.75) + 0.3 * Math.min(3, K.S.fusesCut || 0)) * 1.5, w = walker(ctx, 3.6, [8, 6]); w.x = x.sx; w.z = -4;
     let fire = -9.5, burns = 0, carried = 0, safe = 0;
@@ -632,6 +636,8 @@
       fire += (3.2 / per) * dt; wall.position.set((fire - 9.5) / 2, 0.06, 0); wall.scale.x = Math.max(0.1, fire + 9.5);
       if (K.rng() < dt * 20) G.fx.burst("ember", V(fire - K.rng() * 2, 0.2, (K.rng() - 0.5) * 12), { n: 2 });
       const ox = w.x, oz = w.z; w.step(dt, 1 - carried * 0.15);
+      { const a = Math.atan2(7 - w.x, 5.2 - w.z); x.arrow.position.set(w.x + Math.sin(a) * 1.1, 0.5, w.z + Math.cos(a) * 1.1); x.arrow.rotation.y = a; x.hr.scale.setScalar(1 + 0.12 * Math.sin(fire * 6)); for (const s of x.sleepers) if (s.ring) s.ring.visible = !s.up;
+        if (G.W / G.H < 0.9) ctx.cam([w.x * 0.75, 15, w.z + 8.5], [w.x * 0.75, 0, w.z * 0.9], 62, false); } // (a narrow screen follows you; a wide one sees the whole house)
       for (const [wx, wz, wd, d] of x.walls) if (Math.abs(w.x - wx) < wd / 2 + 0.35 && Math.abs(w.z - wz) < d / 2 + 0.35) { w.x = ox; w.z = oz; w.tx = null; ctx.me.root.position.set(ox, 0, oz); }
       for (const s of x.sleepers) { if (!s.up && Math.hypot(w.x - s.x, w.z - s.z) < 1) { s.up = true; carried++; s.f.pose("stand"); s.f.root.position.y = 0; sfx("tap"); ctx.toast(tx("You shake one awake. He runs with you."), "good"); draw(); } if (s.up) { s.f.root.position.x += (w.x - 0.8 - s.f.root.position.x) * dt * 2.5; s.f.root.position.z += (w.z - 0.6 - s.f.root.position.z) * dt * 2.5; s.f.speed = ctx.me.speed; } }
       if (safe > 0) safe -= dt;

@@ -75,7 +75,7 @@
         if (!o.narrow && !o.low) for (let z = -len + 12; z <= 10; z += 8.4) b.box(0.1, 3, 2.2, sx * (w + 2.25), 2.4, z, sx > 0 ? 0x8a1f24 : 0x2d4a7a, 0, 0, 0, 0xd9a53a); // hangings
       }
       b.box(2 * (w + 3), hgt, 0.6, 0, 0, -len + 5, G.shade(stone, 0.7), 0, 0, 0, G.shade(stone, 0.9));
-      b.box(2 * (w + 3.4), 0.5, len + 9, 0, hgt, -2, 0x2a1a10);
+      if (!o.open) b.box(2 * (w + 3.4), 0.5, len + 9, 0, hgt, -2, 0x2a1a10); // (open: no roof, for a scene looked down on from above)
       if (o.dice || o.court) { b.box(7, 0.35, 3.2, 0, 0, -len + 8, G.shade(stone, 0.9)); b.box(5.6, 0.3, 2.4, 0, 0.35, -len + 8, stone); G.throne(b, 0, -len + 8, 0, 0x8a1f24); b.at(0, 0.65, 0, 0, 1, () => {}); for (const sx of [-1, 1]) G.throne(b, sx * 2.3, -len + 8.3, -sx * 0.25, sx > 0 ? 0x2d4a7a : 0x5a2a6a); }
       if (o.dice) { const m = new T.Mesh(new T.PlaneGeometry(4.6, 4.6).rotateX(-PI / 2), new T.MeshLambertMaterial({ map: G.tex("chaupar") })); m.position.set(0, 0.03, -1.5); m.receiveShadow = true; st.add(m); for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2 + 0.4; G.cushion(b, Math.sin(a) * 3.3, -1.5 + Math.cos(a) * 3.3, i % 2 ? 0xa3302a : 0x2d4a7a, 1.2); } }
       else if (!o.low && !o.narrow && !o.cots && !o.table) { const m = new T.Mesh(new T.PlaneGeometry(7, 11).rotateX(-PI / 2), new T.MeshLambertMaterial({ map: G.tex("carpet") })); m.position.set(0, 0.03, -2); m.receiveShadow = true; st.add(m); }
