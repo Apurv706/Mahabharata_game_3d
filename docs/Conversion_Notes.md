@@ -277,3 +277,17 @@ The owner asked for the figures to be compared with those of popular games (`doc
 
 **Not in this stage** (the rest of the plan): the fuller skeleton and base body, builds that tell heroes apart and an army mark, faces from the portraits with a blink and expressions, weight in the blows and things that swing. Known and still open: a bent knee can push the lower cloth through the pleated panel hanging in front of it (cloth against cloth).
 
+## The fuller skeleton (Nov 12, the figure plan: second stage, first half)
+
+The poses still turn thirteen joints. Each model now brings 28 more, and the game drives them from those thirteen every frame (`G.rigDrive` in `js/g3/model.js`; the model's `rig` block says where each joint is and what it hangs from). No pose table was changed.
+
+- **Bends keep their girth.** At the waist, neck, and each shoulder, elbow, hip and knee there is a joint that turns half as far as the joint itself. Skin that used to be shared between two joints (and so caved in at a bend) is held by the half-way joint instead. This is done when a model is written out (`PAIRS` in `tools/blender/cast.py`), for cloth as well as skin. Each point is now held by up to four joints (two before).
+- **Collars.** The shoulder lifts as the arm rises past shoulder height and swings forward as it reaches; the arm's own turn is corrected so every pose points the arm where it did.
+- **Feet.** A foot stays flat while the shin leans; on a raised heel it tips until the ball of the foot is down; well off the ground it hangs. Before, the foot was one piece with the shin and dug its toes in.
+- **Hands open.** Two joints across the four fingers. Closed on a weapon, bow or in a fist stance; eased open when the hand is empty.
+- **Faces.** A jaw, a mouth, eyelids and two brows. Everyone blinks. Three faces: set, shouting (through a strike) and pained (hit, down); eyes shut when asleep or fallen. `f.mood` forces one.
+- **Cloth and hair swing.** The front pleats and panel, sash ends, the upper cloth's ends front and back, a veil, long hair, braids and locks now hang from the joints the game already swung for the older figures (`sF`, `sS`, `sB`, `sH`, and a new `sC` down the chest). The pleats are carried forward by a rising thigh, so a knee no longer comes through them.
+- **Spikes at the hip, found on the way.** The automatic weights let a hand hanging by the thigh pull a little on the thigh's skin and on the cloth taken from it, so raising the arm drew a white spike out of the lower cloth. Skin is now held by its own limb only. A second old slip: shoulder plates and brows were assigned left or right by a sum that came to nothing; they now go by where the piece is.
+
+**Not checked:** anything on a real phone; the swing of cloth and hair was looked at in stills, not judged in motion at speed.
+

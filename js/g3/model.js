@@ -13,7 +13,8 @@
     const n = M.n, p16 = new Int16Array(bytes(M.pos).buffer), pos = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) pos[i] = p16[i] / M.scale;
     const n8 = new Int8Array(bytes(M.nor).buffer), nor = new Float32Array(n * 3); for (let i = 0; i < n * 3; i++) nor[i] = n8[i] / 127;
     const j = bytes(M.jnt), w = bytes(M.wgt), ji = new Uint16Array(n * 4), jw = new Float32Array(n * 4);
-    for (let i = 0; i < n; i++) { ji[i * 4] = j[i * 2]; ji[i * 4 + 1] = j[i * 2 + 1]; jw[i * 4] = w[i] / 255; jw[i * 4 + 1] = 1 - w[i] / 255; }
+    if (M.inf === 4) for (let i = 0; i < n * 4; i++) { ji[i] = j[i]; jw[i] = w[i] / 255; }   // (up to four joints hold each point)
+    else for (let i = 0; i < n; i++) { ji[i * 4] = j[i * 2]; ji[i * 4 + 1] = j[i * 2 + 1]; jw[i * 4] = w[i] / 255; jw[i * 4 + 1] = 1 - w[i] / 255; }
     M.pos = M.nor = M.jnt = M.wgt = null; /* (the text they came in is not needed again) */
     const D = (M._d = { pos, nor, ji, jw, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
     edges(M, D, p16, EDGED); cavity(M, D, p16); covers(M, D);
@@ -36,7 +37,8 @@
       if (!(SKIRT[k] || SHELL[k]) || nb >= 30) continue; const b = 1 << nb++, [s, l] = M.parts[k]; bit[k] = b;
       let x0 = 9, y0 = 9, z0 = 9, x1 = -9, y1 = -9, z1 = -9; for (let i = s; i < s + l; i++) { const v = idx[i] * 3; if (pos[v] < x0) x0 = pos[v]; if (pos[v] > x1) x1 = pos[v]; if (pos[v + 1] < y0) y0 = pos[v + 1]; if (pos[v + 1] > y1) y1 = pos[v + 1]; if (pos[v + 2] < z0) z0 = pos[v + 2]; if (pos[v + 2] > z1) z1 = pos[v + 2]; }
       if (SKIRT[k]) { // hips and legs (not an arm hanging beside them) from a little above the hem to the waist
-        for (const v of body) { const y = pos[v * 3 + 1], j = D.jw[v * 4] >= D.jw[v * 4 + 1] ? D.ji[v * 4] : D.ji[v * 4 + 1]; if ((j === 0 || j >= 9) && y > y0 + 0.05 && y < y1 + 0.012) cov[v] |= b; }
+        const arm = M.joints.map((k) => /^[aewuxcgh][LR]$/.test(k));   // (an arm's own joints, by name: the list has grown)
+        for (const v of body) { const y = pos[v * 3 + 1]; let j = D.ji[v * 4], w = D.jw[v * 4]; for (let q = 1; q < 4; q++) if (D.jw[v * 4 + q] > w) { w = D.jw[v * 4 + q]; j = D.ji[v * 4 + q]; } if (!arm[j] && y > y0 + 0.05 && y < y1 + 0.012) cov[v] |= b; }
         continue; }
       const grid = new Map();
       for (let i = s; i < s + l; i += 3) { const a = idx[i] * 3, c = idx[i + 1] * 3, e = idx[i + 2] * 3;
@@ -170,7 +172,8 @@
     if (!MAT) { MAT = G.surfMat ? G.surfMat({ map: 1, side: T.DoubleSide }) : new T.MeshPhongMaterial({ vertexColors: true, shininess: 26, specular: 0x3a2e20, side: T.DoubleSide }); /* (cloth is one skin, seen from both sides) */ MAT.userData.keep = true; }
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
-    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k])); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
+    if (M.rig) rig(f, M, mesh);
+    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k] || f.j.P)); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
     if (/^player_/.test(sp.model || "") && (sp.heir || sp.eye)) keepsakes(f, sp, M, D, mesh);
     if (M.grip) { // the hollow of each closed hand, in its wrist's own space: a haft is set there, so the fingers are round it (figure.js)
       const at = (j, g) => new T.Vector3(g[0], g[1], g[2]).applyMatrix4(mesh.matrixWorld).applyMatrix4(new T.Matrix4().copy(f.j[j].matrixWorld).invert());
@@ -178,6 +181,78 @@
     if (G.outline) G.outline(f, mesh);
     return mesh;
   };
+  // ---------- The fuller skeleton ----------
+  // The poses turn thirteen joints. A model made with more (tools/blender/cast.py) brings the rest with it, and they
+  // are driven here from those thirteen, every frame:
+  //   T1, N        the waist and the neck: half of the trunk's and the head's turn, so a twist is shared along the spine
+  //   u, x, v, y   shoulder, elbow, hip, knee: half of that joint's turn. Skin at a bend is held by these, and keeps its girth
+  //   c            the collar: it lifts and swings forward with the arm (the arm's own turn is corrected for it)
+  //   f            the foot: it stays flat on the ground while the shin leans, and hangs when the foot is lifted
+  //   g, h         the fingers, at the knuckles and the second joint: closed on a haft, eased open when the hand is empty
+  //   J, M, E, b   jaw, mouth, eyelids, brows: a blink, and a set, pained or shouting face
+  // (sB, sF, sS, sH, sC, the joints that swing cloth and hair, are driven in figure.js.)
+  const ID = new T.Quaternion(), Q1 = new T.Quaternion(), Q2 = new T.Quaternion(), Q3 = new T.Quaternion(), X1 = new T.Vector3(1, 0, 0), V1 = new T.Vector3(), V2 = new T.Vector3(), E1 = new T.Euler();
+  function rig(f, M, mesh) {
+    const j = f.j, W = mesh.matrixWorld, done = {};
+    f.root.updateMatrixWorld(true);
+    const make = (name) => {
+      if (done[name]) return; done[name] = 1; const e = M.rig[name]; if (M.rig[e[0]]) make(e[0]);
+      const par = j[e[0]], at = typeof e[1] === "string" ? j[e[1]] : null; if (!par || (typeof e[1] === "string" && !at)) return;
+      const o = j[name] || (j[name] = new T.Group()), p = at ? at.getWorldPosition(new T.Vector3()) : new T.Vector3(e[1][0], e[1][1], e[1][2]).applyMatrix4(W);
+      par.add(o); o.position.copy(par.worldToLocal(p)); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.updateMatrixWorld(true);
+    };
+    for (const name in M.rig) make(name);
+    for (const c in M.reparent || {}) if (j[c] && j[M.reparent[c]]) j[M.reparent[c]].attach(j[c]);
+    f.root.updateMatrixWorld(true);
+    const sc = (o) => o.getWorldScale(V1).y, ms = mesh.getWorldScale(V2).y;
+    const R = (f.rig = { M, kH: j.H ? ms / sc(j.H) : 1, open: { L: 0, R: 0 }, jaw: 0, mouth: 0, lid: 0, brow: 0, blink: 0, next: 1 + Math.random() * 4, y: {} });
+    for (const k of ["M", "E", "bL", "bR"]) if (j[k]) R.y[k] = j[k].position.y;
+    R.ankle = j.fL ? ankle(j, "L") : 0; R.leg = j.kL ? Math.abs(j.kL.position.y) / 0.45 : 1;
+    return R;
+  }
+  // How high an ankle stands, in the frame the hips move in.
+  function ankle(j, sd) { const l = j["l" + sd], k = j["k" + sd], ft = j["f" + sd];
+    V1.copy(ft.position).applyQuaternion(k.quaternion).add(k.position).applyQuaternion(l.quaternion).add(l.position).applyQuaternion(j.P.quaternion); return V1.y + j.P.position.y; }
+  const STRIKE = /^(slash|slash2|heavy|thrust|smash|sweep|stab|punch|hammer|throw|cheer|roar)$/, HURT = /^(hit|stagger|down|slump|shame|plead)$/, SHUT = /^(sleep|down|slump)$/;
+  G.rigDrive = function (f, dt) {
+    const R = f.rig; if (!R) return; const j = f.j, k = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
+    if (j.T1) j.T1.quaternion.slerpQuaternions(ID, j.T.quaternion, 0.5);
+    if (j.N) j.N.quaternion.slerpQuaternions(ID, j.H.quaternion, 0.5);
+    const fists = /Fist|punch|grab|clasp/.test(f.base || "") || (f.action && /punch|grab/.test(f.action.name || ""));
+    for (let s = 0; s < 2; s++) { const sd = s ? "R" : "L", sx = s ? -1 : 1, a = j["a" + sd], c = j["c" + sd];
+      if (c) { // the collar goes with the arm: up as it rises past the level of the shoulder, forward as it reaches
+        V1.set(0, -1, 0).applyQuaternion(a.quaternion); const up = Math.acos(Math.max(-1, Math.min(1, -V1.y)));
+        const lift = Math.max(0, Math.min(0.5, (up - 0.7) * 0.26)), fwd = Math.max(-0.2, Math.min(0.3, V1.z * 0.3 * Math.sin(up)));
+        E1.set(0, -sx * fwd, sx * lift); c.quaternion.setFromEuler(E1); a.quaternion.premultiply(Q1.copy(c.quaternion).invert()); }
+      const half = (h, src) => { if (j[h + sd]) j[h + sd].quaternion.slerpQuaternions(ID, j[src + sd].quaternion, 0.5); };
+      half("u", "a"); half("x", "e"); half("v", "l"); half("y", "k");
+      const ft = j["f" + sd];
+      if (ft) { // the sole stays level and keeps the leg's heading; a foot well off the ground is let hang
+        Q1.copy(j.P.quaternion).multiply(j["l" + sd].quaternion).multiply(j["k" + sd].quaternion);
+        Q2.set(0, Q1.y, 0, Q1.w); if (Q2.lengthSq() < 1e-6) Q2.identity(); else Q2.normalize();
+        const h = ankle(j, sd) - R.ankle, down = Math.asin(Math.max(0, Math.min(0.9, h / (0.15 * R.leg)))); // (a raised heel: the foot tips until the ball of it is on the ground; higher than that and it hangs)
+        Q2.multiply(Q3.setFromAxisAngle(X1, down)); Q1.invert().multiply(Q2); const ang = 2 * Math.acos(Math.min(1, Math.abs(Q1.w)));
+        ft.quaternion.slerpQuaternions(ID, Q1, (ang > 1.0 ? 1.0 / ang : 1) * (1 - (f.fall || 0))); }
+      const g = j["g" + sd], h = j["h" + sd];
+      if (g && h) { const held = sd === "R" ? !!f.item : !!(f.bow || f.shield), want = held || fists ? 0 : 0.55; R.open[sd] += (want - R.open[sd]) * k;
+        g.rotation.z = sx * R.open[sd] * 0.4; h.rotation.z = sx * R.open[sd] * 1.25; }
+    }
+    if (j.J) { // the face
+      const name = f.action ? f.action.name : "", p = f.action ? f.action.t / f.action.dur : 0;
+      const shout = STRIKE.test(name) && p > 0.25 && p < 0.9, hurt = HURT.test(name) || HURT.test(f.base || "") || (f.fall || 0) > 0.15, shut = SHUT.test(f.base || "") || (f.fall || 0) > 0.8;
+      const mood = f.mood || (shut ? "shut" : shout ? "shout" : hurt ? "pain" : "set"), want = MOODS[mood] || MOODS.set;
+      R.jaw += (want[0] - R.jaw) * k; R.mouth += (want[1] - R.mouth) * k; R.lid += (want[2] - R.lid) * k; R.brow += (want[3] - R.brow) * k;
+      if (dt > 0) { R.next -= dt; if (R.next <= 0) { R.blink = 0.14; R.next = 2.2 + Math.random() * 4.2; } if (R.blink > 0) R.blink -= dt; }
+      const lid = Math.max(R.lid, R.blink > 0 ? Math.sin((R.blink / 0.14) * Math.PI) : 0), kH = R.kH, F = R.M.face || {};
+      j.J.rotation.x = R.jaw;
+      if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; }
+      if (j.E) { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; }
+      if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = (R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }
+    }
+  };
+  // jaw (radians open), mouth (0 a line … 1 open), lids (0 open … 1 shut), brows (+ drawn down at the middle, - lifted there)
+  const MOODS = { set: [0, 0, 0, 0.06], shout: [0.24, 1, 0.12, 0.3], pain: [0.1, 0.5, 0.8, -0.34], shut: [0, 0, 1, 0], glad: [0.05, 0.25, 0.1, -0.1] };
+  G.MOODS = MOODS;
   // What the story put on you, as the 2D puppet shows it: the family amulet on your breast (cracked once it has turned
   // a blow), the palm-leaf manuscript or the purse of the family's debt at your waist, a patch over a lost eye.
   // Each is found a place on this body's own surface and pinned to the joint that carries it.

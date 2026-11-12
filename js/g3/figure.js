@@ -695,9 +695,10 @@
       // Going down: once the knees have given, the whole body goes over about the feet until it lies along the ground.
       const fl = f.fall, over = fl < 0.3 ? 0 : (fl - 0.3) / 0.7, go = over * over * (3 - 2 * over);
       tilt.rotation.x = -go * (PI / 2) * f.fallDir + f.spin; tilt.position.y = go * 0.11 + (f.spin ? 0.5 * Math.abs(Math.sin(f.spin / 2)) * 1.1 : 0);
+      if (f.rig) G.rigDrive(f, f.dt || 0); // (a model with the fuller skeleton: collars, feet, fingers, face and the joints between, js/g3/model.js)
     }
     f.update = function (dt, t) {
-      compute(dt, t);
+      f.dt = dt; compute(dt, t);
       const k = f.exact ? 1 : 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
       for (const key of JOINTS) { const a = c[key], b = tg[key]; a[0] += (b[0] - a[0]) * k; a[1] += (b[1] - a[1]) * k; a[2] += (b[2] - a[2]) * k; }
       c.y += (tg.y - c.y) * k; c.z += (tg.z - c.z) * k;
@@ -723,7 +724,8 @@
         const trail = Math.max(-0.2, Math.min(0.62, vf * 0.1)), fling = Math.max(-0.3, Math.min(0.3, -vs * 0.07 + yaw * 0.045));
         swing("sB", -lean * 0.9 + trail + air, -roll * 0.8 + fling, -0.03, 0.9, 0.34, 8.5, 0.5, 0.05);                                       // the upper cloth's end, down the back
         swing("sF", Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.85 - j.P.rotation.x * 0.8 + Math.min(0, trail * -0.2), -j.P.rotation.z * 0.6 + fling * 0.5, -1.05, 0.05, 0.22, 11, 0.62, 0); // the pleats: the forward thigh carries them
-        swing("sS", -j.P.rotation.x * 0.9 + trail * 0.8 + air, -j.P.rotation.z * 0.8 + fling * 1.2, -0.45, 0.7, 0.4, 7.5, 0.42, 0.06);         // the sash's ends
+        swing("sS", -j.P.rotation.x * 0.9 + trail * 0.8 + air, -j.P.rotation.z * 0.8 + fling * 1.2, -0.45, 0.7, 0.4, 7.5, 0.42, 0.06);
+        if (j.sC) swing("sC", -lean * 0.9 - Math.max(0, trail) * 0.3 + air, -roll * 0.8 + fling * 0.6, -0.9, 0.03, 0.3, 8, 0.5, -0.04);                                // an upper cloth's end down the chest (modelled figures)         // the sash's ends
         swing("sH", -(lean + j.H.rotation.x) * 0.9 + trail * 0.75, -(roll + j.H.rotation.z) * 0.8 + fling * 0.8, -0.02, 0.75, 0.3, 10, 0.55, 0.04); // hair
       }
       if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
