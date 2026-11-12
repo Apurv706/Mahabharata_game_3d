@@ -315,7 +315,9 @@ LIDZ = HZ + 0.0065 * F["eye"] + (1 - BR) * 0.0028; BRWZ = HZ + 0.024 + (1 - BR) 
 RIG["E"] = ("H", (0, -0.1045, LIDZ)); RIG["bL"] = ("H", (0.04, -0.121, BRWZ)); RIG["bR"] = ("H", (-0.04, -0.121, BRWZ))
 FACE = { "lid": round(LIDZ - (HZ - 0.002), 5), "mouth": 0.0012 }   # how far a lid comes down to close the eye; the mouth's half-height at rest
 # The moustache of a wrestler: thick over the lip, swept out and up at the ends
-if True:
+if not H.get("handle"):   # most men: a moustache that lies along the lip and turns down a little at its ends, as the portraits have it
+    both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.026, -0.127, HZ - 0.081), (0.03, 0.012, 0.0095), (0, -sx * 0.22, sx * 0.12), segments=12, ring_count=6))
+else:
     both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.03, -0.128, HZ - 0.078), (0.036, 0.017, 0.015), (0, sx * 0.2, sx * 0.2), segments=12, ring_count=6))
     both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.072, -0.108, HZ - 0.062), (0.026, 0.012, 0.012), (0, -sx * 0.8, sx * 0.6), segments=10, ring_count=6))
     both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.09, -0.094, HZ - 0.04), (0.012, 0.009, 0.014), segments=8, ring_count=6))
@@ -580,6 +582,8 @@ parts.append(prim("cone", "helmetknob", "gold", (0, 0.014, HZ + 0.19), (0.022, 0
 parts.append(prim("cube", "helmetnose", "iron", (0, -0.118, HZ + 0.0), (0.009, 0.006, 0.04), size=2))
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "helmet"); n0 = len(parts)
+# an army's mark, to be read from above: a crest of dyed horsehair along the top of the head, in the host's colour
+parts.append(prim("uv_sphere", "crest", "red", (0, 0.03, HZ + 0.185), (0.04, 0.125, 0.06), (-0.2, 0, 0), segments=12, ring_count=6)); rigid(parts[-1], "H"); since(n0, "crest"); n0 = len(parts)
 for r_, z_, mr, tl in ((0.1, 0.07, 0.036, 0.25), (0.092, 0.105, 0.034, -0.2), (0.075, 0.14, 0.032, 0.15)):
     parts.append(prim("torus", "turban", "red", (0, 0.02, HZ + z_), (1, 1.12, 1.25), (tl * 0.4, tl * 0.3, 0), major_radius=r_, minor_radius=mr, major_segments=20, minor_segments=8))
 parts.append(prim("uv_sphere", "turban", "red", (0, 0.02, HZ + 0.13), (0.08, 0.09, 0.05), segments=12, ring_count=6))

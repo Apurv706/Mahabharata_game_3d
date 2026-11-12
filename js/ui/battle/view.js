@@ -413,7 +413,7 @@
           if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
           f.drop(g.down > 0);
           // (a close camera does not look through the back of someone's head)
-          if (!v.car) f.root.visible = viewMode === "top" || !!intro || Math.hypot(f.root.position.x - G.cam.pos.x, f.root.position.z - G.cam.pos.z) > (viewMode === "eyes" && started ? 0.5 : 2.2);
+          if (!v.car) f.root.visible = viewMode === "top" || !!intro || Math.hypot(f.root.position.x - G.cam.pos.x, f.root.position.z - G.cam.pos.z) > (viewMode === "eyes" && started ? (u.side === "enemy" ? 0.9 : 1.7) : 2.2); // (from your own eyes a comrade at your shoulder would fill the screen with his helmet; a foe is hidden only when he is nose to nose)
         }
         if (f.base !== pose) f.pose(pose);
         f.update(dt, t);

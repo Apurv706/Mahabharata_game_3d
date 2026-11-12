@@ -228,3 +228,37 @@ add("charu_child", "child", "child", 0xb67847, BLACK, 122, looks={"home": L("hai
 add("charu_youth", "youth", "young", 0xb67847, BLACK, 166, looks={"home": L("hair knot dhotiS tuck drape", cloth=0xf0dcb8, red=0x9a4a2e, cloth2=0xf0dcb8)})
 add("ugra_child", "childB", "child", 0xb7703b, BLACK, 132, looks={"home": L("hair knot dhotiS tuck", cloth=0xf4e4c6, red=0xbe622c)})
 add("ugra_youth", "youthB", "broad", 0xb7703b, BLACK, 176, mu=0.6, looks={"home": L("hair knot dhoti tuck drape", cloth=0xf4e4c6, red=0xbe622c, cloth2=0xf4e4c6)})
+
+# ---- Builds pushed apart, so a hero is known by his outline before his crown (docs/Figure_Comparison.md, item 3).
+def shp(**k): d = dict(chest=1.0, trap=1.0, neck=1.0, waist=1.0, lat=1.0); d.update(k); return d
+for st_ in ("child", "youth", "adult"): CAST["bhima_" + st_]["handle"] = True          # his moustache is the wrestler's, swept up (the owner's print)
+CAST["bhima_adult"].update(wide=1.27, girth=1.07, arm=1.1, leg=1.04, shape=shp(chest=1.06, trap=1.12, neck=1.1, waist=1.05, lat=1.04))                       # square and huge
+CAST["arjuna_adult"].update(wide=1.07, girth=0.94, arm=0.93, shape=shp(chest=1.06, trap=0.92, neck=0.93, waist=0.8, lat=1.18))                              # a lean wedge
+CAST["yudhishthira_adult"].update(wide=0.97, girth=0.83, arm=0.7, leg=0.84)                                                                                   # slight, upright
+CAST["karna_adult"].update(wide=1.03, girth=0.92, arm=0.94, leg=0.96, shape=shp(chest=1.03, trap=0.9, neck=0.9, waist=0.83, lat=1.1))                        # tall and narrow
+CAST["duryodhana_adult"].update(wide=1.17, girth=1.1, belly=0.45, soft=True, abs=False, shape=shp(chest=1.06, trap=1.06, neck=1.06, waist=1.1))              # a barrel
+CAST["dushasana_adult"].update(wide=1.12, girth=1.07, belly=0.35, soft=True, abs=False)
+CAST["ashwatthama_adult"].update(mu=0.9, girth=0.92, arm=0.92, wide=1.05)
+CAST["satyaki_adult"].update(wide=1.15, girth=1.04)
+CAST["krishna_adult"].update(girth=0.9, arm=0.86, mu=0.8)
+CAST["balarama_adult"].update(girth=1.08, belly=0.3)
+CAST["jayadratha_adult"].update(belly=0.3, soft=True, abs=False)
+
+# ---- Heads set against the painted portraits (art/p_*.webp): who is bearded, who is shaven, how the hair is worn.
+def wears(key, add_="", drop="", looks=None):
+    for lk, v in CAST[key]["looks"].items():
+        if looks and lk not in looks: continue
+        v["parts"] = [p for p in v["parts"] if p not in drop.split()] + [p for p in add_.split() if p not in v["parts"]]
+wears("arjuna_adult", "stache", looks=("home", "court", "war", "mourning"))
+wears("yudhishthira_adult", "beardS", looks=("home", "court", "war", "mourning", "disguise"))
+wears("karna_adult", drop="stache beardS"); CAST["karna_adult"]["facefix"] = dict(long=0.012, jaw=0.9, brow=0.6)
+wears("duryodhana_adult", drop="stache goatee"); CAST["duryodhana_adult"]["facefix"] = dict(brow=1.25, jaw=1.04, hw=1.05)
+wears("dhrishtadyumna_adult", "knot")
+wears("kripa_elder", drop="knot beardS stache")
+wears("vidura_elder", "bun"); CAST["vidura_elder"]["skin"] = 0x9c6c4a
+wears("abhimanyu_youth", drop="locks")
+wears("mauni_elder", "longhair"); CAST["mauni_elder"]["hair"] = 0x4a4038
+wears("ugra_adult", drop="hair")
+# ---- The rank and file wear their army's crest (it is dyed with the sash).
+for k_ in ("soldier_foot_adult", "soldier_archer_adult", "soldier_charioteer_adult", "soldier_cw_adult"): wears(k_, "crest")
+

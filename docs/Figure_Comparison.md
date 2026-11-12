@@ -49,9 +49,9 @@ Items 2 and 5 can be done on the present models. Items 1, 3 and 4 are one rebuil
 | 2 A light figure | Done (12 Nov). One model for close and far, 14,500 triangles on average (from 24,400), 10,700 for an archer of the line; in close shots it cannot be told from the old one, so no second model was needed. Measuring a war field showed the modelled people are under a twentieth of it: the far ranks were the weight, and they are lighter too (222 triangles a man, from 500). |
 | 5 Quick wins | Done (12 Nov). The fist is closed round the haft and the weapon lies in it; hands 14% and weapons 12% larger; a dark line round each figure. |
 | 1 Skeleton and base body | Skeleton done (12 Nov): 41 joints from 13, four influences, half-way joints at every bend, collars, feet, opening hands. The bodies are still the blended-ball bodies, reshaped per character; they were not rebuilt from a clean base mesh. |
-| 3 Outlines and army marks | Next. |
-| 4 Faces | Half done (12 Nov): blink, and set, shouting and pained faces. Heads are not yet shaped against the portraits. |
-| 6 Weight and swing | Half done (12 Nov): cloth ends and hair swing. Strikes are not yet re-timed. |
+| 3 Outlines and army marks | Done (12 Nov): hero builds pushed apart; soldiers wear a crest in their host's colour. Named heroes carry no host mark. |
+| 4 Faces | Half done (12 Nov): blink, and set, shouting and pained faces. Hair, beards and colouring set against the portraits (12 Nov). The face shapes are still a dozen types, not likenesses. |
+| 6 Weight and swing | Half done (12 Nov): cloth ends and hair swing. Strikes now go hips, trunk, arm, with a brake on landing (12 Nov). |
 
 Details are at the end of `docs/Conversion_Notes.md`.
 

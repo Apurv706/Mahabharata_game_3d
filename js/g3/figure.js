@@ -664,8 +664,15 @@
           const t2 = a.t; let u;
           if (t2 < a.tC) { u = t2 / Math.max(1e-3, a.tC); mixPose(tg, a.snap, a.coil, 1 - (1 - u) * (1 - u)); }
           else if (t2 < a.tS) { u = (t2 - a.tC) / Math.max(1e-3, a.tS - a.tC); copyPose(tg, a.coil); const w = Math.sin(u * PI) * 2.2; tg.T[0] -= w; tg.aR[0] -= w * 1.5; tg.y -= 0.012 * u; } // held, tightening
-          else if (t2 < a.tL) { u = (t2 - a.tS) / Math.max(1e-3, a.tL - a.tS); mixPose(tg, a.coil, a.hit, u * u * u); }               // the snap, gathering speed
-          else if (t2 < a.tF) { u = (t2 - a.tL) / Math.max(1e-3, a.tF - a.tL); mixPose(tg, a.hit, a.follow, 1 - (1 - u) * (1 - u)); }
+          else if (t2 < a.tL) { u = (t2 - a.tS) / Math.max(1e-3, a.tL - a.tS); mixPose(tg, a.coil, a.hit, u * u * u);                 // the snap, gathering speed
+            // A blow is thrown from the ground up: the hips turn first, the trunk follows them, and the arm is dragged
+            // behind and whips through last, so the weapon is still back while the body has already gone. All of them
+            // arrive together on the landing, so nothing about when a blow lands has changed.
+            const lead = (key, k) => { const c0 = a.coil[key], c1 = a.hit[key], o = tg[key]; o[0] = c0[0] + (c1[0] - c0[0]) * k; o[1] = c0[1] + (c1[1] - c0[1]) * k; o[2] = c0[2] + (c1[2] - c0[2]) * k; };
+            const hp = Math.min(1, u * 1.7), tr = Math.min(1, u * 1.3), ar = Math.max(0, (u - 0.34) / 0.66);
+            lead("P", hp * hp * (3 - 2 * hp)); lead("T", tr * tr); lead("aR", ar * ar * ar); lead("eR", ar * ar * ar); lead("wR", ar * ar * ar * ar); }
+          else if (t2 < a.tF) { u = (t2 - a.tL) / Math.max(1e-3, a.tF - a.tL); mixPose(tg, a.hit, a.follow, 1 - (1 - u) * (1 - u));
+            const jolt = Math.sin(Math.min(1, u * 2.2) * PI) * (1 - u); tg.T[0] += 3.5 * jolt; tg.H[0] -= 4 * jolt; tg.y -= 0.018 * jolt; }   // the brake: the body takes the blow's weight, the head stays on its mark
           else { u = (t2 - a.tF) / Math.max(1e-3, a.dur - a.tF); copyPose(k2, tg); mixPose(tg, a.follow, k2, u * u * (3 - 2 * u)); }
           f.exact = true;
         }

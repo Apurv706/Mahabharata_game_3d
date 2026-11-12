@@ -293,3 +293,13 @@ The poses still turn thirteen joints. Each model now brings 28 more, and the gam
 
 **Play-through photos, all three views** (owner: "when you are running real time play, take photos from all 3 views"). The play harness now photographs every fight frame three times, from above, from behind and from your own eyes, by pressing the game's own view button, and puts the view back. First run on the new figures (a war life, Bhishma's arrows): no fault seen in any of the three.
 
+## Builds, portraits' heads, an army's crest, blows from the ground up (Nov 12, the figure plan: last stage)
+
+- **Builds pushed apart** (`tools/blender/cast_specs.py`, the block at the end): Bhima square and huge, Arjuna a lean wedge, Yudhishthira slight, Karna tall and narrow, Duryodhana a barrel, Dushasana heavy, and smaller changes to Ashwatthama, Satyaki, Krishna, Balarama, Jayadratha.
+- **Heads set against the 2D portraits**, each portrait laid beside its 3D head: Karna and Duryodhana are clean-shaven, Yudhishthira bearded, Arjuna has his moustache, Kripa is shaven with short hair, Ugra's head is shaved to its topknot, Mauni's hair is dark and long, Vidura is lighter and wears a bun, Dhrishtadyumna a topknot. Everyone but Bhima has a moustache that lies along the lip; the swept-up wrestler's moustache is his alone. This is hair, beard and colouring; the bones of the faces are still a dozen types, not a likeness.
+- **An army's crest.** The rank and file wear a crest of dyed horsehair along the top of the head, in their host's colour, to be read from above.
+- **Blows from the ground up** (`js/g3/figure.js`): in the snap of a strike the hips turn first, the trunk follows, and the arm is dragged behind and whips through last; on landing the body takes the weight for a moment. Everything still arrives on the same instant, so when a blow lands, and the balance, did not move.
+- **Found by the three-view photos:** from your own eyes, a comrade at your shoulder filled the screen with his helmet. Friends within 1.7 m and foes within 0.9 m are now not drawn in that view.
+
+**Not checked:** a real phone; the new strike timing was not watched in motion at full speed.
+
