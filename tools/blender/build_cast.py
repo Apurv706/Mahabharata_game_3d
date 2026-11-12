@@ -11,7 +11,8 @@ def one(k):
     ok = "exported" in r.stdout; print(("ok   " if ok else "FAIL ") + k + ("" if ok else "\n" + (r.stdout + r.stderr)[-1500:]), flush=True); return ok
 with ThreadPoolExecutor(2) as ex: res = list(ex.map(one, keys))
 p = os.path.join(ROOT, "index.html"); s = open(p).read()
-tags = "".join('<script async src="js/g3/models/%s"></script>\n' % f for f in sorted(os.listdir(OUT)) if f[:2] in ("m_", "p_") and f.endswith(".js"))
-s2 = re.sub(r"(<!-- models -->\n)(?:<script(?: async)? src=\"js/g3/models/[^\"]+\"></script>\n)*", lambda m: m.group(1) + tags, s)
+import json
+files = ["js/g3/models/" + f for f in sorted(os.listdir(OUT)) if f[:2] in ("m_", "p_") and f.endswith(".js")]
+s2 = re.sub(r"(<!-- models -->\n<script>window\.K_MODELS = )\[[^\]]*\](;</script>)", lambda m: m.group(1) + json.dumps(files) + m.group(2), s)
 if s2 != s: open(p, "w").write(s2)
-print(sum(res), "of", len(res), "built;", len(tags.splitlines()), "listed")
+print(sum(res), "of", len(res), "built;", len(files), "listed")
