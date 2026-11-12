@@ -303,7 +303,7 @@ The poses still turn thirteen joints. Each model now brings 28 more, and the gam
 
 **Not checked:** a real phone; the new strike timing was not watched in motion at full speed.
 
-## Divine weapons in three beats, and painted faces (Nov 12, late)
+## Divine weapons in three beats (Nov 12, late)
 
 **Divine weapons** (owner: show the invocation and ask for a code, a pattern joined on the screen; show the impact and the panic; show a champion's counter. His rulings: men who flee count as beaten, up to a cap; the counter is a contest you play; a poor invocation hits softer, a clean one no harder than before).
 - *Invocation.* The weapon's button no longer fires it. The fight runs at a fifth of its speed, the screen darkens, and the weapon's own figure appears: fire a triangle pointing up, water one pointing down, wind a spiral, sleep a five-pointed lotus, the serpent a winding line, Indra's a bolt. Join its numbered points in one stroke (lift the finger and it begins again), or press the numbers. Five seconds. Joined in the first half of that, it lands as it always did; slower, it lands softer, down to half; not joined, "the mantra broke", the weapon rests six seconds and no use is spent. (`yantraOpen`, `invoke` in `js/ui/battle/view.js`; `astraQ`, `astraBreak` in `js/ui/battle/sim.js`.) A setting `easyMantra` speaks it for you at 0.7 force (not yet on the settings screen).
@@ -312,9 +312,4 @@ The poses still turn thirteen joints. Each model now brings 28 more, and the gam
 - Six rules tests cover it (`tests/rules3d.js`, section 10; 40 in all). Hindi for every new line.
 - Not done: the story does not yet teach the figure when a teacher gives the weapon; a cursed mantra does not yet scramble its points; the far ranks do not draw back; the camera does not cut to the champion.
 
-**Painted faces** (owner: "find a different way of building faces, they don't look right"). The eyes, lids, brows and lips were little balls stuck on the head. They are gone. A head is now smooth skin over the bone of a face (brow, shallow sockets with the ball of the eye under them, nose, lips with some body, jaw), and the features are painted on a small canvas that the head's skin wears (`js/g3/face.js`; the shader lays it over the skin, `js/g3/surf.js`; each point of the head knows where it lies on the canvas, `fuv` in the model).
-- Painted: almond eyes with iris, pupil, a light in them and the lid's shadow; a dark upper lid with its flick, kohl on women; tapered brows in the hair's colour; nostrils; two-toned lips; blood in the cheeks; lines on the old.
-- Each person's canvas holds four faces: set, eyes shut (the blink, sleep, death), shouting, in pain. The jaw still opens under the paint. The lid, brow and mouth joints of the stage before are gone (37 joints now).
-- The model says where its own features are (`face` in each model), so the paint follows each head's proportions, and the eye patch still finds the eye.
-- Still modelled, not painted: moustaches and beards.
-
+**Painted faces: tried and taken back.** The owner asked for a different way of building faces; the features were painted on a canvas worn by the head's skin in place of the modelled eyes, lids, brows and lips. He judged the earlier, modelled faces better and asked for the change to be reverted, and it was the same evening: the heads, the 41-joint skeleton with its lid, brow and mouth joints, and all 79 models are as they were before it. The painted version is in the history at commit 035d689 (`js/g3/face.js`) should it be wanted as a starting point. What is wrong with the faces is still open, and not yet pinned down.

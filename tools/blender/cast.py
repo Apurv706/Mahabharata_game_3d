@@ -207,10 +207,8 @@ head = sym([
   ((0.038, -0.104 + (1 - BR) * 0.006, HZ + 0.024), (0.036, 0.018 * (0.6 + 0.4 * BR), 0.013), 1.7),   # brow ridge
   ((0, -0.095, HZ + 0.062), (0.066, 0.028, 0.036), 1.5),                       # forehead
   ((0.098, 0.005, HZ - 0.02), (0.012, 0.022, 0.034), 1.8),                     # ears
-  ((0.037 * F['gap'], -0.124, HZ - 0.002), (0.02 * F['eye'], 0.012, 0.01 * F['eye']), 1.6, None, True),   # eye sockets (cut in, shallow: the eye is painted on the lid's own curve)
-  ((0.037 * F['gap'], -0.1, HZ - 0.003), (0.015 * F['eye'], 0.012, 0.01 * F['eye']), 1.5),               # the ball of the eye under its lids
-  ((0, -0.116, HZ - 0.086 - LG), (0.022 * (0.6 + 0.4 * JW) * F['lipw'], 0.011, 0.0055), 1.6),            # upper lip
-  ((0, -0.114, HZ - 0.099 - LG), (0.02 * (0.6 + 0.4 * JW) * F['lipw'], 0.013, 0.0065), 1.6),             # lower lip
+  ((0.037 * F['gap'], -0.118, HZ - 0.002), (0.022 * F['eye'], 0.02, 0.012 * F['eye']), 1.6, None, True),   # eye sockets (cut in)
+  ((0, -0.128, HZ - 0.092 - LG), (0.03, 0.014, 0.005), 1.6, None, True),       # the mouth's line (cut in)
 ])
 Hd = metaballs("head", head, 0.0085, 0.62)
 for o in [B, Hd] + HANDS:
@@ -287,7 +285,7 @@ for v in Hd.data.vertices:
     wj = sm(MZ - 0.001, MZ - 0.02, v.co.z) * sm(0.05, -0.01, v.co.y)
     if wj < 0.99: gH_.add([v.index], 1 - wj, "REPLACE")
     if wj > 0.01: gJ_.add([v.index], wj, "REPLACE")
-RIG["J"] = ("H", (0, -0.012, HZ - 0.062))
+RIG["J"] = ("H", (0, -0.012, HZ - 0.062)); RIG["M"] = ("H", (0, -0.117, MZ))
 RIG["sS"] = ("P", (0.03, -0.13, 0.95)); RIG["sC"] = ("T", (0.17 * FX, -0.1, 1.38))
 
 # ---- What he wears and carries on him ---------------------------------------------------------------------------
@@ -301,12 +299,21 @@ def prim(kind, name, m, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), **kw):
 parts = []
 def both(fn):
     for sx in (1, -1): parts.append(fn(sx))
-# Eyes, brows and lips are painted on the head's own skin (js/g3/face.js): the model says where they lie.
-MZ = HZ - 0.092 - LG
-FACE = { "u": [0.12, 0.5], "v": [round(HZ - 0.2, 4), 0.34],     # how a point of the face is found on the painting: u = 0.5 + x / 0.24, v = (height - v0) / 0.34
-         "eye": [round(0.037 * F["gap"], 4), round(HZ - 0.002, 4), F["eye"]], "brow": [round(HZ + 0.026 + (1 - BR) * 0.004, 4), BR, F["browth"]],
-         "mouth": [round(MZ, 4), round((0.6 + 0.4 * JW) * F["lipw"], 3)], "nose": [round(HZ - 0.058 - (F["nosel"] - 1) * 0.05, 4), NS],
-         "she": SHE, "stage": HERO.rsplit("_", 1)[1] }
+# Eyes, lips
+both(lambda sx: prim("uv_sphere", "eye", "white", (sx * 0.037 * F["gap"], -0.103, HZ - 0.002), (0.0165 * F["eye"], 0.012, 0.0105 * F["eye"]), segments=14, ring_count=8))
+both(lambda sx: prim("uv_sphere", "iris", "iris", (sx * 0.037 * F["gap"], -0.1135, HZ - 0.002), (0.0075 * F["eye"], 0.004, 0.0078 * F["eye"]), segments=10, ring_count=6))
+both(lambda sx: prim("uv_sphere", "lid", "skin", (sx * 0.037 * F["gap"], -0.1045, HZ + 0.0065 * F["eye"] + (1 - BR) * 0.0028), (0.0185 * F["eye"], 0.0125, 0.0085 * F["eye"]), (0.25, 0, 0), segments=12, ring_count=6))
+both(lambda sx: prim("uv_sphere", "browhair", "hair", (sx * 0.04, -0.121 + (1 - BR) * 0.004, HZ + 0.024 + (1 - BR) * 0.004), (0.027, 0.008, (0.0055 + 0.0015 * BR) * F["browth"]), (0, -sx * 0.22 * BR, 0), segments=10, ring_count=6))
+parts.append(prim("uv_sphere", "lip", "lip", (0, -0.126, HZ - 0.098 - LG), (0.028 * (0.6 + 0.4 * JW) * F["lipw"], 0.012, 0.0085), segments=12, ring_count=6)); rigid(parts[-1], "J")
+# The mouth: a dark line where the lips meet. Its joint stretches it into an open mouth for a shout or a cry.
+parts.append(prim("uv_sphere", "mouth", "mouth", (0, -0.117, MZ), (0.023 * (0.6 + 0.4 * JW) * F["lipw"], 0.0075, 0.0012), segments=10, ring_count=6)); rigid(parts[-1], "M")
+for o_ in parts:
+    nm_ = o_.name.split(".")[0]
+    if nm_ == "lid": rigid(o_, "E")
+    elif nm_ == "browhair": rigid(o_, "bL" if o_.location.x > 0 else "bR")
+LIDZ = HZ + 0.0065 * F["eye"] + (1 - BR) * 0.0028; BRWZ = HZ + 0.024 + (1 - BR) * 0.004
+RIG["E"] = ("H", (0, -0.1045, LIDZ)); RIG["bL"] = ("H", (0.04, -0.121, BRWZ)); RIG["bR"] = ("H", (-0.04, -0.121, BRWZ))
+FACE = { "lid": round(LIDZ - (HZ - 0.002), 5), "mouth": 0.0012 }   # how far a lid comes down to close the eye; the mouth's half-height at rest
 # The moustache of a wrestler: thick over the lip, swept out and up at the ends
 if not H.get("handle"):   # most men: a moustache that lies along the lip and turns down a little at its ends, as the portraits have it
     both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.026, -0.127, HZ - 0.081), (0.03, 0.012, 0.0095), (0, -sx * 0.22, sx * 0.12), segments=12, ring_count=6))
@@ -665,18 +672,14 @@ if STAGE == "export":
     B["part"] = "body"; Hd["part"] = "head"
     for o in HANDS: o["part"] = "hands"
     used = set(BASE); [used.update(L["parts"]) for L in LOOKS.values()]
-    objs = sorted([o for o in [B, Hd] + HANDS + parts if part_of(o) in used], key=lambda o: part_of(o)); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; FUV = []; FUV0 = 0; roles = []; cols = []; base = 0; ranges = {}; HIDDEN = []
+    objs = sorted([o for o in [B, Hd] + HANDS + parts if part_of(o) in used], key=lambda o: part_of(o)); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; roles = []; cols = []; base = 0; ranges = {}; HIDDEN = []
     for o in objs:
         me = o.data; me.calc_loop_triangles(); mt = o.data.materials[0]; names = [g.name for g in o.vertex_groups]
         if mt.name not in roles: roles.append(mt.name); c = mt.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value; cols.append([round(255 * (x ** (1 / 2.2))) for x in c[:3]])
         ci = roles.index(mt.name); i0 = len(I_)
-        if o is Hd: FUV0 = base
         for v in me.vertices:
             x, y, z = o.matrix_world @ v.co; nx, ny, nz = (o.matrix_world.to_3x3() @ v.normal).normalized()
             P_ += [x, z, -y]; N_ += [nx, nz, -ny]; C_.append(ci)
-            if o is Hd:
-                fu, fv = 0.5 + x / 0.24, (z - (HZ - 0.2)) / 0.34
-                FUV.extend([max(1, min(255, round(fu * 255))), max(1, min(255, round(fv * 255)))] if (ny < -0.12 and 0 < fu < 1 and 0 < fv < 1) else [0, 0])
             ws = {}
             for g in v.groups:
                 if names[g.group] in JOINTS and g.weight > 0.005: ws[names[g.group]] = ws.get(names[g.group], 0) + g.weight
@@ -701,6 +704,6 @@ if STAGE == "export":
     data = { "n": n, "joints": JOINTS, "scale": 8192, "wide": WIDE, "size": H.get("size", 1), "sided": bool(H.get("sided")), "grip": [[round(g_[0], 4), round(g_[2], 4), round(-g_[1], 4)] for g_ in GRIP], "inf": 4,
              "rig": { k: [v[0], v[1] if isinstance(v[1], str) else [round(v[1][0], 4), round(v[1][2], 4), round(-v[1][1], 4)]] for k, v in RIG.items() }, "reparent": REPARENT, "face": FACE, "roles": roles, "cols": cols, "parts": ranges, "looks": looks,
              "pos": b64("h", [max(-32767, min(32767, round(v * 8192))) for v in P_]), "nor": b64("b", [max(-127, min(127, round(v * 127))) for v in N_]),
-             "fuv": [FUV0, b64("B", FUV)], "col": b64("B", C_), "jnt": b64("B", J_), "wgt": b64("B", W_), "idx": b64("H", I_) }
+             "col": b64("B", C_), "jnt": b64("B", J_), "wgt": b64("B", W_), "idx": b64("H", I_) }
     open(OUT + "/m_" + HERO + ".js", "w").write("/* " + HERO + ": modelled in Blender by tools/blender/cast.py from the artist's sheets. Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.MODELS = G.MODELS || {})." + HERO + " = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")
     print("exported", HERO, "verts", n, "tris", len(I_) // 3)

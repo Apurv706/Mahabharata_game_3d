@@ -15,9 +15,8 @@
     const j = bytes(M.jnt), w = bytes(M.wgt), ji = new Uint16Array(n * 4), jw = new Float32Array(n * 4);
     if (M.inf === 4) for (let i = 0; i < n * 4; i++) { ji[i] = j[i]; jw[i] = w[i] / 255; }   // (up to four joints hold each point)
     else for (let i = 0; i < n; i++) { ji[i * 4] = j[i * 2]; ji[i * 4 + 1] = j[i * 2 + 1]; jw[i * 4] = w[i] / 255; jw[i * 4 + 1] = 1 - w[i] / 255; }
-    const fuv = new Float32Array(n * 2); if (M.fuv) { const fb = bytes(M.fuv[1]), f0 = M.fuv[0]; for (let i = 0; i < fb.length; i++) fuv[f0 * 2 + i] = fb[i] / 255; M.fuv = null; } // (where each point of the head lies on its painted face)
     M.pos = M.nor = M.jnt = M.wgt = null; /* (the text they came in is not needed again) */
-    const D = (M._d = { pos, nor, ji, jw, fuv, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
+    const D = (M._d = { pos, nor, ji, jw, col: bytes(M.col), idx: new Uint16Array(bytes(M.idx).buffer), geo: new Map() });
     edges(M, D, p16, EDGED); cavity(M, D, p16); covers(M, D);
     return D;
   }
@@ -161,7 +160,7 @@
       if (o < len) idx = idx.slice(0, o);
       const col = new Float32Array(M.n * 3), sh = D.shade; for (let i = 0; i < M.n; i++) { const q = cols[D.col[i]], k = sh ? sh[i] : 1; col[i * 3] = q.r * k; col[i * 3 + 1] = q.g * k; col[i * 3 + 2] = q.b * k; }
       geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(D.pos, 3)); geo.setAttribute("normal", new T.BufferAttribute(D.nor, 3)); geo.setAttribute("color", new T.BufferAttribute(col, 3));
-      geo.setAttribute("skinIndex", new T.BufferAttribute(D.ji, 4)); geo.setAttribute("skinWeight", new T.BufferAttribute(D.jw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1)); geo.setAttribute("faceUV", new T.BufferAttribute(D.fuv, 2));
+      geo.setAttribute("skinIndex", new T.BufferAttribute(D.ji, 4)); geo.setAttribute("skinWeight", new T.BufferAttribute(D.jw, 4)); geo.setIndex(new T.BufferAttribute(idx, 1));
       if (G.dress && G.surfPut) { // what each piece is made of, and its borders (js/g3/dress.js, js/g3/surf.js)
         const hex = {}; M.roles.forEach((r, i) => { hex[r] = cols[i].getHex(T.SRGBColorSpace); });
         const dress = G.dress(sp.model, look, hex, M), n = M.n, A = new Uint8Array(n * 4), B = new Uint8Array(n * 4), C = new Uint8Array(n * 4), names = D.partNames;
@@ -174,10 +173,6 @@
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
     if (M.rig) rig(f, M, mesh);
-    if (G.faceTex && G.faceU && M.face && M.face.eye) { // the painted face: this figure's canvas and the face it wears now, handed to the shader as it is drawn
-      const ri = (r) => { const i = M.roles.indexOf(r); return i < 0 ? 0 : cols[i].getHex(T.SRGBColorSpace); }; f.faceTex = G.faceTex(M, sp.model + "_" + (sp.stage || ""), ri("skin"), ri("hair")); f.faceMood = "set";
-      mesh.onBeforeRender = () => { const c = G.FACE_CELL[f.faceMood] || G.FACE_CELL.set; G.faceU.tex.value = f.faceTex; G.faceU.cell.value.set(c[0], c[1], c[2], c[3]); MAT.uniformsNeedUpdate = true; }; }
-    else mesh.onBeforeRender = () => { if (G.faceU && G.faceU.cell.value.z) { G.faceU.cell.value.set(0, 0, 0, 0); MAT.uniformsNeedUpdate = true; } };
     f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k] || f.j.P)); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
     if (/^player_/.test(sp.model || "") && (sp.heir || sp.eye)) keepsakes(f, sp, M, D, mesh);
     if (M.grip) { // the hollow of each closed hand, in its wrist's own space: a haft is set there, so the fingers are round it (figure.js)
@@ -249,7 +244,7 @@
       R.jaw += (want[0] - R.jaw) * k; R.mouth += (want[1] - R.mouth) * k; R.lid += (want[2] - R.lid) * k; R.brow += (want[3] - R.brow) * k;
       if (dt > 0) { R.next -= dt; if (R.next <= 0) { R.blink = 0.14; R.next = 2.2 + Math.random() * 4.2; } if (R.blink > 0) R.blink -= dt; }
       const lid = Math.max(R.lid, R.blink > 0 ? Math.sin((R.blink / 0.14) * Math.PI) : 0), kH = R.kH, F = R.M.face || {};
-      j.J.rotation.x = R.jaw; f.faceMood = lid > 0.5 ? (mood === "pain" ? "pain" : "shut") : mood === "shout" && R.jaw > 0.1 ? "shout" : mood === "pain" ? "pain" : "set";
+      j.J.rotation.x = R.jaw;
       if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; }
       if (j.E) { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; }
       if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = (R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }
@@ -277,7 +272,6 @@
       else { b.surf("leather"); b.sph(0.04 * h, 0, -0.02 * h, 0, 0x6a4a2a, 1.15, 8, 1, 0.8); b.cyl(0.014 * h, 0.022 * h, 0.03 * h, 0, 0.012 * h, 0, 0x4a3018, 6); }
       pin("P", x, y, z + 0.05 * h, b); } }
     if (sp.eye) { const iris = M.roles.indexOf("iris"), face = names.indexOf("face"); let n = 0, ex = 0, ey = 0, ez = 0; for (let i = 0; i < M.n; i++) if (part[i] === face && D.col[i] === iris && pos[i * 3] > 0) { ex += pos[i * 3]; ey += pos[i * 3 + 1]; ez += pos[i * 3 + 2]; n++; }
-      if (!n && M.face && M.face.eye) { const fz = front(M.face.eye[0] - 0.012, M.face.eye[0] + 0.012, M.face.eye[1] - 0.012, M.face.eye[1] + 0.012, names.indexOf("head")); if (fz > -9) { ex = M.face.eye[0]; ey = M.face.eye[1]; ez = fz; n = 1; } } // (a painted eye: the model says where it is)
       if (n) { const b = new G.Builder(); b.surf("leather"); b.geo(new T.SphereGeometry(0.026 * h, 8, 6).scale(1, 0.85, 0.45), 0, 0, 0, 0, 0, 0, 0x1c120c); b.rod(-0.02 * h, 0.012 * h, 0, -0.11 * h, 0.05 * h, -0.07 * h, 0.004, 0x1c120c, 3); b.rod(0.02 * h, 0.012 * h, 0, 0.05 * h, 0.05 * h, -0.09 * h, 0.004, 0x1c120c, 3); pin("H", ex / n, ey / n, ez / n + 0.008, b); } }
   }
 })(window.K = window.K || {});
