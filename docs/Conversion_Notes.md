@@ -291,3 +291,5 @@ The poses still turn thirteen joints. Each model now brings 28 more, and the gam
 
 **Not checked:** anything on a real phone; the swing of cloth and hair was looked at in stills, not judged in motion at speed.
 
+**Play-through photos, all three views** (owner: "when you are running real time play, take photos from all 3 views"). The play harness now photographs every fight frame three times, from above, from behind and from your own eyes, by pressing the game's own view button, and puts the view back. First run on the new figures (a war life, Bhishma's arrows): no fault seen in any of the three.
+
