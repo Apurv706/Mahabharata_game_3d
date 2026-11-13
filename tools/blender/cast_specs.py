@@ -17,8 +17,8 @@ BUILD = {
   "youthB":  dict(mu=0.75, wide=1.08, girth=0.95, arm=0.92, leg=0.94, soft=False, abs=True,  shape=dict(chest=1.0,  trap=0.9,  neck=0.92, waist=0.95, lat=1.0)),
   "child":   dict(mu=0.2, wide=0.92, girth=0.84, arm=0.66, leg=0.8,  soft=True,  abs=False, shape=dict(chest=0.86, trap=0.6,  neck=0.8,  waist=1.06, lat=0.7)),
   "childB":  dict(mu=0.35, wide=1.04, girth=1.0,  arm=0.95, leg=1.0,  soft=True,  abs=False, shape=dict(chest=0.95, trap=0.7,  neck=0.9,  waist=1.1,  lat=0.8)),
-  "woman":   dict(mu=0.15, wide=0.88, girth=0.82, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.8,  trap=0.6,  neck=0.72, waist=0.84, lat=0.7), sex="f"),
-  "womanO":  dict(mu=0.15, wide=0.88, girth=0.86, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.82, trap=0.6,  neck=0.74, waist=0.96, lat=0.72), sex="f"),
+  "woman":   dict(mu=0.15, wide=0.88, girth=0.82, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.8,  trap=0.6,  neck=0.8, waist=0.84, lat=0.7), sex="f"),
+  "womanO":  dict(mu=0.15, wide=0.88, girth=0.86, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.82, trap=0.6,  neck=0.8, waist=0.96, lat=0.72), sex="f"),
   "girl":    dict(mu=0.1, wide=0.84, girth=0.8,  arm=0.58, leg=0.78, soft=True,  abs=False, shape=dict(chest=0.8,  trap=0.55, neck=0.74, waist=1.0,  lat=0.65), sex="f", flat=True),
 }
 # ---- Faces. Each person has measures of his or her own (what the measures are: face.py). They were set from the painted

@@ -84,7 +84,7 @@ torso = sym([
   ((0.135, 0.035, 1.42), (0.07, 0.055, 0.028), 1.6),        # down to the shoulder's point
   ((0, 0.012, 1.53), (0.068, 0.072, 0.09)),                 # neck: a bull's
   ((0.034, -0.035, 1.505), (0.017, 0.02, 0.07), 1.5, rot(0.25, 0.2, 0)),   # its cords
-  ((0.075, -0.088, 1.428), (0.06, 0.011, 0.009), 1.7),      # collar bones
+  ((0.075, -0.088, 1.428), (0.06, 0.014, 0.012), 1.45),     # collar bones (a soft ridge; on a slight frame they lie back with the chest: see frame)
   ((SHX, 0.0, 1.372), (0.068, 0.072, 0.068)),               # deltoid: the core over the joint
   ((SHX - 0.012, -0.048, 1.365), (0.052, 0.05, 0.066), 1.5),# front head
   ((SHX + 0.04, 0.0, 1.355), (0.048, 0.062, 0.075), 1.5),   # side head: the width of him
@@ -158,6 +158,7 @@ def frame(balls):   # Bhima's own lists, refitted to this hero's frame and build
             SH = H["shape"]; st = b[2] if len(b) > 2 else 2.0
             m = SH["waist"] if (0.95 < z < 1.16 and ax < 0.01) else SH["chest"] if (y < -0.055 and 1.25 < z < 1.4 and st == 1.5) else SH["neck"] if (ax < 0.05 and z > 1.49) else SH["trap"] if (z > 1.41 and y > 0.02 and ax > 0.05) else SH["lat"] if (y > 0.02 and 1.15 < z < 1.3 and ax > 0.12) else 1.0
             w = GI * m; nb = ((x * FX, y * (0.5 + 0.5 * w), z), (sx * FX * w, sy * w, sz))
+            if st == 1.45 and 1.42 < z < 1.44: nb = ((x * FX, y * (0.5 + 0.5 * w) * (0.74 + 0.26 * min(1.0, H["mu"])), z), nb[1])   # the collar bone: no prouder than the chest under it
         out.append(nb + tuple(b[2:]))
     return out
 ABS = sym([((0.036, -0.1, 1.2), (0.03, 0.014, 0.024), 1.7), ((0.036, -0.103, 1.14), (0.03, 0.014, 0.024), 1.7), ((0.035, -0.103, 1.08), (0.029, 0.014, 0.025), 1.7), ((0, -0.14, 1.13), (0.005, 0.02, 0.12), 1.4, None, True)])
