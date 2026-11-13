@@ -108,14 +108,16 @@
       id: "a6_d13_bow", act: 6, age: 44, canon: true, war: true, art: "scene_day13", place: "Kurukshetra · day 13", caption: "Drona's order",
       title: "Drona's order",
       body: ["Drona gives the order: \"Cut his bow from behind. Kill his horses. Then he is only a boy.\"", "It reaches you."],
-      choices: [
+      choices: (S) => { const all = [
         { id: "obey", t: "Do as Drona says", tags: ["strike_unarmed"], fx: { duty: { court: 2, conscience: -4 }, flag: "cut_abhimanyu_bow", memory: ["all", "You were one of those who cut Abhimanyu's bow from behind."], journal: "On the thirteenth day you obeyed Drona and helped cut Abhimanyu's bow from behind." },
           text: "Karna's arrow cuts the bowstring; yours finds a horse. Abhimanyu turns, and sees you." },
         { id: "refuse", t: "Refuse, out loud", fx: { duty: { conscience: 3, court: -3 }, rep: { kuru: -2 }, flag: "refused_bow_order", journal: "On the thirteenth day you refused Drona's order to cut Abhimanyu's bow from behind." },
           text: "\"Not from behind,\" you say. Drona does not look at you, and someone else does it." },
         { id: "miss", t: "Draw, and miss on purpose", fx: { duty: { conscience: 1 }, flag: "missed_on_purpose", journal: "On the thirteenth day you were ordered to shoot Abhimanyu's horses, and missed on purpose." },
           text: "Your arrow goes wide, and no one notices but you. You still think about it when you are old." }
-      ],
+      ];
+        const did = ["obey", "refuse", "miss"].find((k) => S.flags.includes("bow3d_" + k)); // (answered in the 3D fight already)
+        return did ? [Object.assign({}, all.find((c) => c.id === did), { t: { obey: "You did as Drona said", refuse: "You refused, out loud", miss: "You drew, and did not strike" }[did] })] : all; },
       after: ["Abhimanyu falls, and that night Arjuna swears to kill Jayadratha by sunset or walk into fire."],
       next: "a6_day14"
     },
@@ -336,9 +338,9 @@
     callHelp: () => ({ text: "You shout for help. Beyond the ring Bhima roars back, but Jayadratha's line holds, and no one comes through.", run: (B) => { const a = abhi(B); if (a) B.status(a, "inspired", 2); } }), roundsText: "The ring tightens. There is no more room to fight in.", flee: null, spare: false,
     intro: "Behind you the gap has closed. Abhimanyu glances back, sees you, and laughs. \"Two of us,\" he says. \"That is twice as many as they thought.\"",
     beats: [
-      { round: 2, text: "On Drona's word, Karna circles behind Abhimanyu and cuts his bowstring with one arrow.", run: (B) => { const a = abhi(B); if (a) { a.abilities = ["strike", "heavy"]; a.atk = Math.round(a.atk * 0.85); } } },
+      { round: 2, stop: "karna", text: "On Drona's word, Karna circles behind Abhimanyu and cuts his bowstring with one arrow.", run: (B) => { const a = abhi(B); if (a) { a.abilities = ["strike", "heavy"]; a.atk = Math.round(a.atk * 0.85); } } },
       { round: 3, text: "Abhimanyu's charioteer falls, then his horses. He leaps down with his sword and shield.", run: (B) => { const a = abhi(B); if (a) B.status(a, "exposed", 2); } },
-      { round: 4, text: "Drona shatters Abhimanyu's sword in his hand. He picks up a chariot wheel and swings it like a mace.", run: (B) => { const a = abhi(B); if (a) a.atk = Math.round(a.atk * 0.8); } },
+      { round: 4, stop: "drona", text: "Drona shatters Abhimanyu's sword in his hand. He picks up a chariot wheel and swings it like a mace.", run: (B) => { const a = abhi(B); if (a) a.atk = Math.round(a.atk * 0.8); } },
       { round: 5, text: "Six of them close in at once. There is no room left to turn.", run: (B) => B.living("friends").forEach((u) => B.status(u, "weakened", 2)) },
       { round: 6, text: "The wheel in Abhimanyu's hands breaks. He picks up a mace from the ground.", run: (B) => {} }
     ],
@@ -357,6 +359,10 @@
   const abhiFoe = (B) => B.units.find((u) => u.person === "abhimanyu" && u.side === "enemy");
   war("e_ring", "Your stretch of the ring", [K.foe("Abhimanyu", 12, { abilities: ["strike", "heavy", "arrows"], hero: true, person: "abhimanyu", hp: 900, atk: 22 })], {
     caption: "The boy in the wheel", allies: (S) => K.warAllies(S), spare: false, showAstra: true, injury: "arm",
+    // In 3D Drona's order reaches you in the fight itself (owner, 12 Nov: you may do it or refuse it; he falls either way). What you did is
+    // carried to the scene after as a flag, and that scene then does not ask again.
+    order3: { round: 2, on: "abhimanyu", from: "drona", flag: "bow3d", title: "Drona's order", text: "Drona gives the order: \"Cut his bow from behind. Kill his horses. Then he is only a boy.\" It reaches you.", yes: "Do as Drona says", no: "Refuse, out loud",
+      taken: "Get round behind him. One blow, before he turns.", goal: "Strike him from behind", obey: "Your blow lands as Karna's arrow cuts the string. Abhimanyu turns, and sees you.", miss: "You are behind him with your arm drawn back. You do not strike. No one notices but you.", refuse: "Drona does not look at you, and someone else does it." },
     intro: "A sixteen-year-old in a chariot comes at your part of the ring as if it were made of reeds. Behind him, the men who tried to stop him are lying in the dust.",
     callHelp: (S) => {
       const f = KAURAVA_FRIEND(S);

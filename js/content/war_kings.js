@@ -329,7 +329,7 @@
   };
   K.on("combat", K.kbRideCount);
   K.encounter({
-    id: "e_kb_hold", title: "Over Satyaki", art: "fight_war_field", caption: "Six rounds at most", hold: HOLD, hard: true, lethal: false, curse: true,
+    id: "e_kb_hold", title: "Over Satyaki", art: "fight_war_field", caption: "Six rounds at most", hold: HOLD, hard: true, lethal: false, curse: true, plan3: "charge", fallen: "satyaki", // (in 3D: he charges and may call you out; Satyaki lies behind you)
     allies: (S) => K.warAllies(S), callHelp: nearHelp, spare: false,
     holdText: "From very far away, an arrow is already in the air.",
     intro: "Bhurishravas lets go of Satyaki's hair and turns his sword on you. Behind you, Satyaki tries to get up, and cannot.",

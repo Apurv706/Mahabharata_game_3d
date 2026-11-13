@@ -522,8 +522,13 @@
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
           case "turn": planTurn(e); break;
-          case "bannerSways": banner(U.tr(e.v < 35 ? "The banner dips. Your men are looking over their shoulders!" : "Men of yours are down. The banner sways, and holds.")); break;
-          case "bannerDown": sfx("drum"); banner(U.tr("The banner is down.")); break;
+          case "order": orderCard(e.uid); sfx("drumCall"); break;
+          case "orderTaken": banner(U.tr(B.enc.order3.taken)); break;
+          case "orderDone": orderDone(e.how); break;
+          case "stepOpen": banner(U.tr("{t} is about to do it. A blow on him now will spoil his stroke!", { t: nameOf(e.uid) })); sfx("drumCall"); break;
+          case "stepHeld": banner(U.tr("You are on him as he looses. It is done all the same, but not cleanly, and Abhimanyu has seen you there.")); break;
+          case "bannerSways": banner(U.tr(!B.enc.bearer ? (e.v < 35 ? "Men are throwing down their spears. Stand where they can see you!" : "Men of yours are down. The line wavers, and holds.") : e.v < 35 ? "The banner dips. Your men are looking over their shoulders!" : "Men of yours are down. The banner sways, and holds.")); break;
+          case "bannerDown": sfx("drum"); banner(U.tr(B.enc.bearer ? "The banner is down." : "The line has broken.")); break;
           case "lineFalls": sfx("drum"); G.shake(0.25, 0.3); banner(R.plan && R.plan.who !== "bhishma" ? U.tr(e.n >= 3 ? "{t} comes a third time. There is no line left in front of you." : "{t} comes along your front, and the line before you gives way.", { t: nameOf(R.plan.car) }) : U.tr(e.n >= 3 ? "His car passes a third time. There is no line left in front of you." : "His car passes, and the line in front of you gives way.")); (e.fell || []).forEach((uid) => { const at = posOf(uid, 1.8); if (at) float(at, "✕", "mine"); }); break;
           case "defended": { banner(U.tr("He turns it aside on his bow, as he has turned ten thousand.")); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("turned aside"), "foe"); G.fx.burst("spark", at, { n: 12, s: 1.4, col: 0xffffff }); } break; }
           case "checked": { sfx("gong"); G.shake(0.3, 0.3); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("checked!"), "foe big"); G.fx.ring(at.clone().setY(0.1), 0xf2d27a, 0.5, 4, 0.6); } break; }
@@ -650,9 +655,18 @@
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
     }
+    // An order reaches you in the fight (enc.order3): do it, or refuse it out loud.
+    function orderCard(uid) {
+      if (U.battleBot) return; paused = true; U.setPaused("battle", true); const o3 = B.enc.order3;
+      const el = U.el('<div class="b-card b-pause b-duel" role="dialog">' + (U.portraitKey(o3.from) ? U.thumb(U.portraitKey(o3.from), "face") : "") + '<h2>' + U.tr(o3.title) + '</h2><p>' + U.tr(o3.text) + '</p><div class="btnrow"></div></div>');
+      const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
+      el.querySelector(".btnrow").appendChild(U.button("primary", U.tr(o3.yes), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr(o3.no), () => ans("no")));
+      hud.appendChild(el);
+    }
+    function orderDone(how) { const S = K.S, o3 = B.enc.order3; if (S && o3 && !S.flags.some((f) => f.indexOf(o3.flag + "_") === 0)) S.flags.push(o3.flag + "_" + how); banner(U.tr(o3[how])); }
     let oursEl = null, bearerBn = null, fallenFig = null;
     function oursHud() {
-      if (!R.ours) return; if (!oursEl) { oursEl = U.el('<div class="b-spirit b-ours"><span>' + U.tr("Your banner") + '</span><div><i></i></div></div>'); hud.appendChild(oursEl); }
+      if (!R.ours) return; if (!oursEl) { oursEl = U.el('<div class="b-spirit b-ours"><span>' + U.tr(B.enc.bearer ? "Your banner" : "Your line's nerve") + '</span><div><i></i></div></div>'); hud.appendChild(oursEl); }
       oursEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.ours.v)) + "%"; oursEl.classList.toggle("low", R.ours.v < 35);
     }
     // The banner in your hand (enc.bearer), and the great man lying behind you whom you stand over (enc.fallen).
@@ -950,6 +964,8 @@
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
       if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
       if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
+      if (R.step3) return K.tr("Get to {t}", { t: nameOf(R.step3.uid) }) + " · " + Math.max(0, Math.ceil(R.step3.until - R.t)) + " s";
+      if (R.order && R.order.state === "doing") return K.tr(B.enc.order3.goal) + " · " + Math.max(0, Math.ceil(R.order.until - R.t)) + " s";
       if (R.duel) return K.tr("Single combat");
       if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });

@@ -179,6 +179,23 @@
     "Leave it to the man beside you": "उसे बगल वाले सैनिक पर छोड़ दो",
     "The man beside you catches it. He carries it for the rest of the day, and for the rest of his life he is the man who did.": "बगल वाला सैनिक उसे थाम लेता है। वह दिन भर उसे उठाए रहता है, और जीवन भर वही कहलाता है जिसने उसे थामा था।",
     "3D could not start on this device just now, so this fight is in 2D.": "इस उपकरण पर अभी 3D शुरू नहीं हो सका, इसलिए यह युद्ध 2D में है।",
-    "Pull back and let go. The dots show how the pebble will fly.": "पीछे खींचो और छोड़ दो। बिंदु दिखाते हैं कि कंकड़ कैसे उड़ेगा।"
+    "Pull back and let go. The dots show how the pebble will fly.": "पीछे खींचो और छोड़ दो। बिंदु दिखाते हैं कि कंकड़ कैसे उड़ेगा।",
+    "{t} is about to do it. A blow on him now will spoil his stroke!": "{t} वह करने ही वाला है। अभी उस पर एक प्रहार उसका वार बिगाड़ देगा!",
+    "You are on him as he looses. It is done all the same, but not cleanly, and Abhimanyu has seen you there.": "जैसे ही वह बाण छोड़ता है, तुम उस पर टूट पड़ते हो। काम फिर भी हो जाता है, पर सफ़ाई से नहीं, और अभिमन्यु ने तुम्हें वहाँ देख लिया है।",
+    "Get to {t}": "{t} तक पहुँचो",
+    "Get round behind him. One blow, before he turns.": "घूमकर उसके पीछे पहुँचो। एक प्रहार, इससे पहले कि वह मुड़े।",
+    "Strike him from behind": "उस पर पीछे से प्रहार करो",
+    "Your blow lands as Karna's arrow cuts the string. Abhimanyu turns, and sees you.": "तुम्हारा प्रहार ठीक उसी क्षण पड़ता है जब कर्ण का बाण प्रत्यंचा काटता है। अभिमन्यु मुड़ता है, और तुम्हें देख लेता है।",
+    "You are behind him with your arm drawn back. You do not strike. No one notices but you.": "तुम उसके पीछे हो, हाथ वार के लिए उठा हुआ। तुम प्रहार नहीं करते। तुम्हारे सिवा कोई ध्यान नहीं देता।",
+    "Drona does not look at you, and someone else does it.": "द्रोण तुम्हारी ओर देखते भी नहीं, और कोई और वह काम कर देता है।",
+    "You did as Drona said": "तुमने वही किया जो द्रोण ने कहा",
+    "You refused, out loud": "तुमने ऊँचे स्वर में मना कर दिया",
+    "You drew, and did not strike": "तुमने हाथ उठाया, पर प्रहार नहीं किया",
+    "Drona gives the order: \"Cut his bow from behind. Kill his horses. Then he is only a boy.\" It reaches you.": "द्रोण आदेश देते हैं: \"पीछे से उसका धनुष काट दो। उसके घोड़े मार दो। फिर वह केवल एक बालक है।\" आदेश तुम तक पहुँचता है।",
+    "Your line's nerve": "तुम्हारी पंक्ति का साहस",
+    "Men are throwing down their spears. Stand where they can see you!": "सैनिक भाले फेंक रहे हैं। वहाँ खड़े रहो जहाँ वे तुम्हें देख सकें!",
+    "Men of yours are down. The line wavers, and holds.": "तुम्हारे सैनिक गिरे हैं। पंक्ति डगमगाती है, और टिकी रहती है।",
+    "The line has broken.": "पंक्ति टूट गई।",
+    "The line breaks and runs, and you are carried back with it.": "पंक्ति टूटकर भागती है, और तुम भी उसके साथ पीछे बह जाते हो।"
   });
 })(window.K = window.K || {});

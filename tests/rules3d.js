@@ -204,6 +204,17 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     for (let i = 0; i < 60 * 4; i++) R3.step(R, {}); const v0 = R.ours && R.ours.v;
     for (let i = 0; i < 60 * 120 && !R.over; i++) { if (i % 90 === 0) { const a = B.units.find((u) => u.side === "ally" && u.hp > 0); if (a) a.hp = 0; else { p.hp = p.maxHp; if (R.ours) R.ours.hp = p.hp; p.hp -= p.maxHp * 0.2; } } R3.step(R, {}); for (const e of R.fx) { if (e.k === "bannerSways") sway++; if (e.k === "bannerDown") down++; } R.fx.length = 0; }
     ok(v0 > 85 && sway >= 2 && down === 1 && R.over === "lose", "The banner-bearer: the banner's bar falls as your men fall, and when it is gone the fight is lost"); try { C.end(); } catch (e) {} }
+  // The steps of Abhimanyu's day
+  { const run = (hit) => { const K = fresh(9); life(K); K.S.side = "pandava"; const C = K.Combat, R3 = K.RT3, B = C.start("e_last_stand", null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 99999; const ev = []; let who = null;
+      for (let i = 0; i < 60 * 30 && !R.over; i++) { R3.step(R, {}); if (R.step3 && !who) { who = B.units.find((u) => u.uid === R.step3.uid).person; if (hit) R.step3.hit = true; } for (const e of R.fx) ev.push(e.k); R.fx.length = 0; if (who && !R.step3) break; }
+      try { C.end(); } catch (e) {} return { who, ev, held: R.held || 0 }; };
+    const a = run(false), b = run(true);
+    ok(a.who === "karna" && a.ev.includes("stepOpen") && !a.ev.includes("stepHeld") && a.held === 0 && b.ev.includes("stepHeld") && b.held === 1, "The heart of the wheel: Karna is named before he cuts the bow, and a blow on him in time is counted to you"); }
+  { const run = (ans) => { const K = fresh(9); life(K); K.S.side = "kaurava"; const C = K.Combat, R3 = K.RT3, B = C.start("e_ring", null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 99999; let how = null, asked = false;
+      for (let i = 0; i < 60 * 60 && !R.over && !how; i++) { const act = {}; if (R.offer && R.offer.kind === "order") { asked = true; act.duel = ans; } R3.step(R, act); for (const e of R.fx) if (e.k === "orderDone") how = e.how; R.fx.length = 0; }
+      try { C.end(); } catch (e) {} return { asked, how }; };
+    const no = run("no"), yes = run("yes");
+    ok(no.asked && no.how === "refuse" && yes.asked && yes.how === "miss", "Your stretch of the ring: Drona's order reaches you in the fight; refused it is refused, and taken but not struck it is a miss"); }
   { const K = fresh(7); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("new_over_bhima", null), R = R3.begin(B, {});
     ok(R.plan && R.plan.kind === "charge" && B.enc.fallen === "bhima", "Over Bhima: their champion charges (the plan is fixed), and Bhima lies behind you"); try { C.end(); } catch (e) {} }
   const K = fresh(5); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player();

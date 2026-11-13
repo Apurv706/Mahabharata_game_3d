@@ -201,7 +201,7 @@
 
   K.encounter({
     id: "wc_e_ghost", title: "Ghatotkacha's night host", art: "fight_night_torches", caption: "Under the torches",
-    hold: 5, hard: true, lethal: false, curse: true, allies: (S) => K.warAllies(S), spare: false, flee: { tags: ["retreat"] },
+    hold: 5, hard: true, lethal: false, curse: true, allies: (S) => K.warAllies(S), spare: false, flee: { tags: ["retreat"] }, nerve3: true, // (in 3D it is your own line's nerve that is under attack)
     holdText: "You are still standing. Around you, the line is not.",
     intro: "The rakshasas come out of the dark first, and above them the shape bends down over the line like a storm.",
     enemies: [K.foe("Ghatotkacha", 10, { abilities: ["strike", "heavy"], hero: true, person: "ghatotkacha", hp: 900, atk: 7 }),

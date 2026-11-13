@@ -291,14 +291,31 @@
   // The banner-bearer (enc.bearer): the man who carried your host's banner is down and you have taken it up. While it
   // stands your side holds. Its bar falls as your men fall and each time you are struck, and rises as theirs fall;
   // at nothing the banner is down and the fight is lost. You fight with one hand (blows at four-fifths weight).
+  // The steps of a day the epic has fixed (enc.beats with `stop: person`): for one round the man about to do the
+  // thing is named, and a blow of yours on him in that time spoils his stroke. The thing is done all the same (it
+  // is written), but the friend it is done to takes heart, and it is counted to you.
+  function storyHit(R, t) {
+    if (R.step3 && !R.step3.hit && t.uid === R.step3.uid) { R.step3.hit = true; stepClose(R); }
+    if (R.order && R.order.state === "doing" && t.uid === R.order.uid) { R.order.state = "obey"; R.fx.push({ k: "orderDone", how: "obey", uid: t.uid }); }
+  }
+  function stepClose(R) {
+    const B = R.B, s3 = R.step3; if (!s3) return; R.step3 = null;
+    const at = B.log.length, u = (s3.beat.run && s3.beat.run(B)) || {}; B.log.splice(at, 0, { key: s3.beat.text, u, ev: true });
+    if (s3.hit) { R.held = (R.held || 0) + 1; for (const a of living(B, "ally")) if (!a.line && a.person) { a.hp = Math.min(a.maxHp, a.hp + Math.round(a.maxHp * 0.12)); B.status(a, "inspired", 2); } R.fx.push({ k: "stepHeld", uid: s3.uid, n: R.held }); }
+    R.fx.push({ k: "event", at });
+  }
+  function storyStep(R) {
+    if (R.step3 && R.t >= R.step3.until) stepClose(R);
+    const o = R.order; if (o && o.state === "doing" && R.t >= o.until) { o.state = "miss"; R.fx.push({ k: "orderDone", how: "miss", uid: o.uid }); }
+  }
   function bearerStep(R) {
-    const B = R.B; if (!B.enc.bearer || R.over) return; const p = C.player(), al = living(B, "ally").length, en = living(B, "enemy").length;
+    const B = R.B; if (!(B.enc.bearer || B.enc.nerve3) || R.over) return; /* nerve3: the same bar with no banner in your hand, your own line's nerve */ const p = C.player(), al = living(B, "ally").length, en = living(B, "enemy").length;
     if (!R.ours) { R.ours = { v: 100, al, en, hp: p.hp }; return; }
     const o = R.ours; let d = 0;
     if (al < o.al) d -= 7 * (o.al - al); if (en < o.en) d += 10 * (o.en - en); if (p.hp < o.hp) d -= Math.min(8, 2 + 36 * (o.hp - p.hp) / Math.max(1, p.maxHp));
     o.al = al; o.en = en; o.hp = p.hp;
     if (d) { o.v = clamp(o.v + d, 0, 100); if (d <= -7) R.fx.push({ k: "bannerSways", v: o.v }); }
-    if (o.v <= 0 && !o.down) { o.down = true; R.fx.push({ k: "bannerDown" }); B.say("The banner goes down, and the line goes with it."); end(R, "lose"); }
+    if (o.v <= 0 && !o.down) { o.down = true; R.fx.push({ k: "bannerDown" }); B.say(B.enc.bearer ? "The banner goes down, and the line goes with it." : "The line breaks and runs, and you are carried back with it."); end(R, "lose"); }
   }
   function planStep(R) {
     const B = R.B, pl = R.plan, p = C.player(); if (!pl || R.over) return;
@@ -326,7 +343,7 @@
   R3.begin = function (B, opts) {
     opts = opts || {};
     const kind = K.val(B.enc.kind) || null;
-    const R = { B, t: 0, n: 0, seen: 0, sideSeen: {}, over: null, tries: opts.tries || 0, fx: [], shots: [], shotN: 0, slow: 0, doT: ROUND, rad: opts.rad || P.rad,
+    const R = { noPlan: !!opts.noPlan, B, t: 0, n: 0, seen: 0, sideSeen: {}, over: null, tries: opts.tries || 0, fx: [], shots: [], shotN: 0, slow: 0, doT: ROUND, rad: opts.rad || P.rad,
       orders: { friend: "balanced", soldiers: "defend" }, breath: P.breathMax, combo: 0, comboT: -9, buffer: false, roll: 0, rollT: -9, rdx: 0, rdz: -1, block: false, blockT: -9, winded: false,
       kneel: 0, skillCd: 0, herbCd: 0, salve: null, unseen: 0, double: false, haste: 0, frozen: 0, assist: !!opts.assist, lock: null, kind,
       stats: { blows: 0, hits: 0, rolls: 0, dodged: 0, perfect: 0, blocks: 0, blocked: 0, perfectBlocks: 0, parries: 0, parried: 0, fblocks: 0, taken: 0, maxAtk: 0 },
@@ -654,7 +671,7 @@
       if (R.task && t.uid === R.task.uid) t.g.struck = true;
       if (R.plan && t.uid === R.plan.car && !behind && wheelGuards(R).length) { m *= 0.6; R.fx.push({ k: "guarded", uid: t.uid }); } // (his wheel-guards cover him)
       const d = floored(R, t, B.hit(p, t, m), m);
-      R.stats.hits++;
+      R.stats.hits++; storyHit(R, t);
       hitFx(R, t, d, b.c.heavy, p, true, caught < 1);
       if (b.c.heavy && caught === 1) giftsOnHeavy(R, t, d);
       if (b.c.knock && t.hp > 0) knock(R, t, angTo(p, t), b.c.knock, false);
@@ -886,7 +903,7 @@
     if (s.m) {
       const mine = p.side === "player", caught = mine ? foeBlocks(R, t, s.heavy, true) : 1, bb = mine && R.boonBlow ? R.boonBlow : 1; if (mine) R.boonBlow = 0;
       const d = mine ? floored(R, t, B.hit(p, t, s.m * caught * bb), s.m * caught * bb) : B.hit(p, t, s.m);
-      if (mine) { R.stats.hits++; if (s.heavy && caught === 1) giftsOnHeavy(R, t, d); }
+      if (mine) { R.stats.hits++; storyHit(R, t); if (s.heavy && caught === 1) giftsOnHeavy(R, t, d); }
       hitFx(R, t, d, s.heavy, p, false, caught < 1); t.g.hits.push(R.t); if (mine && R.task && t.uid === R.task.uid) t.g.struck = true;
       if (s.knock && t.hp > 0) knock(R, t, s.a, s.knock, false);
       else if (mine && t.hp > 0 && d > 0) knock(R, t, s.a, P.arrowPush, false);
@@ -1147,7 +1164,11 @@
     if (round !== B.round) {
       B.round = round;
       const beat = (K.val(B.enc.beats) || []).find((b) => b.round === B.round);
-      if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); }
+      const stopper = beat && beat.stop && !R.noPlan ? living(B, "enemy").find((u) => u.g && (u.person === beat.stop || who(u) === beat.stop)) : null;
+      if (beat && R.step3) stepClose(R); // (the last one's time is up)
+      if (beat && stopper) { B.evented = true; R.step3 = { beat, uid: stopper.uid, until: R.t + P.story - 0.5, hit: false }; R.fx.push({ k: "stepOpen", uid: stopper.uid, what: beat.stopText || "" }); }
+      else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); }
+      if (B.enc.order3 && !R.noPlan && !R.order && B.round === B.enc.order3.round) { const t = living(B, "enemy").find((u) => u.person === B.enc.order3.on); if (t) { R.order = { uid: t.uid, state: "asked" }; R.offer = { kind: "order", uid: t.uid, n: 0 }; R.fx.push({ k: "order", uid: t.uid }); } }
       else if (B.round === 3 && B.enc.lethal && !B.evented && !B.enc.beats && living(B, "enemy").length) { const at = B.log.length; C.core.fieldEvent(); R.fx.push({ k: "event", at }); }
     }
   }
@@ -1185,7 +1206,8 @@
     R.n++;
     if (R.offer) { // the champion has offered single combat: the fight waits on your answer (no answer in ten seconds is a refusal)
       const o = R.offer; o.n++; const ans = act.duel || (o.n > 600 ? "no" : null); if (!ans) return R; R.offer = null;
-      if (ans === "yes") { R.duel = { uid: o.uid }; R.lock = o.uid; for (const u of living(B, "enemy")) if (u.g && !u.line && u.uid !== o.uid) { u.g.role = "ring"; cancel(u); } R.fx.push({ k: "duel", uid: o.uid }); }
+      if (o.kind === "order") { if (ans === "yes") { R.order.state = "doing"; R.order.until = R.t + 12; R.lock = o.uid; R.fx.push({ k: "orderTaken", uid: o.uid }); } else { R.order.state = "refuse"; R.fx.push({ k: "orderDone", how: "refuse", uid: o.uid }); } }
+      else if (ans === "yes") { R.duel = { uid: o.uid }; R.lock = o.uid; for (const u of living(B, "enemy")) if (u.g && !u.line && u.uid !== o.uid) { u.g.role = "ring"; cancel(u); } R.fx.push({ k: "duel", uid: o.uid }); }
       else { for (const a of living(B, "ally")) if (a.g && !a.line) a.g.cool = Math.max(a.g.cool || 0, 6); spirit(R, 20); R.fx.push({ k: "duelNo", uid: o.uid }); } }
     if (R.frozen > 0) { // a divine weapon's moment: the fight stands still
       R.frozen -= STEP; if (act.orders) { Object.assign(R.orders, act.orders); R.orders.given = true; }
@@ -1213,7 +1235,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
-    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R);
+    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
@@ -1260,7 +1282,7 @@
   const TAPS = ["block", "roll", "herbs", "call", "astra", "spare", "layDown", "cover", "skill", "strike"];
   R3.bot = function (R, opt) {
     opt = opt || {};
-    if (R.offer) return { duel: C.player().hp > C.player().maxHp * 0.5 ? "yes" : "no" };
+    if (R.offer) return { duel: R.offer.kind === "order" ? "no" : C.player().hp > C.player().maxHp * 0.5 ? "yes" : "no" };
     if (R.task && R.task.kind === "standard") { const q = C.player().g; return { mx: R.task.x - q.x, mz: R.task.z - q.z }; }
     if (R.task && R.task.kind === "sarathi") { const q = C.player().g, c = R.B.units.find((u) => u.uid === R.task.uid); if (c && c.g) return { mx: c.g.x - q.x, mz: c.g.z - q.z }; }
     const a = wants(R, opt);
