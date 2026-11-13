@@ -184,13 +184,19 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     for (let i = 0; i < 60 * 120 && !R.over; i++) { R3.step(R, bot ? R3.bot(R) : (C.player().hp = C.player().maxHp, {})); for (const e of R.fx) if (/^(turn|taskDone|taskFail|rout|duel|duelWon|duelNo)$/.test(e.k)) ev.push(e.k + (e.kind ? ":" + e.kind : "")); R.fx.length = 0; if (!bot && ev.some((x) => /^task|duelNo/.test(x))) break; }
     const out = { R, ev, flags: K.S.flags.slice() }; try { C.settle("flee"); C.end(); } catch (e) {} return out; };
   const wall = run("wall", true), pin = run("pincer", true), ch = run("charge", true);
-  ok(wall.R.plan && wall.ev.includes("turn:standard") && wall.ev.includes("taskDone:standard") && wall.ev.includes("rout"), "The wall, broken, leaves their standard open: take it and they run");
-  ok(pin.ev.includes("turn:raid") && pin.ev.includes("taskDone:raid"), "The pincer shut, one of them goes for your man: strike him and your man lives");
+  ok(wall.R.plan && wall.ev.includes("turn:banner") && wall.ev.includes("taskDone:banner") && wall.ev.includes("rout"), "The wall, broken, leaves his car open: cut down his banner and they run");
+  ok(pin.ev.includes("turn:sarathi") && pin.ev.includes("taskDone:sarathi"), "The pincer shut, his wheel-guards are away: reach his charioteer and the car stands still");
   ok(ch.ev.includes("turn:duel") && ch.ev.includes("duel"), "The champion charges and calls you out: taken, it is single combat");
   const idle = run("wall", false), idle2 = run("pincer", false), idle3 = run("charge", false);
-  ok(idle.ev.includes("taskFail:standard") && idle.flags.includes("war_setback") && !idle.R.over, "The standard not taken in time: they rally, and it costs you the next fight's start");
-  ok(idle2.ev.includes("taskFail:raid"), "The man not stopped: your comrade is cut down");
+  ok(idle.ev.includes("taskFail:banner") && idle.flags.includes("war_setback") && !idle.R.over, "The banner left flying: they rally, and it costs you the next fight's start");
+  ok(idle2.ev.includes("taskFail:sarathi"), "The charioteer not reached: his car rides your man down");
   ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
+  const bh = (bot) => { const K = fresh(11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
+    for (let i = 0; i < 60 * 150 && !R.over; i++) { if (!bot) p.hp = p.maxHp; R3.step(R, bot ? R3.bot(R) : {}); for (const e of R.fx) if (/^(lineFalls|turn|defended|checked|barred|crossed)$/.test(e.k)) ev.push(e.k); R.fx.length = 0; }
+    const out = { over: R.over, ev, t: R.t, bh: B.units.find((u) => u.person === "bhishma") }; try { C.end(); } catch (e) {} return out; };
+  const stood = bh(false), fought = bh(true);
+  ok(stood.ev.filter((x) => x === "lineFalls").length === 3 && stood.ev.includes("turn") && stood.ev.includes("crossed") && stood.over !== "win", "Under Bhishma the line gives way three times; left alone, his car crosses and the line is broken");
+  ok(fought.ev.includes("defended") && fought.ev.filter((x) => x === "checked").length === 3 && fought.ev.includes("barred") && fought.over === "win" && fought.bh && fought.bh.hp > 0, "Bar his way: the first blow he turns aside, three checks and he turns his car away, unbeaten");
   const K = fresh(5); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player();
   const lineMen = () => B.units.filter((u) => u.side === "ally" && u.line && u.hp > 0 && u.g), far = () => Math.max(...lineMen().map((u) => Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z)));
   const hold = (secs, act) => { R3.step(R, act || {}); for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; for (const u of B.units) if (u.side !== "enemy") u.hp = u.maxHp; R3.step(R, {}); } };

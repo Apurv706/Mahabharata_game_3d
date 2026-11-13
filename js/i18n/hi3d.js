@@ -116,6 +116,19 @@
     "The day is lost.": "आज का दिन हाथ से गया।", "You will carry this into the next fight.": "इसका भार तुम अगले युद्ध में ढोओगे।", "You begin hurt from the last fight.": "पिछले युद्ध की चोट लिए तुम आरंभ करते हो।",
     "The hosts stand off. It is you and him.": "दोनों सेनाएँ पीछे हट गईं। अब बस तुम और वह।", "You refuse. Your men look at one another.": "तुमने मना कर दिया। तुम्हारे सैनिक एक-दूसरे को देखते हैं।", "He falls, and his men run.": "वह गिरा, और उसके सैनिक भाग खड़े हुए।",
     "{t} calls you out": "{t} तुम्हें ललकारता है", "Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.": "द्वंद्व, और दोनों सेनाएँ दूर खड़ी रहेंगी। उसे हराओ तो उसके सैनिक भागेंगे। मना करो तो तुम्हारे अपने हिम्मत हारेंगे।",
-    "Fight him alone": "अकेले उससे लड़ो", "Refuse": "मना करो", "Their shields are locked. Go round the side, or break one with a heavy blow.": "उनकी ढालें जुड़ी हैं। बगल से जाओ, या भारी प्रहार से एक को तोड़ो।"
+    "Fight him alone": "अकेले उससे लड़ो", "Refuse": "मना करो", "Their shields are locked. Go round the side, or break one with a heavy blow.": "उनकी ढालें जुड़ी हैं। बगल से जाओ, या भारी प्रहार से एक को तोड़ो।",
+    "Cut down his banner": "उसका ध्वज काट गिराओ", "Reach his charioteer": "उसके सारथी तक पहुँचो",
+    "A horn. Their wall is broken and his car stands open. Cut down his banner!": "शंख बजा। उनकी ढाल-दीवार टूट गई और उसका रथ खुला खड़ा है। उसका ध्वज काट गिराओ!",
+    "A horn. His wheel-guards have left his car to come round you. Reach his charioteer!": "शंख बजा। उसके चक्र-रक्षक तुम्हें घेरने रथ छोड़ गए हैं। उसके सारथी तक पहुँचो!",
+    "His banner falls. Their host breaks.": "उसका ध्वज गिरा। उनकी सेना टूट गई।", "His charioteer is down, and the car stands still.": "उसका सारथी गिर पड़ा, और रथ थम गया।",
+    "Too slow: his guards close round the car again, and they rally.": "देर हो गई: उसके रक्षक फिर रथ को घेर लेते हैं, और वे फिर जुट गए।", "Too slow: his car rides your man down.": "देर हो गई: उसका रथ तुम्हारे साथी को रौंद गया।",
+    "His wheel-guards cover him. Cut them down first, or come at the car from behind.": "उसके चक्र-रक्षक उसे ढके हैं। पहले उन्हें गिराओ, या रथ पर पीछे से आओ।",
+    "Bar his way: {n} of 3": "उसका मार्ग रोको: 3 में से {n}", "Stand under his arrows: pass {n} of 3": "उसके बाणों के नीचे डटे रहो: फेरा {n} / 3", "turned aside": "टाल दिया", "checked!": "रुका!",
+    "His car passes, and the line in front of you gives way.": "उसका रथ निकलता है, और तुम्हारे आगे की पंक्ति ढह जाती है।", "His car passes a third time. There is no line left in front of you.": "उसका रथ तीसरी बार निकलता है। तुम्हारे आगे अब कोई पंक्ति नहीं बची।",
+    "A horn. Bhishma turns his car at the gap where you stand. Bar his way: cut at his banner, or get to his charioteer!": "शंख बजा। भीष्म अपना रथ उसी दरार की ओर मोड़ते हैं जहाँ तुम खड़े हो। उनका मार्ग रोको: ध्वज पर वार करो, या सारथी तक पहुँचो!",
+    "He turns it aside on his bow, as he has turned ten thousand.": "वे उसे धनुष पर टाल देते हैं, जैसे दस हज़ार टाल चुके हैं।",
+    "Your hand is on his charioteer's rein. The grandsire looks at you a moment, and turns his car away.": "तुम्हारा हाथ उनके सारथी की लगाम पर है। पितामह क्षण भर तुम्हें देखते हैं, और रथ मोड़ लेते हैं।",
+    "He cannot get through you. The grandsire turns his car away down the line.": "वे तुम्हें पार नहीं कर पाते। पितामह रथ को पंक्ति के साथ-साथ मोड़ ले जाते हैं।",
+    "His car goes through the place where the line was.": "उनका रथ वहाँ से निकल जाता है जहाँ कभी पंक्ति थी।"
   });
 })(window.K = window.K || {});

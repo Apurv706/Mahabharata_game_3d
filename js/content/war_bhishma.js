@@ -360,7 +360,7 @@
   // The fight: the line under Bhishma's arrows on the ninth day
   // =====================================================================================
   K.encounter({
-    id: "bh_line9", title: "The line under Bhishma", caption: "Five rounds", hold: 5, lethal: false, spare: false, art: "war_bhishma",
+    id: "bh_line9", title: "The line under Bhishma", caption: "Five rounds", hold: 5, plan: "bhishma", /* (the 3D fight: three passes, then bar his way: js/ui/battle/sim.js) */ lethal: false, spare: false, art: "war_bhishma",
     allies: (S) => K.warAllies(S), callHelp: K.warHelp,
     flee: { tags: ["retreat"], fx: { flag: "bh_line_broke" }, text: "You fall back with the rest. The grandsire's arrows follow you a long way." },
     enemies: [K.foe("Bhishma", 10, { abilities: ["arrows", "aimed", "volley"], hero: true, person: "bhishma", hp: 900, atk: 10 }), K.foe("Kaurava chariot-warrior", 5, { abilities: ["strike", "arrows"] })],
