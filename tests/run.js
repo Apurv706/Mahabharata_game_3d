@@ -99,6 +99,7 @@ add("smoke", null, ["tests/smoke.js", "--json", J("smoke")], { browser: true, re
 // The 3D layer (this repository's own): the rules of the 3D fights, every fight played by the bot against its recorded
 // band, and the fights and tests in a real browser with software WebGL.
 add("rules3d", ["tests/rules3d.js"], ["tests/rules3d.js"]);
+add("tests3d", ["tests/tests3d_rules.js"], ["tests/tests3d_rules.js"]); // the steered race and the herd: their rules, with no page
 add("fights3d", ["tests/fights.js", "3", "21", "--check", "--json", J("fights3d")], ["tests/fights.js", "28", "21", "--check", "--json", J("fights3d")], { timeout: 30, heavy: "full" });
 add("smoke3d", ["tests/smoke3d.js", "--case", "fight,no3d", "--json", J("smoke3d")], ["tests/smoke3d.js", "--json", J("smoke3d")], { browser: true, retryJson: "smoke3d", timeout: 20 });
 add("review-rules", ["tests/review_rules.js", "--json", J("review_rules")], ["tests/review_rules.js", "--json", J("review_rules")]);

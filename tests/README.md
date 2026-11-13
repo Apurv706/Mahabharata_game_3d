@@ -16,6 +16,7 @@ node tests/run.js quick --list    # what each tier runs
 | Check | Quick | Full | What it is |
 |---|---|---|---|
 | rules3d | ✓ | ✓ | `rules3d.js`: the rules of the 3D fights with no page: the same seed plays the same fight; the line of soldiers is raised in war and raid battles and nowhere else, fights its own men, never decides a fight and is off the roll before the story reads it; the dream overwhelms and still ends; the close views keep your face to the foe; a lost deadly fight is offered once more |
+| tests3d | ✓ | ✓ | `tests3d_rules.js`: the rules of the 3D game's steered tests with no page. The race: the same seed runs the same race; a driver who steers comes through and one who never steers does not; a chariot answers with a turn and not a jump, slides when thrown about, more under the whip; the rail stops you and costs pace; a square hit against a brush; wheels that touch throw the cars apart. The herd: the same seed runs the same drive; a herder who works from behind brings them across and one who runs at them does not; left alone they stay at grass and out of deep water; a walked-up cow moves off and a rushed one bolts; a herd worked from behind closes up. (`race3_balance.js` sets the steered race beside the lane race; it prints and does not fail) |
 | fights3d | 3 runs | 28 runs | `fights.js --check`: every fight played by the bot against `baselines/fights3d.json`. No fight may throw or run to the time limit; the mean win rate stays within 6 points; with ten runs or more each fight stays within its band (± 22 points, or 3 standard errors) and its length within a factor of 1.6 |
 | smoke3d | fight, no3d | all | `smoke3d.js`: a real browser with software WebGL. A battle opens in 3D, its opening moves on at a tap, the three views switch, W and a thumb stick move the fighter, the bot plays it out and the story gets the outcome; the same on a phone with real touches; the dream; all 23 kinds of test open in 3D and end; with 3D switched off the same fight and every test open on the 2D screens |
 
@@ -40,7 +41,7 @@ content check's page lives caught it.
 ## What has been run here, and what has not
 
 Run and passing on this build: the whole quick tier (rules, lives, lives-turns, crossing, content, golden, bands,
-bugs, weapons, traits, facefit, saves, dash-balance, review-rules, review-story, rules3d, fights3d, smoke3d).
+bugs, weapons, traits, facefit, saves, dash-balance, review-rules, review-story, rules3d, tests3d, fights3d, smoke3d).
 
 Not run here: the full tier's long checks (the 300 playthroughs, layout on every device, battlefit, the visual
 baselines, the review suites). They are expected to need attention in two places: the visual baselines show the

@@ -965,7 +965,7 @@
   // Beaten, but the story goes on (owner, 4 November): you slump where you stand, the foes turn and walk off the field, and a
   // line says you tried and what is written held. A tap (Enter or Space) goes on.
   // A deadly fight lost the first time: you are down, not dead, while the second try is offered.
-  function retryLeft() { const R = V.R; return !!((R.B.enc.lethal || (K.S && K.S.fighter)) && !R.tries && !R.noRetry); }
+  function retryLeft() { const R = V.R; return !!((R.B.enc.lethal || (K.S && K.S.fighter)) && !R.B.enc.once && !R.tries && !R.noRetry); }
   function slumped(a) {
     a.el.classList.add("slumped"); a.el.classList.remove("windup", "shield-up"); a.shieldUp = false;
     if (a.tag) a.tag.classList.remove("on");

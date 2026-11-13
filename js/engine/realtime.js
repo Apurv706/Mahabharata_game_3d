@@ -400,6 +400,7 @@
   RT.weaponOf = function (u) {
     if (u.side === "player") {
       const B = C.state && C.state(); if (B && B.enc && B.enc.dream) return "sword"; // the dream: you, grown, with a sword
+      if (B && B.enc && B.enc.arm) return B.enc.arm; // a bout fought with what the two of you were handed (ui/tests3d/frame.js: bare hands, wooden swords, practice maces)
       return K.S && K.S.path ? K.playerWeapon(K.S) : "fist"; // before a path, empty hands (K.fightItem): the fair's wrestling ring
     }
     if (u.item) return u.item; // drawn by this fight with another weapon (Ashwatthama in the sleeping camp: a sword)
@@ -1645,7 +1646,7 @@
     RT.clearDecoys(B); // (Ghatotkacha's false figures never outlive the fight)
     R.lost = out === "lose";
     // A deadly fight lost the first time: one more try (RT.retry), with a little cost.
-    if (out === "lose" && (B.enc.lethal || (K.S && K.S.fighter)) && !R.tries && !B.over && !R.noRetry) { R.over = "retry"; return; } // fighter mode: every fight one more try
+    if (out === "lose" && (B.enc.lethal || (K.S && K.S.fighter)) && !B.enc.once && !R.tries && !B.over && !R.noRetry) { R.over = "retry"; return; } // fighter mode: every fight one more try
     R.over = out;
     if (!B.over) C.settle(out);
   }

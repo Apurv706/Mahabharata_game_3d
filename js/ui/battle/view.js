@@ -1197,7 +1197,7 @@
       if (!s) return ready(false);
       const b = intro.box, pp = b.querySelector("p"); b.querySelector(".kind").textContent = s.kind; const plain = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">"); b.querySelector("h2").textContent = plain(s.head); pp.textContent = plain(s.text); pp.hidden = !s.text; { const old = b.querySelector(".thumb"); if (old) old.remove(); if (s.pic) b.insertAdjacentHTML("afterbegin", U.thumb(s.pic, "face")); }
       b.classList.remove("in"); void b.offsetWidth; b.classList.add("in");
-      s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" ? 0.6 : 1);
+      s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" || enc.quick ? 0.6 : 1);
       const v = s.who != null ? views.get(s.who) : null; if (v && s.act) for (const f of v.figs) f.act(s.act, 1.7);
       // (On an upright screen the close shots stand a little further back, so a head is not cut off at the brow.)
       const up = G.W / G.H < 0.85 ? 1.34 : 1, off = (c) => [[c[1][0] + (c[0][0] - c[1][0]) * up, c[1][1] + (c[0][1] - c[1][1]) * up + (up - 1) * 0.25, c[1][2] + (c[0][2] - c[1][2]) * up], [c[1][0], c[1][1] + (up - 1) * 0.12, c[1][2]], c[2]];
@@ -1239,6 +1239,7 @@
       const vr = el.querySelector(".b-views");
       for (const m of VIEWS) { const b = U.button("b-view" + (m === viewMode ? " on" : ""), U.tr(VIEW_NAME[m]), () => setView(m, true)); b.dataset.view = m; vr.appendChild(b); }
       const go = () => { if (started) return; started = true; el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 0.8; if (enc.dream && !tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
+      if (enc.quick) return go();   // (a bout begun from a test's own card: it has said what is at stake, and Begin was the word)
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Fight"), go, "battle-go"));
       hud.appendChild(el);
       U.keys([go]);

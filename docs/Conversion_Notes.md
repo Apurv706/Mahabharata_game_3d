@@ -124,8 +124,9 @@ Not checked: the frame rate of the new figures on a real phone (on the test mach
 same files served locally); real devices and GPUs; a person playing a fight by hand to its end in any view; frame rate with the line
 on a phone; gamepad; sound; the full test tier (playthroughs, layout on every device, visual baselines), whose
 baselines will show the puppets' corrected colours. The moves were checked against written technique from still
-frames, not against film or by a fighter. Several 3D tests are simpler than their 2D versions (escape, herd,
-formation, array; the board and dice games are a board drawn over the 3D hall).
+frames, not against film or by a fighter. Several 3D tests are simpler than their 2D versions (escape,
+formation, array; the board and dice games are a board drawn over the 3D hall). The herd was one of them until
+13 November; it, the race, archery and the contests against a person now ask more than the 2D versions do (see the end of this file).
 Known leftovers: the 2D menu's "Fights: turn-based" switch no longer changes anything while 3D is on.
 
 ## The join between the field and the painting (12 Nov)
@@ -417,3 +418,13 @@ Notes for whoever works on the code next. What the player gets, with the measure
 - **`f.drop(on, dir, { side, rate, twist })`** chooses how a figure goes down.
 - **A warning for the fight bands:** anything that changes how bodies move changes who wins. After such a change run `node tests/fights.js 28 11` on the fights that moved before trusting a 12-run check: twelve runs is too few to tell 75% from 90%.
 
+## Tests that are aimed, steered, fought and herded (13 November)
+
+Four of the 3D game's tests no longer play as their 2D versions do. The 2D game's own tests (`U.games2D`, `js/ui/play.js`) are untouched, and so are the scenes: a scene still names a `game` and a `trial`, and reads back win, close or lose.
+
+- **Archery** (`PLAY.aim` in `js/ui/tests3d/games.js`): a ring is dragged to where the arrow should fall; the arrow flies at 21 m/s, a side wind is drawn for each shot, and a hit is decided when the arrow arrives. `U._aimLead()` looses a led shot for the checks.
+- **The race** (`js/ui/tests3d/race.js`): `U.ROAD` holds the road and how each vehicle handles (`HAND.chariot`, `.boat`, `.foot`); `U.raceSetup3(t, power)` is the lane race's setup with the gaps opened for steering; `R = U.raceRules3(o, rng, vehicle)`, `R.step(dt, steer)` with steer from -1 to 1, `R.whip()`, `R.shoot()`. The endings are the lane race's (`U.RACE`). The view hands `U._race = { R, o, steer(v) }` to the checks. `node tests/race3_balance.js` sets the lane race beside it for four skills of driver.
+- **A bout** (`sparOf` and `sparBout` in `js/ui/tests3d/frame.js`, `K.sparEncounter` in `js/engine/combat.js`): a `push` or `rhythm` test whose `trial.foe` is a named person (`U.personByName`) and whose `face` is not a post or a gate becomes the encounter `x_spar`. `trial.arm` may name what is fought with; otherwise wooden swords at a drill or where the choice speaks of a sword, practice maces for a rhythm test or where it speaks of a mace, else bare hands. `trial.spar: false` keeps a test a test (the practice ground sets it). The encounter is `bout`, not `lethal`, `quick` (no Fight card: the test's Begin was the word), `once` (no second try, even on a fighter's road) and carries `arm`, which `RT.weaponOf` and the player's abilities obey. The life is copied before the bout and put back in place after it.
+- **The herd** (`js/ui/tests3d/herd.js`): `U.HERD` holds the field and the cattle's distances and paces; `R = U.herdRules({ need, lose, secs, calm }, rng)`, `R.step(dt, hx, hz, hv)` takes the herder's place and pace and returns what happened (`across`, `lost`, `spook`, `end`); `U.herdBot(R, hx, hz)` is a herder who knows the work. `PLAY.herd` is the cattle unless `trial.theme` is `"fire"`, where it is the line of families (`lineOut`). Hooks for the checks: `U._herd = { R, go(x, z, v), at() }` and `U._line = { folk, haz, go(x, z), at(), state() }`.
+- **What the card says.** `U.HOWTO3D[kind]` may be a function of the trial; it returns the 3D game's own lines, or nothing. A scene's `rules` line is still shown above them unless it tells the 2D game's way of playing (`stale` in `frame.js`: lanes, a line that falls in behind).
+- **Checks:** `node tests/tests3d_rules.js` (the race's and the herd's rules, no page), section 15 of `tests/rules3d.js` (the bout). One fault to remember: a 3D test is opened with `U.games[kind](box, done, c)` and reads its options from `c.trial`, not from `c`. A check that passes them as `c` runs the plain test every time and reports as if it had varied them.

@@ -1444,7 +1444,7 @@
   function end(R, out) {
     const B = R.B;
     R.lost = out === "lose";
-    if (out === "lose" && (B.enc.lethal || (K.S && K.S.fighter)) && !R.tries && !B.over && !R.noRetry) { R.over = "retry"; return; }
+    if (out === "lose" && (B.enc.lethal || (K.S && K.S.fighter)) && !B.enc.once && !R.tries && !B.over && !R.noRetry) { R.over = "retry"; return; }
     R.over = out;
     settle(R, out, B.enc.hold || B.enc.rounds ? Math.min((B.enc.hold || B.enc.rounds), Math.floor(R.t / P.story)) : null);
   }

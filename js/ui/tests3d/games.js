@@ -558,9 +558,10 @@
   };
 
   // =====================================================================================================
-  // Race: three lanes, what lies in the road, a rival, the whip (rules/race.js).
+  // Race: a road you steer across, what lies in it, a rival, the whip (rules: tests3d/race.js).
+  // You hold left or right; what you drive answers as that thing does (a chariot's team swings round and the car
+  // follows and can slide; a boat drifts; a runner has a body's weight).
   // =====================================================================================================
-  const LANE = [-2.4, 0, 2.4];
   function vehicle(ctx, kind, col) {
     if (kind === "boat") return mesh((b) => { b.box(1.1, 0.4, 3.2, 0, 0, 0, col || 0x7a5232); b.box(0.9, 0.1, 2.6, 0, 0.4, 0, 0x9a7242); b.rod(0, 0.4, 0, 0, 2.4, 0, 0.05, 0x3a2414, 5); b.box(0.04, 1.4, 1.2, 0, 1, 0.2, 0xf2ead2); });
     if (kind === "foot") return null;
@@ -573,33 +574,48 @@
     if (car) { ctx.add(car); car.rotation.y = Math.PI; } else { fig = meAt(ctx, 0, 6, Math.PI, "stand", { item: null }); }
     if (car) { ctx.me = ctx.figure("me", { item: null }); ctx.me.pose("drive", true); car.add(ctx.me.root); ctx.me.root.position.set(0, kind === "boat" ? 0.5 : 0.75, kind === "boat" ? 0.4 : -0.6); ctx.me.root.rotation.y = 0; ctx.me.face = 0; }
     let rival = null; if (t.rival) { rival = vehicle(ctx, kind, 0x7a1f2a) || ctx.figure(U.personByName(t.rival) || "soldier").root; if (rival.parent !== G.actors) ctx.add(rival); rival.rotation.y = Math.PI; }
+    // The road's edges: a darker verge either side, so its width can be seen.
+    for (const sx of [-1, 1]) { const v = new T.Mesh(new T.PlaneGeometry(1.1, 70).rotateX(-Math.PI / 2), basic(kind === "boat" ? 0xffffff : 0x1a1208, kind === "boat" ? 0.1 : 0.26)); v.position.set(sx * (U.ROAD.W + 0.6), 0.035, -14); ctx.add(v, G.fxRoot); }
     ctx.x = { car, fig, rival, kind, obs: new Map() };
     ctx.cam([0, 5.2, 15], [0, 1, 0], 50, true);
   } };
   const OBS_COL = { rock: 0x8a7a64, wreck: 0x5a3a20, fire: 0xff7a2a, wave: 0xbfe8f0, arrow: 0xe6c98c, ice: 0xd8eef4, lotus: 0xf0a0c0, stone: 0x8a7a64 };
   PLAY.race = function (ctx) {
-    const t = ctx.t, x = ctx.x, o = U.raceSetup(t, ctx.power); if (t.divine) { o.base *= 1.22; o.gap *= 0.74; o.lives = Math.max(2, o.lives - 1); } o.who = t.rival ? K.tr(t.rival) : "";
-    const R = U.raceRules(o, K.rng), s = steering(ctx, t.upVerb ? "◀" : "◀", "▶"); s.tapL = () => R.move(-1); s.tapR = () => R.move(1);
+    const t = ctx.t, x = ctx.x, o = U.raceSetup3(t, ctx.power); if (t.divine) { o.base *= 1.22; o.gap *= 0.74; o.lives = Math.max(2, o.lives - 1); } o.who = t.rival ? K.tr(t.rival) : "";
+    const R = U.raceRules3(o, K.rng, x.kind), s = steering(ctx, "◀", "▶");
     if (o.whip) ctx.button("Whip", () => { if (R.whip()) sfx("hit"); });
     if (o.bow) ctx.button("Loose", () => { const r = R.shoot(); if (r === "hit") { ctx.toast(tx("Hit!"), "good"); sfx("clang"); } else if (r === "far") ctx.toast(tx("Too far."), "bad"); });
-    ctx.prompt(tx(K.val(t.helpSide) || K.val(t.help) || "Change lanes to keep clear of what lies in the road."));
-    let lx = 0, roll = 0; const me = x.car || x.fig.root;
+    ctx.prompt(tx(K.val(t.helpSide) || K.val(t.help) || (o.shield ? "Hold left or right to bring your shield under each arrow." : "Hold left or right to steer clear of what lies in the road.")));
+    let roll = 0, steer = 0, touch = 0, bot = null, skidT = 0; const me = x.car || x.fig.root, cy = x.kind === "boat" ? 0 : 0;
+    // A thumb held on either half of the screen steers that way (the buttons and the arrow keys do the same).
+    ctx.pointer = (kind, e) => { if (kind === "up") { touch = 0; return; } if (kind === "move" && !touch) return; touch = e.clientX < window.innerWidth / 2 ? -1 : 1; return true; };
+    U._race = { R, o, steer: (v) => { bot = v; } };   /* (for the checks: a driver in place of the thumb) */
     ctx.loop((dt, tt) => {
-      const ev = R.step(dt);
+      const want = bot != null ? bot : s.v || touch; steer += clamp(want - steer, -dt * 7, dt * 7);   // (a tap is a touch on the rein; holding it is a hard turn)
+      const ev = R.step(dt, steer); if (t.report) t.report(R);
       for (const e of ev) {
-        if (e.type === "spawn") { const m = ctx.add(e.o.kind === "fire" ? glow(0xff7a2a, 2.4) : mesh((b) => { if (e.o.kind === "arrow") b.rod(0, 0.2, 0, 0, 1.5, 0.6, 0.04, OBS_COL.arrow, 4); else if (e.o.kind === "wave") b.box(2, 0.7, 0.5, 0, 0, 0, OBS_COL.wave); else b.sph(0.6, 0, 0.2, 0, OBS_COL[e.o.kind] || 0x8a7a64, 0.8, 6); })); x.obs.set(e.o, m); }
+        if (e.type === "spawn") { const r = e.o.r, m = ctx.add(e.o.kind === "fire" ? glow(0xff7a2a, 2.4 * (r / 0.7)) : mesh((b) => { if (e.o.kind === "arrow") b.rod(0, 0.2, 0, 0, 1.5, 0.6, 0.04, OBS_COL.arrow, 4); else if (e.o.kind === "wave") b.box(r * 2, 0.7, 0.5, 0, 0, 0, OBS_COL.wave); else if (e.o.kind === "wreck") { b.box(r * 1.7, 0.5, 0.9, 0, 0.1, 0, OBS_COL.wreck, 0.3); b.cyl(0.5, 0.5, 0.1, r * 0.5, 0.35, 0.2, 0x3a2414, 10, 0, 0, 1.1); } else b.sph(r, 0, r * 0.3, 0, OBS_COL[e.o.kind] || 0x8a7a64, 0.8, 6); })); x.obs.set(e.o, m); }
         else if (e.type === "gone") { const m = x.obs.get(e.o); if (m) { m.visible = false; x.obs.delete(e.o); } }
         else if (e.type === "hit") { ctx.cue("bad"); ctx.toast(tx(t.bump || "You hit something in the road."), "bad"); G.fx.burst("dust", me.position, { n: 12, s: 2 }); }
+        else if (e.type === "clip") { sfx("step"); G.shake(0.06, 0.18); G.fx.burst("dust", me.position, { n: 5 }); ctx.toast(tx(x.kind === "chariot" ? "A wheel clips it." : "It brushes you."), "bad"); }
+        else if (e.type === "rails") { ctx.cue("bad"); G.fx.burst(x.kind === "boat" ? "splash" : "spark", V(me.position.x + e.side * 0.8, 0.5, 6), { n: 10 }); ctx.toast(tx(x.kind === "boat" ? "You run out wide, and lose way." : "You scrape along the rail."), "bad"); }
         else if (e.type === "catch") { sfx("clang"); } else if (e.type === "miss") ctx.cue("bad");
-        else if (e.type === "warn") ctx.toast(tx("He cuts across you!"), "bad"); else if (e.type === "clash") { sfx("clang"); G.shake(0.25, 0.3); G.fx.burst("spark", me.position.clone().setY(1), { n: 12 }); }
-        else if (e.type === "end") return ctx.finish(e.outcome, e.line ? [e.line[0], e.line[1]] : null);
+        else if (e.type === "warn") ctx.toast(tx("He cuts across you!"), "bad");
+        else if (e.type === "clash") { sfx("clang"); G.shake(0.25, 0.3); G.fx.burst("spark", V(me.position.x + e.side * 0.8, 1, 6), { n: 12 }); if (e.how === "ram") ctx.toast(tx("He rams you aside!"), "bad"); else if (e.how === "knock") ctx.toast(tx("You drive into him, and he falls back!"), "good"); }
+        else if (e.type === "end") { U._race = null; return ctx.finish(e.outcome, e.line ? [e.line[0], e.line[1]] : null); }
       }
-      lx += (LANE[R.lane] - lx) * Math.min(1, dt * 10); me.position.set(lx, x.kind === "boat" ? Math.sin(tt * 2) * 0.12 : 0, 6);
-      roll += R.speed() * dt * 3; if (x.car && x.kind === "chariot") G.roll(x.car, roll, tt, R.speed() / 3, R.speed() * 3); if (x.fig) x.fig.speed = R.speed() * 3; /* (legs and hooves at the speed the ground goes by) */
-      for (const [ob, m] of x.obs) m.position.set(LANE[ob.lane], ob.kind === "fire" ? 0.8 : 0, 6 - (ob.x - 17) * 0.42);
-      if (x.rival) { x.rival.position.set(LANE[R.rLane] + (x.rival.position.x - LANE[R.rLane]) * Math.max(0, 1 - dt * 8), 0, 6 - (R.rival - R.dist) * 0.9); if (x.kind === "chariot" && x.rival.userData.wheels) G.roll(x.rival, roll, tt, 1, R.speed() * 3); }
+      const mps = R.speed() * 3;
+      me.position.set(R.x, x.kind === "boat" ? Math.sin(tt * 2) * 0.12 : 0, 6);
+      roll += R.speed() * dt * 3;
+      if (x.car && x.kind === "chariot") { G.steer(x.car, Math.PI - R.yaw * 0.9, dt, 1, true); G.roll(x.car, roll, tt, R.speed() / 3, mps); }
+      else if (x.car) { x.car.rotation.y = Math.PI - R.yaw * 0.8; x.car.rotation.z = R.yaw * 0.35 + Math.sin(tt * 1.7) * 0.05; }
+      if (x.fig) { x.fig.speed = mps; x.fig.root.rotation.y = Math.PI - R.yaw; x.fig.root.rotation.z = -R.vx * 0.035; } /* (legs and hooves at the speed the ground goes by; a runner leans into the sidestep) */
+      if (R.skid > 0.25 && (skidT -= dt) <= 0) { skidT = 0.07; for (const sx of [-0.75, 0.75]) G.fx.burst("dust", V(R.x + sx, 0.1, 7.1), { n: 2, s: 1.4 }); if (R.skid > 0.6) G.shake(0.03, 0.1); }   // (the car slides: dust from both wheels)
+      for (const [ob, m] of x.obs) m.position.set(ob.ox, ob.kind === "fire" ? 0.8 : 0, 6 - (ob.x - 17) * 0.42);
+      if (x.rival) { const rz = 6 - (R.rival - R.dist) * 0.9; x.rival.position.set(R.rx, 0, rz); if (x.kind === "chariot" && x.rival.userData.wheels) { G.steer(x.rival, Math.PI - clamp(R.rvx / 7, -0.45, 0.45), dt, 1, true); G.roll(x.rival, roll, tt, 1, mps); } else x.rival.rotation.y = Math.PI - clamp(R.rvx / 7, -0.45, 0.45); }
       if (ctx.st.lastGround && ctx.st.lastGround.material.map) ctx.st.lastGround.material.map.offset.y = -roll * 0.02;
-      if (K.rng() < dt * 8 * R.speed() / 3) G.fx.burst(x.kind === "boat" ? "splash" : "dust", V(lx, 0.1, 7.2), { n: 1 });
+      if (K.rng() < dt * 8 * R.speed() / 3) G.fx.burst(x.kind === "boat" ? "splash" : "dust", V(R.x, 0.1, 7.2), { n: 1 });
+      const pan = G.W < G.H ? 0.8 : 0.45, cx = R.x * pan; ctx.cam([cx, 5.2, 15], [cx * 0.9, 1, 0], 50, true);   // (the eye goes with you: most of the way on a tall screen, where the road is wider than the view)
       ctx.score(tx(t.tally || "Distance: {d}% · Hits: {h} of {l}", { d: Math.min(100, Math.round(R.dist)), h: o.shield ? R.miss : R.hits, l: o.lives, c: R.caught, m: R.miss }));
     });
   };
@@ -672,36 +688,76 @@
     };
     return w;
   }
-  SETUP.herd = { clear: 16, setup(ctx) { meAt(ctx, 0, 6, Math.PI, "stand", { item: "staff" }); ctx.cam([0, 17, 15], [0, 0, 0], 46, true); } };
-  PLAY.herd = function (ctx) {
-    const t = ctx.t, need = t.need || 6, lose = 3, secs = clamp(38 + ctx.power, 38, 50), fire = t.theme !== "river", w = walker(ctx, 4.6, [11, 8]); w.z = 6;
-    const cows = [], haz = []; let got = 0, lost = 0, left = secs;
-    for (let i = 0; i < need + 3; i++) { const h = G.cow(i % 2 ? 0xe4dac8 : 0x8a5a3a); h.traverse((m) => { if (m.isMesh) m.castShadow = true; }); h.position.set((K.rng() - 0.5) * 20, 0, (K.rng() - 0.5) * 12 - 2); h.rotation.y = K.rng() * 6; ctx.add(h); cows.push({ h, with: false, gone: false }); }
-    const addHaz = (x, z, r) => { const m = ctx.add(new T.Mesh(new T.CircleGeometry(1, 20).rotateX(-Math.PI / 2), basic(fire ? 0xff6a20 : 0x2f6a8a, 0.55)), G.fxRoot); m.position.set(x, 0.05, z); haz.push({ m, x, z, r }); };
-    for (let i = 0; i < 3; i++) addHaz((K.rng() - 0.5) * 16, (K.rng() - 0.5) * 10 - 1, fire ? 0.8 : 1.8);
-    const draw = () => ctx.score(tx("Cattle with you: {f} of {n} · Lost: {d} of {l}", { f: got, n: need, d: lost, l: lose }));
-    draw(); ctx.prompt(tx(K.val(t.help) || (fire ? "Go to each scattered cow and she falls in behind you. Keep clear of the fire." : "Go to each scattered cow and she falls in behind you. Keep clear of the deep water.")));
+  SETUP.herd = { clear: 16, setup(ctx) { const fire = ctx.t.theme === "fire"; meAt(ctx, 0, 6, Math.PI, "stand", { item: fire ? null : "staff" }); ctx.cam([0, 17, 15], [0, 0, 0], 46, true);
+    if (fire) G.setSky("fire", { amb: 1.5, hi: 1.9, si: 1.6, sun: 0xffc890, fd: 0.003 }); } };   // (seen from above through smoke, the people were lost against the ground: the fire's own light is turned up, as it is in the burning house)
+  // Two different things are called a herd test. Cattle are worked as a herd (rules: tests3d/herd.js): they keep together,
+  // give way before you, and bolt if rushed, so you drive them from behind to the ford. People led out of a fire are a
+  // line: each family you reach falls in behind you, and the fire must not cut the line.
+  PLAY.herd = function (ctx) { return ctx.t.theme === "fire" ? lineOut(ctx) : cattle(ctx); };
+  function cattle(ctx) {
+    const t = ctx.t, H = U.HERD, R = U.herdRules({ need: t.need || 6, lose: 3, secs: clamp(64 + ctx.power, 64, 76), calm: clamp(ctx.power / 12, 0, 1) }, K.rng), w = walker(ctx, 4.6, [H.X, H.Z]); w.z = 6;
+    const hs = new Map(); let bot = null, said = -9;
+    for (const c of R.cows) { const h = G.cow(c.i % 2 ? 0xe4dac8 : 0x8a5a3a); h.traverse((m) => { if (m.isMesh) m.castShadow = true; }); h.position.set(c.x, 0, c.z); h.rotation.y = c.a; ctx.add(h); hs.set(c, h); }
+    for (const hz of R.haz) { const m = ctx.add(new T.Mesh(new T.CircleGeometry(1, 24).rotateX(-Math.PI / 2), basic(0x2f6a8a, 0.6)), G.fxRoot); m.position.set(hz.x, 0.05, hz.z); m.scale.set(hz.r, 1, hz.r); }
+    // The ford: a bright gap in the right-hand edge between two posts, and an arrow at the herd's middle that points to it.
+    { const g = ctx.add(new T.Mesh(new T.PlaneGeometry(2.6, H.FORD.half * 2).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.38)), G.fxRoot); g.position.set(H.X - 0.6, 0.045, H.FORD.z);
+      const posts = ctx.add(mesh((b) => { for (const sz of [-1, 1]) { b.cyl(0.12, 0.15, 1.5, H.X, 0, H.FORD.z + sz * H.FORD.half, 0x7a5232, 8); b.sph(0.16, H.X, 1.5, H.FORD.z + sz * H.FORD.half, 0xffe2a0, 1.2, 6); } }));
+      void posts; }
+    const arrow = ctx.add(new T.Mesh(new T.ConeGeometry(0.34, 0.95, 3).rotateX(Math.PI / 2), basic(0xffe2a0, 0.95)), G.fxRoot);
+    const draw = () => ctx.score(tx("Across the ford: {f} of {n} · Lost: {d} of {l}", { f: R.got, n: R.need, d: R.lost, l: R.lose }));
+    draw(); ctx.prompt(tx("Get behind the herd and walk it to the ford, the bright gap. Gently: come too close, or run at them, and they bolt."));
+    U._herd = { R, go: (x, z, v) => { bot = { x, z, v }; }, at: () => [w.x, w.z] };   /* (for the checks: a herder in place of the thumb) */
+    ctx.loop((dt, tt) => {
+      // Your own pace: a run when the place you point to is far, a walk as you come up to it (so you can come at cattle gently); the keys walk.
+      let pace;
+      if (bot) { w.tx = bot.x; w.tz = bot.z; pace = bot.v / 4.6; }
+      else if (w.kx || w.kz) pace = 0.56;
+      else pace = w.tx == null ? 0 : clamp(Math.hypot(w.tx - w.x, w.tz - w.z) / 3.8, 0.22, 1);
+      w.step(dt, pace); ctx.clock.set(R.left, R.secs);
+      for (const e of R.step(dt, w.x, w.z, ctx.me.speed || 0)) {
+        if (e.type === "across") { sfx("tap"); ctx.toast(tx("One more is across."), "good"); hs.get(e.c).visible = false; draw(); }
+        else if (e.type === "lost") { hs.get(e.c).visible = false; ctx.toast(tx("One is lost in the deep water."), "bad");   /* (its own words: the scene's line speaks of a line that breaks, which is the 2D game's way of herding) */ ctx.cue("bad"); G.fx.burst("splash", V(e.c.x, 0.2, e.c.z), { n: 10 }); draw(); }
+        else if (e.type === "spook") { G.fx.burst("dust", V(e.c.x, 0.2, e.c.z), { n: 6, s: 1.6 }); if (!e.chain && tt - said > 2.5) { said = tt; sfx("step"); ctx.toast(tx("They bolt!"), "bad"); } }
+        else if (e.type === "end") { U._herd = null; return ctx.finish(e.outcome, null); }
+      }
+      for (const [c, h] of hs) { if (c.gone) continue; h.position.set(c.x, 0, c.z); h.rotation.y = c.a; G.gallop(h, tt * (c.spook > 0 ? 13 : 9) + c.i, 0, c.sp || 0); }
+      const g = R.centre(), a = Math.atan2(H.X - g.x, H.FORD.z - g.z); arrow.position.set(g.x + Math.sin(a) * 1.4, 1.9, g.z + Math.cos(a) * 1.4); arrow.rotation.y = a; arrow.visible = g.n > 0;
+      if (G.W / G.H < 0.9) { const cx = clamp((w.x + g.x) / 2, -H.X + 4, H.X - 4) * 0.9, cz = (w.z + g.z) / 2 * 0.5; ctx.cam([cx, 18, cz + 12], [cx, 0, cz - 0.5], 60, false); }   // (a narrow screen keeps you and the herd both in view; a wide one sees the whole field)
+    });
+  }
+  // People led out of the fire: reach each family and they fall in behind you; the fire spreads, and must not reach the line.
+  function lineOut(ctx) {
+    const t = ctx.t, need = t.need || 6, lose = 3, secs = clamp(38 + ctx.power, 38, 50), w = walker(ctx, 4.6, [11, 8]); w.z = 6;
+    const folk = [], haz = [], WHO = ["townswoman", "townsman", "mother", "father", "townswoman", "townsman"]; let got = 0, lost = 0, left = secs;
+    for (let i = 0; i < need + 3; i++) { let f; try { f = ctx.figure(WHO[i % WHO.length], { item: null }); } catch (e) { f = ctx.figure("soldier", { item: null }); }
+      const x = (K.rng() - 0.5) * 20, z = (K.rng() - 0.5) * 12 - 2; f.place(x, z, K.rng() * 6); f.pose("stand", true);
+      const ring = ctx.add(new T.Mesh(new T.RingGeometry(0.62, 0.78, 24).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.8)), G.fxRoot); ring.position.set(x, 0.07, z);   /* (a pale ring under each one still to be reached, as under the sleepers in the burning house) */
+      folk.push({ f, x, z, vx: 0, vz: 0, with: false, gone: false, ring }); }
+    const addHaz = (x, z, r) => { const m = ctx.add(new T.Mesh(new T.CircleGeometry(1, 20).rotateX(-Math.PI / 2), basic(0xff6a20, 0.55)), G.fxRoot); m.position.set(x, 0.05, z); haz.push({ m, x, z, r }); };
+    for (let i = 0; i < 3; i++) { let x, z, g = 0; do { x = (K.rng() - 0.5) * 16; z = (K.rng() - 0.5) * 10 - 1; } while (g++ < 20 && (Math.hypot(x - w.x, z - w.z) < 3 || folk.some((c) => Math.hypot(c.x - x, c.z - z) < 2.2))); addHaz(x, z, 0.8); }   // (no fire starts on top of you or of anyone)
+    const draw = () => ctx.score(tx("With you: {f} of {n} · Cut off: {d} of {l}", { f: got, n: need, d: lost, l: lose }));
+    draw(); ctx.prompt(tx("Reach each of them through the smoke and they fall in behind you. Keep the line clear of the fire."));
+    U._line = { folk, haz, go: (x, z) => { w.tx = x; w.tz = z; }, at: () => [w.x, w.z], state: () => ({ got, lost, left }) };   /* (for the checks: a guide in place of the thumb) */
     ctx.loop((dt, tt) => {
       left -= dt; ctx.clock.set(left, secs); w.step(dt);
-      for (const hz of haz) { if (fire) hz.r += dt * (t.spread ? 0.05 * t.spread : 0.14); hz.m.scale.set(hz.r, 1, hz.r); if (fire && K.rng() < dt * 4) G.fx.burst("ember", V(hz.x + (K.rng() - 0.5) * hz.r, 0.2, hz.z + (K.rng() - 0.5) * hz.r), { n: 2 }); }
+      for (const hz of haz) { hz.r += dt * (t.spread ? 0.05 * t.spread : 0.14); hz.m.scale.set(hz.r, 1, hz.r); if (K.rng() < dt * 4) G.fx.burst("ember", V(hz.x + (K.rng() - 0.5) * hz.r, 0.2, hz.z + (K.rng() - 0.5) * hz.r), { n: 2 }); }
       let k = 0;
-      for (const c of cows) {
-        if (c.gone) continue; const p = c.h.position;
-        if (!c.with) G.gallop(c.h, p.x * 3.1 + p.z, 0); /* (those not yet gathered stand at grass) */
-        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.9 + k * 0.9), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.9 + k * 0.9);
-          // (a cow is not drawn along on a string: she gathers way, goes no faster than a trot, turns the way she is going, and keeps off the next)
-          let wx2 = (fx - p.x) * 1.8, wz2 = (fz - p.z) * 1.8; const wl = Math.hypot(wx2, wz2), top = 3.1; if (wl > top) { wx2 *= top / wl; wz2 *= top / wl; }
-          for (const o of cows) { if (o === c || o.gone) continue; const ox = p.x - o.h.position.x, oz = p.z - o.h.position.z, od = Math.hypot(ox, oz); if (od < 1.15 && od > 1e-3) { wx2 += (ox / od) * (1.15 - od) * 3; wz2 += (oz / od) * (1.15 - od) * 3; } }
-          c.vx = c.vx || 0; c.vz = c.vz || 0; const ax = wx2 - c.vx, az = wz2 - c.vz, al = Math.hypot(ax, az), am = 6 * dt; if (al <= am) { c.vx = wx2; c.vz = wz2; } else { c.vx += (ax / al) * am; c.vz += (az / al) * am; }
-          p.x += c.vx * dt; p.z += c.vz * dt; const mps = Math.hypot(c.vx, c.vz);
-          if (mps > 0.25) { let da = Math.atan2(c.vx, c.vz) - c.h.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.h.rotation.y += Math.max(-3.2 * dt, Math.min(3.2 * dt, da)); }
-          G.gallop(c.h, tt * 9 + k, 0, mps); }
-        else if (Math.hypot(p.x - w.x, p.z - w.z) < 1.3) { c.with = true; got++; sfx("tap"); ctx.toast(tx(t.gather || "Another cow falls in behind you."), "good"); draw(); if (got >= need) return ctx.finish("win", null); }
-        for (const hz of haz) if (Math.hypot(p.x - hz.x, p.z - hz.z) < hz.r) { c.gone = true; c.h.visible = false; if (c.with) got--; lost++; ctx.toast(tx(fire ? "The fire takes one." : t.water || "The water is too deep there."), "bad"); ctx.cue("bad"); draw(); if (lost >= lose) return ctx.finish(got >= need - 1 ? "close" : "lose", null); break; }
+      for (const c of folk) {
+        if (c.gone) continue;
+        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.7 + k * 0.75), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.7 + k * 0.75);
+          // (people are not drawn along on a string: each gathers way, goes no faster than a run, turns the way he or she is going, and keeps off the next)
+          let wx2 = (fx - c.x) * 2.2, wz2 = (fz - c.z) * 2.2; const wl = Math.hypot(wx2, wz2), top = 4.4; if (wl > top) { wx2 *= top / wl; wz2 *= top / wl; }
+          for (const o of folk) { if (o === c || o.gone) continue; const ox = c.x - o.x, oz = c.z - o.z, od = Math.hypot(ox, oz); if (od < 0.7 && od > 1e-3) { wx2 += (ox / od) * (0.7 - od) * 4; wz2 += (oz / od) * (0.7 - od) * 4; } }
+          const ax = wx2 - c.vx, az = wz2 - c.vz, al = Math.hypot(ax, az), am = 9 * dt; if (al <= am) { c.vx = wx2; c.vz = wz2; } else { c.vx += (ax / al) * am; c.vz += (az / al) * am; }
+          c.x += c.vx * dt; c.z += c.vz * dt; const mps = Math.hypot(c.vx, c.vz); c.f.root.position.set(c.x, 0, c.z); c.f.speed = mps > 0.2 ? mps : 0; if (mps > 0.3) c.f.turnTo(Math.atan2(c.vx, c.vz)); }
+        else if (Math.hypot(c.x - w.x, c.z - w.z) < 1.3) { c.with = true; c.ring.visible = false; got++; sfx("tap"); ctx.toast(tx("They fall in behind you."), "good"); draw(); if (got >= need) return ctx.finish("win", null); }
+        for (const hz of haz) if (Math.hypot(c.x - hz.x, c.z - hz.z) < hz.r) { c.gone = true; c.f.root.visible = false; c.ring.visible = false; if (c.with) got--; lost++; ctx.toast(tx("The fire cuts one off from you."), "bad"); ctx.cue("bad"); draw(); if (lost >= lose) return ctx.finish(got >= need - 1 ? "close" : "lose", null); break; }
       }
       if (left <= 0) ctx.finish(got >= need - 1 ? "close" : "lose", null);
+      if (G.W / G.H < 0.9) { const cx = clamp(w.x, -7, 7) * 0.9, cz = w.z * 0.5; ctx.cam([cx, 18, cz + 12], [cx, 0, cz - 0.5], 60, false); }   // (a narrow screen goes with you; a wide one sees the whole ground)
+      void tt;
     });
-  };
+  }
   SETUP.escape = { clear: 14, setup(ctx) {
     ctx.st = G.setStage("stage_lac_cellar", { clear: 14, open: true }); G.setSky("fire", { amb: 1.5, hi: 1.9, si: 1.6, sun: 0xffc890, fd: 0.003 }); // (roofless: the view is from above, and under the cellar's roof it saw nothing at all)
     const sx = { door: 4, hall: 0, deep: -4 }[ctx.t.start] != null ? { door: 4, hall: 0, deep: -4 }[ctx.t.start] : 0;
@@ -715,7 +771,13 @@
     const arrow = ctx.add(new T.Mesh(new T.ConeGeometry(0.28, 0.8, 3).rotateX(Math.PI / 2), basic(0x7fe08a, 0.95)), G.fxRoot);
     ctx.x = { walls, sleepers, sx, arrow, hr }; ctx.cam([0, 16, 12], [0, 0, 0], 46, true);
   } };
-  U.HOWTO3D = { escape: ["Tap or hold the floor where you want to run. The red tide is the fire: stay ahead of it.", "The green arrow at your feet points to the tunnel: the green ring. Walls must be gone round.", "Run through a gold ring to wake a sleeper. Each one you wake slows you a little."] };
+  U.HOWTO3D = {
+    aim: (t) => (t.sling ? null : t.blind ? ["You cannot see the mark: listen for it.", "Drag to set the ring where the arrow should fall, then tap to loose. The arrow takes a moment to fly."] : ["Drag anywhere to move the ring to where the arrow should fall.", "The arrow takes a moment to fly, so lead a moving mark; a side wind, shown beside the score, carries it off the ring.", "Tap, or press the button, to loose."]),
+    race: (t) => (t.shield ? ["Hold the left or right side of the screen, or the buttons, to move across the road.", "Bring your shield under each arrow as it comes."] : ["Hold the left or right side of the screen, or the buttons, to steer across the road.",
+      !t.vehicle || t.vehicle === "chariot" ? "The team swings round before the car follows: steer early. Thrown from side to side, the car slides and loses pace." : t.vehicle === "boat" ? "The boat is slow to answer and drifts on after you straighten: steer early." : "You sidestep quickly, but with a body's weight: you cannot stop a step at once.",
+      "Met squarely, a thing in the road is a hit; brushed, it only jolts you. The road's edges slow you."]),
+    herd: (t) => (t.theme === "fire" ? null : ["Tap or hold the ground where you want to go: far away and you run, close by and you walk.", "Cattle move away from you. Get behind the herd, on the side away from the ford, and walk it to the bright gap.", "Come too close, or run at them, and they bolt and scatter. Keep them out of the deep water."]),
+    escape: ["Tap or hold the floor where you want to run. The red tide is the fire: stay ahead of it.", "The green arrow at your feet points to the tunnel: the green ring. Walls must be gone round.", "Run through a gold ring to wake a sleeper. Each one you wake slows you a little."] };
   PLAY.escape = function (ctx) {
     const t = ctx.t, x = ctx.x, per = (clamp(1.4 + ctx.power * 0.04, 1.4, 1.75) + 0.3 * Math.min(3, K.S.fusesCut || 0)) * 1.5, w = walker(ctx, 3.6, [8, 6]); w.x = x.sx; w.z = -4;
     let fire = -9.5, burns = 0, carried = 0, safe = 0;

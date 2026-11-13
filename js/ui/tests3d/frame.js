@@ -42,8 +42,37 @@
     return { set(left, total) { left = clamp(left, 0, total); el.hidden = false; const n = Math.ceil(left); if (n !== shown) { shown = n; num.textContent = n; } bar.style.transform = "scaleX(" + (total > 0 ? left / total : 0).toFixed(4) + ")"; el.classList.toggle("warn", left <= Math.min(5, total * 0.34)); }, hide() { el.hidden = true; shown = null; } };
   }
 
+  // ---- A spar. A strength or rhythm test that is a contest against a person is not a ring to press in time: it is a bout
+  // in the fight engine against that person, with what the two of you would have in your hands (bare hands in a wrestling
+  // ring, wooden swords at a drill, practice maces). It is a bout and no more: the life is put back as it was when it ends
+  // (no wound, no count, nothing used up), and only its outcome goes to the story, as a test's outcome does. Winning is
+  // putting the other down; going down with the other nearly beaten is a close thing. The better your own measures for
+  // the test, the less it takes to put the other down. The tests against a post, a gate, a drum or an anvil, and the
+  // push you show your own student, stay tests.
+  const SPAR_ARMS = { fist: "bare hands", woodsword: "wooden swords", mace: "practice maces" };
+  function sparOf(kind, t, c) {
+    if ((kind !== "push" && kind !== "rhythm") || !t.foe || t.face === "post" || t.face === "gate" || t.spar === false || t.kind === "war") return null;
+    const person = U.personByName(t.foe);   // (a named person only: showing a student a push, or holding a gate against raiders, is not a bout)
+    if (!person) return null;
+    const title = String(K.val(c.t) || "");
+    return { person, name: t.foe, arm: t.arm || (t.face === "drill" || /sword/i.test(title) ? "woodsword" : kind === "rhythm" || /\bmace\b/i.test(title) ? "mace" : "fist") };
+  }
+  U.sparOf = sparOf;
+  function sparBout(sp, t, c, power, done) {
+    const S = K.S, who = K.tr(sp.name), unit = K.sparEncounter(sp, { title: K.val(c.t), stage: K.val(t.stage), caption: SPAR_ARMS[sp.arm], power }).enemies[0];
+    const snap = K.clone(S), max = unit.hp;
+    U.startBattle("x_spar", (out) => {
+      const foe = B && B.units.find((u) => u.side === "enemy"), left = foe ? Math.max(0, foe.hp) / (foe.maxHp || max) : 1;
+      for (const key of Object.keys(S)) delete S[key];
+      Object.assign(S, K.clone(snap));                                            // the life as it was before the bout
+      const outcome = out === "win" || out === "spare" ? "win" : out === "lose" && left <= 0.4 ? "close" : "lose";
+      done(outcome, [outcome === "win" ? "{who} yields." : outcome === "close" ? "You go down, with {who} all but beaten." : "{who} puts you down.", { who }]);
+    });
+    const B = K.Combat.state();
+  }
+
   function frame(box, done, c, kind) {
-    const t = c.trial || {}, power = K.trialPower(t);
+    const t = c.trial || {}, power = K.trialPower(t), spar = sparOf(kind, t, c);
     // Without 3D (the 2D game's own tests, a browser without WebGL): the 2D game's test.
     if (!U.b3d.can()) return U.games2D[kind](box, done, c);
     const play = PLAY[kind];
@@ -105,6 +134,7 @@
         setTimeout(() => { const [o, s] = roll(kind, t, power); finish(o, s); }, 900);
         return;
       }
+      if (spar) { finished = true; phase = "done"; cleanup(); return sparBout(spar, t, c, power, done); }   // (a contest against a person: a bout, from here on)
       document.addEventListener("keydown", onKey, true); document.addEventListener("keyup", onKeyUp, true);
       cv.addEventListener("pointerdown", onDown); cv.addEventListener("pointermove", onMove); cv.addEventListener("pointerup", onUp); cv.addEventListener("pointercancel", onUp);
       try { stop = play(ctx) || null; } catch (e) { if (window.console) console.error(e); const [o, s] = roll(kind, t, power); finish(o, s); }
@@ -112,12 +142,14 @@
     // The card: what to do, what is at stake, how your stats help.
     const card = U.el('<div class="trialcard" role="dialog"></div>');
     function intro() {
-      const how3 = U.HOWTO3D && U.HOWTO3D[kind]; // (where the 3D test is played differently from the 2D one, it says so in its own words)
+      let how3 = U.HOWTO3D && U.HOWTO3D[kind]; if (typeof how3 === "function") how3 = how3(t); // (where the 3D test is played differently from the 2D one, it says so in its own words)
+      const stale = how3 && /crosses your line|Change lanes|falls in behind|scattered cattle behind|as the ring/i.test(String(K.val(t.rules) || "")); // (a scene's own line is kept unless it tells the 2D game's way of playing)
       card.innerHTML = '<span class="kind yours">' + U.tr(K.val(t.practice) ? "A first test" : "A test") + "</span><h2>" + U.t(K.val(c.t)) + "</h2>" +
         (t.practice ? '<p class="aside">' + U.tr("A first test. This one does not count; it shows you how tests work.") + "</p>" : "") +
-        (t.howto || how3 ? "" : t.rules ? '<p class="game-rules">' + U.t(K.val(t.rules)) + "</p>" : "") +
+        (!spar && how3 && !t.howto && t.rules && !stale ? '<p class="game-rules">' + U.t(K.val(t.rules)) + "</p>" : "") +
+        (spar ? '<p class="game-rules">' + U.tr("A bout with {who}: {arms}. Put {who} down before you are put down. It is fought as any fight is: strike, guard, step aside.", { who: K.tr(spar.name), arms: U.tr(SPAR_ARMS[spar.arm]) }) + "</p>" : t.howto || how3 ? "" : t.rules ? '<p class="game-rules">' + U.t(K.val(t.rules)) + "</p>" : "") +
         (t.twist && TWIST[t.twist] ? '<p class="aside">' + U.tr(TWIST[t.twist]) + "</p>" : "") +
-        (t.howto || how3 ? '<p class="cr-lbl">' + U.tr("How to play") + "</p><ol>" + (how3 || K.val(t.howto)).map((s) => "<li>" + U.t(K.val(s)) + "</li>").join("") + "</ol>" : "") +
+        (!spar && (t.howto || how3) ? '<p class="cr-lbl">' + U.tr("How to play") + "</p><ol>" + (how3 || K.val(t.howto)).map((s) => "<li>" + U.t(K.val(s)) + "</li>").join("") + "</ol>" : "") +
         (ctx.how ? '<p class="aside">' + U.tr(ctx.how) + "</p>" : "") +
         (t.stakes ? '<ul class="stakes"><li class="win"><b>' + U.tr("If you succeed") + "</b> " + U.t(K.val(t.stakes[0])) + '</li><li class="lose"><b>' + U.tr("If you fail") + "</b> " + U.t(K.val(t.stakes[1])) + "</li></ul>" : "") +
         (t.attr || t.skill ? '<p class="small muted">' + U.tr("Helped by your {what}: {n}. The higher, the easier.", { what: statNames(t), n: power }) + "</p>" : "") + '<div class="btnrow"></div>';

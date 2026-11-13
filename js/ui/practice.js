@@ -495,7 +495,7 @@
     if (real) for (const k of KEEP) if (real[k] !== undefined) t[k] = real[k];
     t.stage = STANDING.has(kind) ? STAGE : (real && real.stage && K.val(real.stage)) || t.stage || STAGE;
     const who = d.partner === "student" ? student() : teacher();
-    t.cast = [who.puppet];
+    t.cast = [who.puppet]; t.spar = false; /* (a drill here stays a drill: the ground has bouts of its own) */
     for (const [f, what] of Object.entries(d.who || {})) t[f] = what === "puppet" ? who.puppet : who.name;
     if (kind === "race" && real && !real.rival) delete t.rival; // a course against the clock stays one
     if (kind === "rings" && t.mode !== "open") t.rules = "The wheel keeps turning toward a straight way in. Keep at least one ring out of line."; // a wheel held shut

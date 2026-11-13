@@ -51,6 +51,19 @@
     abilities: tier >= 3 ? ["strike", "heavy"] : ["strike"]
   }, extra);
 
+  // A bout with a named partner, begun from a strength or rhythm test that is a contest against a person
+  // (ui/tests3d/frame.js). sp: { person, name, arm }; o: { title, stage, caption, power }. A youth's partner is as
+  // strong as Ugra at the fair; a grown one as a foe of the act; the better your own measures for the test (power),
+  // the less it takes to put the partner down. The encounter is "x_spar": a bout, not deadly, with nothing written
+  // on its winning or losing (the test's own outcome is what the story reads), and fought once: a second try at a
+  // test is the scene's own to give, at the scene's own price.
+  K.sparEncounter = function (sp, o, S = K.S) {
+    o = o || {}; const age = S.age || 20, young = age < 18, tier = young ? 1 : Math.max(2, Math.min(5, (S.act || 3) - 1)), base = K.foe(sp.name, tier);
+    const k = Math.max(0.75, Math.min(1.2, 1.2 - 0.035 * (o.power || 0))), stage = o.stage || "stage_training_ground";
+    const unit = Object.assign(base, { hp: Math.round((age < 12 ? 13 : young ? 16 : base.hp * 0.6) * k * (sp.arm === "mace" ? 1.3 : 1)), atk: age < 12 ? 5 : young ? 7 : Math.round(base.atk * 1.4), person: sp.person, /* (a bout is short: a handful of clean blows either way) */ item: sp.arm, abilities: sp.arm === "mace" && !young ? ["strike", "heavy"] : ["strike"] });
+    return K.encounter({ id: "x_spar", title: o.title || "A bout", art: stage, stage, caption: o.caption || "", lethal: false, bout: true, quick: true, once: true, arm: sp.arm, intro: "", enemies: [unit], flee: { tags: [] } });
+  };
+
   function makePlayer(S) {
     const P = (K.PATHS && K.PATHS[S.path]) || { abilities: [], stat: "might", skill: "mace" };
     const might = K.attr("might"), grace = K.attr("grace");
@@ -256,6 +269,11 @@
     // A fight of another kind (content/war_fights.js, enc.kind): an escort, a break-through or weathering a
     // storm rides on the turns (B.rule); a chariot duel, an archery duel, a mace duel or a carry is played
     // live by the screen (B.mode, ui/fightmodes.js) when it asks, and otherwise is fought as a plain hold.
+    // A bout begun from a test (K.sparEncounter): what you are handed is what you fight with. Bare hands and borrowed
+    // weapons bring a strike and a guard; your path's own moves come only with your path's own kind of weapon. No divine
+    // weapon, and no herbs: it is a bout.
+    if (enc.arm) { const p = B.units[0], w = K.playerWeapon && S.path ? K.playerWeapon(S) : null, own = enc.arm !== "fist" && (w === enc.arm || (enc.arm === "woodsword" && w === "sword")), P = (K.PATHS && K.PATHS[S.path]) || {};
+      p.abilities = ["strike", "guard"].concat(own ? P.abilities || [] : []); }
     { const kind = K.val(enc.kind) || null, FK = kind && K.FIGHT_KINDS ? K.FIGHT_KINDS[kind] : null;
       B.kind = kind; B.rule = FK && FK.turn ? FK : null; B.mode = FK && FK.live && C.liveMode === kind ? kind : null;
       if (B.rule && B.rule.start) B.rule.start(B); }

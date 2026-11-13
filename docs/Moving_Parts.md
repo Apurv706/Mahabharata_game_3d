@@ -124,7 +124,7 @@ The owner: "Game is not sluggish, physics of the game doesnt feel right", and th
 | **Elephants.** The same sliding. | An elephant goes the way it points (0.1° off), is slow to start and slow to stop, comes round slowly, and strikes only at what is in front of it. Get to its flank and it must come round to you. Brought up against what will not move, it stalls and turns; it does not slide along it. |
 | **Horses, elephants and the lesser beasts: feet.** Their legs ran on a clock. | The reach of each leg is set from the speed the beast is really making, so a hoof on the ground stays where it was put down. An elephant takes a longer reach and then a quicker step. |
 | **People: feet.** Legs always walked forward, at the speed asked for. | Legs go at the pace and in the direction the body is really going: forward, backward (shorter steps, upright), or to the side, where the legs open and close and do not cross. A man leaning on another walks nearly on the spot. |
-| **In the tests.** | Cattle you have gathered are no longer drawn along on a string: each gathers way, goes no faster than a trot, turns the way she is going and keeps off the next. The running marks on the archery range (elephant, chariot, deer, tiger) and the runner and teams in the race keep their feet and wheels at the speed the ground goes by. |
+| **In the tests.** | Cattle you have gathered are no longer drawn along on a string: each gathers way, goes no faster than a trot, turns the way she is going and keeps off the next. (Since section 9 cattle are a herd and not a line at all; it is the families led out of the Khandava fire who follow in a line, and they move this way.) The running marks on the archery range (elephant, chariot, deer, tiger) and the runner and teams in the race keep their feet and wheels at the speed the ground goes by. |
 
 ### What was not changed, and why
 
@@ -173,3 +173,19 @@ Checked by pictures of every helmeted head from the front, three-quarter, side, 
 **Checked.** Before and after sheets of all 48; children and youths; heads in crowns, helmets and the blindfold; the face's moods (set, glad, shout, pain, shut, blink); all tests pass.
 
 **Not done.** The necks under the women's and thinner men's heads show odd spikes at the collar (they did before as well); bodies are unchanged; teeth are not modelled; none of this has been seen on a phone.
+
+## 9. The race and the herd move as the things they are (13 November, evening)
+
+Two tests moved by rule of thumb: the race car jumped between three lanes, and a cow you touched joined a line behind you. Both now move as the thing itself does. (The third change of the day, a bout in place of a timed ring, uses the fight engine's bodies, which section 6 covers.)
+
+| | Before | Now |
+|---|---|---|
+| **A chariot in the race** | Jumped from lane to lane. | Steered across seven metres of road. The team swings round first (up to half a radian) and the car comes after; its sideways speed is held by the wheels' grip, so thrown from side to side, or under the whip, it slides, raises dust and loses pace. |
+| **A boat** | Jumped from lane to lane. | Slow to answer the oar and slow to stop turning: it drifts on after you straighten. |
+| **A runner** | Jumped from lane to lane. | Sidesteps quickly but carries a body's weight: a step cannot be stopped at once. |
+| **Things in the road** | Filled a lane. | Each has its own width. Met squarely it is a hit; brushed at its edge it jolts you and no more. The road's edges slow what scrapes along them. |
+| **Karna's car** | Kept its lane. | Wanders, cuts across you, and wheels that touch throw both cars apart. |
+| **Cattle** | Stood until touched, then followed in a line. | A herd. Each cow keeps with the others, goes the way her neighbours go, keeps a body's width off them, and gives way before a person from about four and a half metres: a walk at first, a trot as you come nearer. Come within a stride and a half, or run at her, and she bolts: she runs blind for two or three seconds and may take a neighbour with her. She has weight: she gathers way and turns in her own time. Calm, she keeps off deep water; bolting, she does not. |
+| **The families at Khandava** | Drawn as cows. | People, each with a pale ring at the feet until you reach them. |
+
+**Checked.** `node tests/tests3d_rules.js`: 18 checks on the rules alone (the same seed gives the same run; a turn is a turn and not a jump; the car slides under the whip; a square hit against a brush; a walked-up cow moves off and a rushed one bolts; a herd worked from behind closes up). Bots played each in a browser at phone size. **Not checked:** how any of it feels under a thumb.

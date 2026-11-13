@@ -336,5 +336,25 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     ok(dead && f.g.thrown && zd - f.g.z > 0.15, "the body of a man killed goes the way the blow went (" + (zd - f.g.z).toFixed(2) + " m)"); try { C.end(); } catch (e) {} }
 }
 
+// 15. A spar (13 November: "replace [the strength, push and rhythm tests] with a real spar in the fight engine against a named
+// partner"): a bout begun from a test is fought with what you are handed, is not deadly, is short, can be won by fighting
+// and is lost by standing still.
+{
+  const bout = (sp, lifeO, how, sd) => { const K = fresh(sd); const S = life(K, lifeO); S.attrs.might = 3; S.attrs.grace = 3; S.skills.mace = 1; const enc = K.sparEncounter(sp, { power: 4 }); const C = K.Combat, R3 = K.RT3, B = C.start("x_spar", null), R = R3.begin(B, {}); let g = 0;
+    const p = C.player(), foe = B.units.find((u) => u.side === "enemy"), info = { enc, moves: p.abilities.slice(), mine: p.g && p.g.weapon, his: foe.g && foe.g.weapon };
+    while (!R.over && g++ < 60 * 150) R3.step(R, how === "fight" ? R3.bot(R, {}) : {});
+    info.over = R.over; info.t = R.t; try { C.end(); } catch (e) {} return info; };
+  const ugra = { person: "ugra", name: "Ugra", arm: "fist" }, kripa = { person: "kripa", name: "Kripa", arm: "woodsword" }, bala = { person: "balarama", name: "Balarama", arm: "mace" };
+  const a = bout(ugra, { act: 3, age: 25, path: "mace" }, "fight", 41);
+  ok(a.enc.id === "x_spar" && a.enc.lethal === false && a.enc.bout && a.mine === "fist" && a.his === "fist", "a wrestling bout is fought bare-handed by both, and is not deadly (" + a.mine + " against " + a.his + ")");
+  ok(a.moves.join(",") === "strike,guard", "bare hands bring a strike and a guard, and none of a mace-fighter's own moves (" + a.moves.join(", ") + ")");
+  const b = bout(bala, { act: 3, age: 25, path: "mace" }, "fight", 42), c = bout(kripa, { act: 2, age: 13, path: null }, "fight", 43);
+  ok(b.mine === "mace" && b.moves.length > 2 && !b.moves.includes("herbs") && !b.moves.includes("astra"), "with practice maces a mace-fighter has their own moves, but no herbs and no divine weapon (" + b.moves.join(", ") + ")");
+  ok(c.mine === "woodsword" && c.his === "woodsword", "Kripa's drill is fought with wooden swords");
+  let won = 0, lost = 0, secs = 0; for (let i = 0; i < 6; i++) { const w = bout([ugra, kripa, bala][i % 3], i % 3 === 1 ? { act: 2, age: 14, path: null } : { act: 3, age: 25, path: "mace" }, "fight", 50 + i); if (w.over === "win") won++; secs += w.t; const l = bout([ugra, kripa, bala][i % 3], { act: 3, age: 25, path: "mace" }, "still", 60 + i); if (l.over === "lose") lost++; }
+  ok(won >= 5 && secs / 6 < 45, "a bout can be won by fighting, and is short (" + won + " of 6 won, " + Math.round(secs / 6) + " s each)");
+  ok(lost === 6, "a bout is lost by standing still (" + lost + " of 6)");
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

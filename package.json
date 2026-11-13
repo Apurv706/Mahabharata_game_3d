@@ -8,7 +8,7 @@
     "test": "node tests/run.js quick",
     "test:quick": "node tests/run.js quick",
     "test:full": "node tests/run.js full",
-    "test:3d": "node tests/run.js quick --only rules3d,fights3d,smoke3d",
+    "test:3d": "node tests/run.js quick --only rules3d,tests3d,fights3d,smoke3d",
     "test:fights3d": "node tests/fights.js 28 21 --check",
     "test:smoke3d": "node tests/smoke3d.js",
     "test:rules": "node tests/rules.js",
