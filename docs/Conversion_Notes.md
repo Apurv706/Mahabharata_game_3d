@@ -361,3 +361,12 @@ Found and not fixed:
 - Under Bhishma, the field looked much darker in the last phase than in the first. Cause not found.
 - The mango throw shows no way out for a player who cannot hit.
 - Speed: a war fight is about 900,000 triangles and 620 draw calls a frame. On the software renderer a frame of the first war fight costs a quarter more than it did this morning before the figure work (outlines are about half of that), though the triangle count went down.
+
+## Fight mode in 3D, the mango throw, the fair, Iravan's river (12 November, midnight)
+
+- **"Just fight" was still 2D** (owner). Its ladder called the 2D bout directly; it now goes the way every story fight goes, and falls to 2D only where 3D cannot start. A 3D that will not start is asked for again at the next fight (three times) and the player is told once.
+- **The mango throw is a sling pull** (owner: "like angry birds"). Five small fruit hang still; drag back anywhere, a line of dots shows the flight, let go to throw. Six pebbles, three fruit. A tap or Space throws at the nearest fruit with a child's aim. Only in 3D: the 2D game and the engine's own lives keep the old test (`trial.sling`).
+- **The fair** already had stalls, a crowd and a rope ring, but from above only bare earth showed. The wrestling pit now has a lime ring, marigold, garlanded poles and strings of pennants.
+- **Carrying Iravan** is at night now, and a man lies across your shoulders.
+- The dark field late in the Bhishma fight was the edge of the arena, where the ground is darker. Not a fault.
+- Rulings for what comes next: at Abhimanyu's last stand a Kaurava-side player may hold back (each step a task you may do or refuse); in Arjuna's place Krishna drives and you only shoot.
