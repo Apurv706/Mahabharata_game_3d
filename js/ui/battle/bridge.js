@@ -18,7 +18,10 @@
     document.body.classList.add("in3d");
     if (!B.ready) {
       try { G.init(); } catch (e) { if (window.console) console.error(e); }
-      if (!G.ok) { B.failed = true; document.body.classList.remove("in3d"); return false; }
+      if (!G.ok) { // 3D would not start. Not for good: the next fight asks again (three times in all), and the player is told, once, why this one is flat.
+        B.tries = (B.tries || 0) + 1; if (B.tries >= 3) { B.failed = true; document.body.classList.add("no-gl"); } document.body.classList.remove("in3d");
+        if (!B.told) { B.told = true; try { const n = U.el('<div role="status" style="position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:999;max-width:86vw;padding:9px 14px;border-radius:10px;background:rgba(28,20,14,.94);color:#efe6cf;font-size:13px;text-align:center;border:1px solid #c9a24a">' + U.tr("3D could not start on this device just now, so this fight is in 2D.") + "</div>"); document.body.appendChild(n); setTimeout(() => n.remove(), 7000); } catch (e) {} }
+        if (window.console) console.warn("3D off: " + (G.why || "no WebGL")); return false; }
       G.fx.init(); G.onStageFrame(); B.ready = true;
     }
     G.asleep = false; G.focus(null, true);

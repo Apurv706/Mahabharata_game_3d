@@ -866,7 +866,7 @@
     const newAct = act !== F.act; F.act = act;
     const sc = { title: K.val(enc.title), place: K.val(enc.caption) || null, art: enc.art };
     U.sceneBeats(sc, { act: newAct, full: true, tag: "written", tagText: U.tr("Fight {n} of {m}", { n: F.i + 1, m: LADDER.length }), art: enc.art }, () => {
-      U.startRealtime(id, (out) => {
+      (U.b3d && U.b3d.can() ? U.startBattle : U.startRealtime)(id, (out) => { // (in 3D like every other fight; the 2D bout only where 3D cannot start)
         if (out === "win" || out === "spare") { F.won++; F.i++; if (F.i >= LADDER.length) return over(true); return next(); }
         over(false);
       });

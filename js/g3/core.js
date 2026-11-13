@@ -57,7 +57,10 @@
     canvas = document.getElementById("view");
     if (!canvas) return false;
     try { renderer = new T.WebGLRenderer({ canvas, antialias: !coarse(), powerPreference: "high-performance", alpha: false, stencil: false }); }
-    catch (e) { document.body.classList.add("no-gl"); return false; }
+    catch (e) { // (a phone short of memory can refuse the first ask: try once more, asking for the least)
+      try { renderer = new T.WebGLRenderer({ canvas, antialias: false, alpha: false, stencil: false }); }
+      catch (e2) { G.why = String((e2 && e2.message) || e2 || e).slice(0, 160); return false; } }
+    document.body.classList.remove("no-gl");
     renderer.outputColorSpace = T.SRGBColorSpace;
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
