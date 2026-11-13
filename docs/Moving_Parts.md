@@ -140,3 +140,17 @@ The bot's win rate over all 79 fights rose from 91% to 94% with these changes. I
 
 Checked by 82 rules tests (ten of them new, each measuring one of the things above), the fight bands, pictures of a man stepping each way and of two falls with their weapons, and plots of a car's and an elephant's path with the way each was pointing. **Not played on a phone.** Feel is exactly what numbers cannot settle, so this needs the owner's hands.
 
+## 7. Helmets (13 November, later still)
+
+The owner: "Human forms dont look right. Work on correcting heros so that their helmets dont protude through the skin".
+
+**What was wrong.** One size of iron bowl was set on every skull. In front it was about half a centimetre smaller than the forehead under it, so on every helmeted head the brow came through the iron just above the rim: Abhimanyu, the player's own figure at every age, the foot soldiers and the guards. The bar over the nose was buried inside the bridge of the nose and could not be seen.
+
+**What it is now.** The helmet is fitted to the head it sits on (`tools/blender/cast.py`): as wide, as long and as high as that head and its hair above the rim, with a finger's breadth to spare, then grown until no point of head or hair is outside it. It is cut clean at the brow all the way round, its rim and knob are placed from the bowl, the bar stands in front of the brow and the nose, and an army's crest sits on the bowl's top. On the heads in the cast the bowl came out about 3 cm longer front to back and a few millimetres wider than the one size.
+
+**Also put right on the way:** the neck opening of the body armour was made by leaving out whole faces, which left a saw's edge of bright shards at its corners on every hero in armour. It is cut along straight lines now.
+
+Checked by pictures of every helmeted head from the front, three-quarter, side, back and above, before and after. All 79 models were rebuilt.
+
+**Not looked at yet:** the rest of "human forms dont look right". The helmets were the one fault named. Proportions, faces, hair and how joints bend have not been reviewed in this pass.
+

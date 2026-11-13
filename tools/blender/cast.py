@@ -334,7 +334,7 @@ bm = bmesh.new(); bm.from_mesh(hc.data)
 bmesh.ops.delete(bm, geom=[v for v in bm.verts if (v.co.y < -0.035 and v.co.z < HZ + 0.075) or (v.co.z < HZ - 0.06 and v.co.y < 0.06) or v.co.z < HZ - 0.1], context="VERTS"); bm.to_mesh(hc.data); bm.free()
 so = hc.modifiers.new("so", "SOLIDIFY"); so.thickness = 0.008; bpy.context.view_layer.objects.active = hc; bpy.ops.object.modifier_apply(modifier="so"); hc.data.materials.append(M["hair"])
 for p in hc.data.polygons: p.use_smooth = True
-hc.select_set(False); parts.append(hc)
+hc.select_set(False); parts.append(hc); HAIRCAP = hc
 parts.append(prim("uv_sphere", "knot", "hair", (0, 0.03, HZ + 0.155), (0.05, 0.052, 0.042), segments=14, ring_count=8))
 parts.append(prim("torus", "knotband", "gold", (0, 0.03, HZ + 0.128), (1, 1, 1), major_radius=0.04, minor_radius=0.008, major_segments=16, minor_segments=6))
 parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085, 0.045, 0.1), segments=14, ring_count=8))
@@ -376,7 +376,7 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side, sway=sway)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side, sway, z_top, ln); parts.append(e)
     return o
-def shell(name, role, keep, off, src=None, cut=None, sides=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
+def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
     bm = bmesh.new(); bm.from_mesh(o.data)
     if cut:
@@ -384,6 +384,11 @@ def shell(name, role, keep, off, src=None, cut=None, sides=None):   # a garment 
             if z_ is not None: bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, z_), plane_no=(0, 0, up), clear_outer=True)
     if sides:
         for sx_ in (-1, 1): bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(sx_ * sides, 0, 0), plane_no=(sx_, 0, 0), clear_outer=True)
+    if neck:   # a neck opening (half-width, lower edge) cut clean: straight edges, where leaving out whole faces left a saw's edge of bright shards
+        xh, zl = neck; near = lambda e: all(v.co.z > zl - 0.035 and abs(v.co.x) < xh + 0.05 for v in (e.verts if hasattr(e, "verts") else [e]))
+        for co, no in (((-xh, 0, 0), (1, 0, 0)), ((xh, 0, 0), (1, 0, 0)), ((0, 0, zl), (0, 0, 1))):
+            bmesh.ops.bisect_plane(bm, geom=[e for e in bm.verts[:] + bm.edges[:] + bm.faces[:] if near(e)], plane_co=co, plane_no=no)
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if abs(f.calc_center_median().x) < xh and f.calc_center_median().z > zl], context="FACES")
     dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")
@@ -486,7 +491,7 @@ for k in range(22):
     a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
 since(n0, "beads"); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451 and trunk(c), 0.013, cut=(1.03, 1.45), sides=SHX - 0.022)
+shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.013, cut=(1.03, 1.45), sides=SHX - 0.022, neck=(0.085, 1.4))
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 for (dx_, z_, sc_, tilt) in ((0.0, 1.425, (0.098, 0.108, 0.046), 0.28), (0.052, 1.39, (0.088, 0.104, 0.04), 0.62), (0.092, 1.342, (0.074, 0.096, 0.036), 0.95)):   # three lapped plates down the shoulder, each tipped further over the arm
@@ -580,17 +585,29 @@ if CR:
         parts.append(prim("cone", "crownpeak", "gold", (0, -0.1, HZ + 0.115), (0.03, 0.012, 0.045), vertices=8))
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "crown"); n0 = len(parts)
-bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.014, HZ + 0.03), segments=24, ring_count=14); hm = bpy.context.object; hm.name = "helmet"; hm.scale = (0.116, 0.132, 0.14); bpy.ops.object.transform_apply(scale=True)
-bm = bmesh.new(); bm.from_mesh(hm.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < HZ + 0.022 - (0.0 if v.co.y < -0.045 else 0.125)], context="VERTS"); bm.to_mesh(hm.data); bm.free(); hm.data.materials.append(M["iron"])
+# The helmet is fitted to the head it sits on. (Owner, 13 November: "helmets ... protude through the skin". One size of
+# bowl was being set on every skull, and it was smaller in front than the forehead under it: the brow came through the
+# iron on every helmeted head.) The bowl is as wide, as long and as high as this head and its hair above the rim, with a
+# finger's breadth to spare all round, and then grown until no point of them is outside it. Its rim, its knob and the
+# bar over the nose are placed from the bowl; the crest of an army's colour sits on its top.
+RIMZ = HZ + 0.022
+_hp = [v.co.copy() for o_ in (Hd, HAIRCAP) for v in o_.data.vertices if v.co.z > RIMZ - 0.004]
+HY = (min(q.y for q in _hp) + max(q.y for q in _hp)) / 2; HCZ = HZ + 0.03
+HA = max(abs(q.x) for q in _hp) + 0.009; HB = max(abs(q.y - HY) for q in _hp) + 0.009; HC_ = max(q.z - HCZ for q in _hp) + 0.012
+_k = max(1.0, 1.03 * max(math.sqrt((q.x / HA) ** 2 + ((q.y - HY) / HB) ** 2 + ((q.z - HCZ) / HC_) ** 2) for q in _hp)); HA *= _k; HB *= _k; HC_ *= _k
+print("helmet fitted: half-width %.3f, half-length %.3f, height %.3f, set %.3f forward of the neck (the one size was 0.116, 0.132, 0.140 at 0.014)" % (HA, HB, HC_, -HY))
+bpy.ops.mesh.primitive_uv_sphere_add(location=(0, HY, HCZ), segments=28, ring_count=16); hm = bpy.context.object; hm.name = "helmet"; hm.scale = (HA, HB, HC_); bpy.ops.object.transform_apply(scale=True)
+bm = bmesh.new(); bm.from_mesh(hm.data); bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, RIMZ - 0.004), plane_no=(0, 0, -1), clear_outer=True); bm.to_mesh(hm.data); bm.free(); hm.data.materials.append(M["iron"])   # (cut clean at the brow, all the way round: the rim covers the edge)
 for p in hm.data.polygons: p.use_smooth = True
 hm.select_set(False); parts.append(hm)
-parts.append(prim("torus", "helmetrim", "gold", (0, 0.014, HZ + 0.03), (1, 1.14, 1.8), major_radius=0.117, minor_radius=0.008, major_segments=24, minor_segments=6))
-parts.append(prim("cone", "helmetknob", "gold", (0, 0.014, HZ + 0.19), (0.022, 0.022, 0.035), vertices=10))
-parts.append(prim("cube", "helmetnose", "iron", (0, -0.118, HZ + 0.0), (0.009, 0.006, 0.04), size=2))
+parts.append(prim("torus", "helmetrim", "gold", (0, HY, RIMZ + 0.002), (1, HB / HA, 1.8), major_radius=HA + 0.001, minor_radius=0.008, major_segments=28, minor_segments=6))
+parts.append(prim("cone", "helmetknob", "gold", (0, HY, HCZ + HC_ + 0.014), (0.022, 0.022, 0.035), vertices=10))
+_ny = min([v.co.y for v in Hd.data.vertices if abs(v.co.x) < 0.014 and HZ - 0.03 < v.co.z < RIMZ] or [HY - HB])   # (the bar stands in front of the brow and the bridge of the nose, not in them)
+parts.append(prim("cube", "helmetnose", "iron", (0, min(_ny - 0.009, HY - HB + 0.004), HZ - 0.004), (0.009, 0.005, 0.03), size=2))
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "helmet"); n0 = len(parts)
 # an army's mark, to be read from above: a crest of dyed horsehair along the top of the head, in the host's colour
-parts.append(prim("uv_sphere", "crest", "red", (0, 0.03, HZ + 0.185), (0.04, 0.125, 0.06), (-0.2, 0, 0), segments=12, ring_count=6)); rigid(parts[-1], "H"); since(n0, "crest"); n0 = len(parts)
+parts.append(prim("uv_sphere", "crest", "red", (0, HY + 0.016, HCZ + HC_ + 0.015), (0.04, HB * 0.95, 0.06), (-0.2, 0, 0), segments=12, ring_count=6)); rigid(parts[-1], "H"); since(n0, "crest"); n0 = len(parts)
 for r_, z_, mr, tl in ((0.1, 0.07, 0.036, 0.25), (0.092, 0.105, 0.034, -0.2), (0.075, 0.14, 0.032, 0.15)):
     parts.append(prim("torus", "turban", "red", (0, 0.02, HZ + z_), (1, 1.12, 1.25), (tl * 0.4, tl * 0.3, 0), major_radius=r_, minor_radius=mr, major_segments=20, minor_segments=8))
 parts.append(prim("uv_sphere", "turban", "red", (0, 0.02, HZ + 0.13), (0.08, 0.09, 0.05), segments=12, ring_count=6))
