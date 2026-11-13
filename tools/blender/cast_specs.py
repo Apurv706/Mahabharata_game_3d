@@ -21,19 +21,19 @@ BUILD = {
   "womanO":  dict(mu=0.15, wide=0.88, girth=0.86, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.82, trap=0.6,  neck=0.74, waist=0.96, lat=0.72), sex="f"),
   "girl":    dict(mu=0.1, wide=0.84, girth=0.8,  arm=0.58, leg=0.78, soft=True,  abs=False, shape=dict(chest=0.8,  trap=0.55, neck=0.74, waist=1.0,  lat=0.65), sex="f", flat=True),
 }
-FACE = {
-  "plain":  dict(jaw=0.92, chin=1.0,  long=0.0,    cheek=1.0,  nose=1.0,  brow=0.3,  hw=0.98, eye=1.0,  gap=1.0,  lipw=0.95, browth=1.0,  nosel=1.0),
-  "firm":   dict(jaw=0.94, chin=1.02, long=0.006,  cheek=1.0,  nose=1.0,  brow=0.6,  hw=0.98, eye=1.0,  gap=1.0,  lipw=0.95, browth=1.1,  nosel=1.03),
-  "broad":  dict(jaw=1.0,  chin=1.0,  long=0.0,    cheek=1.0,  nose=1.0,  brow=1.0,  hw=1.04, eye=0.95, gap=1.0,  lipw=1.05, browth=1.3,  nosel=1.0),
-  "stern":  dict(jaw=1.0,  chin=1.05, long=0.004,  cheek=0.95, nose=1.05, brow=1.0,  hw=1.02, eye=0.92, gap=0.98, lipw=1.0,  browth=1.3,  nosel=1.05),
-  "long":   dict(jaw=0.8,  chin=1.15, long=0.02,   cheek=0.85, nose=1.1,  brow=0.0,  hw=0.93, eye=0.92, gap=0.97, lipw=0.85, browth=0.8,  nosel=1.15),
-  "fine":   dict(jaw=0.8,  chin=0.95, long=0.01,   cheek=0.9,  nose=0.92, brow=0.2,  hw=0.94, eye=1.05, gap=1.0,  lipw=0.9,  browth=0.7,  nosel=0.97),
-  "young":  dict(jaw=0.9,  chin=0.85, long=-0.004, cheek=1.12, nose=0.9,  brow=-0.2, hw=1.0,  eye=1.15, gap=1.03, lipw=0.92, browth=0.75, nosel=0.9),
-  "lean":   dict(jaw=0.78, chin=1.12, long=0.016,  cheek=0.82, nose=1.2,  brow=0.7,  hw=0.92, eye=0.88, gap=0.96, lipw=0.85, browth=1.0,  nosel=1.2),
-  "old":    dict(jaw=0.86, chin=1.0,  long=0.01,   cheek=1.08, nose=1.12, brow=0.5,  hw=0.96, eye=0.9,  gap=0.98, lipw=0.88, browth=1.1,  nosel=1.1),
-  "woman":  dict(jaw=0.78, chin=0.85, long=-0.002, cheek=1.0,  nose=0.85, brow=-0.3, hw=0.96, eye=1.15, gap=1.0,  lipw=1.0,  browth=0.6,  nosel=0.9),
-  "womanO": dict(jaw=0.8,  chin=0.9,  long=0.004,  cheek=1.1,  nose=0.92, brow=-0.1, hw=0.96, eye=1.02, gap=1.0,  lipw=0.92, browth=0.6,  nosel=0.98),
-  "child":  dict(jaw=0.9,  chin=0.8,  long=-0.012, cheek=1.15, nose=0.8,  brow=-0.4, hw=1.02, eye=1.25, gap=1.04, lipw=0.9,  browth=0.6,  nosel=0.82),
+FACE = {   # (a first pass: kinds of face. Each person's own measures are set on top of these: see PEOPLE below.)
+  "plain":  dict(),
+  "firm":   dict(jawsq=0.8, brow=0.7, chinw=1.08),
+  "broad":  dict(hw=1.03, cheekw=1.05, jaww=1.12, jawsq=0.9, chinw=1.15, brow=0.9, nosew=1.12, full=0.25, lipw=1.05),
+  "stern":  dict(jaww=1.08, jawsq=0.9, brow=1.0, browtilt=0.5, browth=1.25, eye=0.95, hood=0.3, nosel=1.04, corner=-0.3),
+  "long":   dict(lowh=1.1, nosel=1.1, jaww=0.92, cheekw=0.95, hw=0.96, full=-0.3),
+  "fine":   dict(jaww=0.92, chinw=0.9, brow=0.25, nosew=0.9, bridgew=0.85, browth=0.8, eye=1.05, lipu=1.1),
+  "young":  dict(brow=0.2, jaww=0.94, chinw=0.92, nosel=0.94, nosep=0.92, eye=1.08, full=0.2, browth=0.8, lowh=0.95),
+  "lean":   dict(full=-0.6, cheekp=0.9, jaww=0.9, nosel=1.12, hump=0.7, tip=-0.5, temple=0.6),
+  "old":    dict(fold=0.8, bag=0.6, full=-0.3, temple=0.5, jowl=0.4, nosel=1.06, tip=-0.25, lipu=0.75, lipl=0.8, hood=0.4, open=0.88, recede=0.6, hairline=0.006),
+  "woman":  dict(brow=0.0, fores=-0.6, jaww=0.9, chinw=0.82, jawsq=0.2, nosel=0.95, nosep=0.9, nosew=0.9, bridgew=0.85, eye=1.1, open=1.06, browth=0.6, browarch=0.7, lipu=1.2, lipl=1.15, lipw=0.95, full=0.2, lash=1.6, hw=0.97, cheekw=0.97),
+  "womanO": dict(brow=0.0, fores=-0.5, jaww=0.92, chinw=0.85, jawsq=0.25, nosel=1.0, nosep=0.93, nosew=0.92, eye=1.04, browth=0.6, browarch=0.6, lipu=0.9, lipl=0.95, fold=0.7, bag=0.5, jowl=0.3, hood=0.3, lash=1.2, hw=0.97, cheekw=0.97),
+  "child":  dict(brow=0.0, fores=-1.0, eyez=-0.008, nosel=0.8, nosep=0.72, tip=0.5, bridgeh=0.6, nosew=0.9, lowh=0.84, jaww=0.9, chinw=0.86, jawsq=0.1, full=0.8, eye=1.2, open=1.1, browth=0.6, lipw=0.86, hw=1.02, cheekp=0.2),
 }
 def L(parts, **cols):
     if "hem" not in cols and "red" in cols: cols["hem"] = cols["red"]
@@ -178,7 +178,7 @@ AB = 0xc98850
 add("abhimanyu_youth", "youth", "young", AB, BLACK, 172, crown="circlet", rich=True, mu=0.75, arm=0.8, looks={
   "home": L("hair locks crown gold ear bands girdle shawl dhoti", cloth=0xf6f0e2, red=0x1a3774, cloth2=0x66a7f3, hem=0x1a3774, gem=0x004efe),
   "war":  L("hair locks helmet cuirass pauldron lames tasset vambrace greave baldric dhotiS sash", cloth=0xf6f0e2, red=0x2567e8, hem=0x1a3774, armour=0xb9b4a8, leather=0x9a968c, iron=0xb0aca0, gem=0x004efe) })
-add("ghatotkacha_adult", "heavy", "broad", 0xa46037, BLACK, 215, rich=True, facefix=dict(brow=1.3, jaw=1.06), looks={
+add("ghatotkacha_adult", "heavy", "broad", 0xa46037, BLACK, 215, rich=True, facefix=dict(brow=1.2, jaww=1.2), looks={
   "war": L("ear bands anklets harness girdle shawl dhoti", cloth=0x29211e, red=0xa1241a, cloth2=0xbe2825, hem=0xcc6635, gold=0x8a6a3a, gem=0xa1241a) })
 add("drupada_elder", "oldking", "old", 0xcf9a68, 0xa9a39a, 180, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks longhair crown beardF stache gold ear bands girdle panel shawl dhoti", cloth=0xa3371e, red=0x671c0f, cloth2=0xa3371e, hem=0xd9a53a, gem=0xb0202a),
@@ -251,8 +251,8 @@ def wears(key, add_="", drop="", looks=None):
         v["parts"] = [p for p in v["parts"] if p not in drop.split()] + [p for p in add_.split() if p not in v["parts"]]
 wears("arjuna_adult", "stache", looks=("home", "court", "war", "mourning"))
 wears("yudhishthira_adult", "beardS", looks=("home", "court", "war", "mourning", "disguise"))
-wears("karna_adult", drop="stache beardS"); CAST["karna_adult"]["facefix"] = dict(long=0.012, jaw=0.9, brow=0.6)
-wears("duryodhana_adult", drop="stache goatee"); CAST["duryodhana_adult"]["facefix"] = dict(brow=1.25, jaw=1.04, hw=1.05)
+wears("karna_adult", drop="stache beardS")
+wears("duryodhana_adult", drop="stache goatee")
 wears("dhrishtadyumna_adult", "knot")
 wears("kripa_elder", drop="knot beardS stache")
 wears("vidura_elder", "bun"); CAST["vidura_elder"]["skin"] = 0x9c6c4a

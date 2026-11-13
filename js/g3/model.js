@@ -246,7 +246,7 @@
       const lid = Math.max(R.lid, R.blink > 0 ? Math.sin((R.blink / 0.14) * Math.PI) : 0), kH = R.kH, F = R.M.face || {};
       j.J.rotation.x = R.jaw;
       if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; }
-      if (j.E) { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; }
+      if (j.E) { if (F.lidr) j.E.rotation.x = F.lidr * lid; /* (the upper lids are skin on the eyeball: they turn down over it, about the line through both eyes) */ else { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; } }
       if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = (R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }
     }
   };

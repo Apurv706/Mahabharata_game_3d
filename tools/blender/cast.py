@@ -23,8 +23,9 @@ def mat(name, col, rough=0.6, metal=0.0, emit=None):
     return m
 def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
-ROLE0 = { "mouth": 0x2a0c08, "skin": H["skin"], "cloth": 0xf2ecdc, "red": 0xb0402a, "cloth2": 0xf2ecdc, "band": 0xa8452f, "hem": 0xb0402a, "gold": 0xd9a53a, "hair": H["hair"], "white": 0xe8e4d8, "iris": 0x1a120c, "hide": 0xc79a5a,
-          "armour": 0x6a6258, "iron": 0x77736c, "leather": 0x5a3a22, "lip": 0x7a3a26 if not SHE else 0x9a3a30, "gem": 0xb0202a, "beads": 0x5a2e1a, "stubble": 0 }
+def mixc(a, b, k): return sum(round(((a >> s_) & 255) * (1 - k) + ((b >> s_) & 255) * k) << s_ for s_ in (16, 8, 0))
+ROLE0 = { "mouth": 0x2a0c08, "skin": H["skin"], "cloth": 0xf2ecdc, "red": 0xb0402a, "cloth2": 0xf2ecdc, "band": 0xa8452f, "hem": 0xb0402a, "gold": 0xd9a53a, "hair": H["hair"], "white": 0xe8e4d8, "iris": 0x4a2c14, "hide": 0xc79a5a,
+          "armour": 0x6a6258, "iron": 0x77736c, "leather": 0x5a3a22, "lip": mixc(mixc(H["skin"], 0x000000, 0.22), 0x8c332b, 0.42 if not SHE else 0.56), "pupil": 0x0b0807, "lash": 0x17110d, "sclera": 0xd8d2c6, "gem": 0xb0202a, "beads": 0x5a2e1a, "stubble": 0 }
 M = { k: mat(k, lin(hexc(v)), 0.35 if k in ("gold", "armour", "iron") else 0.7, 1.0 if k == "gold" else 0.0) for k, v in ROLE0.items() }
 M["stubble"] = mat("stubble", tuple(a * 0.62 + b * 0.38 for a, b in zip(lin(hexc(H["skin"])), lin(hexc(H["hair"])))), 0.7)
 def metaballs(name, balls, res=0.035, thr=0.6):
@@ -198,27 +199,20 @@ for o_, sx_, sd_ in zip(HANDS, (1, -1), "LR"):
     RIG["g" + sd_] = ("w" + sd_, tuple(w_ + (Vector((sx_ * (AX + 0.016) - sx_ * 0.002, -0.002, cz_ + 0.036)) - w_) * HANDK))
     RIG["h" + sd_] = ("g" + sd_, tuple(w_ + (Vector(fing(sx_, -32)) - w_) * HANDK))
 GRIP = [tuple(Vector((sx_ * (SHX + 0.008), 0, 0.82)) + (Vector(grip_at(sx_)) - Vector((sx_ * (SHX + 0.008), 0, 0.82))) * HANDK) for sx_ in (1, -1)]
-# ---- The head: broad, heavy-jawed. Built at the head joint (z 1.47) with the skull's centre about 0.16 above it.
+# ---- The head: a human head, from the anatomy of the face (face.py). Built at the head joint (z 1.47) with the eyes' line about 0.18 above it.
 HZ = 1.47 + 0.19
-JW, CH, LG, CK, NS, BR = F["jaw"], F["chin"], F["long"], F["cheek"], F["nose"], F["brow"]
-head = sym([
-  ((0, 0.015, HZ + 0.03), (0.098 * F['hw'], 0.115, 0.108)),                    # cranium
-  ((0, -0.03, HZ - 0.04), (0.088 * (0.5 + 0.5 * JW) * F['hw'], 0.092, 0.09 + LG)),   # face
-  ((0, -0.04, HZ - 0.1 - LG), (0.074 * JW, 0.07, 0.05)),                       # jaw
-  ((0, -0.088, HZ - 0.128 - LG * 1.6), (0.036 * JW, 0.03, 0.026 * CH), 1.6),   # chin
-  ((0.06 * JW, -0.02, HZ - 0.088 - LG), (0.034 * JW, 0.045, 0.04), 1.5),       # the jaw's corners
-  ((0.052, -0.082, HZ - 0.035), (0.03 * CK, 0.024 * CK, 0.024), 1.5),          # cheekbones
-  ((0, -0.112, HZ - 0.025 - (F['nosel'] - 1) * 0.02), (0.016, 0.026 * NS, 0.045 * F['nosel']), 1.8),   # nose, bridge
-  ((0, -0.134 * (0.9 + 0.1 * NS), HZ - 0.052 - (F['nosel'] - 1) * 0.05), (0.022 * NS, 0.024 * NS, 0.018), 1.8),   # nose, tip
-  ((0.02 * NS, -0.12, HZ - 0.058 - (F['nosel'] - 1) * 0.05), (0.013, 0.015, 0.011), 1.8),   # nostrils
-  ((0.038, -0.104 + (1 - BR) * 0.006, HZ + 0.024), (0.036, 0.018 * (0.6 + 0.4 * BR), 0.013), 1.7),   # brow ridge
-  ((0, -0.095, HZ + 0.062), (0.066, 0.028, 0.036), 1.5),                       # forehead
-  ((0.098, 0.005, HZ - 0.02), (0.012, 0.022, 0.034), 1.8),                     # ears
-  ((0.037 * F['gap'], -0.118, HZ - 0.002), (0.022 * F['eye'], 0.02, 0.012 * F['eye']), 1.6, None, True),   # eye sockets (cut in)
-  ((0, -0.128, HZ - 0.092 - LG), (0.03, 0.014, 0.005), 1.6, None, True),       # the mouth's line (cut in)
-])
-Hd = metaballs("head", head, 0.0085, 0.62)
-for o in [B, Hd] + HANDS:
+import face as FACEM
+FC = FACEM.Face(F, she=SHE)
+def mesh_obj(name, m, role):   # a mesh from face.py (heights from the head's centre line), with its points' shares of the joints
+    me = bpy.data.meshes.new(name); me.from_pydata([(x, y, z + HZ) for x, y, z in m.v], [], [list(f) for f in m.f]); me.update()
+    o = bpy.data.objects.new(name, me); S.collection.objects.link(o); me.materials.append(M[role])
+    for p_ in me.polygons: p_.use_smooth = True
+    for i_, w_ in enumerate(m.wt):
+        for g_, val_ in (w_ or {"H": 1.0}).items(): (o.vertex_groups.get(g_) or o.vertex_groups.new(name=g_)).add([i_], val_, "REPLACE")
+    return o
+HEADM = FACEM.build_head(FC); EARS, LOBE = FACEM.build_ears(FC)
+Hd = mesh_obj("head", FACEM.join(HEADM["head"], EARS), "skin")
+for o in [B] + HANDS:
     o.data.materials.append(M["skin"])
     m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 2; m.factor = 0.5
     bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="sm")
@@ -240,7 +234,7 @@ PAIRS = [("P", "T", "T1"), ("T", "H", "N")] + [q for sd_ in "LR" for q in (("c" 
 LOD = H.get("lod", 1.0)
 # (A figure in a fight is seen from above at seventy to ninety pixels tall, and a field holds dozens of them with their
 #  shadows: the meshes are a third of what they were. Smooth normals and the shaded hollows keep the forms.)
-for o, r in ((B, 0.115 * LOD), (Hd, 0.3 * LOD), (HANDS[0], 0.2 if LOD >= 1 else 0.13), (HANDS[1], 0.2 if LOD >= 1 else 0.13)):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
+for o, r in ((B, 0.115 * LOD), (HANDS[0], 0.2 if LOD >= 1 else 0.13), (HANDS[1], 0.2 if LOD >= 1 else 0.13)):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
@@ -286,13 +280,8 @@ for o in (B,):
 def rigid(o, bone_name):
     g = o.vertex_groups.new(name=bone_name); g.add(range(len(o.data.vertices)), 1.0, "REPLACE")
 # The head goes with the head joint, and what lies below the mouth's line with the jaw, which opens.
-MZ = HZ - 0.092 - LG
-gH_, gJ_ = Hd.vertex_groups.new(name="H"), Hd.vertex_groups.new(name="J")
-for v in Hd.data.vertices:
-    wj = sm(MZ - 0.001, MZ - 0.02, v.co.z) * sm(0.05, -0.01, v.co.y)
-    if wj < 0.99: gH_.add([v.index], 1 - wj, "REPLACE")
-    if wj > 0.01: gJ_.add([v.index], wj, "REPLACE")
-RIG["J"] = ("H", (0, -0.012, HZ - 0.062)); RIG["M"] = ("H", (0, -0.117, MZ))
+MZ = HZ + FC.zst   # (the head's points came with their shares: the head, the jaw below the mouth's line, and the upper lids with their own joint)
+RIG["J"] = ("H", (0, -0.012, HZ - 0.062)); RIG["M"] = ("H", (0, -FC.F(FC.zst), MZ))
 RIG["sS"] = ("P", (0.03, -0.13, 0.95)); RIG["sC"] = ("T", (0.17 * FX, -0.1, 1.38))
 
 # ---- What he wears and carries on him ---------------------------------------------------------------------------
@@ -306,35 +295,29 @@ def prim(kind, name, m, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), **kw):
 parts = []
 def both(fn):
     for sx in (1, -1): parts.append(fn(sx))
-# Eyes, lips
-both(lambda sx: prim("uv_sphere", "eye", "white", (sx * 0.037 * F["gap"], -0.103, HZ - 0.002), (0.0165 * F["eye"], 0.012, 0.0105 * F["eye"]), segments=14, ring_count=8))
-both(lambda sx: prim("uv_sphere", "iris", "iris", (sx * 0.037 * F["gap"], -0.1135, HZ - 0.002), (0.0075 * F["eye"], 0.004, 0.0078 * F["eye"]), segments=10, ring_count=6))
-both(lambda sx: prim("uv_sphere", "lid", "skin", (sx * 0.037 * F["gap"], -0.1045, HZ + 0.0065 * F["eye"] + (1 - BR) * 0.0028), (0.0185 * F["eye"], 0.0125, 0.0085 * F["eye"]), (0.25, 0, 0), segments=12, ring_count=6))
-both(lambda sx: prim("uv_sphere", "browhair", "hair", (sx * 0.04, -0.121 + (1 - BR) * 0.004, HZ + 0.024 + (1 - BR) * 0.004), (0.027, 0.008, (0.0055 + 0.0015 * BR) * F["browth"]), (0, -sx * 0.22 * BR, 0), segments=10, ring_count=6))
-parts.append(prim("uv_sphere", "lip", "lip", (0, -0.126, HZ - 0.098 - LG), (0.028 * (0.6 + 0.4 * JW) * F["lipw"], 0.012, 0.0085), segments=12, ring_count=6)); rigid(parts[-1], "J")
-# The mouth: a dark line where the lips meet. Its joint stretches it into an open mouth for a shout or a cry.
-parts.append(prim("uv_sphere", "mouth", "mouth", (0, -0.117, MZ), (0.023 * (0.6 + 0.4 * JW) * F["lipw"], 0.0075, 0.0012), segments=10, ring_count=6)); rigid(parts[-1], "M")
-for o_ in parts:
-    nm_ = o_.name.split(".")[0]
-    if nm_ == "lid": rigid(o_, "E")
-    elif nm_ == "browhair": rigid(o_, "bL" if o_.location.x > 0 else "bR")
-LIDZ = HZ + 0.0065 * F["eye"] + (1 - BR) * 0.0028; BRWZ = HZ + 0.024 + (1 - BR) * 0.004
-RIG["E"] = ("H", (0, -0.1045, LIDZ)); RIG["bL"] = ("H", (0.04, -0.121, BRWZ)); RIG["bR"] = ("H", (-0.04, -0.121, BRWZ))
-FACE = { "lid": round(LIDZ - (HZ - 0.002), 5), "mouth": 0.0012 }   # how far a lid comes down to close the eye; the mouth's half-height at rest
+# The face's own parts: the eyes in their sockets (the white, the iris, the pupil and a point of light), the lash line on the
+# upper lid's edge, two lips, the dark of the mouth behind them, and the eyebrows.
+EY = FACEM.build_eyes(FC)
+for nm_, role_ in (("eye", "sclera"), ("iris", "iris"), ("pupil", "pupil"), ("glint", "white")): parts.append(mesh_obj(nm_, EY[nm_], role_))
+_nc, _nr = FACEM.nostrils(FC)
+both(lambda sx: prim("uv_sphere", "nostril", "mouth", (sx * _nc[0], _nc[1], HZ + _nc[2]), _nr, segments=8, ring_count=5))
+parts.append(mesh_obj("lash", FACEM.build_lashes(FC), "lash"))
+parts.append(mesh_obj("lipU", HEADM["lipU"], "lip")); parts.append(mesh_obj("lipL", HEADM["lipL"], "lip")); parts.append(mesh_obj("mouth", FACEM.build_mouth(FC), "mouth"))
+BRL, BRR, BRC = FACEM.build_brows(FC)
+for m_, j_ in ((BRL, "bL"), (BRR, "bR")):
+    o_ = mesh_obj("browhair", m_, "hair"); o_.vertex_groups.clear(); rigid(o_, j_); parts.append(o_)
+RIG["E"] = ("H", (0, -FC.fe, HZ + FC.ze)); RIG["bL"] = ("H", (BRC[0], BRC[1], HZ + BRC[2])); RIG["bR"] = ("H", (-BRC[0], BRC[1], HZ + BRC[2]))
+FACE = { "lid": 0.0085, "mouth": 0.0012, "lidr": round(FC.TU + FC.TL + 0.05, 4) }   # lidr: the angle the upper lids turn through, about the line through both eyes, to close
 # The moustache of a wrestler: thick over the lip, swept out and up at the ends
+_sz = FC.zub(0.3) + 0.0038; _sp = FC.surf(0.5 * FC.mw, _sz); _sy = _sp[1] - 0.002; _sx = 0.56 * FC.mw
 if not H.get("handle"):   # most men: a moustache that lies along the lip and turns down a little at its ends, as the portraits have it
-    both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.026, -0.127, HZ - 0.081), (0.03, 0.012, 0.0095), (0, -sx * 0.22, sx * 0.12), segments=12, ring_count=6))
+    both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * _sx, _sy, HZ + _sz), (0.56 * FC.mw + 0.004, 0.0075, 0.0048), (0, -sx * 0.30, sx * 0.16), segments=12, ring_count=6))
 else:
-    both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * 0.03, -0.128, HZ - 0.078), (0.036, 0.017, 0.015), (0, sx * 0.2, sx * 0.2), segments=12, ring_count=6))
-    both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.072, -0.108, HZ - 0.062), (0.026, 0.012, 0.012), (0, -sx * 0.8, sx * 0.6), segments=10, ring_count=6))
-    both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * 0.09, -0.094, HZ - 0.04), (0.012, 0.009, 0.014), segments=8, ring_count=6))
+    both(lambda sx: prim("uv_sphere", "stache", "hair", (sx * (_sx + 0.003), _sy - 0.001, HZ + _sz + 0.002), (0.7 * FC.mw + 0.009, 0.013, 0.0105), (0, -sx * 0.30, sx * 0.2), segments=12, ring_count=6))
+    both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * (FC.mw + 0.026), _sy + 0.024, HZ + _sz + 0.014), (0.022, 0.0095, 0.0095), (0, -sx * 0.8, sx * 0.6), segments=10, ring_count=6))
+    both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * (FC.mw + 0.042), _sy + 0.036, HZ + _sz + 0.034), (0.0095, 0.008, 0.012), segments=8, ring_count=6))
 # Hair: a cap over the skull, cut away from the face; a knot on the crown; the rest falling to the shoulders behind
-bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.018, HZ + 0.032), segments=28, ring_count=18); hc = bpy.context.object; hc.name = "haircap"; hc.scale = (0.104, 0.121, 0.114); bpy.ops.object.transform_apply(scale=True)
-bm = bmesh.new(); bm.from_mesh(hc.data)
-bmesh.ops.delete(bm, geom=[v for v in bm.verts if (v.co.y < -0.035 and v.co.z < HZ + 0.075) or (v.co.z < HZ - 0.06 and v.co.y < 0.06) or v.co.z < HZ - 0.1], context="VERTS"); bm.to_mesh(hc.data); bm.free()
-so = hc.modifiers.new("so", "SOLIDIFY"); so.thickness = 0.008; bpy.context.view_layer.objects.active = hc; bpy.ops.object.modifier_apply(modifier="so"); hc.data.materials.append(M["hair"])
-for p in hc.data.polygons: p.use_smooth = True
-hc.select_set(False); parts.append(hc); HAIRCAP = hc
+hc = mesh_obj("haircap", FACEM.build_hair(FC, cover_ears=bool(H.get("earhair", SHE))), "hair"); parts.append(hc); HAIRCAP = hc
 parts.append(prim("uv_sphere", "knot", "hair", (0, 0.03, HZ + 0.155), (0.05, 0.052, 0.042), segments=14, ring_count=8))
 parts.append(prim("torus", "knotband", "gold", (0, 0.03, HZ + 0.128), (1, 1, 1), major_radius=0.04, minor_radius=0.008, major_segments=16, minor_segments=6))
 parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085, 0.045, 0.1), segments=14, ring_count=8))
@@ -476,7 +459,7 @@ parts.append(prim("uv_sphere", "pendant", "gold", (0, front(1.375) - 0.006, 1.37
 parts.append(prim("uv_sphere", "pendantgem", "gem", (0, front(1.375) - 0.016, 1.375), (0.011, 0.006, 0.013), segments=8, ring_count=6))
 for o in parts[n0:]: rigid(o, "T")
 since(n0, "gold"); n0 = len(parts)
-both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * 0.104 * F["hw"], 0.0, HZ - 0.062), (0.014, 0.014, 0.018), segments=8, ring_count=6))
+both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * (LOBE[0] + 0.002), LOBE[1], HZ + LOBE[2] - 0.016), (0.012, 0.012, 0.016), segments=8, ring_count=6))   # (hung from the ear's lobe)
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "ear"); n0 = len(parts)
 for sx, sd in ((1, "L"), (-1, "R")):
@@ -643,22 +626,22 @@ for nm, fz, fy in (("feather", 0.36, -0.07), ("featherlow", 0.2, -0.03)):   # a 
     parts.append(prim("uv_sphere", nm, "band", (0.02, fy, HZ + fz), (0.035, 0.008, 0.075), (-0.25, 0.1, 0), segments=10, ring_count=8)); rigid(parts[-1], "H")
     parts.append(prim("uv_sphere", nm + "eye", "gem", (0.02, fy - 0.01, HZ + fz + 0.025), (0.016, 0.006, 0.024), (-0.25, 0.1, 0), segments=8, ring_count=6)); rigid(parts[-1], "H"); since(n0, nm); n0 = len(parts)
 # beards: close-cut (the skin of the jaw itself, darkened and stood off), full, long; and a tuft on the chin alone
-shell("beardS", "hair", lambda c: c.z < HZ - 0.066 and c.y < 0.02 and not (abs(c.x) < 0.032 and HZ - 0.108 < c.z < HZ - 0.084 and c.y < -0.1), 0.004, Hd); since(n0, "beardS"); n0 = len(parts)
-parts.append(prim("uv_sphere", "beardF", "hair", (0, -0.072, HZ - 0.135), (0.066, 0.052, 0.055), segments=14, ring_count=8)); rigid(parts[-1], "H"); since(n0, "beardF"); n0 = len(parts)
-parts.append(prim("uv_sphere", "beardL", "hair", (0, -0.085, HZ - 0.2), (0.06, 0.04, 0.12), segments=14, ring_count=10)); rigid(parts[-1], "H"); since(n0, "beardL"); n0 = len(parts)
-parts.append(prim("uv_sphere", "goatee", "hair", (0, -0.092, HZ - 0.15), (0.024, 0.022, 0.04), segments=10, ring_count=6)); rigid(parts[-1], "H"); since(n0, "goatee"); n0 = len(parts)
-if H.get("stubble"): shell("stubble", "stubble", lambda c: c.z < HZ - 0.062 and c.y < -0.005 and not (abs(c.x) < 0.03 and HZ - 0.106 < c.z < HZ - 0.086 and c.y < -0.1), 0.0012, Hd); since(n0, "face"); n0 = len(parts)
+parts.append(mesh_obj("beardS", FACEM.build_beard(FC, "short", 0.0042), "hair")); since(n0, "beardS"); n0 = len(parts)
+parts.append(prim("uv_sphere", "beardF", "hair", (0, -FC.F(FC.zpog) + 0.046, HZ + FC.zpog - 0.007), (FC.Wg * 0.9, 0.052, 0.052), segments=14, ring_count=8)); rigid(parts[-1], "H"); since(n0, "beardF"); n0 = len(parts)
+parts.append(prim("uv_sphere", "beardL", "hair", (0, -FC.F(FC.zpog) + 0.033, HZ + FC.zpog - 0.072), (FC.Wg * 0.82, 0.04, 0.12), segments=14, ring_count=10)); rigid(parts[-1], "H"); since(n0, "beardL"); n0 = len(parts)
+parts.append(prim("uv_sphere", "goatee", "hair", (0, -FC.F(FC.zpog) + 0.026, HZ + FC.zpog - 0.022), (0.024, 0.022, 0.04), segments=10, ring_count=6)); rigid(parts[-1], "H"); since(n0, "goatee"); n0 = len(parts)
+if H.get("stubble"): parts.append(mesh_obj("stubble", FACEM.build_beard(FC, "stubble", 0.0012), "stubble")); since(n0, "face"); n0 = len(parts)
 # the head-cloth of an elder woman, over the hair and down the back; a band over the eyes
 bpy.ops.mesh.primitive_uv_sphere_add(location=(0, 0.03, HZ + 0.03), segments=24, ring_count=14); vl = bpy.context.object; vl.name = "veil"; vl.scale = (0.122, 0.14, 0.13); bpy.ops.object.transform_apply(scale=True)
 bm = bmesh.new(); bm.from_mesh(vl.data); bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.y < -0.045 and v.co.z < HZ + 0.1 or v.co.z < HZ - 0.11], context="VERTS"); bm.to_mesh(vl.data); bm.free(); vl.data.materials.append(M["cloth2"])
 for p in vl.data.polygons: p.use_smooth = True
 vl.select_set(False); rigid(vl, "H"); parts.append(vl)
 fall("veilfall", "cloth2", 0.0, 0.15, HZ - 0.08, 0.75, 0.15, top="T", edge=False, sway="sB"); since(n0, "veil"); n0 = len(parts)
-parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + 0.0), (1, 1.15, 3.2), major_radius=0.1 * F["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
+parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + FC.ze + 0.004), (1, 1.15, 3.2), major_radius=0.1 * FC.P["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
 # a mark on the brow
-parts.append(prim("uv_sphere", "tilak", "gem", (0, -0.119, HZ + 0.045), (0.006, 0.004, 0.014), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "tilak"); n0 = len(parts)
+parts.append(prim("uv_sphere", "tilak", "gem", (0, FC.surf(0, FC.zbr + 0.024)[1] - 0.001, HZ + FC.zbr + 0.024), (0.006, 0.004, 0.014), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "tilak"); n0 = len(parts)
 
-PART = { "eye": "face", "iris": "face", "lid": "face", "browhair": "face", "lip": "face", "mouth": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair", "knot": "knot", "knotband": "knot", "locks": "locks" }
+PART = { "eye": "face", "iris": "face", "pupil": "face", "glint": "face", "lash": "face", "lipU": "face", "lipL": "face", "nostril": "face", "browhair": "face", "mouth": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair", "knot": "knot", "knotband": "knot", "locks": "locks" }
 def part_of(o):
     return o.get("part") or PART.get(o.name.split(".")[0], o.name.split(".")[0])
 for o in parts:
