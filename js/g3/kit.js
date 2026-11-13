@@ -512,10 +512,11 @@
     b.surf("gold"); b.torus(0.086, 0.014, 0.56, Y0 + 0.66, ZF - 0.14, trim, PI / 2, 0, 0, 10); b.torus(0.08, 0.012, 0.56, Y0 + 0.2, ZF - 0.14, trim, PI / 2, 0, 0, 10); b.torus(0.062, 0.012, -0.58, Y0 + 0.9, ZF - 0.14, trim, PI / 2, 0, 0, 8);
     b.surf("rings", 0xa3302a, 0.12); for (let k = 0; k < 6; k++) b.rod(0.56 + (k - 2.5) * 0.022, Y0 + 0.66, ZF - 0.14 + (k % 2) * 0.03, 0.56 + (k - 2.5) * 0.03, Y0 + 0.98, ZF - 0.14 + (k % 2) * 0.035, 0.008, 0xe8dcc0, 3);
     b.geo(new T.TorusGeometry(0.5, 0.017, 4, 12, PI * 0.8).rotateY(PI / 2), -0.58, Y0 + 1.28, ZF - 0.14, 0, 0, -0.42, 0x6a4a26);                                        // the spare bow, standing in its case
-    b.surf("wood", DEEP, 0.1); b.rod(0, 0.7, ZF, 0, 1.0, 3.62, 0.055, 0x7a4e26, 7); b.rod(-1.6, 1.06, 3.5, 1.6, 1.06, 3.5, 0.045, 0x7a4e26, 6);
-    b.surf("gold"); for (const sx of [-1, 1]) { b.sph(0.06, sx * 1.6, 1.06, 3.5, trim, 1, 6); } b.sph(0.065, 0, 1.02, 3.66, trim, 1, 6);
-    b.surf("leather"); for (const sx of [-1.5, -0.5, 0.5, 1.5]) b.torus(0.15, 0.028, sx, 1.1, 3.5, 0x3a2414, 0, 0, 0, 8);
-    for (const sx of [-1, 1]) { b.rod(sx * (W + 0.02), 0.74, ZF, sx * 1.52, 1.04, 3.5, 0.014, 0x3a2414, 4); b.rod(sx * 0.3, Y0 + HF, ZF, sx * 0.5, 1.98, 4.6, 0.008, 0x2a1a10, 3); }                   // the outer traces, and the reins
+    const tb = new Builder(); // (the pole, the yoke and the traces are the team's: they swing with the horses about the pole's root)
+    tb.surf("wood", DEEP, 0.1); tb.rod(0, 0.7, ZF, 0, 1.0, 3.62, 0.055, 0x7a4e26, 7); tb.rod(-1.6, 1.06, 3.5, 1.6, 1.06, 3.5, 0.045, 0x7a4e26, 6);
+    tb.surf("gold"); for (const sx of [-1, 1]) { tb.sph(0.06, sx * 1.6, 1.06, 3.5, trim, 1, 6); } tb.sph(0.065, 0, 1.02, 3.66, trim, 1, 6);
+    tb.surf("leather"); for (const sx of [-1.5, -0.5, 0.5, 1.5]) tb.torus(0.15, 0.028, sx, 1.1, 3.5, 0x3a2414, 0, 0, 0, 8);
+    for (const sx of [-1, 1]) { tb.rod(sx * (W + 0.02), 0.74, ZF, sx * 1.52, 1.04, 3.5, 0.014, 0x3a2414, 4); tb.rod(sx * 0.3, Y0 + HF, ZF, sx * 0.5, 1.98, 4.6, 0.008, 0x2a1a10, 3); }                   // the outer traces, and the reins
     b.surf("iron"); b.rod(-1.0, 0.72, -0.1, 1.0, 0.72, -0.1, 0.055, IRON, 6);
     if (o.canopy) { // the royal parasol: a white dome on a gilt staff with a fringe of gold drops and a finial
       const cx = 0.12, cz = -0.72, RY = 3.34, R = 0.78, dk = G.shade(o.canopy, 0.84);
@@ -528,6 +529,7 @@
       b.sph(0.075, cx, RY + 0.42, cz, trim, 1, 8); b.cyl(0.04, 0.06, 0.07, cx, RY + 0.33, cz, trim, 7); b.cone(0.035, 0.17, cx, RY + 0.49, cz, BR, 6);
     }
     b.surf(); g.add(b.mesh());
+    const team = new T.Group(); team.position.set(0, 0, ZF); tb.surf(); const tm = tb.mesh(); tm.position.z = -ZF; team.add(tm); g.add(team); g.userData.team = team;
     g.userData.wheels = [];
     for (const sx of [-1, 1]) { // a wheel: twelve spokes, a wooden felloe shod with iron and studded, a nave capped in gold
       const wb = new Builder(); wb.surf("wood", DEEP, 0.1); wb.torus(0.66, 0.06, 0, 0, 0, 0x7a5028, 0, PI / 2, 0, 24);
@@ -539,13 +541,24 @@
     }
     g.userData.horses = [];
     const n = o.horses == null ? 2 : o.horses;
-    for (let i = 0; i < n; i++) { const h = G.horse(o.horseCol != null ? o.horseCol : undefined, o.tack || 0xa3302a); h.position.set((i - (n - 1) / 2) * 1.0, 0, 3.4); g.add(h); g.userData.horses.push(h); }
+    for (let i = 0; i < n; i++) { const h = G.horse(o.horseCol != null ? o.horseCol : undefined, o.tack || 0xa3302a); h.position.set((i - (n - 1) / 2) * 1.0, 0, 3.4 - ZF); team.add(h); g.userData.horses.push(h); }
     if (o.flag) { const f = G.banner(o.canopy ? 4.5 : 3.4, o.flag[0], o.flag[1], o.flag[2], 0.7); /* (tall: the cloth flies above the heads, and above the parasol) */ f.position.set(-0.74, 0.86, -0.94); g.add(f); g.userData.banner = f; } // the standard, at the rear corner, clear of the one who rides
     g.userData.deck = 0.86;
     return g;
   };
   // Turn a chariot's wheels and run its horses for a frame.
-  G.roll = function (ch, dist, t, speed) { for (const w of ch.userData.wheels || []) w.rotation.x = dist / 0.72; (ch.userData.horses || []).forEach((h, i) => G.gallop(h, t * 11 + i * 1.3, speed)); if (ch.userData.banner) G.wave(ch.userData.banner, t); };
+  // A horse-drawn car does not turn like a cart on a pivot: the team swings round first and the car comes after it
+  // on its wheels. G.steer turns the car toward heading `a`: the team leads by up to half a radian, and the car's own
+  // turn is slow standing and quicker at the run; the wheel on the inside of the turn all but stands still.
+  G.steer = function (ch, a, dt, moving, alive) {
+    const U_ = ch.userData; let da = a - ch.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da));
+    const rate = alive ? 0.9 + 2.3 * Math.min(1, moving) : 0, step = Math.max(-rate * dt, Math.min(rate * dt, da)); ch.rotation.y += step;
+    const want = alive ? Math.max(-0.5, Math.min(0.5, (da - step) * 1.5)) : (U_.lead || 0); U_.lead = (U_.lead || 0) + (want - (U_.lead || 0)) * Math.min(1, dt * 6);
+    if (U_.team) U_.team.rotation.y = U_.lead; (U_.horses || []).forEach((h) => { h.rotation.y = U_.lead * 0.35; });
+    U_.yaw = dt > 0 ? step / dt : 0; U_.spin = (U_.spin || 0) + step * 0.98 / 0.72;
+  };
+  G.roll = function (ch, dist, t, speed) { const U_ = ch.userData, sp = U_.spin || 0, turn = Math.min(0.6, Math.abs(U_.yaw || 0) * 0.5); // (a team turning on the spot still steps)
+    (U_.wheels || []).forEach((w, k) => { w.rotation.x = dist / 0.72 + (k ? -sp : sp); }); (U_.horses || []).forEach((h, k) => G.gallop(h, t * 11 + k * 1.3, Math.max(speed, turn))); if (U_.banner) G.wave(U_.banner, t); };
   // A war elephant with a howdah; its legs and trunk are pivots.
   function howdah(b, cloth, GOLDE) {
     // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.

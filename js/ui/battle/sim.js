@@ -176,7 +176,7 @@
   //   the pincer   one hangs back in front of you while two go wide and come in behind.
   //   the charge   their champion comes straight for you while his men hold back and watch.
   // Once in each such fight a horn sounds and it turns, and you are given something to do against a count:
-  //   (wall broken)  their standard stands open behind them: reach it and the host breaks; too slow and they rally
+  //   (wall broken)  their banner stands open behind them: reach it and the host breaks; too slow and they rally
   //   (pincer shut)  one of them goes for the comrade beside you: strike him before he cuts your man down
   //   (the charge)   the champion offers single combat: take it and the rest stand off; beat him and they run
   // Fail the task in a fight against one of the epic's named men and the fight is lost. In any other, it costs you:

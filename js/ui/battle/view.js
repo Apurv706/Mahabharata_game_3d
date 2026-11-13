@@ -385,7 +385,7 @@
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
-        let da = g.a - c.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.rotation.y += da * Math.min(1, dt * (u.hp > 0 ? 5 : 0));
+        G.steer(c, g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it)
         v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
       }
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
@@ -620,7 +620,7 @@
     const nameOf = (uid) => { const u = B.units.find((x) => x.uid === uid); return u ? K.text(u.name) : ""; };
     function planTurn(e) {
       sfx("drumCall"); G.fx.flash("rgba(255,240,200,.25)", 400);
-      if (e.kind === "standard" && e.task) { banner(U.tr("A horn. Their wall is broken and their standard stands open behind it. Take it!"));
+      if (e.kind === "standard" && e.task) { banner(U.tr("A horn. Their wall is broken and their banner stands open behind it. Take it!"));
         stdMark = new T.Group(); const b = G.banner ? G.banner(4.2, 0xa3302a, 0xf2d27a, "sun", 1.2) : null; if (b) stdMark.add(b); stdMark.position.set(e.task.x, 0, e.task.z); G.fxRoot.add(stdMark);
         let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "standard") { if (stdMark) { G.fxRoot.remove(stdMark); G.dispose(stdMark); stdMark = null; } return true; }
           if (Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(stdMark.position, 0xf2d27a, 0.4, 2.6, 0.7); G.fx.beam(stdMark.position.clone().setY(0.2), stdMark.position.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
@@ -636,8 +636,8 @@
     }
     function planTask(e) {
       const won = e.k === "taskDone";
-      const WON = { standard: "You pull their standard down. Their host breaks.", banner: "His banner falls. Their host breaks.", sarathi: "His charioteer is down, and the car stands still.", raid: "You cut him off. Your man lives." };
-      const LOST = { standard: "Too slow: their standard is carried off and they rally.", banner: "Too slow: his guards close round the car again, and they rally.", sarathi: "Too slow: his car rides your man down.", raid: "Your man is cut down." };
+      const WON = { standard: "You pull their banner down. Their host breaks.", banner: "His banner falls. Their host breaks.", sarathi: "His charioteer is down, and the car stands still.", raid: "You cut him off. Your man lives." };
+      const LOST = { standard: "Too slow: their banner is carried off and they rally.", banner: "Too slow: his guards close round the car again, and they rally.", sarathi: "Too slow: his car rides your man down.", raid: "Your man is cut down." };
       if (won) { sfx("gong"); banner(U.tr(WON[e.kind] || WON.raid));
         if (e.kind === "banner" && R.plan) { const v = views.get(R.plan.car), fl = v && v.car && v.car.userData.banner; if (fl) { let t = 0; G.fx.run((dt, cut) => { t += dt; fl.rotation.x = Math.min(1.5, t * 2.4); if (t > 0.7 || cut) { fl.visible = false; return true; } return false; }); const at = posOf(R.plan.car, 2.4); if (at) G.fx.burst("dust", at, { n: 14, s: 1.6 }); } } }
       else { sfx("drum"); G.shake(0.3, 0.3); banner(U.tr(LOST[e.kind] || LOST.raid) + " " + U.tr(e.big ? "The day is lost." : "You will carry this into the next fight.")); }
@@ -768,7 +768,8 @@
       const pv = views.get(p.uid), pf = pv && pv.figs[0];
       // (When it is over you see your fighter again, whichever view you fought in.)
       const mode = viewMode === "eyes" && (!started || (R.over && R.over !== "retry")) ? "behind" : viewMode;
-      if (pf) pf.j.H.visible = mode !== "eyes" || !!intro;
+      if (pf) { const hide = mode === "eyes" && !intro, H_ = pf.j.H; H_.visible = !hide; // (a modelled figure's head is skin on a bone, not a child of this joint: shrink the joint to nothing, or you look out through the inside of your own face)
+        if (H_.userData.s0 == null) H_.userData.s0 = H_.scale.x; H_.scale.setScalar(hide ? 0.0001 : H_.userData.s0); if (pf.shield) pf.shield.visible = !hide; } // (and your own shield, held across your front, would be a wall across the screen)
       if (intro) return; // the opening shots hold the camera
       if (viewEase > 0) viewEase -= G.real || dt;
       const asp = G.W / G.H, k = clamp((asp - 0.75) / 0.6, 0, 1);         // 0 upright phone … 1 wide screen
@@ -948,7 +949,7 @@
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
       if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
-      if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their standard") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
+      if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
       if (R.duel) return K.tr("Single combat");
       if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });

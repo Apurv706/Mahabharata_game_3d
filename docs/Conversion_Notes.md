@@ -345,3 +345,19 @@ The owner: fights are too samey; they should change with the other side's tactic
 - The third day's "Bhishma's arrows" is unchanged: there you can only stand and live.
 - The game's own fighter bars him in about half a minute; left alone he crosses at about three quarters. Still inside the fight's balance band. Not played by hand.
 
+
+## Two played lives, reviewed (12 November, night)
+
+Two lives were played through the real screens by the play script for an hour each, a screenshot every 35 seconds and the two other views photographed in every fight. On the software renderer with two games running the fights ran at about one frame a second, so the hour covered little: the war life reached day 10 (five fights, one test), and the new life stopped at the first test (the mango throw), which the script could not pass.
+
+Found and fixed:
+- **Through your eyes showed the inside of your own head.** The view hid the head joint, but a modelled figure's head is skin on a bone, not a child of that joint. The joint is now shrunk to nothing in that view, and your own shield (which stood across the screen like a wall) is hidden with it.
+- **"Take their standard"** was still the wording when their host has no car. It is their banner everywhere now.
+- **"Their spirit" sat on the bottom edge of the goal card** when the goal ran to three lines. Moved down.
+- **Chariots turned like a cart on a pivot** (owner). The pole, yoke and traces now belong to the team, which swings about the pole's root: the horses lead a turn by up to half a radian and the car comes round after them, slowly when standing and faster at the run; the inner wheel all but stands and the horses step while turning on the spot (`G.steer`, kit.js).
+
+Found and not fixed:
+- Carrying Iravan to the river: the field is bright green with plain brown boxes though the text says dusk and a moon, and the player carries nobody.
+- Under Bhishma, the field looked much darker in the last phase than in the first. Cause not found.
+- The mango throw shows no way out for a player who cannot hit.
+- Speed: a war fight is about 900,000 triangles and 620 draw calls a frame. On the software renderer a frame of the first war fight costs a quarter more than it did this morning before the figure work (outlines are about half of that), though the triangle count went down.
