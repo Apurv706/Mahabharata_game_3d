@@ -224,3 +224,4 @@ body.in3d #b3d { display: block; }
 .bhud.pre .b-spirit { display: none; }
 .b-card.b-duel { width: min(420px, calc(100% - 24px)); } .b-card.b-duel p { margin: 6px 0 12px; }
 
+.b-spirit.b-ours { top: calc(178px + var(--safe-t, 0px)); } .b-spirit.b-ours i { background: #e9c46a; } .b-spirit.b-ours.low i { background: #c9463a; }

@@ -112,3 +112,22 @@ Three things he asked to set aside for later. Not started, not scoped.
 2. **Improve the side quests**: the cattle escape, the floor escape, and the others.
 3. **The entry to the Chakravyuha**: show real chariots in place of the block that stands there now.
 
+
+## Part 6. What of Parts 3 to 5 is built (12 November, late)
+
+Asked for: build all of these ideas, and an art brief. This is the first sitting of several; the state of each:
+
+| Idea | State |
+|---|---|
+| The king's chariot (`oath_king_hold`), Bhima's charge (`hold_bhima`), against Arjuna's chariot (`hold_arjuna`, `oath_arjuna_12`, `oath_arjuna_16`) | **Built.** All five now have the shape of the line under Bhishma: the champion comes along your front three times and your line gives way, then he turns for the gap where you stand and you bar his way (three checks), or he is through. Against Arjuna there is only the banner: no one lays a hand on Krishna. These fights now run about 25 to 30 seconds where they ran 55 to 60. |
+| The plain holds of the war days (`fs_sk_hold`, `fs_d13_hold`, `e_iravan`, `e_kb_guard`, `e_lake_hold`) | **Built.** They draw a plan (wall, pincer or champion's charge) like the other war fights. |
+| **Over Bhima** (new story line, Pandava side, before the day-14 scene) | **Built**: a choice scene and the fight `new_over_bhima`. Bhima lies behind you; the Kalinga captain charges and may call you out. English and Hindi. Borrows the day-14 painting. |
+| **The banner-bearer** (new story line, either side, before the day-16 scene) | **Built**: a choice scene and the fight `new_banner`. You carry your army's banner; a bar, "Your banner", falls as your men fall and as you are struck, rises as theirs fall, and at nothing the fight is lost. Your blows land at four-fifths weight. English and Hindi. Borrows the muster painting. |
+| The king's wheel-guard | The fight is the king's chariot above. Its own posting scene is not written. |
+| The heart of the wheel and the gate; Karna's wheel; Supratika; Over Satyaki; Ghatotkacha's night | Not built. |
+| In Arjuna's place; the message; the race against the sun; the decoy; the healer's run; Uttara's charioteer; the Kaurava mirrors | Not built. In Arjuna's place waits on the player riding a car in 3D. |
+| Part 5: weapons spaced out with 3D quests; side quests; real chariots at the wheel's mouth | Not started. All the weapon quests sit in Act V (`js/content/astras.js`); moving them changes the order of every life, so it wants its own sitting. |
+
+Checked by the rules tests (55), the fight bands (76 fights) and one opening still of each new fight. Neither new fight has been played through by hand or seen on a phone.
+
+**Art brief:** `docs/Art_Brief_3D_Storylines.pdf` (9 pages, 30 paintings in four priorities; made by `tools/art_brief_3d.py`). It asks for scenes, two portraits, two moments and an ending only: the 3D game draws its own fields.

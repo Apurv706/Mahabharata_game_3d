@@ -154,8 +154,8 @@
    "capped": 0
   },
   "hold_bhima": {
-   "win": 93,
-   "secs": 56,
+   "win": 100,
+   "secs": 24,
    "capped": 0
   },
   "e_bandits": {
@@ -249,13 +249,13 @@
    "capped": 0
   },
   "oath_arjuna_12": {
-   "win": 86,
-   "secs": 62,
+   "win": 100,
+   "secs": 29,
    "capped": 0
   },
   "oath_arjuna_16": {
-   "win": 86,
-   "secs": 62,
+   "win": 100,
+   "secs": 30,
    "capped": 0
   },
   "oath_king_hold": {
@@ -371,6 +371,16 @@
   "fs_carry": {
    "win": 100,
    "secs": 25,
+   "capped": 0
+  },
+  "new_over_bhima": {
+   "win": 100,
+   "secs": 48,
+   "capped": 0
+  },
+  "new_banner": {
+   "win": 83,
+   "secs": 45,
    "capped": 0
   }
  }

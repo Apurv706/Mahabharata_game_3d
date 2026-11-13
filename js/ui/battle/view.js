@@ -522,10 +522,12 @@
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
           case "turn": planTurn(e); break;
-          case "lineFalls": sfx("drum"); G.shake(0.25, 0.3); banner(U.tr(e.n >= 3 ? "His car passes a third time. There is no line left in front of you." : "His car passes, and the line in front of you gives way.")); (e.fell || []).forEach((uid) => { const at = posOf(uid, 1.8); if (at) float(at, "✕", "mine"); }); break;
+          case "bannerSways": banner(U.tr(e.v < 35 ? "The banner dips. Your men are looking over their shoulders!" : "Men of yours are down. The banner sways, and holds.")); break;
+          case "bannerDown": sfx("drum"); banner(U.tr("The banner is down.")); break;
+          case "lineFalls": sfx("drum"); G.shake(0.25, 0.3); banner(R.plan && R.plan.who !== "bhishma" ? U.tr(e.n >= 3 ? "{t} comes a third time. There is no line left in front of you." : "{t} comes along your front, and the line before you gives way.", { t: nameOf(R.plan.car) }) : U.tr(e.n >= 3 ? "His car passes a third time. There is no line left in front of you." : "His car passes, and the line in front of you gives way.")); (e.fell || []).forEach((uid) => { const at = posOf(uid, 1.8); if (at) float(at, "✕", "mine"); }); break;
           case "defended": { banner(U.tr("He turns it aside on his bow, as he has turned ten thousand.")); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("turned aside"), "foe"); G.fx.burst("spark", at, { n: 12, s: 1.4, col: 0xffffff }); } break; }
           case "checked": { sfx("gong"); G.shake(0.3, 0.3); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("checked!"), "foe big"); G.fx.ring(at.clone().setY(0.1), 0xf2d27a, 0.5, 4, 0.6); } break; }
-          case "barred": sfx("gong"); banner(U.tr(e.why === "sarathi" ? "Your hand is on his charioteer's rein. The grandsire looks at you a moment, and turns his car away." : "He cannot get through you. The grandsire turns his car away down the line.")); break;
+          case "barred": sfx("gong"); banner(R.plan && R.plan.who !== "bhishma" ? U.tr(e.why === "sarathi" ? "Your hand is on the charioteer's rein. {t} turns away." : "{t} cannot get through you, and turns away down the line.", { t: nameOf(e.uid) }) : U.tr(e.why === "sarathi" ? "Your hand is on his charioteer's rein. The grandsire looks at you a moment, and turns his car away." : "He cannot get through you. The grandsire turns his car away down the line.")); break;
           case "crossed": sfx("drum"); G.shake(0.5, 0.5); banner(U.tr("His car goes through the place where the line was.")); break;
           case "taskDone": case "taskFail": planTask(e); break;
           case "rout": toast(U.tr("They break and run"), "good"); sfx("gong"); G.shake(0.3, 0.4); break;
@@ -622,7 +624,8 @@
         stdMark = new T.Group(); const b = G.banner ? G.banner(4.2, 0xa3302a, 0xf2d27a, "sun", 1.2) : null; if (b) stdMark.add(b); stdMark.position.set(e.task.x, 0, e.task.z); G.fxRoot.add(stdMark);
         let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "standard") { if (stdMark) { G.fxRoot.remove(stdMark); G.dispose(stdMark); stdMark = null; } return true; }
           if (Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(stdMark.position, 0xf2d27a, 0.4, 2.6, 0.7); G.fx.beam(stdMark.position.clone().setY(0.2), stdMark.position.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
-      else if (e.kind === "bar") { banner(U.tr("A horn. Bhishma turns his car at the gap where you stand. Bar his way: cut at his banner, or get to his charioteer!"));
+      else if (e.kind === "bar") { const w = R.plan && R.plan.who, cu = B.units.find((x) => x.uid === e.uid), inCar = !!(cu && cu.g && cu.g.car);
+        banner(w === "bhishma" ? U.tr("A horn. Bhishma turns his car at the gap where you stand. Bar his way: cut at his banner, or get to his charioteer!") : U.tr(!inCar ? "A horn. {t} comes straight for the gap where you stand. Bar the way: three good blows will turn him!" : w === "arjuna" ? "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner. No one lays a hand on his charioteer." : "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner, or get to his charioteer!", { t: nameOf(e.uid) }));
         const uid = e.uid; let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "bar") return true; const at = posOf(uid, 0.1); if (at && Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(at, 0xf2d27a, 0.5, 3.4, 0.7); G.fx.beam(at.clone().setY(3), at.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
       else if (e.kind === "banner" || e.kind === "sarathi") { // the epic's own: the banner over a great car, or its charioteer while the wheel-guards are away
         banner(U.tr(e.kind === "banner" ? "A horn. Their wall is broken and his car stands open. Cut down his banner!" : "A horn. His wheel-guards have left his car to come round you. Reach his charioteer!"));
@@ -646,7 +649,21 @@
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
     }
+    let oursEl = null, bearerBn = null, fallenFig = null;
+    function oursHud() {
+      if (!R.ours) return; if (!oursEl) { oursEl = U.el('<div class="b-spirit b-ours"><span>' + U.tr("Your banner") + '</span><div><i></i></div></div>'); hud.appendChild(oursEl); }
+      oursEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.ours.v)) + "%"; oursEl.classList.toggle("low", R.ours.v < 35);
+    }
+    // The banner in your hand (enc.bearer), and the great man lying behind you whom you stand over (enc.fallen).
+    function storyProps(t) {
+      const enc = B.enc;
+      if (enc.bearer) { const pv = views.get(C.player().uid), pf = pv && pv.figs[0];
+        if (pf && !bearerBn) { const kau = K.S && K.S.side === "kaurava"; const sd = STANDARD[kau ? "duryodhana" : "yudhishthira"]; bearerBn = G.banner(3.3, sd[0], sd[1], sd[2], 0.8); bearerBn.position.set(-0.34, 0, -0.16); pf.root.add(bearerBn); }
+        if (bearerBn) { G.wave(bearerBn, t * 3); if (R.ours) bearerBn.rotation.z = R.ours.down ? 1.25 : (100 - R.ours.v) * 0.0022 * Math.sin(t * 2.1); } }
+      if (enc.fallen && !fallenFig) { try { fallenFig = G.figure(D3(enc.fallen), { item: null }); fallenFig.pose("down", true); fallenFig.root.position.set(0.9, 0, R.rad * 0.34 + 1.5); fallenFig.root.rotation.y = 0.6; G.actors.add(fallenFig.root); } catch (e) { fallenFig = {}; } }
+    }
     function spiritHud() {
+      oursHud(); storyProps(R.t);
       if (!R.morale) return; if (!spiritEl) { spiritEl = U.el('<div class="b-spirit"><span>' + U.tr("Their spirit") + '</span><div><i></i></div></div>'); hud.appendChild(spiritEl); }
       spiritEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.morale.theirs)) + "%"; spiritEl.classList.toggle("low", R.morale.theirs < 35);
     }
@@ -929,7 +946,7 @@
     }
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
-      if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr("Stand under his arrows: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
+      if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
       if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their standard") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
       if (R.duel) return K.tr("Single combat");
       if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");

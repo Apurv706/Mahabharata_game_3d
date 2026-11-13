@@ -191,12 +191,21 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   ok(idle.ev.includes("taskFail:banner") && idle.flags.includes("war_setback") && !idle.R.over, "The banner left flying: they rally, and it costs you the next fight's start");
   ok(idle2.ev.includes("taskFail:sarathi"), "The charioteer not reached: his car rides your man down");
   ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
-  const bh = (bot) => { const K = fresh(11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
+  const bh = (bot, id) => { const K = fresh(11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start(id || "bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
     for (let i = 0; i < 60 * 150 && !R.over; i++) { if (!bot) p.hp = p.maxHp; R3.step(R, bot ? R3.bot(R) : {}); for (const e of R.fx) if (/^(lineFalls|turn|defended|checked|barred|crossed)$/.test(e.k)) ev.push(e.k); R.fx.length = 0; }
-    const out = { over: R.over, ev, t: R.t, bh: B.units.find((u) => u.person === "bhishma") }; try { C.end(); } catch (e) {} return out; };
+    const out = { over: R.over, ev, t: R.t, plan: R.plan, bh: B.units.find((u) => u.person === "bhishma") }; try { C.end(); } catch (e) {} return out; };
   const stood = bh(false), fought = bh(true);
   ok(stood.ev.filter((x) => x === "lineFalls").length === 3 && stood.ev.includes("turn") && stood.ev.includes("crossed") && stood.over !== "win", "Under Bhishma the line gives way three times; left alone, his car crosses and the line is broken");
   ok(fought.ev.includes("defended") && fought.ev.filter((x) => x === "checked").length === 3 && fought.ev.includes("barred") && fought.over === "win" && fought.bh && fought.bh.hp > 0, "Bar his way: the first blow he turns aside, three checks and he turns his car away, unbeaten");
+  for (const id of ["oath_king_hold", "hold_bhima", "oath_arjuna_12"]) { const lost = bh(false, id), won = bh(true, id);
+    ok(lost.plan && lost.plan.kind === "bhishma" && lost.ev.filter((x) => x === "lineFalls").length === 3 && lost.ev.includes("crossed") && lost.over !== "win" && won.ev.includes("barred") && won.over === "win", id + ": the same shape, the line falls three times, then bar " + (lost.plan && lost.plan.who) + "'s way or he is through"); }
+  ok(bh(false, "oath_arjuna_12").plan.noSarathi, "No one lays a hand on Arjuna's charioteer");
+  { const K = fresh(7); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("new_banner", null), R = R3.begin(B, {}), p = C.player(); let sway = 0, down = 0;
+    for (let i = 0; i < 60 * 4; i++) R3.step(R, {}); const v0 = R.ours && R.ours.v;
+    for (let i = 0; i < 60 * 120 && !R.over; i++) { if (i % 90 === 0) { const a = B.units.find((u) => u.side === "ally" && u.hp > 0); if (a) a.hp = 0; else { p.hp = p.maxHp; if (R.ours) R.ours.hp = p.hp; p.hp -= p.maxHp * 0.2; } } R3.step(R, {}); for (const e of R.fx) { if (e.k === "bannerSways") sway++; if (e.k === "bannerDown") down++; } R.fx.length = 0; }
+    ok(v0 > 85 && sway >= 2 && down === 1 && R.over === "lose", "The banner-bearer: the banner's bar falls as your men fall, and when it is gone the fight is lost"); try { C.end(); } catch (e) {} }
+  { const K = fresh(7); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("new_over_bhima", null), R = R3.begin(B, {});
+    ok(R.plan && R.plan.kind === "charge" && B.enc.fallen === "bhima", "Over Bhima: their champion charges (the plan is fixed), and Bhima lies behind you"); try { C.end(); } catch (e) {} }
   const K = fresh(5); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player();
   const lineMen = () => B.units.filter((u) => u.side === "ally" && u.line && u.hp > 0 && u.g), far = () => Math.max(...lineMen().map((u) => Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z)));
   const hold = (secs, act) => { R3.step(R, act || {}); for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; for (const u of B.units) if (u.side !== "enemy") u.hp = u.maxHp; R3.step(R, {}); } };

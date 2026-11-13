@@ -186,12 +186,12 @@
   const tier = (u) => (RT.tierOf ? RT.tierOf(u) : 0), common = (u) => !u.hero && !u.person && !u.decoy && !u.line && tier(u) < 1;
   function planFor(R, opts) {
     const B = R.B, enc = B.enc, rad = R.rad;
-    if (enc.plan === "bhishma" && !opts.noPlan) return bhishmaPlan(R);
-    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || enc.hold || enc.rounds || enc.dream || R.kind || R.through || R.escort) return;
+    if ((enc.plan === "bhishma" || CROSS[enc.id]) && !opts.noPlan) return bhishmaPlan(R);
+    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && !HOLD_PLAN[enc.id] && !enc.plan3) || enc.rounds || enc.dream || R.kind || R.through || R.escort) return;
     const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g), foot = foes.filter((u) => !u.g.archer && !u.g.car && (u.g.kind === "man" || u.g.kind === "squad")).concat(B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g)); // (the named foot, and then the men of their line)
     if (foot.length < 3) return;
     const champ = foes.filter((u) => !u.plural && (u.g.kind === "man") && (u.hero || u.person || tier(u) >= 1 || u.g.car)).sort((a, b) => (b.hero ? 3 : b.person ? 2 : tier(b)) - (a.hero ? 3 : a.person ? 2 : tier(a)))[0] || null;
-    const kinds = ["wall", "pincer"].concat(champ ? ["charge"] : []), want = opts.plan || R3.forcePlan, kind = kinds.includes(want) ? want : kinds[Math.floor(K.rng() * kinds.length)];
+    const kinds = ["wall", "pincer"].concat(champ ? ["charge"] : []), want = opts.plan || R3.forcePlan || enc.plan3, kind = kinds.includes(want) ? want : kinds[Math.floor(K.rng() * kinds.length)];
     const pl = (R.plan = { kind, big: foes.some((u) => u.hero || u.person), champ: champ ? champ.uid : null, turned: false, n0: foes.length, alive: foes.length, in: 0 });
     R.morale = { theirs: 100 };
     const car = foes.filter((u) => u.g.car && !u.plural).sort((a, b) => (b.hero ? 2 : b.person ? 1 : 0) - (a.hero ? 2 : a.person ? 1 : 0))[0] || null; pl.car = car ? car.uid : null;
@@ -209,10 +209,16 @@
   // checks, or his charioteer reached while his guards are off the wheels, and he cannot get through: he turns his
   // car away down the line, and you have held. If the car gets past you, he has crossed, and the line is broken.
   // He is not beaten here either way: no one beats him before the tenth day.
+  // The same fight is the shape of every day on which one of the great comes at your stretch of the line: Drona
+  // driving for Yudhishthira's car, Bhima's charge, Arjuna's car against the sworn men. (Arjuna's charioteer is
+  // Krishna: no one lays a hand on him, so against that car there is only the banner.)
+  const CROSS = { bh_line9: 1, oath_king_hold: 1, hold_bhima: 1, hold_arjuna: 1, oath_arjuna_12: 1, oath_arjuna_16: 1 };
+  // Plain holds on the war days ("a gap in the line", "the outer ring"...) draw a plan like any other war fight.
+  const HOLD_PLAN = { fs_sk_hold: 1, fs_d13_hold: 1, e_iravan: 1, e_kb_guard: 1, e_lake_hold: 1, e_lake_hold_deep: 1 };
   function bhishmaPlan(R) {
-    const B = R.B, rad = R.rad, car = B.units.find((u) => u.side === "enemy" && u.hp > 0 && u.g && who(u) === "bhishma"); if (!car) return;
+    const B = R.B, rad = R.rad, car = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.g && !u.line && (u.hero || u.person)).sort((a, b) => (b.hero ? 1 : 0) - (a.hero ? 1 : 0))[0]; if (!car) return;
     const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g);
-    R.plan = { kind: "bhishma", big: true, champ: car.uid, car: car.uid, turned: true, n0: foes.length, alive: foes.length, in: 0, pass: 0, side: 1, hits: 0, checks: 0, phase: "pass" };
+    R.plan = { kind: "bhishma", who: who(car) || "", noSarathi: who(car) === "arjuna", big: true, champ: car.uid, car: car.uid, turned: true, n0: foes.length, alive: foes.length, in: 0, pass: 0, side: 1, hits: 0, checks: 0, phase: "pass" };
     R.morale = { theirs: 100 };
     car.g.x = -rad * 0.72; car.g.z = -rad * 0.3; car.g.a = Math.PI / 2; car.g.wave = 0; car.g.entered = true; car.g.role = "bpass";
     B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g).slice(0, 2).forEach((u, i) => { u.g.x = car.g.x + (i ? 1.9 : -1.9); u.g.z = car.g.z; u.g.entered = true; u.g.wave = 0; u.g.role = "wguard"; u.g.wg = i ? 1 : -1; });
@@ -282,6 +288,18 @@
     spirit(R, 25);
     if (pl.big) end(R, "lose"); else if (K.S && K.S.flags && !K.S.flags.includes("war_setback")) K.S.flags.push("war_setback");
   }
+  // The banner-bearer (enc.bearer): the man who carried your host's banner is down and you have taken it up. While it
+  // stands your side holds. Its bar falls as your men fall and each time you are struck, and rises as theirs fall;
+  // at nothing the banner is down and the fight is lost. You fight with one hand (blows at four-fifths weight).
+  function bearerStep(R) {
+    const B = R.B; if (!B.enc.bearer || R.over) return; const p = C.player(), al = living(B, "ally").length, en = living(B, "enemy").length;
+    if (!R.ours) { R.ours = { v: 100, al, en, hp: p.hp }; return; }
+    const o = R.ours; let d = 0;
+    if (al < o.al) d -= 7 * (o.al - al); if (en < o.en) d += 10 * (o.en - en); if (p.hp < o.hp) d -= Math.min(8, 2 + 36 * (o.hp - p.hp) / Math.max(1, p.maxHp));
+    o.al = al; o.en = en; o.hp = p.hp;
+    if (d) { o.v = clamp(o.v + d, 0, 100); if (d <= -7) R.fx.push({ k: "bannerSways", v: o.v }); }
+    if (o.v <= 0 && !o.down) { o.down = true; R.fx.push({ k: "bannerDown" }); B.say("The banner goes down, and the line goes with it."); end(R, "lose"); }
+  }
   function planStep(R) {
     const B = R.B, pl = R.plan, p = C.player(); if (!pl || R.over) return;
     if (pl.pending && R.t >= 9) turn(R, pl.pending);
@@ -291,7 +309,7 @@
         if (pl.hits === 1) R.fx.push({ k: "defended", uid: c.uid });
         else if (R.t < (pl.checkAt || 0)) { /* (one check to a breath: a flurry is one blow) */ }
         else { pl.checks++; pl.checkAt = R.t + 1.4; c.g.stag = Math.max(c.g.stag || 0, 1.3); cancel(c); move(R, c, 0, -2.4, true); R.fx.push({ k: "checked", uid: c.uid, n: pl.checks }); if (pl.checks >= 3) return held("banner"); } }
-      if (dist(p, c) <= c.g.rad + 1.25 && !wheelGuards(R).length) { T_.held += STEP; if (T_.held >= 1) return held("sarathi"); } else T_.held = Math.max(0, T_.held - STEP);
+      if (!pl.noSarathi && dist(p, c) <= c.g.rad + 1.25 && !wheelGuards(R).length) { T_.held += STEP; if (T_.held >= 1) return held("sarathi"); } else T_.held = Math.max(0, T_.held - STEP);
       return; }
     const foes = living(B, "enemy").filter((u) => !u.line && !u.g.flee), n = foes.length;
     if (n < pl.alive) { const lost = pl.alive - n; pl.alive = n; if (!R.routed) spirit(R, -lost * Math.max(12, 70 / pl.n0)); if (!foes.some((u) => u.uid === pl.champ) && pl.champ && !pl.champDown) { pl.champDown = true; spirit(R, -30); } }
@@ -628,6 +646,7 @@
       let m = b.c.m * (i ? 0.6 : 1);
       if (R.double) { m *= 2; R.double = false; }
       if (R.boonBlow) { m *= R.boonBlow; R.boonBlow = 0; } // the first blow out of Antardhana
+      if (B.enc.bearer) m *= 0.8; // (one hand is on the banner's staff)
       const off = R.plan ? Math.abs(adiff(angTo(t, p), t.g.a)) : 0, behind = R.plan && off > 1.75, walled = R.plan && t.g.role === "wall" && !R.plan.broken && off < 1.0 && !b.c.heavy;
       const caught = behind ? 1 : foeBlocks(R, t, b.c.heavy, false, RT.shieldHit(p, g.weapon, b.c.heavy && !b.c.arc));
       m *= caught;
@@ -1194,7 +1213,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
-    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R);
+    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
