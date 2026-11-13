@@ -36,6 +36,10 @@
         along(new T.ConeGeometry(0.035, 0.12, 8), 1.42, g1); b.surf(); tip = 1.46; break; }
       case "club": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.1, 0.03, 1.05, 7), 0.4, 0x6a4a2e, 0x8a6a46); b.surf("iron"); for (let i = 0; i < 3; i++) b.geo(new T.TorusGeometry(0.075 + i * 0.012, 0.012, 4, 10), 0, 0, 0.62 + i * 0.13, 0, 0, 0, 0x55524c); b.surf(); tip = 0.95; break;
       case "hammer": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.028, 0.028, 0.75, 6), 0.3, WOOD); b.surf("iron"); b.box(0.14, 0.14, 0.3, 0, -0.07, 0.66, 0x55565c); b.surf(); tip = 0.8; break;
+      case "wheel": { // a chariot wheel taken up by its rim (Abhimanyu's last weapon but one): swung like a mace
+        const R_ = 0.4, cz = 0.44; b.surf("wood", 0x3a2414, 0.1); b.geo(new T.TorusGeometry(R_, 0.035, 6, 20), 0, 0, cz, PI / 2, 0, 0, 0x6a4a2e, 0x8a6a46);
+        for (let i = 0; i < 8; i++) { const a = (i / 8) * PI * 2; b.geo(new T.CylinderGeometry(0.016, 0.016, R_, 5).translate(0, R_ / 2, 0), 0, 0, cz, PI / 2, 0, a, 0x7a5a36); }
+        b.geo(new T.CylinderGeometry(0.07, 0.07, 0.1, 8), 0, 0, cz, 0, 0, 0, 0x5a3a22); b.surf("iron"); b.geo(new T.TorusGeometry(R_ + 0.02, 0.014, 4, 20), 0, 0, cz, PI / 2, 0, 0, 0x55565c); b.surf(); tip = cz + R_; break; }
       case "staff": b.surf("wood", 0x3a2414, 0.1); along(new T.CylinderGeometry(0.028, 0.032, 1.9, 6), 0.3, 0x7a5a36); b.surf(); tip = 1.25; break;
       case "spear": b.surf("rings", 0x8a2a20, 0.46); along(new T.CylinderGeometry(0.022, 0.026, 2.3, 6), 0.5, 0x8a6a3e); /* (bamboo, bound in red at its joints) */ b.surf("blade", 0x8a9098, 0.06); along(new T.ConeGeometry(0.058, 0.34, 4), 1.82, STEEL); b.surf("gold"); along(new T.CylinderGeometry(0.04, 0.034, 0.07, 6), 1.63, GOLD); b.sph(0.03, 0, 0, -0.66, GOLD, 1, 5); b.surf("silk"); b.box(0.02, 0.1, 0.16, 0, -0.05, 1.5, 0xc8402c); b.surf(); tip = 1.95; break;
       case "whip": b.surf("rope", 0x3a2414, 0.03); along(new T.CylinderGeometry(0.018, 0.022, 0.7, 5), 0.3, WOOD); b.surf(); b.rod(0, 0, 0.65, 0, -0.5, 1.0, 0.008, 0x3a2414, 3); tip = 0.7; break;

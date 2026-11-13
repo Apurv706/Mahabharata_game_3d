@@ -527,7 +527,14 @@
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
           case "turn": planTurn(e); break;
-          case "item": { const iv = views.get(e.uid), fi = iv && iv.figs[0]; if (fi) { try { fi.setItem(itemOf(e.item)); fi.act("draw", 0.5, 0.4); } catch (err) {} G.fx.burst("hit", fi.chest(), { n: 8 }); } break; }
+          case "item": { const iv = views.get(e.uid), fi = iv && iv.figs[0]; if (fi) { try { fi.setItem(itemOf(e.item)); if (e.shield != null) fi.setShield(!!e.shield); fi.act("draw", 0.5, 0.4); } catch (err) {} G.fx.burst("hit", fi.chest(), { n: 8 }); } break; }
+          // His car is lost under him: the charioteer is down at the rail, the team lies in its traces, and he is on the ground beside the wreck.
+          case "dismount": { const dv = views.get(e.uid), c = dv && dv.car, f0 = dv && dv.figs[0]; if (c && f0) {
+            c.remove(f0.root); G.actors.add(f0.root); f0.root.rotation.set(0, 0, 0); f0.root.position.y = 0; f0.place(e.x != null ? e.x : c.position.x, e.z != null ? e.z : c.position.z, dv.u.g.a);
+            if (dv.driver) { dv.driver.pose("down", true); dv.driver.update(0.016, 0); }
+            (c.userData.horses || []).forEach((h, i) => { h.rotation.z = (i % 2 ? -1 : 1) * 1.45; h.position.y = 0.28; G.gallop(h, 0, 0); });
+            c.rotation.z = 0.07; G.fx.burst("dust", c.position.clone().setY(0.3), { n: 22 }); sfx("clang"); G.shake(0.25, 0.3);
+            if (dv.parked) { if (dv.parked.parent) dv.parked.parent.remove(dv.parked); G.dispose(dv.parked); } dv.parked = c; dv.car = null; } break; }
           case "mahout": banner(U.tr(e.n >= 3 ? "The mahout cries out and hauls the beast's head round." : "You are in under its flank, at the mahout's leg. {n} of 3!", { n: e.n })); sfx("clang"); G.shake(0.2, 0.25); break;
           case "order": orderCard(e.uid); sfx("drumCall"); break;
           case "orderTaken": banner(U.tr(B.enc.order3.taken)); break;

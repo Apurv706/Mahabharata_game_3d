@@ -196,7 +196,7 @@
     const champ = foes.filter((u) => !u.plural && (u.g.kind === "man") && (u.hero || u.person || tier(u) >= 1 || u.g.car)).sort((a, b) => (b.hero ? 3 : b.person ? 2 : tier(b)) - (a.hero ? 3 : a.person ? 2 : tier(a)))[0] || null;
     const kinds = ["wall", "pincer"].concat(champ ? ["charge"] : []), want = opts.plan || R3.forcePlan || enc.plan3, kind = kinds.includes(want) ? want : kinds[Math.floor(K.rng() * kinds.length)];
     const pl = (R.plan = { kind, big: foes.some((u) => u.hero || u.person), champ: champ ? champ.uid : null, turned: false, n0: foes.length, alive: foes.length, in: 0 });
-    R.morale = { theirs: 100 };
+    R.morale = enc.rounds ? null : { theirs: 100 }; // (a wall the story says will not break has no spirit to break)
     const car = foes.filter((u) => u.g.car && !u.plural).sort((a, b) => (b.hero ? 2 : b.person ? 1 : 0) - (a.hero ? 2 : a.person ? 1 : 0))[0] || null; pl.car = car ? car.uid : null;
     const on = (u, x, z, role) => { u.g.x = x; u.g.z = z; u.g.a = 0; u.g.wave = 0; u.g.entered = true; u.g.role = role; };
     if (kind === "wall") { const w = foot.filter((u) => u !== champ || foot.length < 4).slice(0, 4); pl.wall = w.length; w.forEach((u, i) => { on(u, (i - (w.length - 1) / 2) * 1.5, -rad * 0.4, "wall"); u.g.slot = i - (w.length - 1) / 2; }); }
@@ -215,7 +215,7 @@
   // The same fight is the shape of every day on which one of the great comes at your stretch of the line: Drona
   // driving for Yudhishthira's car, Bhima's charge, Arjuna's car against the sworn men. (Arjuna's charioteer is
   // Krishna: no one lays a hand on him, so against that car there is only the banner.)
-  const CROSS = { bh_line9: 1, oath_king_hold: 1, hold_bhima: 1, hold_arjuna: 1, oath_arjuna_12: 1, oath_arjuna_16: 1 };
+  const CROSS = { bh_line9: 1, oath_king_hold: 1, hold_bhima: 1, hold_arjuna: 1, oath_arjuna_12: 1, oath_arjuna_16: 1, hold_karna: 1 }; // (Karna's chariot, pinned: "not to beat him: to be in his way")
   // Plain holds on the war days ("a gap in the line", "the outer ring"...) draw a plan like any other war fight.
   const HOLD_PLAN = { fs_sk_hold: 1, fs_d13_hold: 1, e_iravan: 1, e_kb_guard: 1, e_lake_hold: 1, e_lake_hold_deep: 1 };
   function bhishmaPlan(R) {
@@ -309,7 +309,13 @@
     R.fx.push({ k: "event", at });
   }
   // A change of weapon the story makes in a man's hands (beat.item3: [person, item]): seen, and fought with.
-  function beatItem(R, beat) { const it = beat && beat.item3; if (!it) return; const u = R.B.units.find((x) => x.person === it[0] && x.hp > 0 && x.g); if (!u) return; u.g.weapon = it[1]; if (it[1] !== "bow") { u.g.archer = false; } R.fx.push({ k: "item", uid: u.uid, item: it[1] }); }
+  // (item3: [person, what is seen in his hand, the weapon he fights as]; down3: person: his car is lost under him and he fights on foot.)
+  function beatItem(R, beat) {
+    const dn = beat && beat.down3, d = dn && R.B.units.find((x) => x.person === dn && x.hp > 0 && x.g && x.g.car);
+    if (d) { d.g.car = false; d.g.rad = 0.42; d.g.ca = null; R.fx.push({ k: "dismount", uid: d.uid }); }
+    const it = beat && beat.item3; if (!it) return; const u = R.B.units.find((x) => x.person === it[0] && x.hp > 0 && x.g); if (!u) return;
+    u.g.weapon = it[2] || it[1]; if (it[1] !== "bow") u.g.archer = false; R.fx.push({ k: "item", uid: u.uid, item: it[1], shield: it[3] });
+  }
   // The elephant (enc.mahout3): there is no fighting the beast, but come at it from the side, inside its turn, and you
   // can get at the mahout's leg with whatever is in your hand. Three times, and he turns it out of your division.
   function mahoutStep(R) {
