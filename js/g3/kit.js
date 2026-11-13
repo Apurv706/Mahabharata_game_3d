@@ -433,6 +433,40 @@
     const m = new T.Mesh(geo, geo.attributes.surfA && G.mat.surfSide ? G.mat.surfSide : G.mat.vc), pv = P.pivots[list[0]]; if (pv) m.position.set(pv[0], pv[1], pv[2]); m.frustumCulled = false;
     return m;
   };
+  // A beast as ONE skinned mesh: every part is bound whole to the joint it turns on (tools/blender/props.py writes each part
+  // about that joint), so it bends at the knee and the neck and is drawn in a single call. It was a body and four stiff
+  // legs, five meshes. joints: [[name, parent or null, the part whose pivot is the joint, [the parts it carries]], ...], root first.
+  function skinned(name, joints, rc, without) {
+    const P = G.PROPS[name], D = propData(P), g = new T.Group(), list = [];
+    for (const j of joints) for (const k of j[3]) if (P.parts[k] && !(without && without(k))) list.push(k);
+    if (!D.skin) { // once: where each point stands in the whole beast, and the joint that carries it
+      const pos = new Float32Array(D.pos), ji = new Uint16Array(P.n * 4), jw = new Float32Array(P.n * 4), mark = new Uint8Array(P.n);
+      joints.forEach((j, b) => { for (const k of j[3]) { const r = P.parts[k]; if (!r) continue; const pv = P.pivots[k] || [0, 0, 0]; for (let q = r[0]; q < r[0] + r[1]; q++) { const v = D.idx[q]; if (mark[v]) continue; mark[v] = 1; pos[v * 3] += pv[0]; pos[v * 3 + 1] += pv[1]; pos[v * 3 + 2] += pv[2]; ji[v * 4] = b; jw[v * 4] = 1; } } });
+      for (let v = 0; v < P.n; v++) if (!mark[v]) jw[v * 4] = 1; // (a part no joint claims stays with the body)
+      D.skin = { pa: new T.BufferAttribute(pos, 3), ji: new T.BufferAttribute(ji, 4), jw: new T.BufferAttribute(jw, 4) };
+    }
+    const first = G.propMesh(name, [list[0]], rc), ck = P.roles.map((r, q) => new T.Color(rc && rc[r] != null ? rc[r] : P.cols[q]).getHexString()).join(""), key = "skin|" + list.join(",") + "|" + ck; // (propMesh has made the colours and the surfaces of this colouring)
+    let geo = D.geo.get(key);
+    if (!geo) {
+      let len = 0; for (const k of list) len += P.parts[k][1];
+      const idx = new Uint16Array(len); let o = 0; for (const k of list) { const [st, l] = P.parts[k]; idx.set(D.idx.subarray(st, st + l), o); o += l; }
+      geo = new T.BufferGeometry(); geo.setAttribute("position", D.skin.pa); geo.setAttribute("normal", D.na); geo.setAttribute("color", first.geometry.attributes.color); geo.setAttribute("skinIndex", D.skin.ji); geo.setAttribute("skinWeight", D.skin.jw);
+      for (const a of ["surfA", "surfB", "surfC"]) if (first.geometry.attributes[a]) geo.setAttribute(a, first.geometry.attributes[a]);
+      if (geo.attributes.surfA) geo.setAttribute("surfP", D.skin.pa);
+      geo.setIndex(new T.BufferAttribute(idx, 1)); geo.userData.keep = true; D.geo.set(key, geo);
+    }
+    const bones = [], by = {};
+    for (const [nm, par, pk] of joints) { const b = new T.Bone(), pv = (pk && P.pivots[pk]) || [0, 0, 0], q = par ? by[par].userData.piv : [0, 0, 0]; b.name = nm; b.userData.piv = pv; b.position.set(pv[0] - q[0], pv[1] - q[1], pv[2] - q[2]); (par ? by[par] : g).add(b); by[nm] = b; bones.push(b); }
+    const mesh = new T.SkinnedMesh(geo, first.material); mesh.frustumCulled = false; g.add(mesh); g.updateMatrixWorld(true); mesh.bind(new T.Skeleton(bones));
+    g.userData.bones = by; g.userData.mesh = mesh; return g;
+  }
+  const FOUR = ["FL", "FR", "HL", "HR"];
+  const HORSE_J = [["root", null, null, ["body", "tack"]], ["neck", "root", "neck", ["neck"]], ["head", "neck", "head", ["head", "headt"]], ["tail", "root", "tail", ["tail", "tailt"]]]
+    .concat(...FOUR.map((k) => [["leg" + k, "root", "leg" + k, ["leg" + k]], ["shin" + k, "leg" + k, "shin" + k, ["shin" + k, "shin" + k + "t"]], ["hoof" + k, "shin" + k, "hoof" + k, ["hoof" + k]]]));
+  const HORSE_TACK = new Set(["tack", "headt", "tailt"].concat(FOUR.map((k) => "shin" + k + "t")));
+  const ELE_J = [["root", null, null, ["body", "cloth"]], ["trunk", "root", "trunk", ["trunk"]], ["trunkb", "trunk", "trunkb", ["trunkb"]], ["trunkc", "trunkb", "trunkc", ["trunkc"]], ["earL", "root", "earL", ["earL"]], ["earR", "root", "earR", ["earR"]], ["tail", "root", "tail", ["tail"]]]
+    .concat(...FOUR.map((k) => [["leg" + k, "root", "leg" + k, ["leg" + k]], ["shin" + k, "leg" + k, "shin" + k, ["shin" + k]]]));
+  const limbs = (g) => { const B_ = g.userData.bones, U_ = g.userData; U_.legs = FOUR.map((k) => B_["leg" + k]); U_.shins = FOUR.map((k) => B_["shin" + k]); U_.hooves = FOUR.map((k) => B_["hoof" + k]).filter(Boolean); return g; };
   function beast(name, body, legs, rc, extra) {   // a body, four legs that swing from the shoulder and the hip, and anything else that moves
     const g = new T.Group(); g.add(G.propMesh(name, body, rc)); g.userData.legs = legs.map((l) => { const m = G.propMesh(name, l, rc); g.add(m); return m; });
     for (const k in extra || {}) { const m = G.propMesh(name, extra[k], rc); g.add(m); g.userData[k] = m; }
@@ -440,6 +474,7 @@
   }
   G.horse = function (col, tack) {
     col = col == null ? HORSE_COLS[Math.floor(Math.random() * HORSE_COLS.length)] : col;
+    if (G.PROPS && G.PROPS.horse && G.PROPS.horse.parts.shinFL) return limbs(skinned("horse", HORSE_J, { coat: col, dark: G.shade(col, 0.5), tack: tack || 0x8a1f24 }, tack ? null : (k) => HORSE_TACK.has(k))); // (jointed: one mesh on a skeleton)
     if (G.PROPS && G.PROPS.horse) { const t = !!tack, L = (k) => (t ? [k, k + "t"] : [k]); return beast("horse", t ? ["body", "tack"] : ["body"], [L("legFL"), L("legFR"), L("legHL"), L("legHR")], { coat: col, dark: G.shade(col, 0.5), tack: tack || 0x8a1f24 }); }
     const g = new T.Group(), b = new Builder(), dark = G.shade(col, 0.62), GOLDH = 0xd9a53a;
     b.geo(new T.SphereGeometry(0.42, 14, 9).scale(1, 0.95, 1.95), 0, 1.25, 0, 0, 0, 0, col);                    // the barrel
@@ -474,7 +509,44 @@
     }
     return g;
   };
-  G.gallop = function (horse, t, speed) { const L = horse.userData.legs; if (!L) return; const a = 0.75 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[1].rotation.x = Math.sin(t + 0.6) * a; L[2].rotation.x = Math.sin(t + PI) * a; L[3].rotation.x = Math.sin(t + PI + 0.6) * a; horse.children[0].position.y = Math.abs(Math.sin(t)) * 0.07 * Math.min(1, speed); };
+  // ---------- How a beast goes ----------
+  // A leg's stride: on the ground it sweeps back under the body (the stance); then it is picked up, folded at the knee or
+  // hock and at the fetlock, and carried forward through the air (the swing). u is where the leg is in its stride, duty
+  // the share of the stride it spends on the ground. Gives [reach: +1 well forward .. -1 well back, fold: 0..1].
+  function stride(u, duty) { u -= Math.floor(u); if (u < duty) return [1 - 2 * (u / duty), 0]; const s = (u - duty) / (1 - duty), e = s * s * (3 - 2 * s); return [-1 + 2 * e, Math.sin(s * PI)]; }
+  // The gaits of a horse: where each leg [near fore, off fore, near hind, off hind] is in the stride, the share of it on the
+  // ground, the swing of the leg and the fold of its knee (radians), and strides a second. A walk goes one foot at a time,
+  // a trot in diagonal pairs with a moment in the air between, a gallop hind feet then fore feet and then all four off the ground.
+  const GAITS = { walk: { ph: [0.25, 0.75, 0, 0.5], duty: 0.62, A: 0.27, F: 0.8, rate: 0.95 }, trot: { ph: [0, 0.5, 0.5, 0], duty: 0.42, A: 0.4, F: 1.1, rate: 1.45 }, gallop: { ph: [0.42, 0.54, 0, 0.12], duty: 0.3, A: 0.6, F: 1.4, rate: 2.1 } };
+  const clockOf = (U_) => { const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000, dt = U_.now == null ? 0 : Math.max(0, Math.min(0.1, now - U_.now)); U_.now = now; return [now, dt]; };
+  const ease = (o, k, to, f) => { o.rotation[k] += (to - o.rotation[k]) * f; };
+  // G.gallop(horse, t, speed): speed 0 standing .. 1 at the full run. (t only sets one horse a little out of step with the
+  // next; the beast keeps its own time, so its pace can follow its speed.) Standing, it shifts its weight, rests a hind
+  // foot, swishes its tail and nods; it walks, then trots, then gallops as speed rises, and does not change gait in a frame.
+  G.gallop = function (horse, t, speed) {
+    const U_ = horse.userData, L = U_.legs; if (!L) return;
+    speed = Math.max(0, Math.min(1, speed || 0));
+    if (!U_.shins) { const a = 0.75 * speed; L[0].rotation.x = Math.sin(t) * a; L[1].rotation.x = Math.sin(t + 0.6) * a; L[2].rotation.x = Math.sin(t + PI) * a; L[3].rotation.x = Math.sin(t + PI + 0.6) * a; horse.children[0].position.y = Math.abs(Math.sin(t)) * 0.07 * speed; return; } // (the stiff-legged horse built in code)
+    const B_ = U_.bones, snap = U_.now == null || (t === 0 && speed === 0), [now, dt] = clockOf(U_);
+    if (U_.ph == null) { U_.ph = (Math.abs(t) * 0.159) % 1; U_.sp = speed; U_.id = (Math.abs(t) * 0.37) % 6.28; }
+    U_.sp += (speed - U_.sp) * (snap ? 1 : Math.min(1, dt * 3.5));
+    const sp = U_.sp, was = U_.gait, name = sp < 0.04 ? null : sp < (was === "walk" ? 0.34 : 0.28) ? "walk" : sp < (was === "gallop" ? 0.62 : 0.7) ? "trot" : "gallop"; U_.gait = name;
+    const gt = name && GAITS[name], k = !gt ? 0 : name === "walk" ? Math.min(1, sp / 0.3) : name === "trot" ? (sp - 0.28) / 0.42 : (sp - 0.62) / 0.38, f = snap ? 1 : Math.min(1, dt * 18), slow = snap ? 1 : Math.min(1, dt * 5), id = U_.id;
+    let y = 0, pitch = 0, roll = 0, neck = 0, head = 0, tailX = 0.04, tailZ = 0;
+    if (gt) {
+      U_.ph = (U_.ph + dt * gt.rate * (0.85 + 0.25 * k)) % 1; const ph = U_.ph, A = gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
+      for (let i = 0; i < 4; i++) { const [reach, fold] = stride(ph + gt.ph[i], gt.duty), hind = i > 1;
+        ease(L[i], "x", -reach * A * (hind ? 0.9 : 1) + (hind ? 0.06 : 0), f); ease(U_.shins[i], "x", fold * gt.F * (hind ? 0.85 : 1), f); if (U_.hooves[i]) ease(U_.hooves[i], "x", fold * 0.9 - (fold ? 0 : 0.1 * (1 - Math.abs(reach))), f); }
+      if (name === "walk") { y = 0.012 * Math.abs(Math.sin(TAU * ph * 2)); roll = 0.014 * Math.sin(TAU * ph); neck = 0.02 + 0.055 * Math.sin(TAU * ph * 2 + 0.6); tailZ = 0.1 * Math.sin(TAU * ph); }
+      else if (name === "trot") { y = 0.035 * Math.abs(Math.sin(TAU * ph)); neck = -0.03 + 0.02 * Math.sin(TAU * ph * 2); tailX = 0.22; tailZ = 0.08 * Math.sin(TAU * ph * 2); }
+      else { y = 0.04 + 0.05 * Math.sin(TAU * (ph - 0.67)); pitch = 0.055 * Math.sin(TAU * (ph - 0.2)); neck = 0.16 + 0.09 * Math.sin(TAU * (ph - 0.2)); head = -0.12; tailX = 0.5 + 0.2 * k + 0.08 * Math.sin(TAU * ph * 2); tailZ = 0.06 * Math.sin(TAU * ph * 2 + 1); }
+    } else { // standing: square on three legs, one hind foot resting on its toe; the tail swishes at flies; the head nods and now and then tosses
+      for (let i = 0; i < 4; i++) { const rest = i === 2 + (id > 3.14 ? 1 : 0); ease(L[i], "x", rest ? -0.1 : 0, slow); ease(U_.shins[i], "x", rest ? 0.28 : 0, slow); if (U_.hooves[i]) ease(U_.hooves[i], "x", rest ? 0.5 : 0, slow); }
+      const sw = Math.sin(now * 0.31 + id); tailZ = (sw > 0.2 ? 0.3 : 0.05) * Math.sin(now * 5.2 + id); neck = 0.03 * Math.sin(now * 0.7 + id) + (Math.sin(now * 0.23 + id * 2) > 0.93 ? -0.16 : 0); head = 0.04 * Math.sin(now * 0.9 + id); roll = 0.006 * Math.sin(now * 0.4 + id);
+    }
+    const R_ = B_.root; R_.position.y += (y - R_.position.y) * f; ease(R_, "x", pitch, f); ease(R_, "z", roll, f);
+    ease(B_.neck, "x", neck, slow * 2 > 1 ? 1 : slow * 2); ease(B_.head, "x", head - neck * 0.5, slow * 2 > 1 ? 1 : slow * 2); ease(B_.tail, "x", tailX, slow); ease(B_.tail, "z", tailZ, f);
+  };
   // A war chariot: the car and pole in one piece, two wheels that turn, a team of horses, a standard.
   // o: { col, trim, horses (2), horseCol, flag: [bg, fg, device], canopy }
   // A war chariot, after the artist's sheet: an open car of framed timber on two twelve-spoked wheels, its front and
@@ -528,7 +600,7 @@
       for (let k = 0; k < 24; k++) { const a = (k / 24) * PI * 2, x = cx + Math.sin(a) * R, z = cz + Math.cos(a) * R; b.cone(0.03, 0.1, x, RY - 0.005, z, k % 2 ? trim : BR, 4, 0, PI); }
       b.sph(0.075, cx, RY + 0.42, cz, trim, 1, 8); b.cyl(0.04, 0.06, 0.07, cx, RY + 0.33, cz, trim, 7); b.cone(0.035, 0.17, cx, RY + 0.49, cz, BR, 6);
     }
-    b.surf(); g.add(b.mesh());
+    b.surf(); g.add((g.userData.car = b.mesh()));
     const team = new T.Group(); team.position.set(0, 0, ZF); tb.surf(); const tm = tb.mesh(); tm.position.z = -ZF; team.add(tm); g.add(team); g.userData.team = team;
     g.userData.wheels = [];
     for (const sx of [-1, 1]) { // a wheel: twelve spokes, a wooden felloe shod with iron and studded, a nave capped in gold
@@ -558,6 +630,7 @@
     U_.yaw = dt > 0 ? step / dt : 0; U_.spin = (U_.spin || 0) + step * 0.98 / 0.72;
   };
   G.roll = function (ch, dist, t, speed) { const U_ = ch.userData, sp = U_.spin || 0, turn = Math.min(0.6, Math.abs(U_.yaw || 0) * 0.5); // (a team turning on the spot still steps)
+    const jolt = speed > 0.05 ? (Math.abs(Math.sin(dist * 1.9)) * 0.016 + Math.abs(Math.sin(dist * 0.67 + 1)) * 0.02) * Math.min(1, speed) : 0; if (U_.car) { U_.car.position.y = jolt; U_.car.rotation.z = Math.sin(dist * 0.83) * 0.014 * Math.min(1, speed); } // (the car jolts and rocks on its axle as it runs; wheels and team stay on the ground)
     (U_.wheels || []).forEach((w, k) => { w.rotation.x = dist / 0.72 + (k ? -sp : sp); }); (U_.horses || []).forEach((h, k) => G.gallop(h, t * 11 + k * 1.3, Math.max(speed, turn))); if (U_.banner) G.wave(U_.banner, t); };
   // A war elephant with a howdah; its legs and trunk are pivots.
   function howdah(b, cloth, GOLDE) {
@@ -573,6 +646,7 @@
     b.surf("leather", GOLDE, 0.08); b.cyl(0.09, 0.07, 0.6, 0.84, 3.9, -0.5, 0x5a3a22, 7); b.surf();
   }
   G.elephant = function (cloth) {
+    if (G.PROPS && G.PROPS.elephant && G.PROPS.elephant.parts.shinFL) { const g = limbs(skinned("elephant", ELE_J, { tack: cloth || 0xa3302a })), hb = new Builder(); howdah(hb, cloth || 0xa3302a, 0xd9a53a); g.userData.bones.root.add(hb.mesh()); /* (the howdah rides the body, and rocks with it) */ return g; }
     if (G.PROPS && G.PROPS.elephant) { const g = beast("elephant", ["body", "cloth"], ["legFL", "legFR", "legHL", "legHR"], { tack: cloth || 0xa3302a }, { trunk: "trunk" }), hb = new Builder(); howdah(hb, cloth || 0xa3302a, 0xd9a53a); g.children[0].add(hb.mesh()); /* (it rides the body, and rocks with it) */ return g; }
     const g = new T.Group(), b = new Builder(), col = 0x7d7a76, dk = G.shade(col, 0.82), GOLDE = 0xd9a53a; cloth = cloth || 0xa3302a;
     b.geo(new T.SphereGeometry(1.25, 16, 11).scale(1, 1.05, 1.55), 0, 2.5, 0, 0, 0, 0, col);                                  // the body
@@ -595,7 +669,29 @@
     for (const [x, z] of [[-0.7, 1.2], [0.7, 1.2], [-0.7, -1.2], [0.7, -1.2]]) { const lb = new Builder(); lb.cyl(0.4, 0.34, 1.9, 0, -1.9, 0, col, 10); lb.cyl(0.36, 0.38, 0.14, 0, -1.9, 0, dk, 10); lb.torus(0.36, 0.035, 0, -1.55, 0, GOLDE, PI / 2, 0, 0, 12); for (let k = -1; k <= 1; k++) lb.sph(0.07, k * 0.16, -1.86, 0.33, 0xe8e0d0, 0.6, 5); const leg = lb.mesh(); leg.position.set(x, 1.9, z); g.add(leg); g.userData.legs.push(leg); }
     return g;
   };
-  G.stomp = function (el, t, speed) { const L = el.userData.legs, a = 0.3 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[3].rotation.x = Math.sin(t) * a; L[1].rotation.x = -Math.sin(t) * a; L[2].rotation.x = -Math.sin(t) * a; el.userData.trunk.rotation.x = Math.sin(t * 0.7) * 0.25; el.children[0].position.y = Math.abs(Math.sin(t)) * 0.05; };
+  // G.stomp(elephant, t, speed): an elephant only ever walks, one foot at a time and each long on the ground, however fast
+  // it comes; its body rolls from side to side with the stride. Standing or going, its trunk swings in three lengths, its
+  // ears fan, its tail switches.
+  G.stomp = function (el, t, speed) {
+    const U_ = el.userData, L = U_.legs; if (!L) return;
+    if (!U_.shins) { const a = 0.3 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[3].rotation.x = Math.sin(t) * a; L[1].rotation.x = -Math.sin(t) * a; L[2].rotation.x = -Math.sin(t) * a; U_.trunk.rotation.x = Math.sin(t * 0.7) * 0.25; el.children[0].position.y = Math.abs(Math.sin(t)) * 0.05; return; }
+    const B_ = U_.bones, snap = U_.now == null, [now, dt] = clockOf(U_); speed = Math.max(0, Math.min(1, speed || 0));
+    if (U_.ph == null) { U_.ph = (Math.abs(t) * 0.159) % 1; U_.sp = speed; U_.id = (Math.abs(t) * 0.37) % 6.28; }
+    U_.sp += (speed - U_.sp) * (snap ? 1 : Math.min(1, dt * 2.5));
+    const sp = U_.sp, go = sp > 0.05, f = snap ? 1 : Math.min(1, dt * 12), slow = snap ? 1 : Math.min(1, dt * 4), id = U_.id, TAU = PI * 2, PH = [0.25, 0.75, 0, 0.5];
+    let y = 0, roll = 0, pitch = 0;
+    if (go) { U_.ph = (U_.ph + dt * (0.5 + 0.6 * sp)) % 1; const A = 0.17 + 0.13 * sp;
+      for (let i = 0; i < 4; i++) { const [reach, fold] = stride(U_.ph + PH[i], 0.68); ease(L[i], "x", -reach * A, f); ease(U_.shins[i], "x", fold * (0.4 + 0.2 * sp), f); }
+      y = 0.03 * Math.abs(Math.sin(TAU * U_.ph * 2)); roll = (0.02 + 0.015 * sp) * Math.sin(TAU * U_.ph); pitch = 0.012 * Math.sin(TAU * U_.ph * 2); }
+    else { for (let i = 0; i < 4; i++) { ease(L[i], "x", 0, slow); ease(U_.shins[i], "x", 0, slow); } roll = 0.012 * Math.sin(now * 0.35 + id); } // (standing, it rocks its weight from side to side)
+    const R_ = B_.root; R_.position.y += (y - R_.position.y) * f; ease(R_, "z", roll, slow); ease(R_, "x", pitch, slow);
+    const sw = go ? 0.14 * Math.sin(TAU * U_.ph) : 0; // the trunk swings with the walk, and searches about when the beast stands
+    B_.trunk.rotation.x = 0.06 * Math.sin(now * 0.5 + id) + sw * 0.5; B_.trunk.rotation.z = 0.1 * Math.sin(now * 0.37 + id) + sw;
+    B_.trunkb.rotation.x = 0.12 * Math.sin(now * 0.63 + id + 1) + 0.05; B_.trunkb.rotation.z = 0.1 * Math.sin(now * 0.45 + id + 0.9) + sw * 0.6;
+    B_.trunkc.rotation.x = 0.22 * Math.sin(now * 0.8 + id + 2) + 0.18; B_.trunkc.rotation.z = 0.12 * Math.sin(now * 0.55 + id + 1.7);
+    const fan = Math.pow(Math.max(0, Math.sin(now * (go ? 2.4 : 1.5) + id)), 2) * (Math.sin(now * 0.21 + id) > -0.3 ? 1 : 0.15); B_.earL.rotation.y = 0.08 + 0.42 * fan; B_.earR.rotation.y = -0.08 - 0.42 * fan;
+    B_.tail.rotation.z = 0.28 * Math.sin(now * 1.4 + id) * (Math.sin(now * 0.33 + id) > 0 ? 1 : 0.25); B_.tail.rotation.x = 0.06;
+  };
 
   // ---------- Banners ----------
   // A standard on a pole; its cloth is a small grid whose points are moved to flutter (G.wave).
@@ -612,7 +708,9 @@
   G.wave = function (banner, t) {
     const c = banner.userData.cloth; if (!c) return;
     const P = c.geometry.attributes.position, base = banner.userData.base, ph = banner.userData.ph;
-    for (let i = 0; i < P.count; i++) { const x = base[i * 3], y = base[i * 3 + 1]; P.setZ(i, Math.sin(t * 3.2 + ph + x * 5 + y * 1.3) * 0.16 * x); }
+    const gust = 0.72 + 0.28 * Math.sin(t * 0.63 + ph * 1.7) * Math.sin(t * 0.29 + ph), w = banner.userData.w || (banner.userData.w = Math.max.apply(null, Array.from({ length: P.count }, (_, q) => base[q * 3])) || 1); // (the wind comes in gusts; between them the fly end sags)
+    for (let i = 0; i < P.count; i++) { const x = base[i * 3], y = base[i * 3 + 1], u = x / w;
+      P.setZ(i, (Math.sin(t * 3.2 + ph + x * 5 + y * 1.3) * 0.16 + Math.sin(t * 5.3 + ph * 2 + x * 9.5 - y * 2.1) * 0.05) * x * gust); P.setY(i, y - 0.07 * u * u * w * (1.15 - gust)); }
     P.needsUpdate = true;
   };
 

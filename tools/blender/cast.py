@@ -392,7 +392,7 @@ def tag(objs, part):
 def since(n0, part): tag(parts[n0:], part)
 # ---- Lower cloth: wound round the hips and drawn between the legs, so it folds round each leg; three lengths.
 def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt of armour over the cloth: no hem band, no pleats)
-    n0 = len(parts); o = shell(name, role, lambda c: zlow - 0.001 < c.z < 1.001, 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []
+    n0 = len(parts); o = shell(name, role, lambda c: zlow - 0.001 < c.z < 1.001, 0.02 if plain else 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []   # (the skirt of scales stands off the cloth under it: lying in the same place the two flickered through each other at the hips, as the mesh check of tools/blender/skills found)
     for v in o.data.vertices:
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
@@ -666,6 +666,16 @@ if STAGE == "looks":
         show = set(BASE + L["parts"])
         for o in [B, Hd] + HANDS + parts: o.hide_render = (part_of(o) if o in parts else {B: "body", Hd: "head"}.get(o, "hands")) not in show
         render(HERO + "_" + lk, [("front", (0, -5.2, 1.05), (0, 0, 0.95), 70)] + ([("face", (0.25, -1.6, 1.72), (0, 0, 1.66), 70), ("side", (5.2, 0, 1.05), (0, 0, 0.95), 70), ("back", (0, 5.2, 1.05), (0, 0, 0.95), 70)] if len(argv) > 3 else []), res=(420, 640), samples=16)
+
+if STAGE == "qa":   # the checks of the blender-skills pack (tools/blender/skills, MIT), on each look in turn: parts floating free, faces inside out, flicker, skin weights; a web game's budget
+    import json
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills")); import qa_check, mesh_stats
+    B["part"] = "body"; Hd["part"] = "head"
+    for o in HANDS: o["part"] = "hands"
+    for lk, L in LOOKS.items():
+        show = set(BASE + L["parts"]); names = [o.name for o in [B, Hd] + HANDS + parts if part_of(o) in show]
+        q = qa_check.run(objects=names, profile="game", uv=False, tol=0.006); st = mesh_stats.run(objects=names, budget="web")
+        print("QA " + json.dumps({ "name": HERO, "look": lk, "pass": q["pass"], "errors": q["errors"][:10], "warnings": q["warnings"][:5], "floating": len(q["floating"]), "tris": st["total_tris"], "bones": st["bones"], "over_budget": st["budget"]["over"] }))
 
 if STAGE == "export":
     import json, base64, struct

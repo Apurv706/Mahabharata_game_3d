@@ -1,12 +1,12 @@
 # The beasts of the field, built in Blender by script after the artist's sheets (machine_horse, machine_elephant):
 # a war horse in harness, a war elephant in its trappings. Each goes out as one set of points with named parts; the
-# legs (and the trunk) are parts of their own, written about the joint they swing from, so the game can move them.
-#   python3 props.py -- <out dir> <horse|elephant> [render]
+# neck, head, tail, legs (in their lengths), trunk and ears are parts of their own, each written about the joint it turns on.
+#   python3 props.py -- <out dir> <horse|elephant> [render] [qa]      (qa: the mesh checks of tools/blender/skills)
 # Built with up = Blender Z and the head toward Blender -Y; written in the game's axes (y up, head toward +z).
 import bpy, bmesh, math, sys, os, json, base64, struct
 from mathutils import Vector, Euler
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-OUT, NAME, RENDER = argv[0], argv[1], len(argv) > 2
+OUT, NAME, RENDER, QA = argv[0], argv[1], "render" in argv[2:], "qa" in argv[2:]
 bpy.ops.wm.read_factory_settings(use_empty=True)
 S = bpy.context.scene
 def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
@@ -26,6 +26,8 @@ def sym(balls):
             if len(b) > 3: q = b[3]; m.append((q[0], q[1], -q[2], -q[3]) if q else None)
             out.append(tuple(m))
     return out
+def lead(balls, k=0.95):   # a length's first ball is its parent's last, made a little smaller: two surfaces in one place flicker (found by the mesh check)
+    b = balls[0]; return [(b[0], tuple(v * k for v in b[1])) + tuple(b[2:])] + list(balls[1:])
 OBJS = []
 def keep(o, role, part, pivot=None):
     o.data.materials.clear(); o.data.materials.append(M[role]); o["part"] = part
@@ -41,7 +43,9 @@ def blob(name, balls, role, part, res, ratio, pivot=None, thr=0.6):
         k = 0.93 / math.sqrt(1 - (thr / e.stiffness) ** (1 / 3)); e.size_x, e.size_y, e.size_z = sx * k, sy * k, sz * k
         if len(b) > 3 and b[3]: e.rotation = b[3]
     bpy.context.view_layer.objects.active = ob; ob.select_set(True); bpy.context.view_layer.update(); bpy.ops.object.convert(target="MESH"); o = bpy.context.object; o.name = name
-    d = o.modifiers.new("dec", "DECIMATE"); d.ratio = ratio * LOD; bpy.ops.object.modifier_apply(modifier="dec"); return keep(o, role, part, pivot)
+    d = o.modifiers.new("dec", "DECIMATE"); d.ratio = ratio * LOD; bpy.ops.object.modifier_apply(modifier="dec")
+    bm = bmesh.new(); bm.from_mesh(o.data); bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges[:]); bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5); bm.to_mesh(o.data); bm.free()   # (thinning leaves the odd collapsed face and doubled point: the mesh check of tools/blender/skills finds them)
+    return keep(o, role, part, pivot)
 def prim(kind, role, part, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), pivot=None, **kw):
     getattr(bpy.ops.mesh, "primitive_" + kind + "_add")(location=loc, rotation=rotv, **kw); o = bpy.context.object; o.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True); return keep(o, role, part, pivot)
@@ -55,30 +59,40 @@ def shell(src, role, part, off, planes, pick=None):   # a cloth lying on a body:
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); return keep(o, role, part)
 
+# The beasts are written in parts, each about the joint it turns on (its pivot), so that the game can bind every part
+# whole to a bone and move it (js/g3/kit.js `skinned`): a horse's neck, head and tail, and each leg in three (from the
+# shoulder or hip to the knee or hock, the cannon below it, the pastern and hoof); an elephant's trunk in three, its ears,
+# its tail, and each leg in two at the knee. A part's first ball is its parent's last, so a bent joint stays closed.
 if NAME == "horse":
+    NB, PL, DK = (0, -0.6, 1.5), (0, -1.04, 2.03), (0, 0.9, 1.4)   # where the neck leaves the shoulders; the poll, where the head hangs; the dock of the tail
     body = blob("body", sym([
       ((0, 0.0, 1.27), (0.34, 0.66, 0.36)), ((0, 0.05, 1.12), (0.29, 0.55, 0.22)),                       # barrel and belly
       ((0, -0.5, 1.3), (0.31, 0.34, 0.4)), ((0.17, -0.5, 1.2), (0.16, 0.26, 0.3), 1.6), ((0, -0.72, 1.26), (0.2, 0.16, 0.24), 1.6),   # chest, shoulders, breast
       ((0, 0.5, 1.33), (0.34, 0.38, 0.38)), ((0.16, 0.58, 1.33), (0.2, 0.3, 0.3), 1.6), ((0, 0.86, 1.4), (0.12, 0.12, 0.14), 1.6),    # quarters, croup, dock
       ((0, -0.38, 1.6), (0.12, 0.3, 0.1), 1.6),                                                           # withers
-      ((0, -0.72, 1.56), (0.19, 0.24, 0.3)), ((0, -0.86, 1.74), (0.16, 0.2, 0.27)), ((0, -0.97, 1.91), (0.135, 0.17, 0.22)),            # the neck, arched
-      ((0, -1.06, 2.04), (0.125, 0.15, 0.15)), ((0.055, -1.1, 1.98), (0.075, 0.11, 0.12), 1.6),          # poll, cheeks
-      ((0, -1.24, 1.93), (0.095, 0.2, 0.105), 2.0, rot(-0.62, 0, 0)), ((0, -1.38, 1.8), (0.08, 0.1, 0.09)), ((0.04, -1.42, 1.77), (0.04, 0.05, 0.045), 1.7) ]), "coat", "body", 0.035, 0.3)
+      ((0, -0.66, 1.5), (0.17, 0.21, 0.27)) ]), "coat", "body", 0.035, 0.3)                              # the root of the neck
+    blob("neck", sym([((0, -0.64, 1.49), (0.17, 0.2, 0.26)), ((0, -0.72, 1.56), (0.19, 0.24, 0.3)), ((0, -0.86, 1.74), (0.16, 0.2, 0.27)), ((0, -0.97, 1.91), (0.135, 0.17, 0.22)),
+                      ((0, -1.05, 2.03), (0.12, 0.145, 0.145))]), "coat", "neck", 0.035, 0.3, NB)       # the neck, arched, to the poll
+    blob("head", sym([((0, -1.06, 2.04), (0.125, 0.15, 0.15)), ((0.055, -1.1, 1.98), (0.075, 0.11, 0.12), 1.6),          # poll, cheeks
+      ((0, -1.24, 1.93), (0.095, 0.2, 0.105), 2.0, rot(-0.62, 0, 0)), ((0, -1.38, 1.8), (0.08, 0.1, 0.09)), ((0.04, -1.42, 1.77), (0.04, 0.05, 0.045), 1.7) ]), "coat", "head", 0.03, 0.36, PL)
     for sx in (1, -1):
-        prim("cone", "coat", "body", (sx * 0.075, -1.03, 2.2), (0.045, 0.03, 0.1), (0.2, sx * 0.25, 0), vertices=6)
-        prim("uv_sphere", "eye", "body", (sx * 0.108, -1.13, 2.03), (0.022, 0.024, 0.022), segments=8, ring_count=6)
+        prim("cone", "coat", "head", (sx * 0.075, -1.03, 2.2), (0.045, 0.03, 0.1), (0.2, sx * 0.25, 0), pivot=PL, vertices=6)
+        prim("uv_sphere", "eye", "head", (sx * 0.108, -1.13, 2.03), (0.022, 0.024, 0.022), pivot=PL, segments=8, ring_count=6)
     for i in range(9):   # the mane, lying along the crest; a lock over the brow
-        t = i / 8; prim("uv_sphere", "dark", "body", (0.02, -0.62 - 0.42 * t, 1.84 + 0.3 * t + 0.03 * math.sin(t * 3.14)), (0.045, 0.085, 0.12), (0.75 - 0.5 * t, 0, 0), segments=8, ring_count=6)
-    prim("uv_sphere", "dark", "body", (0, -1.12, 2.16), (0.05, 0.07, 0.08), (0.6, 0, 0), segments=8, ring_count=6)
-    blob("tail", [((0, 0.93, 1.36), (0.07, 0.09, 0.14)), ((0, 1.02, 1.12), (0.085, 0.1, 0.2)), ((0, 1.06, 0.82), (0.08, 0.09, 0.22)), ((0, 1.05, 0.55), (0.055, 0.06, 0.18))], "dark", "body", 0.03, 0.4)
-    for nm, sx, fy in (("legFL", -1, -0.56), ("legFR", 1, -0.56), ("legHL", -1, 0.56), ("legHR", 1, 0.56)):
-        px = sx * 0.19; piv = (px, fy, 1.12)
-        if fy < 0: balls = [((px, fy, 1.0), (0.1, 0.13, 0.2)), ((px, fy, 0.78), (0.075, 0.09, 0.2)), ((px, fy, 0.57), (0.06, 0.065, 0.06)), ((px, fy + 0.005, 0.38), (0.042, 0.048, 0.17)), ((px, fy, 0.2), (0.052, 0.058, 0.05)), ((px, fy - 0.02, 0.13), (0.045, 0.05, 0.06))]; hy = fy - 0.035
-        else: balls = [((px, fy, 1.02), (0.12, 0.17, 0.24)), ((px, fy + 0.06, 0.78), (0.08, 0.1, 0.2), 2.0, rot(0.35, 0, 0)), ((px, fy + 0.12, 0.58), (0.058, 0.07, 0.065)), ((px, fy + 0.1, 0.38), (0.042, 0.05, 0.17)), ((px, fy + 0.09, 0.2), (0.052, 0.058, 0.05)), ((px, fy + 0.07, 0.13), (0.045, 0.05, 0.06))]; hy = fy + 0.055
-        blob(nm, balls, "coat", nm, 0.022, 0.3, piv)
-        prim("cone", "hoof", nm, (px, hy, 0.055), (0.07, 0.085, 0.055), pivot=piv, vertices=10, radius1=1, radius2=0.72, depth=2)
-        ring = prim("torus", "gold", nm + "t", (px, hy + 0.02, 0.2), (1, 1.1, 1.6), pivot=piv, major_radius=0.058, minor_radius=0.012, major_segments=12, minor_segments=5)   # an anklet, with the harness
-    # ---- Harness: a saddle cloth with a gold border, a girth, a collar hung with bosses and tassels, the bridle, a plume.
+        t = i / 8; prim("uv_sphere", "dark", "neck", (0.02, -0.62 - 0.42 * t, 1.84 + 0.3 * t + 0.03 * math.sin(t * 3.14)), (0.045, 0.085, 0.12), (0.75 - 0.5 * t, 0, 0), pivot=NB, segments=8, ring_count=6)
+    prim("uv_sphere", "dark", "head", (0, -1.12, 2.16), (0.05, 0.07, 0.08), (0.6, 0, 0), pivot=PL, segments=8, ring_count=6)
+    blob("tail", [((0, 0.93, 1.36), (0.07, 0.09, 0.14)), ((0, 1.02, 1.12), (0.085, 0.1, 0.2)), ((0, 1.06, 0.82), (0.08, 0.09, 0.22)), ((0, 1.05, 0.55), (0.055, 0.06, 0.18))], "dark", "tail", 0.03, 0.4, DK)
+    for nm, sx, fy in (("FL", -1, -0.56), ("FR", 1, -0.56), ("HL", -1, 0.56), ("HR", 1, 0.56)):
+        px = sx * 0.19; hip = (px, fy, 1.12)
+        if fy < 0: B_ = [((px, fy, 1.0), (0.1, 0.13, 0.2)), ((px, fy, 0.78), (0.075, 0.09, 0.2)), ((px, fy, 0.57), (0.06, 0.065, 0.06)), ((px, fy + 0.005, 0.38), (0.042, 0.048, 0.17)), ((px, fy, 0.2), (0.052, 0.058, 0.05)), ((px, fy - 0.02, 0.13), (0.045, 0.05, 0.06))]; hy = fy - 0.035
+        else: B_ = [((px, fy, 1.02), (0.12, 0.17, 0.24)), ((px, fy + 0.06, 0.78), (0.08, 0.1, 0.2), 2.0, rot(0.35, 0, 0)), ((px, fy + 0.12, 0.58), (0.058, 0.07, 0.065)), ((px, fy + 0.1, 0.38), (0.042, 0.05, 0.17)), ((px, fy + 0.09, 0.2), (0.052, 0.058, 0.05)), ((px, fy + 0.07, 0.13), (0.045, 0.05, 0.06))]; hy = fy + 0.055
+        knee, fet = B_[2][0], B_[4][0]
+        blob("leg" + nm, B_[:3], "coat", "leg" + nm, 0.022, 0.3, hip)                 # shoulder to knee; hip to hock
+        blob("shin" + nm, lead(B_[2:5]), "coat", "shin" + nm, 0.022, 0.3, knee)       # the cannon, to the fetlock
+        blob("hoof" + nm, lead(B_[4:]), "coat", "hoof" + nm, 0.022, 0.5, fet)         # the pastern
+        prim("cone", "hoof", "hoof" + nm, (px, hy, 0.055), (0.07, 0.085, 0.055), pivot=fet, vertices=10, radius1=1, radius2=0.72, depth=2)
+        prim("torus", "gold", "shin" + nm + "t", (px, hy + 0.02, 0.2), (1, 1.1, 1.6), pivot=knee, major_radius=0.061, minor_radius=0.012, major_segments=12, minor_segments=5)   # an anklet, with the harness
+    # ---- Harness: a saddle cloth with a gold border, a girth, a collar hung with bosses and tassels; on the head (and moving with it) the bridle and a plume.
     Y0, Y1, Z0 = -0.36, 0.4, 1.2
     shell(body, "gold", "tack", 0.016, [((0, Y0, 0), (0, -1, 0)), ((0, Y1, 0), (0, 1, 0)), ((0, 0, Z0), (0, 0, -1))])
     shell(body, "tack", "tack", 0.022, [((0, Y0 + 0.035, 0), (0, -1, 0)), ((0, Y1 - 0.035, 0), (0, 1, 0)), ((0, 0, Z0 + 0.035), (0, 0, -1))])
@@ -87,42 +101,48 @@ if NAME == "horse":
     for k in range(-3, 4):
         a = k * 0.36; x, y, z = math.sin(a) * 0.3, -0.83 + abs(k) * 0.035, 1.3 - math.cos(a) * 0.14
         prim("uv_sphere", "gold", "tack", (x, y, z), (0.032, 0.032, 0.032), segments=8, ring_count=6); prim("cone", "tack", "tack", (x, y, z - 0.08), (0.026, 0.026, 0.06), (math.pi, 0, 0), vertices=6)
-    prim("torus", "leather", "tack", (0, -1.33, 1.86), (1, 1, 1), (0.95, 0, 0), major_radius=0.1, minor_radius=0.012, major_segments=12, minor_segments=5)                      # noseband
-    prim("torus", "leather", "tack", (0, -1.08, 2.02), (1, 1, 1.25), (0.25, 0, 0), major_radius=0.14, minor_radius=0.012, major_segments=14, minor_segments=5)                    # headstall
-    for sx in (1, -1): rod((sx * 0.1, -1.3, 1.9), (sx * 0.125, -1.1, 2.06), 0.01, 0.01, "leather", "tack", seg=5)
-    prim("cube", "gold", "tack", (0, -1.22, 2.04), (0.03, 0.01, 0.1), (-0.62, 0, 0), size=2); prim("uv_sphere", "tack", "tack", (0, -1.16, 2.1), (0.024, 0.024, 0.024), segments=8, ring_count=6)
-    prim("cone", "tack", "tack", (0, -1.04, 2.28), (0.04, 0.04, 0.1), vertices=7); prim("uv_sphere", "gold", "tack", (0, -1.04, 2.19), (0.03, 0.03, 0.03), segments=8, ring_count=6)
-    prim("torus", "tack", "tack", (0, 1.0, 1.2), (1, 1, 1), (math.pi / 2, 0, 0), major_radius=0.085, minor_radius=0.02, major_segments=10, minor_segments=5)                       # a ribbon in the tail
+    prim("torus", "leather", "headt", (0, -1.33, 1.86), (1, 1, 1), (0.95, 0, 0), pivot=PL, major_radius=0.1, minor_radius=0.012, major_segments=12, minor_segments=5)                      # noseband
+    prim("torus", "leather", "headt", (0, -1.08, 2.02), (1, 1, 1.25), (0.25, 0, 0), pivot=PL, major_radius=0.14, minor_radius=0.012, major_segments=14, minor_segments=5)                    # headstall
+    for sx in (1, -1): rod((sx * 0.1, -1.3, 1.9), (sx * 0.125, -1.1, 2.06), 0.01, 0.01, "leather", "headt", PL, seg=5)
+    prim("cube", "gold", "headt", (0, -1.22, 2.04), (0.03, 0.01, 0.1), (-0.62, 0, 0), pivot=PL, size=2); prim("uv_sphere", "tack", "headt", (0, -1.16, 2.1), (0.024, 0.024, 0.024), pivot=PL, segments=8, ring_count=6)
+    prim("cone", "tack", "headt", (0, -1.04, 2.28), (0.04, 0.04, 0.1), pivot=PL, vertices=7); prim("uv_sphere", "gold", "headt", (0, -1.04, 2.19), (0.03, 0.03, 0.03), pivot=PL, segments=8, ring_count=6)
+    prim("torus", "tack", "tailt", (0, 1.0, 1.2), (1, 1, 1), (math.pi / 2, 0, 0), pivot=DK, major_radius=0.085, minor_radius=0.02, major_segments=10, minor_segments=5)                       # a ribbon in the tail
 else:
+    TP, TL = (0, -2.72, 2.72), (0, 1.92, 2.75)   # the root of the trunk; the root of the tail
     body = blob("body", sym([
       ((0, 0, 2.5), (1.1, 1.72, 1.18)), ((0, 0.1, 2.12), (0.95, 1.4, 0.75)), ((0, 1.2, 2.55), (0.98, 0.9, 1.05)), ((0, -1.3, 2.6), (0.95, 0.8, 1.05)),      # barrel, belly, rump, shoulders
       ((0, -0.2, 3.28), (0.5, 1.3, 0.42), 1.6),                                                                                                           # the back's arch
       ((0, -2.0, 3.0), (0.76, 0.75, 0.9)), ((0.3, -1.98, 3.62), (0.36, 0.4, 0.34), 1.6),                                                                  # the head and its two domes
       ((0, -2.52, 2.78), (0.42, 0.4, 0.55)), ((0.3, -2.42, 2.42), (0.2, 0.22, 0.3), 1.6) ]), "coat", "body", 0.09, 0.3)
     for sx in (1, -1):
-        prim("uv_sphere", "coat", "body", (sx * 0.98, -1.68, 3.0), (0.09, 0.62, 0.85), (0, 0, sx * 0.5), segments=14, ring_count=8)              # the ears
-        prim("uv_sphere", "pink", "body", (sx * 1.02, -1.74, 2.9), (0.07, 0.42, 0.6), (0, 0, sx * 0.5), segments=10, ring_count=6)
+        er = "earL" if sx < 0 else "earR"; EP = (sx * 0.74, -2.12, 3.05)   # (an ear hangs from its front edge, and fans about it)
+        prim("uv_sphere", "coat", er, (sx * 0.98, -1.68, 3.0), (0.09, 0.62, 0.85), (0, 0, sx * 0.5), pivot=EP, segments=14, ring_count=8)              # the ears
+        prim("uv_sphere", "pink", er, (sx * 1.02, -1.74, 2.9), (0.07, 0.42, 0.6), (0, 0, sx * 0.5), pivot=EP, segments=10, ring_count=6)
         rod((sx * 0.32, -2.6, 2.42), (sx * 0.42, -3.1, 2.08), 0.085, 0.06, "pale", "body"); rod((sx * 0.42, -3.1, 2.08), (sx * 0.46, -3.45, 2.06), 0.06, 0.02, "pale", "body")   # the tusks
         prim("torus", "gold", "body", (sx * 0.4, -3.0, 2.14), (1, 1, 1), (0.6, 0, 0), major_radius=0.075, minor_radius=0.018, major_segments=10, minor_segments=5)
         prim("uv_sphere", "eye", "body", (sx * 0.52, -2.5, 3.1), (0.05, 0.05, 0.05), segments=8, ring_count=6)
-    rod((0, 1.92, 2.75), (0, 2.2, 1.7), 0.07, 0.03, "dark", "body"); prim("uv_sphere", "dark", "body", (0, 2.21, 1.62), (0.07, 0.07, 0.12), segments=8, ring_count=6)
-    TP = (0, -2.72, 2.72)
-    blob("trunk", [((0, -2.8, 2.5), (0.3, 0.3, 0.42)), ((0, -2.94, 2.02), (0.25, 0.25, 0.4)), ((0, -3.08, 1.55), (0.2, 0.2, 0.38)), ((0, -3.26, 1.15), (0.15, 0.16, 0.3), 2.0, rot(-0.5, 0, 0)), ((0, -3.44, 0.98), (0.1, 0.13, 0.1))], "coat", "trunk", 0.06, 0.35, TP)
-    for nm, sx, fy in (("legFL", -1, -1.2), ("legFR", 1, -1.2), ("legHL", -1, 1.2), ("legHR", 1, 1.2)):
-        px = sx * 0.68; piv = (px, fy, 1.95)
-        blob(nm, [((px, fy, 1.5), (0.42, 0.46, 0.62)), ((px, fy, 0.92), (0.36, 0.38, 0.55)), ((px, fy - 0.02, 0.32), (0.39, 0.42, 0.32))], "coat", nm, 0.07, 0.3, piv)
-        for k in (-1, 0, 1): prim("uv_sphere", "pale", nm, (px + k * 0.17, fy - 0.36 + abs(k) * 0.06, 0.1), (0.085, 0.06, 0.09), pivot=piv, segments=8, ring_count=6)   # the nails
-        prim("torus", "gold", nm, (px, fy - 0.01, 0.5), (1, 1.06, 1.6), pivot=piv, major_radius=0.375, minor_radius=0.03, major_segments=16, minor_segments=5)
+    rod((0, 1.92, 2.75), (0, 2.2, 1.7), 0.07, 0.03, "dark", "tail", TL); prim("uv_sphere", "dark", "tail", (0, 2.21, 1.62), (0.07, 0.07, 0.12), pivot=TL, segments=8, ring_count=6)
+    T0 = [((0, -2.8, 2.5), (0.3, 0.3, 0.42)), ((0, -2.94, 2.02), (0.25, 0.25, 0.4)), ((0, -3.08, 1.55), (0.2, 0.2, 0.38)), ((0, -3.26, 1.15), (0.15, 0.16, 0.3), 2.0, rot(-0.5, 0, 0)), ((0, -3.44, 0.98), (0.1, 0.13, 0.1))]
+    blob("trunk", T0[:2], "coat", "trunk", 0.06, 0.35, TP)                       # the trunk, in three lengths
+    blob("trunkb", lead(T0[1:3]), "coat", "trunkb", 0.06, 0.35, T0[1][0])
+    blob("trunkc", lead(T0[2:]), "coat", "trunkc", 0.06, 0.35, T0[2][0])
+    for nm, sx, fy in (("FL", -1, -1.2), ("FR", 1, -1.2), ("HL", -1, 1.2), ("HR", 1, 1.2)):
+        px = sx * 0.68; hip = (px, fy, 1.95); knee = (px, fy, 0.98)
+        blob("leg" + nm, [((px, fy, 1.5), (0.42, 0.46, 0.62)), ((px, fy, 0.98), (0.365, 0.385, 0.4))], "coat", "leg" + nm, 0.07, 0.3, hip)
+        blob("shin" + nm, [((px, fy, 0.98), (0.36, 0.38, 0.4)), ((px, fy, 0.7), (0.35, 0.37, 0.42)), ((px, fy - 0.02, 0.32), (0.39, 0.42, 0.32))], "coat", "shin" + nm, 0.07, 0.3, knee)
+        for k in (-1, 0, 1): prim("uv_sphere", "pale", "shin" + nm, (px + k * 0.17, fy - 0.36 + abs(k) * 0.06, 0.1), (0.085, 0.06, 0.09), pivot=knee, segments=8, ring_count=6)   # the nails
+        prim("torus", "gold", "shin" + nm, (px, fy - 0.01, 0.5), (1, 1.06, 1.6), pivot=knee, major_radius=0.375, minor_radius=0.03, major_segments=16, minor_segments=5)
     # ---- Trappings: the great cloth over the back with its gold border and tassels, a frontlet on the brow, a girth with a bell.
     Y0, Y1, Z0 = -1.5, 1.45, 2.05
-    shell(body, "gold", "cloth", 0.03, [((0, Y0, 0), (0, -1, 0)), ((0, Y1, 0), (0, 1, 0)), ((0, 0, Z0), (0, 0, -1))])
+    hem = shell(body, "gold", "cloth", 0.03, [((0, Y0, 0), (0, -1, 0)), ((0, Y1, 0), (0, 1, 0)), ((0, 0, Z0), (0, 0, -1))])
+    on = lambda ob, p: ob.closest_point_on_mesh(Vector(p))[1]   # (an ornament is hung where the cloth really is: the mesh check found tassels, a pearl and the bell hanging in the air)
     shell(body, "tack", "cloth", 0.045, [((0, Y0 + 0.12, 0), (0, -1, 0)), ((0, Y1 - 0.12, 0), (0, 1, 0)), ((0, 0, Z0 + 0.12), (0, 0, -1))])
     for sx in (1, -1):
-        for k in range(7): prim("cone", "gold" if k % 2 else "pale", "cloth", (sx * 1.1, -1.3 + k * 0.44, Z0 - 0.07), (0.05, 0.05, 0.1), (math.pi, 0, 0), vertices=6)
-    shell(body, "tack", "cloth", 0.03, [((0, -2.2, 0), (0, 1, 0)), ((0, 0, 3.05), (0, 0, -1)), ((0.5, 0, 0), (1, 0, 0)), ((-0.5, 0, 0), (-1, 0, 0))])                       # the frontlet
-    prim("uv_sphere", "gold", "cloth", (0, -2.76, 3.25), (0.13, 0.06, 0.13), segments=10, ring_count=6); prim("uv_sphere", "pale", "cloth", (0, -2.84, 3.0), (0.07, 0.04, 0.07), segments=8, ring_count=6)
+        for k in range(7): q = on(hem, (sx * 1.3, -1.3 + k * 0.44, Z0)); prim("cone", "gold" if k % 2 else "pale", "cloth", (q.x, q.y, q.z - 0.06), (0.05, 0.05, 0.1), (math.pi, 0, 0), vertices=6)
+    fr = shell(body, "tack", "cloth", 0.03, [((0, -2.2, 0), (0, 1, 0)), ((0, 0, 3.05), (0, 0, -1)), ((0.5, 0, 0), (1, 0, 0)), ((-0.5, 0, 0), (-1, 0, 0))])                  # the frontlet
+    q1, q2 = on(fr, (0, -3.2, 3.3)), on(fr, (0, -3.2, 3.05)); prim("uv_sphere", "gold", "cloth", (0, q1.y - 0.02, q1.z), (0.13, 0.06, 0.13), segments=10, ring_count=6); prim("uv_sphere", "pale", "cloth", (0, q2.y - 0.01, q2.z), (0.07, 0.04, 0.07), segments=8, ring_count=6)
     prim("torus", "leather", "cloth", (0, -0.75, 2.52), (1.03 / 1.1, 1, 1.2 / 1.1), (math.pi / 2, 0, 0), major_radius=1.13, minor_radius=0.045, major_segments=24, minor_segments=5)
-    prim("uv_sphere", "gold", "cloth", (0, -0.75, 1.2), (0.11, 0.11, 0.14), segments=8, ring_count=6)
+    prim("uv_sphere", "gold", "cloth", (0, -0.75, 1.27), (0.11, 0.11, 0.14), segments=8, ring_count=6)   # the bell, on the girth
 
 if RENDER:
     w = bpy.data.worlds.new("w"); S.world = w; w.use_nodes = True; w.node_tree.nodes["Background"].inputs[0].default_value = (0.5, 0.5, 0.5, 1); w.node_tree.nodes["Background"].inputs[1].default_value = 0.7
@@ -150,3 +170,7 @@ data = { "n": base, "scale": SC, "roles": roles, "cols": cols, "parts": ranges, 
          "pos": b64("h", [max(-32767, min(32767, round(v * SC))) for v in P_]), "nor": b64("b", [max(-127, min(127, round(v * 127))) for v in N_]), "col": b64("B", C_), "idx": b64("H", I_) }
 open(OUT + "/p_" + NAME + ".js", "w").write("/* " + NAME + ": modelled in Blender by tools/blender/props.py after the artist's sheet. Do not edit by hand. */\n(function (K) { const G = (K.G3 = K.G3 || {}); (G.PROPS = G.PROPS || {})." + NAME + " = " + json.dumps(data, separators=(",", ":")) + "; })(window.K = window.K || {});\n")
 print("exported", NAME, "verts", base, "tris", len(I_) // 3, {k: v[1] // 3 for k, v in ranges.items()})
+if QA:   # the checks of the blender-skills pack (tools/blender/skills, MIT): parts floating free, faces inside out, flicker; a web game's budget
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "skills")); import qa_check, mesh_stats
+    names = [o.name for o in OBJS]; q = qa_check.run(objects=names, profile="game", uv=False, tol=0.004); st = mesh_stats.run(objects=names, budget="web")
+    print("QA " + json.dumps({ "name": NAME, "pass": q["pass"], "errors": q["errors"][:14], "warnings": q["warnings"][:8], "ground_z": q["ground_z"], "floating": len(q["floating"]), "tris": st["total_tris"], "over_budget": st["budget"]["over"] }))

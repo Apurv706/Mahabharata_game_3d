@@ -127,7 +127,7 @@
   let OUT = null;
   G.outline = function (f, mesh) {
     if (!OUT) {
-      OUT = new T.MeshBasicMaterial({ color: 0x24140c, side: T.BackSide, fog: true }); OUT.userData.keep = true; OUT.userData.px = { value: new T.Vector2(0.004, 0.004) };
+      OUT = new T.MeshBasicMaterial({ color: 0x24140c, side: T.BackSide, fog: true, polygonOffset: true, polygonOffsetFactor: 2.5, polygonOffsetUnits: 3 }); OUT.userData.keep = true; /* (set back a little in depth: a hanging cloth is one sheet seen from both sides, and its own line, drawn in the same place, broke through it as black shards) */ OUT.userData.px = { value: new T.Vector2(0.004, 0.004) };
       OUT.onBeforeCompile = (sh) => { sh.uniforms.uOut = OUT.userData.px; sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform vec2 uOut;").replace("#include <project_vertex>", "#include <project_vertex>\n{ vec4 cn = projectionMatrix * vec4(normalize(normalMatrix * objectNormal), 0.0); /* (not transformedNormal: three turns that round for a material that draws back faces) */ float l = length(cn.xy); if (l > 1e-5) gl_Position.xy += cn.xy / l * uOut * gl_Position.w; }"); };
       OUT.customProgramCacheKey = () => "outline"; OUT.visible = !(G.q && G.q.outline === false);
     }

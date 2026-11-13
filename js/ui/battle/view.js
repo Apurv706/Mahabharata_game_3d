@@ -384,6 +384,7 @@
         if (v.kind === "light") { v.obj.position.set(g.x * 0.5, 15, g.z * 0.5 - 6); v.obj.material.opacity = 0.75 + Math.sin(t * 3) * 0.2; return; }
         v.obj.position.set(g.x, 0, g.z); v.obj.rotation.y = g.a;
         if (v.kind === "elephant") G.stomp(v.obj, t * 7, u.hp > 0 ? g.moving * 1.2 : 0);
+        if (v.kind === "elephant" && u.hp > 0 && g.moving > 0.3 && Math.random() < dt * 5) G.fx.burst("dust", new T.Vector3(g.x + (Math.random() - 0.5) * 2, 0.15, g.z + (Math.random() - 0.5) * 2.6), { n: 2 }); // (and from under an elephant's feet)
         if (u.hp <= 0 && v.kind === "elephant") v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2);
         return;
       }
@@ -392,6 +393,7 @@
         const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
         G.steer(c, g.ca != null ? g.ca : g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the car's own heading when another hand drives)
         v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
+        if (u.hp > 0 && g.moving > 0.45 && mv > 0.004 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
       }
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
         v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 1; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
