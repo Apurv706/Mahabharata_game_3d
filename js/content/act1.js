@@ -170,7 +170,7 @@
       ],
       choices: [
         { id: "throw", t: "Take the pebbles and aim", game: "aim", hint: "A first test",
-          trial: { practice: true, attr: "aim", icon: "fruit", verb: "Throw", shots: 3, need: 1, easy: 0.12, speed: 0.95, stage: "stage_mango_yard", cast: ["cousin"],
+          trial: { practice: true, attr: "aim", icon: "fruit", verb: "Throw", sling: { pebbles: 6, need: 3 }, shots: 3, need: 1, easy: 0.12, speed: 0.95, stage: "stage_mango_yard", cast: ["cousin"],
             rules: "The fruit sways on its branch. Throw as it crosses your line. One hit is enough." },
           win: { fx: { flag: "first_throw" }, text: (S) => (S.origin === "gandhara" ? "The apricot drops into the grass. It is the best thing you have ever eaten, and you tell everyone so, loudly." : "The mango drops into the grass. It is the best thing you have ever eaten, and you tell everyone so, loudly.") },
           lose: { fx: {}, text: "Three pebbles, three misses. Your cousin knocks one down and gives it to you anyway." } }

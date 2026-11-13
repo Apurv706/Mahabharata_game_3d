@@ -42,7 +42,56 @@
   // Aim: the target crosses your line; loose as it does.
   // =====================================================================================================
   const RUNNERS = new Set(["deer", "tiger", "elephant", "chariot"]);
+  // The sling pull (t.sling; the mango throw of childhood, owner 12 November): small fruit hang still on the branch.
+  // Put a thumb down anywhere, pull back and to the side, and a line of dots shows how the pebble will fly; let go to
+  // throw. So many pebbles, so many fruit to bring down. (Space, or a tap without a pull, throws at the nearest fruit
+  // with a child's aim.)
+  function slingSetup(ctx) {
+    meAt(ctx, 0.2, 5.0, Math.PI, "aim", { item: null });
+    const fruit = [], col = ctx.t.icon === "fruit" && K.S && K.S.origin === "gandhara" ? 0xf2b24a : 0xf0a030;
+    const at = [[-3.0, 3.0], [-2.0, 3.7], [-1.0, 2.9], [0.0, 3.5], [0.9, 3.0]];
+    for (const [fx, fy] of at) { const m = mesh((b) => { b.sph(0.115, 0, 0, 0, col, 1.25, 8); b.cyl(0.012, 0.012, 0.3, 0, 0.26, 0, 0x4a3a1c, 4); b.sph(0.07, 0.05, 0.2, 0, 0x4f7b3a, 0.5, 5); }); m.position.set(fx, fy, -3.5); ctx.add(m); fruit.push({ m, x: fx, y: fy, on: true, vy: 0 }); }
+    const dots = []; for (let i = 0; i < 12; i++) { const d = new T.Mesh(new T.SphereGeometry(0.045, 6, 5), basic(0xfff0c0, 0.85)); d.visible = false; ctx.add(d, G.fxRoot); dots.push(d); }
+    const peb = new T.Mesh(new T.SphereGeometry(0.06, 7, 6), new T.MeshLambertMaterial({ color: 0x8a8478 })); peb.visible = false; ctx.add(peb);
+    ctx.x = { fruit, dots, peb };
+    ctx.cam([1.0, 2.5, 9.6], [-0.6, 2.2, -3], 46, true);
+  }
+  function slingPlay(ctx) {
+    const t = ctx.t, x = ctx.x, o = t.sling === true ? {} : t.sling, shots = o.pebbles || 6, need = Math.min(o.need || 3, x.fruit.length), GR = 9.8, Z = -3.5, R_HIT = 0.27 + (t.easy || 0) * 0.5;
+    let n = 0, hits = 0, busy = false, drag = null, aim = null, fly = null;
+    const draw = () => ctx.score(pips(shots, hits, n - hits) + " " + tx("{n} of {m} needed", { n: need, m: shots }));
+    draw(); ctx.prompt(tx("Pull back and let go. The dots show how the pebble will fly."));
+    const from = () => { const p = ctx.me.tip ? ctx.me.tip() : V(0.2, 1.5, 4.8); return V(p.x, Math.max(1.2, p.y), 4.8); };
+    const shot = (dx, dy) => { const len = Math.hypot(dx, dy), pw = clamp(len / 150, 0.25, 1), T_ = 1.2 - 0.45 * pw, f = from(), tx_ = f.x - dx * 0.03, ty = f.y + 0.5 + dy * 0.024;
+      return { f, T: T_, vx: (tx_ - f.x) / T_, vy: (ty - f.y) / T_ + 0.5 * GR * T_, vz: (Z - f.z) / T_ }; };
+    const at = (s, k) => V(s.f.x + s.vx * k, s.f.y + s.vy * k - 0.5 * GR * k * k, s.f.z + s.vz * k);
+    const show = (s) => { x.dots.forEach((d, i) => { d.visible = !!s; if (s) d.position.copy(at(s, (s.T * (i + 1)) / x.dots.length)); }); };
+    const fire = (s) => { if (busy || !s) return; busy = true; n++; show(null); ctx.me.act("loose", 0.3, 0.4); sfx("tap"); fly = { s, k: 0 }; x.peb.visible = true; };
+    const land = (s) => { const p = at(s, s.T); let best = null, bd = 1e9; for (const f of x.fruit) if (f.on) { const d = Math.hypot(f.x - p.x, f.y - p.y); if (d < bd) { bd = d; best = f; } }
+      const hit = best && bd <= R_HIT;
+      if (hit) { best.on = false; best.vy = 0.01; hits++; G.fx.burst("hit", V(best.x, best.y, Z), { n: 10 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); } else { ctx.toast(tx("Missed"), "bad"); sfx("step"); }
+      draw(); const left = shots - n;
+      if (hits >= need) return ctx.after(700, () => ctx.finish("win", null));
+      if (hits + left < need) return ctx.after(600, () => ctx.finish(hits === need - 1 ? "close" : "lose", null));
+      ctx.after(350, () => { busy = false; }); };
+    ctx.loop((dt) => {
+      if (fly) { fly.k += dt; const k = Math.min(fly.k, fly.s.T); x.peb.position.copy(at(fly.s, k)); if (fly.k >= fly.s.T) { const s = fly.s; fly = null; x.peb.visible = false; land(s); } }
+      for (const f of x.fruit) if (!f.on && f.m.position.y > 0.12) { f.vy += GR * dt; f.m.position.y = Math.max(0.12, f.m.position.y - f.vy * dt); f.m.rotation.z += dt * 4; }
+      ctx.me.drawBow(drag && aim ? 0.9 : 0.3);
+    });
+    ctx.pointer = (kind, e) => {
+      if (kind === "down") { if (busy) return true; drag = { x: e.clientX, y: e.clientY }; aim = null; return true; }
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (kind === "move") { if (Math.hypot(dx, dy) > 10) { aim = shot(dx, dy); show(aim); } else { aim = null; show(null); } return; }
+      const s = aim; drag = null; aim = null; if (s) fire(s); else nearest();
+    };
+    // Without a pull: at the nearest fruit left, with a child's aim.
+    const nearest = () => { if (busy) return; const f = x.fruit.filter((q) => q.on)[0]; if (!f) return; const fr = from(), ex = (K.rng() - 0.5) * 0.7, ey = (K.rng() - 0.5) * 0.7; fire(shot(-(f.x + ex - fr.x) / 0.03, (f.y + ey - fr.y - 0.5) / 0.024 > 150 ? 150 : (f.y + ey - fr.y - 0.5) / 0.024)); };
+    ctx.onAct(nearest); ctx.tapActs = false; ctx.keys = (e, down) => { if (down && !e.repeat && (e.key === " " || e.key === "Enter")) { nearest(); return true; } return false; };
+  }
   SETUP.aim = { clear: 12, setup(ctx) {
+    if (ctx.t.sling) return slingSetup(ctx);
     const t = ctx.t, icon = t.icon || "straw";
     if (t.dark || t.blind) G.setSky("night");
     meAt(ctx, -0.5, 4.2, Math.PI, "aim", { item: /Throw/.test(t.verb || "") ? null : "bow" });
@@ -66,6 +115,7 @@
     ctx.cam([1.5, 2.7, 8.6], [-0.4, 1.6, -3], 46, true);
   } };
   PLAY.aim = function (ctx) {
+    if (ctx.t.sling) return slingPlay(ctx);
     const t = ctx.t, x = ctx.x, shots = t.shots || 3, need = t.need || 2, speed = t.speed || 1.6;
     const hw = clamp(0.085 + ctx.power * 0.012 + (t.easy || 0), 0.08, t.practice ? 0.3 : 0.2) * (t.small ? 0.75 : 1) * 2, AMP = 3.0, Z = -4.5, X0 = -0.5;
     let n = 0, hits = 0, ph = K.rng() * 6, busy = false, pos = 0, flew = 0;

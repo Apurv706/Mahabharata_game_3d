@@ -178,6 +178,7 @@
     "Catch it": "उसे थाम लो",
     "Leave it to the man beside you": "उसे बगल वाले सैनिक पर छोड़ दो",
     "The man beside you catches it. He carries it for the rest of the day, and for the rest of his life he is the man who did.": "बगल वाला सैनिक उसे थाम लेता है। वह दिन भर उसे उठाए रहता है, और जीवन भर वही कहलाता है जिसने उसे थामा था।",
-    "3D could not start on this device just now, so this fight is in 2D.": "इस उपकरण पर अभी 3D शुरू नहीं हो सका, इसलिए यह युद्ध 2D में है।"
+    "3D could not start on this device just now, so this fight is in 2D.": "इस उपकरण पर अभी 3D शुरू नहीं हो सका, इसलिए यह युद्ध 2D में है।",
+    "Pull back and let go. The dots show how the pebble will fly.": "पीछे खींचो और छोड़ दो। बिंदु दिखाते हैं कि कंकड़ कैसे उड़ेगा।"
   });
 })(window.K = window.K || {});
