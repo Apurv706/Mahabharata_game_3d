@@ -221,7 +221,17 @@
       if (o.elephants) for (let i = 0; i < 3; i++) { const el = G.elephant(i % 2 ? 0xa3302a : 0xd79a2b); el.position.set(-9 + i * 9, 0, -R - 6); el.rotation.y = (rnd() - 0.5); st.add(el); st.ticks.push((dt, t) => G.stomp(el, t * 1.4 + i, 0.3)); }
       if (o.fair) {
         ring(rnd, 12, R + 2, R + 20, (x, z, a) => G.stall(b, x, z, a + PI, [0xa3302a, 0x2d5aa0, 0xd79a2b, 0x2f7d55, 0xe8dcc0][Math.floor(rnd() * 5)], rnd));
-        if (o.ringed) { for (let i = 0; i < 22; i++) { const a = (i / 22) * PI * 2, r = R - 1.5; b.rod(Math.sin(a) * r, 0, Math.cos(a) * r, Math.sin(a) * r, 1, Math.cos(a) * r, 0.05, 0x5a3a22); } b.torus(R - 1.5, 0.03, 0, 0.9, 0, 0xd8c49a, PI / 2, 0, 0, 40); }
+        if (o.ringed) { for (let i = 0; i < 22; i++) { const a = (i / 22) * PI * 2, r = R - 1.5; b.rod(Math.sin(a) * r, 0, Math.cos(a) * r, Math.sin(a) * r, 1, Math.cos(a) * r, 0.05, 0x5a3a22); } b.torus(R - 1.5, 0.03, 0, 0.9, 0, 0xd8c49a, PI / 2, 0, 0, 40);
+          // The wrestling pit of a village fair, to be seen from above too: a lime ring on the earth, marigold strewn
+          // round it, four garlanded poles with strings of pennants between them, the drums and the water pots at the edge.
+          b.torus(5.6, 0.06, 0, 0.03, 0, 0xf2ead2, PI / 2, 0, 0, 48); b.torus(5.9, 0.03, 0, 0.03, 0, 0xc2452e, PI / 2, 0, 0, 48);
+          for (let i = 0; i < 90; i++) { const a = rnd() * PI * 2, r = 5.75 + rnd() * 1.5; b.sph(0.07 + rnd() * 0.04, Math.sin(a) * r, 0.03, Math.cos(a) * r, rnd() < 0.6 ? 0xf2a51e : 0xf7d23a, 1, 4, 1, 0.3); }
+          const PC = [0xa3302a, 0xf2a51e, 0x2d5aa0, 0xf2ead2, 0x2f7d55];
+          for (let i = 0; i < 4; i++) { const a = PI / 4 + (i * PI) / 2, x = Math.sin(a) * 11.4, z = Math.cos(a) * 11.4, a2 = a + PI / 2, x2 = Math.sin(a2) * 11.4, z2 = Math.cos(a2) * 11.4;
+            b.rod(x, 0, z, x, 5.0, z, 0.06, 0x6a4628); b.sph(0.14, x, 5.1, z, 0xf2a51e, 1, 6); b.torus(0.16, 0.05, x, 2.6, z, 0xf2a51e, PI / 2, 0, 0, 8);
+            if (i === 3) continue; // (no string across the side you stand on: it would hang in front of the view from behind you)
+            for (let k = 0; k < 16; k++) { const u0 = k / 16, u1 = (k + 1) / 16, y0 = 4.9 - Math.sin(u0 * PI) * 0.7, y1 = 4.9 - Math.sin(u1 * PI) * 0.7; b.rod(x + (x2 - x) * u0, y0, z + (z2 - z) * u0, x + (x2 - x) * u1, y1, z + (z2 - z) * u1, 0.01, 0x4a3a1c, 3); if (k) b.box(0.18, 0.22, 0.02, x + (x2 - x) * u0, y0 - 0.13, z + (z2 - z) * u0, PC[(k + i) % 5], a + PI / 4); } }
+          for (const sx of [-1, 1]) { b.cyl(0.34, 0.3, 0.6, sx * 6.9, 0, -3.6, 0x7a4628, 10); b.cyl(0.35, 0.35, 0.04, sx * 6.9, 0.6, -3.6, 0xe8dcc0, 10); b.sph(0.28, sx * 7.4, 0.25, 2.2, 0xb5653a, 1, 7); b.sph(0.22, sx * 7.0, 0.2, 2.9, 0xb5653a, 1, 7); } }
         const sp = []; ring(rnd, 54, R + (o.ringed ? -0.9 : 1.5), R + 13, (x, z, a) => sp.push([x, z, a + PI, 1])); st.add(G.crowd(sp, [0xa3302a, 0xd79a2b, 0x2f7d55, 0xe8dcc0, 0x2d5aa0, 0x7a5232], "stand", rnd));
         for (let i = 0; i < 7; i++) { const a = -1.5 + i * 0.5, f = G.banner(5, ["#a3302a", "#d79a2b", "#2d5aa0"][i % 3], "#f2ead2", "diamond", 1.1); f.position.set(Math.sin(a) * (R + 7), 0, -Math.cos(a) * (R + 7)); st.add(f); st.banners.push(f); }
         ring(rnd, 10, R + 14, R + 40, (x, z) => G.tree(b, x, z, "mango", 1 + rnd() * 0.6, rnd));
