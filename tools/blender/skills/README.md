@@ -9,7 +9,7 @@ Three scripts, unchanged, from https://github.com/EL4CTEO/blender-skills (MIT li
 
 They are run inside our own builders, on the objects those have just made:
 
-    python3 tools/blender/props.py -- <out dir> horse qa        # also: elephant
+    python3 tools/blender/props.py -- <out dir> horse qa        # also: elephant, cow, deer, tiger, dog
     python3 tools/blender/cast.py  -- <out dir> qa <key>        # one character, each of its looks in turn
 
 Each prints one line beginning `QA`. Read by us before use: they only inspect meshes in Blender's memory (no network, no files written).

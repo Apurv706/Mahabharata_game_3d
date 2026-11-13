@@ -420,6 +420,8 @@
     BUILD[pl.kind](b, o, rnd, st);
     if (!b.empty()) st.group.add(b.mesh());
     st.far = b.far || []; for (const f of st.far) st.group.add(f);
+    { const sk = { field: 7, camp: 4, city: 4, river: 3, forest: 3, village: 3, yard: 3, garden: 2, mountain: 2, shrine: 2 }[pl.kind]; // birds wheeling high over open country by day: carrion birds over a battlefield, kites over a town
+      if (sk && /^(day|dawn|dusk|gold)$/.test(sky) && !/_top/.test(key) && !o.cellar && G.birds && !(K.UI && K.UI.calm && K.UI.calm())) st.add(G.birds(Math.max(2, Math.round(sk * (G.q.crowd || 1))), rnd, pl.kind === "field" ? 0x241e1a : 0x3a332c)); }
     G.world.add(st.group);
     // Where people stand: you a little left of the middle, the others in an arc to your right, all turned inward.
     st.me = st.me || [-1.25, 0.6, 0.55];

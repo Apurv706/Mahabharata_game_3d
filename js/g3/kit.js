@@ -828,6 +828,23 @@
     im.castShadow = n < 150; im.receiveShadow = false; im.frustumCulled = false;
     return im;
   };
+  // Birds wheeling high over a place: kites over a town, vultures over a battlefield. One mesh for all of them; each bird
+  // is its two wings, turning in its own wide circle, leaning into the turn, gliding, and now and then beating.
+  G.birds = function (n, rnd, col) {
+    rnd = rnd || Math.random; const pos = new Float32Array(n * 12), idx = [], B_ = [];
+    for (let i = 0; i < n; i++) { const ca = (i + rnd()) / n * 6.28, cr = 85 + rnd() * 80; // (far off and not very high, where a level look across the field finds them against the sky)
+      B_.push({ cx: Math.sin(ca) * cr, cz: Math.cos(ca) * cr, r: 14 + rnd() * 20, h: 17 + rnd() * 24, w: (0.15 + rnd() * 0.12) * (rnd() < 0.5 ? 1 : -1), ph: rnd() * 6.28, s: 0.8 + rnd() * 0.5 }); const k = i * 4; idx.push(k, k + 1, k + 2, k, k + 3, k + 1); }
+    const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(pos, 3)); g.setIndex(idx);
+    const m = new T.Mesh(g, new T.MeshBasicMaterial({ color: col == null ? 0x2e2824 : col, side: T.DoubleSide, fog: false })); m.frustumCulled = false; m.castShadow = false; m.receiveShadow = false;
+    m.userData.tick = (dt, t) => {
+      for (let i = 0; i < n; i++) { const b = B_[i], a = b.ph + t * b.w, sn = Math.sin(a), cs = Math.cos(a), dir = b.w > 0 ? 1 : -1, x = b.cx + sn * b.r, z = b.cz + cs * b.r, y = b.h + Math.sin(t * 0.21 + b.ph) * 2;
+        const hx = cs * dir, hz = -sn * dir, sx = hz, sz = -hx, flap = Math.sin(t * 2.4 * b.s + b.ph * 3), beat = Math.sin(t * 0.3 + b.ph) > 0.55 ? flap * 0.5 : 0.24 + flap * 0.04, bank = -0.35 * dir, o = i * 12, L = 1.5 * b.s, W = 2.1 * b.s; // (larger than life: they are seen from a long way off, on a small screen)
+        pos[o] = x + hx * L * 0.5; pos[o + 1] = y; pos[o + 2] = z + hz * L * 0.5; pos[o + 3] = x - hx * L * 0.5; pos[o + 4] = y; pos[o + 5] = z - hz * L * 0.5;                                  // head and tail
+        pos[o + 6] = x + sx * W - hx * 0.15; pos[o + 7] = y + (beat + bank) * W; pos[o + 8] = z + sz * W - hz * 0.15; pos[o + 9] = x - sx * W - hx * 0.15; pos[o + 10] = y + (beat - bank) * W; pos[o + 11] = z - sz * W - hz * 0.15; } // the wing tips
+      g.attributes.position.needsUpdate = true;
+    };
+    m.userData.tick(0, 0); return m;
+  };
   // A host drawn up in ranks: blocks of soldiers facing ry, banners among them.
   // o: { x, z, ry, cols, rows, gap, col: [cloth colours], flag: [bg, fg, device], banners }
   G.host = function (o, rnd) {

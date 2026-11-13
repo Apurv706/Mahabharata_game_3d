@@ -129,13 +129,18 @@ def hand(sx):
     balls = [((px, -0.004, 0.778), (0.016, 0.042, 0.046)),                              # palm
              ((px - sx * 0.002, -0.004, 0.815), (0.02, 0.034, 0.03)),                   # heel of the hand, into the wrist
              ((px - sx * 0.018, -0.046, 0.795), (0.012, 0.014, 0.026), 1.8, rot(0.5, 0, 0)),   # thumb, base
+             ((px - sx * 0.027, -0.049, 0.777), (0.0105, 0.012, 0.016), 1.8, rot(0.3, sx * 0.35, 0)),  # (its knuckle: the end no longer parts from the base on the broadest hands)
              ((px - sx * 0.036, -0.052, 0.757), (0.0105, 0.012, 0.021), 1.8, rot(0.15, sx * 0.7, 0))]  # thumb, end, closing over the haft
     for i, fy in enumerate((-0.034, -0.012, 0.01, 0.031)):       # four fingers
         k = (0.95, 1.0, 0.95, 0.84)[i]; up = (1 - k) * 0.03
-        balls.append(((px - sx * 0.002, fy, cz + 0.008 + up * 0.3), (0.0105, 0.0108, 0.026), 1.8))                # first joint, down from the knuckle
+        balls.append(((px - sx * 0.002, fy, cz + 0.008 + up * 0.3), (0.0105, 0.0116, 0.026), 1.8))                # first joint, down from the knuckle (broad enough to lie against its neighbours: no daylight between the fingers)
         for ph, half, th in ((-64 - 0 * k, 0.021 * k, 0.0098), (-64 - 35.4 * k - 28.6 * k * 0.95, 0.017 * k, 0.009)):   # second, turning under; the tip, coming back up
             a = math.radians(ph)
-            balls.append(((cx + sx * R * math.cos(a), fy, cz + R * math.sin(a)), (th, th + 0.0005, half), 1.8, rot(0, -sx * a, 0)))
+            balls.append(((cx + sx * R * math.cos(a), fy, cz + R * math.sin(a)), (th, th + 0.0016, half), 1.8, rot(0, -sx * a, 0)))
+    # (where one joint of a finger ends and the next begins each tapers, and four in a row left a line of small windows
+    # through the closed hand: a thin bar lies across the fingers inside each crease, and at the knuckles)
+    balls.append(((px - sx * 0.0035, -0.002, cz + 0.03), (0.0068, 0.036, 0.0068), 1.8))
+    for ph in (-27, -99): a = math.radians(ph); balls.append(((cx + sx * (R - 0.002) * math.cos(a), -0.002, cz + (R - 0.002) * math.sin(a)), (0.0068, 0.036, 0.0068), 1.8))   # (toward the hollow of the hand: the creases still show outside)
     return balls
 def lean(balls, k=0.86):   # a youth's build: the same frame with less on it; nothing is moved, and none of the cut lines
     return [((b[0]), (b[1][0] * k, b[1][1] * k, b[1][2])) + tuple(b[2:]) for b in balls if not (len(b) > 4 and b[4])]
@@ -170,6 +175,8 @@ if SHE:   # a woman's frame: breasts (not a girl), fuller hips and seat
 if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["belly"], 0.11), 1.7)]
 B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])), [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
+for o_ in HANDS:   # (a closed hand is all creases: every face is turned outward again, so none is lit from the wrong side; found by the mesh check)
+    bm_ = bmesh.new(); bm_.from_mesh(o_.data); bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.to_mesh(o_.data); bm_.free()
 # Hands a little larger than life, as game figures have them: they are what holds the weapon, and they must read from
 # across a field. Grown about the wrist. GRIP is the hollow of each closed hand, where a haft lies (the game sets the
 # weapon there: js/g3/figure.js).

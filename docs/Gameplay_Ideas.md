@@ -143,6 +143,14 @@ Checked by the rules tests (55), the fight bands (76 fights) and one opening sti
 | **Over Satyaki** (`e_kb_hold`) | Bhurishravas charges and may call you out; Satyaki lies behind you. |
 | **Ghatotkacha's night host** (`wc_e_ghost`) | It is your own line's nerve under attack: the bar "Your line's nerve" falls as your men fall and as you are struck, and at nothing the line breaks. |
 | **In Arjuna's place** (new story line; Pandava archers, day 16) | Built: three scenes with the artist's three paintings and the fight `new_arjuna_place`. You stand on the deck of Arjuna's car under the ape banner; Krishna drives a loop round the field and you only aim and shoot (`enc.ride3`, `rideStep`). Hold until he wakes. English and Hindi. |
-| The gate (Jayadratha's wall), Karna's wheel, Supratika's charge | Not built. |
+| **The gate** (`e_gate`, Jayadratha's wall) | Built: his men stand as a shield wall across the mouth (`plan3: "wall"`). In a fight the story fixes by rounds the wall cannot be broken or routed; it stands until the rounds are out. |
+| **Abhimanyu's weapons and car** (`e_last_stand`) | Drawn now: the bow goes and a sword is in his hand; his car is lost under him (the driver down at the rail, the team lying in its traces, he on the ground beside it); the sword is shattered and he takes up a chariot wheel; at the end a mace. |
+| **Supratika's charge** (`fs_d12_elephant`) | Built: the elephant cannot be brought down from the front. Get under its flank and strike the mahout three times (`enc.mahout3`). |
+| **Karna's pinned chariot** (`hold_karna`) | The crossing shape: his car stands, and you cross the field to it. The wheel in the mud itself is still a story scene with choices (`a6_day17`), not a fight: making it one means rewiring a death the epic fixes, so it waits for a ruling. |
 
 Checked by the rules tests (57), the fight bands (77 fights) and stills of the ride from above and behind. Not played through by hand.
+
+## Part 8. Everything that moves, reviewed (13 November, morning)
+
+The owner asked for a review of every Blender model and every moving part, and for the moving parts to be made more lifelike. That work is written up in `Moving_Parts.md`. In one line each: horses and elephants are jointed and walk in true gaits; cattle, a deer, a tiger and a dog are real models where horses and boxes stood in; people walk from the hips and shift their weight; arrows turn in the air and stay where they strike; trees, reeds and grass move in a wind; the ranks stir; birds wheel over open country.
+

@@ -140,14 +140,14 @@
       if (busy) return; busy = true; n++;
       const hit = Math.abs(pos) <= hw, to = V(X0 + (hit ? pos * AMP : (pos > 0 ? -0.6 : 0.6)), x.runner ? 1.1 : x.tg.position.y, Z);
       ctx.me.act("loose", 0.35, 0.45); sfx("tap");
-      G.fx.arrow(ctx.me.tip(), to, 0.22, 0.2, () => {
+      G.fx.arrow(ctx.me.tip(), to, 0.22, 0.2, (shaft) => { if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
         if (hit) { hits++; G.fx.burst("hit", to, { n: 12 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); flew = 0.6; } else { ctx.toast(tx("Missed"), "bad"); sfx("step"); }
         draw();
         const left = shots - n;
         if (hits >= need) return ctx.after(500, () => ctx.finish("win", null));
         if (hits + left < need) return ctx.after(500, () => ctx.finish(hits === need - 1 ? "close" : "lose", null));
         ctx.after(450, () => { busy = false; });
-      });
+      }, 0.9);
     };
     ctx.onAct(fire);
   };
@@ -497,7 +497,7 @@
     const tossB = ctx.button(K.text(["Toss a pebble ({n})", { n: stones }]), () => toss());
     function toss() { if (stones <= 0 || over) return; stones--; tossB.textContent = K.text(["Toss a pebble ({n})", { n: stones }]); if (!stones) tossB.disabled = true;
       const a = ctx.me.face, px = clamp(w.x + Math.sin(a) * 4.5, -W, W), pz = clamp(w.z + Math.cos(a) * 4.5, -D, D), from = ctx.me.root.position.clone().setY(1.2), to = new T.Vector3(px, 0.1, pz);
-      G.fx.arrow(from, to, 0.5, 1.6, () => { sfx("tap"); G.fx.burst("dust", to, { n: 6 }); G.fx.ring(to, 0xffe9b0, 0.2, 2.4, 0.6); hearAll(px, pz, 7, 3); }); }
+      G.fx.arrow(from, to, 0.5, 1.6, () => { sfx("tap"); G.fx.burst("dust", to, { n: 6 }); G.fx.ring(to, 0xffe9b0, 0.2, 2.4, 0.6); hearAll(px, pz, 7, 3); }, 0, "stone"); } /* (a pebble, not an arrow) */
   };
 
   // =====================================================================================================

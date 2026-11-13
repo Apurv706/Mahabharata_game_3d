@@ -370,3 +370,19 @@ Found and not fixed:
 - **Carrying Iravan** is at night now, and a man lies across your shoulders.
 - The dark field late in the Bhishma fight was the edge of the arena, where the ground is darker. Not a fault.
 - Rulings for what comes next: at Abhimanyu's last stand a Kaurava-side player may hold back (each step a task you may do or refuse); in Arjuna's place Krishna drives and you only shoot.
+
+## Jointed beasts, a wind, arrows that stay, and the mesh checks (13 November, morning)
+
+The owner asked for a review of every model and everything that moves. The review itself is `Moving_Parts.md`; these are the notes for whoever works on the code next.
+
+- **Beasts are one skinned mesh each** (`skinned()` in `js/g3/kit.js`). A prop file lists its parts with a pivot each; `skinned` builds one mesh with a rigid bone for each part (`HORSE_J`, `ELE_J` say which part hangs from which). One draw for a beast instead of five. The old piece-by-piece `beast()` stays as the fallback for a prop file without shins.
+- **Gaits** are a table (`GAITS`): for each gait, where each leg is in the stride, the share of the stride on the ground, the swing, the fold, and strides a second. `G.gallop(beast, t, speed)` keeps its own clock on the beast, eases speed, and picks walk, trot or gallop with a little stickiness so it does not flicker between two. `t` only sets one beast out of step with the next.
+- **The lesser beasts** (`G.beast4("cow" | "deer" | "tiger" | "dog", colour)`, `G.cow(colour)`) use the horse's part names and so the horse's gaits. `KINDS` holds what differs: size, how much of its standing it grazes, whether it bounds, prowls or wags. `G.lie(beast, 1 | 0, dt)` lays one down and gets it up. Built by `tools/blender/props.py`; the helpers there are `legs4` (four legs from a few heights), `onto` (set an eye or an ear on the real surface), `spots`, and `band` (a stripe cut from a coat by two planes, its edge turned in to meet the coat).
+- **Wind.** `Builder.windy(k, lf, fn)` marks what `fn` adds as bending in the wind; `Builder.leafy(fn)` inside it marks leaf, which also flutters. The mesh carries a `wind` value for each point and the shared materials (`G.mat.vc`, `vcFlat`, `vcDouble`, `surf`, `surfD`) move the point in the vertex shader on one clock, `G.windU`. A geometry without the value stands still. `G.mat.windDepth` makes the shadow follow. `G.tree`, `G.reeds` and `G.tuft` do all of this themselves.
+- **Ranks and crowds** sway in the same way, in the crowd material's shader, from each man's own place.
+- **Arrows.** In a fight, an arrow that arrives is handed to `stick()` in `js/ui/battle/view.js`: into the ground, or parented to the torso of the man it hit. `stuckFrame` shakes and later removes them; fourteen at most. `G.fx.arrow(a, b, secs, arc, done, stick, what)` gained the spin, the shake while stuck, and `what: "stone"`.
+- **People.** The walk in `js/g3/figure.js` adds hip and shoulder turn, hip drop, a sideways shift (`f.latT`, eased into `f.latC`, applied to the hips' x), and a run that is not a fast walk. Standing adds a slow shift of weight.
+- **Birds** over open country: `G.birds(n, rnd, colour)`, one mesh, added by `G.setStage` by day.
+- **Hands.** `hand()` in `tools/blender/cast.py` has a bar inside each crease and a knuckle on the thumb.
+- **The checks** are `tools/blender/skills/` (see its README). `cast.py` has a `qa` stage and `props.py` a `qa` word.
+- **A rule learned four times over in this stretch:** never put a `//` comment in the middle of one of this code's long lines. It swallows the rest of the line. Use `/* */`.

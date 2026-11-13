@@ -134,16 +134,24 @@
   F.resetLights = () => { lights = 0; };
 
   // ---------- Arrows in flight ----------
-  // From a to b in `secs`, lifted by `arc` at the middle; done(hit) when it arrives. Returns the mesh.
-  F.arrow = function (a, b, secs, arc, done, stick) {
+  // From a to b in `secs`, lifted by `arc` at the middle; done(mesh) when it arrives. Returns the mesh. An arrow turns
+  // on its own line as it flies (its feathers do that); with `stick` it stays where it struck for that many seconds,
+  // shaking at first (done may hang it on what it hit: it is shaken where it then is). what "stone": a pebble, tumbling.
+  const _qa = new T.Quaternion(), _xa = new V3(1, 0, 0);
+  F.arrow = function (a, b, secs, arc, done, stick, what) {
     if (!G.ok) { if (done) done(); return null; }
-    const m = G.arrowMesh(0.85); G.fxRoot.add(m);
+    const stone = what === "stone", m = stone ? new T.Mesh(new T.IcosahedronGeometry(0.05, 0), new T.MeshLambertMaterial({ color: 0x8a8378, flatShading: true })) : G.arrowMesh(0.85); G.fxRoot.add(m);
     let t = 0; const p = new V3(), q = new V3();
     const at = (k, out) => out.lerpVectors(a, b, k).setY(a.y + (b.y - a.y) * k + Math.sin(k * PI) * (arc || 0));
+    const gone = () => { if (m.parent) m.parent.remove(m); G.dispose(m); };
     arrows.push((dt) => {
       t += dt; const k = Math.min(1, t / Math.max(0.03, secs));
-      at(k, p); at(Math.min(1, k + 0.04), q); m.position.copy(p); if (k < 1) m.lookAt(q);
-      if (k >= 1 || dt > 50) { if (done && dt < 50) done(m); if (stick && dt < 50) { setTimeout(() => { if (m.parent) m.parent.remove(m); G.dispose(m); }, stick * 1000); } else { if (m.parent) m.parent.remove(m); G.dispose(m); } return true; }
+      at(k, p); at(Math.min(1, k + 0.04), q); m.position.copy(p); if (stone) m.rotation.set(t * 9, t * 5, 0); else if (k < 1) { m.lookAt(q); m.rotateZ(t * 13); }
+      if (k >= 1 || dt > 50) { if (done && dt < 50) done(m);
+        if (stick && dt < 50) { const q0 = m.quaternion.clone(); let ts = 0; setTimeout(gone, stick * 1000);
+          if (!stone) arrows.push((d2) => { ts += d2; if (d2 > 50 || ts > 0.7 || !m.parent) return true; m.quaternion.copy(q0).multiply(_qa.setFromAxisAngle(_xa, Math.sin(ts * 58) * 0.1 * Math.exp(-ts * 7))); return false; }); }
+        else gone();
+        return true; }
       return false;
     });
     return m;
