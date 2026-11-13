@@ -131,3 +131,5 @@ Asked for: build all of these ideas, and an art brief. This is the first sitting
 Checked by the rules tests (55), the fight bands (76 fights) and one opening still of each new fight. Neither new fight has been played through by hand or seen on a phone.
 
 **Art brief:** `docs/Art_Brief_3D_Storylines.pdf` (9 pages, 30 paintings in four priorities; made by `tools/art_brief_3d.py`). It asks for scenes, two portraits, two moments and an ending only: the 3D game draws its own fields.
+
+**First paintings in (12 November, 9 pm):** batch 1 of the brief, nine pictures. In the game now: `scene_bhima_down` and `scene_banner_falls` on the two choice scenes; `scene_bhima_rises` and `scene_banner_dusk` on a new short scene after each fight is won; `scene_kings_wheel` on the scene before Drona comes for the king's chariot; `p_kalinga` on the challenge card when the Kalinga captain calls you out. Stored for In Arjuna's place, which is not built: `scene_arjuna_struck`, `scene_under_the_ape`, `scene_arjuna_wakes`. Still owed from Priority 1: `scene_banner_down`.

@@ -135,7 +135,7 @@
         : ["Further along the crescent Drona kills Satyajit, but the king is got away in time."])
     },
     {
-      id: "oath_king", act: 6, age: 44, war: true, away: true, art: "fight_war_chariot", place: "Kurukshetra · day 12", caption: "Drona through the gap", title: "The king's chariot",
+      id: "oath_king", act: 6, age: 44, war: true, away: true, art: "scene_kings_wheel", place: "Kurukshetra · day 12", caption: "Drona through the gap", title: "The king's chariot",
       body: ["Drona's chariots pour through the gap toward Yudhishthira."],
       choices: [
         { id: "hold", t: "Hold at the king's chariot", combat: "oath_king_hold", hint: "Won by standing" },

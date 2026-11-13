@@ -644,7 +644,8 @@
     }
     function duelCard(uid) {
       if (U.battleBot) return; paused = true; U.setPaused("battle", true);
-      const el = U.el('<div class="b-card b-pause b-duel" role="dialog"><h2>' + U.tr("{t} calls you out", { t: U.esc(nameOf(uid)) }) + '</h2><p>' + U.tr("Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.") + '</p><div class="btnrow"></div></div>');
+      const du = B.units.find((x) => x.uid === uid), pk = du && (U.portraitKey(du.person) || (/^Kalinga captain/.test(du.src || du.name || "") ? "p_kalinga" : null));
+      const el = U.el('<div class="b-card b-pause b-duel" role="dialog">' + (pk ? U.thumb(pk, "face") : "") + '<h2>' + U.tr("{t} calls you out", { t: U.esc(nameOf(uid)) }) + '</h2><p>' + U.tr("Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.") + '</p><div class="btnrow"></div></div>');
       const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
