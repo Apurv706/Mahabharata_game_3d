@@ -220,6 +220,10 @@
     "Krishna drives. You only shoot.": "रथ कृष्ण चलाते हैं। तुम केवल बाण छोड़ते हो।",
     "He wakes": "वह जागता है",
     "Arjuna sits up with a hand to his head and asks how long. \"Long enough,\" Krishna says, and holds out the water skin.": "अर्जुन सिर पर हाथ रखकर उठ बैठता है और पूछता है, कितनी देर। \"बहुत देर,\" कृष्ण कहते हैं, और पानी की मशक आगे बढ़ा देते हैं।",
-    "Nobody tells you to get down. You get down. Arjuna looks at the bow in your hand, and then at you, and nods once, the way he might to another archer.": "कोई तुमसे उतरने को नहीं कहता। तुम उतर जाते हो। अर्जुन तुम्हारे हाथ के धनुष को देखता है, फिर तुम्हें, और एक बार सिर हिलाता है, जैसे किसी दूसरे धनुर्धर को हिलाता।"
+    "Nobody tells you to get down. You get down. Arjuna looks at the bow in your hand, and then at you, and nods once, the way he might to another archer.": "कोई तुमसे उतरने को नहीं कहता। तुम उतर जाते हो। अर्जुन तुम्हारे हाथ के धनुष को देखता है, फिर तुम्हें, और एक बार सिर हिलाता है, जैसे किसी दूसरे धनुर्धर को हिलाता।",
+    "The mahout cries out and hauls the beast's head round.": "महावत चीख़ उठता है और हाथी का सिर घुमा देता है।",
+    "You are in under its flank, at the mahout's leg. {n} of 3!": "तुम उसके पार्श्व के नीचे हो, महावत के पाँव तक। {n} / 3!",
+    "Come at the mahout from its flank: {n} of 3": "पार्श्व से महावत तक पहुँचो: {n} / 3",
+    "The mahout has had enough. He turns the beast out of your division.": "महावत हार मान लेता है। वह हाथी को तुम्हारी टुकड़ी से बाहर मोड़ देता है।"
   });
 })(window.K = window.K || {});

@@ -190,7 +190,7 @@
   function planFor(R, opts) {
     const B = R.B, enc = B.enc, rad = R.rad;
     if ((enc.plan === "bhishma" || CROSS[enc.id]) && !opts.noPlan) return bhishmaPlan(R);
-    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && !HOLD_PLAN[enc.id] && !enc.plan3) || enc.rounds || enc.dream || R.kind || R.through || R.escort) return;
+    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && !HOLD_PLAN[enc.id] && !enc.plan3) || (enc.rounds && !enc.plan3) || enc.dream || R.kind || R.through || R.escort) return;
     const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g), foot = foes.filter((u) => !u.g.archer && !u.g.car && (u.g.kind === "man" || u.g.kind === "squad")).concat(B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g)); // (the named foot, and then the men of their line)
     if (foot.length < 3) return;
     const champ = foes.filter((u) => !u.plural && (u.g.kind === "man") && (u.hero || u.person || tier(u) >= 1 || u.g.car)).sort((a, b) => (b.hero ? 3 : b.person ? 2 : tier(b)) - (a.hero ? 3 : a.person ? 2 : tier(a)))[0] || null;
@@ -304,10 +304,23 @@
   function stepClose(R) {
     const B = R.B, s3 = R.step3; if (!s3) return; R.step3 = null;
     const at = B.log.length, u = (s3.beat.run && s3.beat.run(B)) || {}; B.log.splice(at, 0, { key: s3.beat.text, u, ev: true });
+    beatItem(R, s3.beat);
     if (s3.hit) { R.held = (R.held || 0) + 1; for (const a of living(B, "ally")) if (!a.line && a.person) { a.hp = Math.min(a.maxHp, a.hp + Math.round(a.maxHp * 0.12)); B.status(a, "inspired", 2); } R.fx.push({ k: "stepHeld", uid: s3.uid, n: R.held }); }
     R.fx.push({ k: "event", at });
   }
+  // A change of weapon the story makes in a man's hands (beat.item3: [person, item]): seen, and fought with.
+  function beatItem(R, beat) { const it = beat && beat.item3; if (!it) return; const u = R.B.units.find((x) => x.person === it[0] && x.hp > 0 && x.g); if (!u) return; u.g.weapon = it[1]; if (it[1] !== "bow") { u.g.archer = false; } R.fx.push({ k: "item", uid: u.uid, item: it[1] }); }
+  // The elephant (enc.mahout3): there is no fighting the beast, but come at it from the side, inside its turn, and you
+  // can get at the mahout's leg with whatever is in your hand. Three times, and he turns it out of your division.
+  function mahoutStep(R) {
+    const B = R.B; if (!B.enc.mahout3 || R.over) return; const e = living(B, "enemy").find((u) => u.g && u.g.kind === "elephant"); if (!e) return;
+    const p = C.player(), m = R.mahout || (R.mahout = { n: 0, at: 0 }); if (R.t < m.at || p.hp <= 0) return;
+    const d = dist(p, e), off = Math.abs(adiff(angTo(e, p), e.g.a));
+    if (d <= e.g.rad + 1.5 && off > 1.2) { m.n++; m.at = R.t + 5; e.g.stag = Math.max(e.g.stag || 0, 3.5); cancel(e); R.fx.push({ k: "mahout", uid: e.uid, n: m.n });
+      if (m.n >= 3) { B.say("The mahout has had enough. He turns the beast out of your division."); end(R, "win"); } }
+  }
   function storyStep(R) {
+    mahoutStep(R);
     if (R.step3 && R.t >= R.step3.until) stepClose(R);
     const o = R.order; if (o && o.state === "doing" && R.t >= o.until) { o.state = "miss"; R.fx.push({ k: "orderDone", how: "miss", uid: o.uid }); }
   }
@@ -1176,7 +1189,7 @@
       const stopper = beat && beat.stop && !R.noPlan ? living(B, "enemy").find((u) => u.g && (u.person === beat.stop || who(u) === beat.stop)) : null;
       if (beat && R.step3) stepClose(R); // (the last one's time is up)
       if (beat && stopper) { B.evented = true; R.step3 = { beat, uid: stopper.uid, until: R.t + P.story - 0.5, hit: false }; R.fx.push({ k: "stepOpen", uid: stopper.uid, what: beat.stopText || "" }); }
-      else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); }
+      else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); beatItem(R, beat); }
       if (B.enc.order3 && !R.noPlan && !R.order && B.round === B.enc.order3.round) { const t = living(B, "enemy").find((u) => u.person === B.enc.order3.on); if (t) { R.order = { uid: t.uid, state: "asked" }; R.offer = { kind: "order", uid: t.uid, n: 0 }; R.fx.push({ k: "order", uid: t.uid }); } }
       else if (B.round === 3 && B.enc.lethal && !B.evented && !B.enc.beats && living(B, "enemy").length) { const at = B.log.length; C.core.fieldEvent(); R.fx.push({ k: "event", at }); }
     }

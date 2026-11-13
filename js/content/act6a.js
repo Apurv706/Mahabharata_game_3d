@@ -339,10 +339,10 @@
     intro: "Behind you the gap has closed. Abhimanyu glances back, sees you, and laughs. \"Two of us,\" he says. \"That is twice as many as they thought.\"",
     beats: [
       { round: 2, stop: "karna", text: "On Drona's word, Karna circles behind Abhimanyu and cuts his bowstring with one arrow.", run: (B) => { const a = abhi(B); if (a) { a.abilities = ["strike", "heavy"]; a.atk = Math.round(a.atk * 0.85); } } },
-      { round: 3, text: "Abhimanyu's charioteer falls, then his horses. He leaps down with his sword and shield.", run: (B) => { const a = abhi(B); if (a) B.status(a, "exposed", 2); } },
+      { round: 3, item3: ["abhimanyu", "sword"], text: "Abhimanyu's charioteer falls, then his horses. He leaps down with his sword and shield.", run: (B) => { const a = abhi(B); if (a) B.status(a, "exposed", 2); } },
       { round: 4, stop: "drona", text: "Drona shatters Abhimanyu's sword in his hand. He picks up a chariot wheel and swings it like a mace.", run: (B) => { const a = abhi(B); if (a) a.atk = Math.round(a.atk * 0.8); } },
       { round: 5, text: "Six of them close in at once. There is no room left to turn.", run: (B) => B.living("friends").forEach((u) => B.status(u, "weakened", 2)) },
-      { round: 6, text: "The wheel in Abhimanyu's hands breaks. He picks up a mace from the ground.", run: (B) => {} }
+      { round: 6, item3: ["abhimanyu", "mace"], text: "The wheel in Abhimanyu's hands breaks. He picks up a mace from the ground.", run: (B) => {} }
     ],
     win: { next: "a6_ring_closes", text: "You are still on your feet beside him when the ring of chariots begins to turn inward." },
     lose: { fx: { flag: "died_with_abhimanyu" }, deathText: "{They} fell beside Abhimanyu in the heart of the wheel, on the thirteenth day." }
@@ -377,7 +377,7 @@
     flee: { tags: ["retreat"], next: "a6_d13_bow", fx: { duty: { conscience: 1 }, flag: "left_ring" }, text: "You pull back out of the ring. Others close the gap you leave, and die in it." }
   });
   war("e_gate", "Holding the gate", [K.foe("Jayadratha's guard", 4, { abilities: ["strike", "guard"] }), K.foe("Sindhu archer", 3, { abilities: ["strike", "arrows"] })], {
-    caption: "The breach Jayadratha holds", rounds: 5, roundsText: "The gate never opens. But you held your ground in front of it.", spare: false,
+    caption: "The breach Jayadratha holds", rounds: 5, plan3: "wall", // (in 3D his guard is a shield wall across the gap: a mace's heavy blow or a way round its end) roundsText: "The gate never opens. But you held your ground in front of it.", spare: false,
     win: { fx: { flag: "could_not_break_through", memory: ["arjuna", "You were among those who could not break through."], journal: "On the thirteenth day you were among those who could not break through." }, text: "Whatever you do, Jayadratha's line does not break today. Nothing would have broken it." },
     lose: { deathText: "You fell at the breach of the Chakravyuha, trying to reach Abhimanyu." },
     flee: { fx: { duty: { conscience: -1 } }, text: "You pull back from the gate." }

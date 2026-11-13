@@ -169,7 +169,7 @@
     beats: twist(3, "His chariot turns back along the line, and the arrows come thicker.", fire(1)),
     win: { fx: { journal: "On the third day you stood under Bhishma's arrows and lived." }, text: "When the arrows stop, the ground around you is grey with them. You are still standing in it." },
     lose: { fx: { injury: "scar" }, text: "An arrow finds the gap in your shield. You are carried back to the tents before noon." } });
-  side({ id: "fs_d12_elephant", kind: (S) => K.fightKind(S, 12, "weather"), title: "Supratika's charge", art: "war_capture", caption: "Four rounds",
+  side({ id: "fs_d12_elephant", mahout3: true, kind: (S) => K.fightKind(S, 12, "weather"), title: "Supratika's charge", art: "war_capture", caption: "Four rounds",
     intro: (S) => (S.side === "kaurava" ? "You are in the press behind Bhagadatta's elephant when Arjuna turns on it. Every arrow aimed at the old king falls among you as well."
       : "Bhagadatta's elephant Supratika comes through the Pandava line, and men go under its feet. There is no fighting it. Keep out of its way, and stay alive."),
     holdText: "The worst of it is past you. You are still standing.",

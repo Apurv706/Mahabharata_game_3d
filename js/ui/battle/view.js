@@ -176,7 +176,12 @@
         let top = null, hor = null, strip = null, gnd = null;
         try { const cv = document.createElement("canvas"); cv.width = 16; cv.height = 32; const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, 16, 32); const px = cx.getImageData(0, 0, 16, 32).data;
           const avg = (y0, y1) => { let r = 0, g = 0, b2 = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = 0; x < 16; x++) { const i = (y * 16 + x) * 4; r += px[i]; g += px[i + 1]; b2 += px[i + 2]; n++; } return new T.Color().setRGB(r / n / 255, g / n / 255, b2 / n / 255, T.SRGBColorSpace); };
-          top = avg(0, 3); hor = avg(11, 14); strip = avg(16, 18); gnd = avg(20, 28); } catch (e) { top = hor = strip = gnd = null; }
+          top = avg(0, 3); hor = avg(11, 14); strip = avg(16, 18); gnd = avg(20, 28);
+          // A dark picture (the wheel at dusk, a night camp) must not make a dark field: seen from above the fight would be dark figures on
+          // dark red earth. The ground and the haze keep the picture's hue but are lifted to a floor of brightness.
+          const lum = (c) => 0.3 * c.r + 0.59 * c.g + 0.11 * c.b, lift = (c, min) => { const l = lum(c); if (l < min) c.lerp(new T.Color(0xd9b98c), Math.min(0.8, (min - l) / Math.max(0.05, 0.62 - l))); };
+          if (st.sky !== "night") { lift(gnd, 0.34); lift(strip, 0.34); lift(hor, 0.42); }
+        } catch (e) { top = hor = strip = gnd = null; }
         const geo = new T.CylinderGeometry(RAD, RAD, H, 72, 5, true), pos = geo.attributes.position, col = new Float32Array(pos.count * 4);
         for (let i = 0; i < pos.count; i++) { const v = (pos.getY(i) + H / 2) / H; col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = 1; col[i * 4 + 3] = v > 0.72 ? Math.max(0, 1 - (v - 0.72) / 0.28) : 1; }
         geo.setAttribute("color", new T.BufferAttribute(col, 4));
@@ -522,6 +527,8 @@
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
           case "turn": planTurn(e); break;
+          case "item": { const iv = views.get(e.uid), fi = iv && iv.figs[0]; if (fi) { try { fi.setItem(itemOf(e.item)); fi.act("draw", 0.5, 0.4); } catch (err) {} G.fx.burst("hit", fi.chest(), { n: 8 }); } break; }
+          case "mahout": banner(U.tr(e.n >= 3 ? "The mahout cries out and hauls the beast's head round." : "You are in under its flank, at the mahout's leg. {n} of 3!", { n: e.n })); sfx("clang"); G.shake(0.2, 0.25); break;
           case "order": orderCard(e.uid); sfx("drumCall"); break;
           case "orderTaken": banner(U.tr(B.enc.order3.taken)); break;
           case "orderDone": orderDone(e.how); break;
@@ -964,6 +971,7 @@
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
       if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
       if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
+      if (B.enc.mahout3 && B.units.some((x) => x.side === "enemy" && x.hp > 0 && x.g && x.g.kind === "elephant")) return K.tr("Come at the mahout from its flank: {n} of 3", { n: (R.mahout && R.mahout.n) || 0 }) + (left != null ? " · " + n + " s" : "");
       if (R.step3) return K.tr("Get to {t}", { t: nameOf(R.step3.uid) }) + " · " + Math.max(0, Math.ceil(R.step3.until - R.t)) + " s";
       if (R.order && R.order.state === "doing") return K.tr(B.enc.order3.goal) + " · " + Math.max(0, Math.ceil(R.order.until - R.t)) + " s";
       if (R.duel) return K.tr("Single combat");
