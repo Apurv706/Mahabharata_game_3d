@@ -133,3 +133,16 @@ Checked by the rules tests (55), the fight bands (76 fights) and one opening sti
 **Art brief:** `docs/Art_Brief_3D_Storylines.pdf` (9 pages, 30 paintings in four priorities; made by `tools/art_brief_3d.py`). It asks for scenes, two portraits, two moments and an ending only: the 3D game draws its own fields.
 
 **First paintings in (12 November, 9 pm):** batch 1 of the brief, nine pictures. In the game now: `scene_bhima_down` and `scene_banner_falls` on the two choice scenes; `scene_bhima_rises` and `scene_banner_dusk` on a new short scene after each fight is won; `scene_kings_wheel` on the scene before Drona comes for the king's chariot; `p_kalinga` on the challenge card when the Kalinga captain calls you out. Stored for In Arjuna's place, which is not built: `scene_arjuna_struck`, `scene_under_the_ape`, `scene_arjuna_wakes`. Still owed from Priority 1: `scene_banner_down`.
+
+## Part 7. Built on 13 November (early morning)
+
+| Idea | State |
+|---|---|
+| **The heart of the wheel** (`e_last_stand`, Pandava side) | Two of the epic's steps are now things you can act on. Before Karna cuts the bow, and before Drona shatters the sword, the man is named and the goal reads "Get to Karna": a blow of yours on him in that round spoils his stroke. It is done all the same, but Abhimanyu takes heart and heals a little, and it is counted. Not drawn yet: his bow, sword and wheel do not change in his hands, and his car does not fall. |
+| **Your stretch of the ring** (`e_ring`, Kaurava side) | Drona's order reaches you in the fight as a card (owner's ruling: you may hold back). Do as he says, and you have twelve seconds to get a blow in on Abhimanyu; land it and you obeyed, do not and you "drew, and did not strike". Refuse, and you refused out loud. The scene after the fight then shows only what you did, with the same costs as before, and does not ask again. |
+| **Over Satyaki** (`e_kb_hold`) | Bhurishravas charges and may call you out; Satyaki lies behind you. |
+| **Ghatotkacha's night host** (`wc_e_ghost`) | It is your own line's nerve under attack: the bar "Your line's nerve" falls as your men fall and as you are struck, and at nothing the line breaks. |
+| **In Arjuna's place** (new story line; Pandava archers, day 16) | Built: three scenes with the artist's three paintings and the fight `new_arjuna_place`. You stand on the deck of Arjuna's car under the ape banner; Krishna drives a loop round the field and you only aim and shoot (`enc.ride3`, `rideStep`). Hold until he wakes. English and Hindi. |
+| The gate (Jayadratha's wall), Karna's wheel, Supratika's charge | Not built. |
+
+Checked by the rules tests (57), the fight bands (77 fights) and stills of the ride from above and behind. Not played through by hand.

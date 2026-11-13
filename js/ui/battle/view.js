@@ -330,11 +330,11 @@
       else {
         const look = lookFor(u, B), n = v.bodies;
         if (g.car) { // a chariot: the archer on its deck, a driver at the rail, the hero's own standard behind
-          const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, who = u.person || (/Brihannala/.test(String(u.src || u.name)) ? "brihannala" : null), flag = STANDARD[who === "brihannala" ? "arjuna" : who] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
+          const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, who = u.person || (u.side === "player" && B.enc.ride3) || (/Brihannala/.test(String(u.src || u.name)) ? "brihannala" : null), flag = STANDARD[who === "brihannala" ? "arjuna" : who] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
           const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
           v.car = G.chariot({ col: car ? car[0] : G.shade(theirs, great ? 0.82 : 0.66) /* (panelled in his host's colour) */, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
-          v.driver = G.figure(u.person === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
+          v.driver = G.figure(who === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
           const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
@@ -385,7 +385,7 @@
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
-        G.steer(c, g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it)
+        G.steer(c, g.ca != null ? g.ca : g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the car's own heading when another hand drives)
         v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
       }
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
@@ -396,7 +396,7 @@
         const o = v.bodies > 1 ? SQUAD[i] : [0, 0], s = Math.sin(g.a), c = Math.cos(g.a);
         const x = g.x + o[0] * c + o[1] * s, z = g.z - o[0] * s + o[1] * c;
         const down = i >= alive;
-        if (v.car) { f.root.rotation.y = 0; f.face = 0; }
+        if (v.car) { f.root.rotation.y = g.ca != null ? g.a - v.car.rotation.y : 0; f.face = 0; } // (in a car another drives you turn on the deck to aim)
         else if (!f.fellAt) {
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
           f.face = g.a;

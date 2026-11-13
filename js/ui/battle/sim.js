@@ -142,6 +142,9 @@
     };
     // The great archers fight from their chariots, as the epic has them: a wider body, a little faster over the ground.
     if (u.side !== "player" && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
+    // In a great man's car (enc.ride3, owner 13 Nov: "Krishna drives"): you stand on the deck with your bow and the charioteer takes the
+    // car round the field on his own line. You do not steer: you aim, loose and brace.
+    if (u.side === "player" && R.B.enc.ride3) { u.g.car = true; u.g.rad = 1.25; u.g.ride = { th: 0 }; }
     for (const [s, v] of Object.entries(u.status)) if (typeof v === "number") u.g.st[s] = v * ROUND;
     if (foe && (u.shield || u.shieldDrawn) && u.sp == null) u.sp = P.shieldPts;
     if (u.leave != null) { u.g.leaveAt = R.t + Math.max(1, u.leave - B.round) * P.story; delete u.leave; }
@@ -795,7 +798,13 @@
   }
   const turnTo = (a, to, max) => a + clamp(adiff(to, a), -max, max);
   // Move a body, kept on the field and out of other bodies (a roll passes through; foes stop you, friends do not).
+  function rideStep(R, dt) {
+    const p = C.player(), g = p && p.g; if (!g || !g.ride || p.hp <= 0) return;
+    const a = R.rad * 0.56, b = R.rad * 0.4, c0 = R.rad * 0.06, th = (g.ride.th += 0.36 * dt);
+    g.x = a * Math.sin(th); g.z = c0 + b * Math.cos(th); g.ca = Math.atan2(a * Math.cos(th), -b * Math.sin(th)); g.moving = 1;
+  }
   function move(R, u, dx, dz, pass) {
+    if (u.g.ride) return; // (the charioteer has the reins)
     const g = u.g; let x = g.x + dx, z = g.z + dz;
     if (!pass) for (const o of R.B.units) {
       if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light") continue;
@@ -1235,7 +1244,7 @@
     for (const e of living(B, "enemy").sort((x, y) => (x.g.atk ? 0 : 1) - (y.g.atk ? 0 : 1) || x.g.idx - y.g.idx)) { if (e.g.atk && R.slow > 0) { e.g.atk.land += STEP - fdt; e.g.atk.t0 += STEP - fdt; } foeStep(R, e, fdt); }
     shotsStep(R);
     clocks(R);
-    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R);
+    lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R); rideStep(R, STEP);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
