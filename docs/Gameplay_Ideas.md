@@ -1,6 +1,6 @@
 # Gameplay ideas for the 3D fights (12 November)
 
-Asked for: the game was designed for 2D play; now that fights are 3D, how can they be made more interesting, and how should the divine weapons be invoked, land and be countered. Part 1 was built on 12 November (see the end of `docs/Conversion_Notes.md` for what was and was not done); the owner ruled that men who flee count as beaten up to a cap, that the counter is a contest, and that only a poor invocation changes the force. Part 2 is ideas only.
+Asked for: the game was designed for 2D play; now that fights are 3D, how can they be made more interesting, and how should the divine weapons be invoked, land and be countered. Part 1 was built on 12 November (see the end of `docs/Conversion_Notes.md` for what was and was not done); the owner ruled that men who flee count as beaten up to a cap, that the counter is a contest, and that only a poor invocation changes the force. From Part 2, morale, facing and flanks, tasks and duels were built the same night as three enemy plans with a turn in each (same notes); the rest of Part 2 is ideas only.
 
 ## Part 1. The divine weapons, in three beats
 

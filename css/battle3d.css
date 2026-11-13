@@ -217,3 +217,11 @@ body.in3d #b3d { display: block; }
 @keyframes yPulse { 50% { r: 9.5px; } }
 @media (prefers-reduced-motion: reduce) { .b-yantra, .b-yantra.ok, .b-yantra.broke { animation: none; } .b-yantra .y-pt.next circle { animation: none; } }
 
+/* Their host's spirit, and the champion's challenge (js/ui/battle/view.js, spiritHud, duelCard) */
+.b-spirit { position: absolute; left: 12px; top: calc(150px + var(--safe-t, 0px)); width: 132px; pointer-events: none; font-size: 11px; color: #efe6cf; text-shadow: 0 1px 2px #000; }
+.b-spirit > div { height: 6px; margin-top: 3px; border-radius: 3px; background: rgba(0, 0, 0, .45); overflow: hidden; }
+.b-spirit i { display: block; height: 100%; background: #c9463a; transition: width .4s ease; }
+.b-spirit.low i { background: #e9c46a; }
+.bhud.pre .b-spirit { display: none; }
+.b-card.b-duel { width: min(420px, calc(100% - 24px)); } .b-card.b-duel p { margin: 6px 0 12px; }
+

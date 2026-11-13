@@ -521,6 +521,16 @@
           case "cover": sfx("tap"); break;
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
+          case "turn": planTurn(e); break;
+          case "taskDone": case "taskFail": planTask(e); break;
+          case "rout": toast(U.tr("They break and run"), "good"); sfx("gong"); G.shake(0.3, 0.4); break;
+          case "duel": banner(U.tr("The hosts stand off. It is you and him.")); sfx("drumCall"); break;
+          case "duelNo": banner(U.tr("You refuse. Your men look at one another.")); break;
+          case "duelWon": banner(U.tr("He falls, and his men run.")); break;
+          case "cutDown": { const at = posOf(e.uid, 1.8); if (at) float(at, "✕", "mine"); break; }
+          case "flank": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("flank!"), "foe"); break; }
+          case "walled": if (!tips.wall) tip("wall", "Their shields are locked. Go round the side, or break one with a heavy blow."); break;
+          case "setback": toast(U.tr("You begin hurt from the last fight."), "bad"); break;
           case "mantraBroke": toast(U.tr("The mantra broke"), "bad"); sfx("step"); break;
           case "clashEnd": clashEnd(e); break;
           case "fled": { const v = views.get(e.uid); if (v) v.fled = 0.001; break; }
@@ -596,6 +606,34 @@
         });
       }
       if (e.out && e.out.text) banner(K.text(e.out.text));
+    }
+    // ---------- Their plan turns: a horn, and something to do against a count (js/ui/battle/sim.js, "Their plan") ----------
+    let stdMark = null, spiritEl = null;
+    const nameOf = (uid) => { const u = B.units.find((x) => x.uid === uid); return u ? K.text(u.name) : ""; };
+    function planTurn(e) {
+      sfx("drumCall"); G.fx.flash("rgba(255,240,200,.25)", 400);
+      if (e.kind === "standard" && e.task) { banner(U.tr("A horn. Their wall is broken and their standard stands open behind it. Take it!"));
+        stdMark = new T.Group(); const b = G.banner ? G.banner(4.2, 0xa3302a, 0xf2d27a, "sun", 1.2) : null; if (b) stdMark.add(b); stdMark.position.set(e.task.x, 0, e.task.z); G.fxRoot.add(stdMark);
+        let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "standard") { if (stdMark) { G.fxRoot.remove(stdMark); G.dispose(stdMark); stdMark = null; } return true; }
+          if (Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(stdMark.position, 0xf2d27a, 0.4, 2.6, 0.7); G.fx.beam(stdMark.position.clone().setY(0.2), stdMark.position.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
+      else if (e.kind === "raid") { banner(U.tr("A horn. One of them breaks for {who}. Strike him down before he gets there!", { who: nameOf(e.on) })); const at = posOf(e.uid, 2.1); if (at) float(at, "!", "foe big"); }
+      else if (e.kind === "duel") duelCard(e.uid);
+    }
+    function planTask(e) {
+      const won = e.k === "taskDone";
+      if (won) { sfx("gong"); banner(U.tr(e.kind === "standard" ? "You pull their standard down. Their host breaks." : "You cut him off. Your man lives.")); }
+      else { sfx("drum"); G.shake(0.3, 0.3); banner(U.tr(e.kind === "standard" ? "Too slow: their standard is carried off and they rally." : "Your man is cut down.") + " " + U.tr(e.big ? "The day is lost." : "You will carry this into the next fight.")); }
+    }
+    function duelCard(uid) {
+      if (U.battleBot) return; paused = true; U.setPaused("battle", true);
+      const el = U.el('<div class="b-card b-pause b-duel" role="dialog"><h2>' + U.tr("{t} calls you out", { t: U.esc(nameOf(uid)) }) + '</h2><p>' + U.tr("Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.") + '</p><div class="btnrow"></div></div>');
+      const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
+      el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
+      hud.appendChild(el);
+    }
+    function spiritHud() {
+      if (!R.morale) return; if (!spiritEl) { spiritEl = U.el('<div class="b-spirit"><span>' + U.tr("Their spirit") + '</span><div><i></i></div></div>'); hud.appendChild(spiritEl); }
+      spiritEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.morale.theirs)) + "%"; spiritEl.classList.toggle("low", R.morale.theirs < 35);
     }
     // ---------- Speaking a mantra: a figure to join ----------
     // A divine weapon is not fired by a button. The fight slows, the sky darkens, and the weapon's own figure stands
@@ -876,6 +914,8 @@
     }
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
+      if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "standard" ? K.tr("Take their standard") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
+      if (R.duel) return K.tr("Single combat");
       if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });
       if (R.through) return K.tr("Break through to the far side") + (left != null ? " · " + n + " s" : "");
@@ -966,6 +1006,8 @@
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
         shots.push({ secs: 2.0, a: [[ax + sx * 3.2 * ak, 1.75 + 0.5 * (ak - 1), az - 3.6 * ak], [ax, 1.25, az], 40], b: [[ax + sx * 2.3 * ak, 1.62 + 0.5 * (ak - 1), az - 3.0 * ak], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }
+      // (their plan is not told: it is shown. The last thing before the fight is the whole field from behind your own line.)
+      if (R.plan) shots.push({ secs: 3.4, a: [[0, 15, pz + 13], [0, 0, -R.rad * 0.2], 50], b: [[0, 20, pz + 9], [0, 0, -R.rad * 0.28], 50], kind: U.tr("Across the field"), head: U.tr("How they stand"), text: "" });
       intro = { shots, i: -1, t: 0 };
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
       hud.appendChild(intro.box); hud.appendChild(intro.skip);
@@ -1080,6 +1122,7 @@
         const sp = U.battleSpeed || 1; // (the smoke tests run fights faster than life)
         if (hitStop > 0 && sp === 1) hitStop -= real; else acc += Math.min(dt, 0.1) * sp * (yantra && yantra.mode === "speak" ? 0.2 : 1);
         if (yantra) yantraTick(real);
+        spiritHud();
         let n = 0;
         while (acc >= R3.STEP && n++ < 8 * sp && !R.over) { R3.step(R, act()); acc -= R3.STEP; events(); if (hitStop > 0 && sp === 1) break; }
         if (n >= 5 * sp) acc = Math.min(acc, R3.STEP * 2);

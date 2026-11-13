@@ -178,5 +178,26 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   ok(won.ended && won.ended.won && won.ended.n > 0, "Hold your mantra the longer and a part of your weapon comes through (" + (won.ended && won.ended.n) + ")");
 }
 
+// 11. Their plan: each of the three turns the fight once and hands you a task; and the men of your line obey an order.
+{
+  const run = (plan, bot) => { const K = fresh(11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { plan }), ev = [];
+    for (let i = 0; i < 60 * 120 && !R.over; i++) { R3.step(R, bot ? R3.bot(R) : (C.player().hp = C.player().maxHp, {})); for (const e of R.fx) if (/^(turn|taskDone|taskFail|rout|duel|duelWon|duelNo)$/.test(e.k)) ev.push(e.k + (e.kind ? ":" + e.kind : "")); R.fx.length = 0; if (!bot && ev.some((x) => /^task|duelNo/.test(x))) break; }
+    const out = { R, ev, flags: K.S.flags.slice() }; try { C.settle("flee"); C.end(); } catch (e) {} return out; };
+  const wall = run("wall", true), pin = run("pincer", true), ch = run("charge", true);
+  ok(wall.R.plan && wall.ev.includes("turn:standard") && wall.ev.includes("taskDone:standard") && wall.ev.includes("rout"), "The wall, broken, leaves their standard open: take it and they run");
+  ok(pin.ev.includes("turn:raid") && pin.ev.includes("taskDone:raid"), "The pincer shut, one of them goes for your man: strike him and your man lives");
+  ok(ch.ev.includes("turn:duel") && ch.ev.includes("duel"), "The champion charges and calls you out: taken, it is single combat");
+  const idle = run("wall", false), idle2 = run("pincer", false), idle3 = run("charge", false);
+  ok(idle.ev.includes("taskFail:standard") && idle.flags.includes("war_setback") && !idle.R.over, "The standard not taken in time: they rally, and it costs you the next fight's start");
+  ok(idle2.ev.includes("taskFail:raid"), "The man not stopped: your comrade is cut down");
+  ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
+  const K = fresh(5); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player();
+  const lineMen = () => B.units.filter((u) => u.side === "ally" && u.line && u.hp > 0 && u.g), far = () => Math.max(...lineMen().map((u) => Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z)));
+  const hold = (secs, act) => { R3.step(R, act || {}); for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; for (const u of B.units) if (u.side !== "enemy") u.hp = u.maxHp; R3.step(R, {}); } };
+  hold(3); const before = far(); hold(6, { orders: { friend: "guard", soldiers: "defend", form: "follow" } }); const after = far();
+  ok(lineMen().length >= 2 && after < 4.5 && before > after, "Follow me brings the men of your line to your heels (" + before.toFixed(1) + " m to " + after.toFixed(1) + " m)");
+  C.settle("flee"); C.end();
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

@@ -107,5 +107,15 @@
     "Join the points in one stroke to speak the mantra": "मंत्र बोलने को बिंदुओं को एक ही रेखा में जोड़ो", "He answers! Join it twice before the ring closes": "वह उत्तर देता है! घेरा सिमटने से पहले इसे दो बार जोड़ो",
     "The mantra broke": "मंत्र टूट गया", "They break and run": "वे टूटकर भाग खड़े हुए", "{t} answers with the counter-weapon. The two meet in the air.": "{t} प्रति-अस्त्र से उत्तर देता है। दोनों आकाश में टकराते हैं।",
     "Your mantra holds the longer: a part of your weapon breaks through.": "तुम्हारा मंत्र अधिक देर टिका: तुम्हारे अस्त्र का एक अंश भेद गया।", "The two weapons burn each other out, and both are gone.": "दोनों अस्त्र एक-दूसरे को भस्म कर देते हैं, और दोनों मिट जाते हैं।",
+    "Across the field": "मैदान के पार", "How they stand": "वे कैसे खड़े हैं", "Their spirit": "उनका मनोबल", "Single combat": "द्वंद्व", "flank!": "बगल से!",
+    "Take their standard": "उनका ध्वज छीन लो", "Stop the man going for {who}": "{who} की ओर बढ़ते शत्रु को रोको",
+    "A horn. Their wall is broken and their standard stands open behind it. Take it!": "शंख बजा। उनकी ढाल-दीवार टूट गई और पीछे उनका ध्वज खुला खड़ा है। उसे छीन लो!",
+    "A horn. One of them breaks for {who}. Strike him down before he gets there!": "शंख बजा। उनमें से एक {who} की ओर झपटा है। पहुँचने से पहले उसे गिरा दो!",
+    "You pull their standard down. Their host breaks.": "तुमने उनका ध्वज गिरा दिया। उनकी सेना टूट गई।", "You cut him off. Your man lives.": "तुमने उसे रोक लिया। तुम्हारा साथी जीवित है।",
+    "Too slow: their standard is carried off and they rally.": "देर हो गई: वे ध्वज उठा ले गए और फिर जुट गए।", "Your man is cut down.": "तुम्हारा साथी मारा गया।",
+    "The day is lost.": "आज का दिन हाथ से गया।", "You will carry this into the next fight.": "इसका भार तुम अगले युद्ध में ढोओगे।", "You begin hurt from the last fight.": "पिछले युद्ध की चोट लिए तुम आरंभ करते हो।",
+    "The hosts stand off. It is you and him.": "दोनों सेनाएँ पीछे हट गईं। अब बस तुम और वह।", "You refuse. Your men look at one another.": "तुमने मना कर दिया। तुम्हारे सैनिक एक-दूसरे को देखते हैं।", "He falls, and his men run.": "वह गिरा, और उसके सैनिक भाग खड़े हुए।",
+    "{t} calls you out": "{t} तुम्हें ललकारता है", "Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.": "द्वंद्व, और दोनों सेनाएँ दूर खड़ी रहेंगी। उसे हराओ तो उसके सैनिक भागेंगे। मना करो तो तुम्हारे अपने हिम्मत हारेंगे।",
+    "Fight him alone": "अकेले उससे लड़ो", "Refuse": "मना करो", "Their shields are locked. Go round the side, or break one with a heavy blow.": "उनकी ढालें जुड़ी हैं। बगल से जाओ, या भारी प्रहार से एक को तोड़ो।"
   });
 })(window.K = window.K || {});
