@@ -104,3 +104,11 @@ The rule they all have to keep: the game's own promise is "You cannot change the
 
 **Suggested first three:** the king's wheel-guard, Over Bhima and the banner-bearer. All three are small, use only what is built, and give each fighting path something new. In Arjuna's place is the best idea of all and should come after, because riding a car is the one thing that has to be built first.
 
+## Part 5. Parked by the owner (12 November, night)
+
+Three things he asked to set aside for later. Not started, not scoped.
+
+1. **Divine weapons are earned too close together.** Today they come one after another, which is jarring and makes them easy to get. Space them out along the player's whole journey, and use 3D to make the quests that earn them better: the fire altar, the dive, and the rest.
+2. **Improve the side quests**: the cattle escape, the floor escape, and the others.
+3. **The entry to the Chakravyuha**: show real chariots in place of the block that stands there now.
+
