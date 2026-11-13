@@ -233,7 +233,7 @@
   K.scenes([
     {
       id: "wc_shakti_k", act: 6, age: 44, war: true, away: true, when: (S) => S.side === "kaurava" && !!K.tieShakti(S), skipTo: "a6_day15", next: "wc_shakti_call",
-      art: "fight_night_torches", place: "Kurukshetra · the night of day 14", caption: "The torches going out", title: "Ghatotkacha in the dark",
+      art: "scene_night_host", place: "Kurukshetra · the night of day 14", caption: "The torches going out", title: "Ghatotkacha in the dark",
       body: (S) => ["Past midnight Ghatotkacha, Bhima's rakshasa son, comes as tall as the sky, and the Kaurava line breaks before him.",
         K.tieLine(S, K.tieShakti(S), { company: "Your company was posted beside Karna's chariot for the night.", general: "This morning you chose the ground near Karna's chariot. Tonight it is where the dark comes." }),
         "It is coming toward Karna's chariot."],

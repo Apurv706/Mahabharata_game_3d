@@ -265,5 +265,22 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     ok(d.length === 1 && d[0].id === "stand" && d[0].fx.die === true, "Karna's wheel: to stand over him is still to die beside him"); }
 }
 
+// 13. The paintings of 13 November: a turn of a fight with its own painting; the leader's face; the banner's two ends.
+{
+  { const K = fresh(4); life(K, { side: "pandava" }); const C = K.Combat, R3 = K.RT3, B = C.start("e_gate", null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 99999;
+    for (let i = 0; i < 60 * 12 && !R.over; i++) { R3.step(R, {}); R.fx.length = 0; }
+    const row = B.log.find((r) => r && r.ev && r.art);
+    ok(row && row.art === "scene_gate_jayadratha" && /boar banner/.test(row.key), "a turn of a fight can carry a painting: at the gate, the wall and the car behind it (" + (row ? row.art : "none") + ")"); try { C.end(); } catch (e) {} }
+  { const K = fresh(4); const e = K.ENCOUNTERS.e_last_stand, b = K.val(e.beats).find((x) => x.art3);
+    ok(b && b.round === 4 && b.art3 === "scene_abhimanyu_wheel" && K.ENCOUNTERS.fs_d12_elephant.face3 === "p_bhagadatta" && K.SCENES.fs_d12.art === "scene_supratika" && K.SCENES.wc_shakti_k.art === "scene_night_host",
+      "the heart of the wheel shows the wheel in his hands; Supratika's page and the night host's have their own paintings, and the old king his face"); }
+  { const K = fresh(4); const S = life(K, { side: "pandava" });
+    ok(K.ENCOUNTERS.new_banner.lose.next === "new_banner_down" && K.SCENES.new_banner_down.art === "scene_banner_down" && K.SCENES.new_banner_down.next === "a6_day16", "the banner lost has its own page, and the day goes on");
+    const ids = () => K.val(K.SCENES.a7_final.choices, S).filter((c) => K.test(c.req, S)).map((c) => c.id);
+    const before = ids().includes("banner"); S.flags.push("bore_banner"); const after = ids().includes("banner"); S.endChoice = "banner"; const e = K.composeEnding(S);
+    ok(!before && after && e.title === "The banner-bearer" && e.art === "end_banner" && e.telling.some((l) => /stood by your door/.test(String(l))) && K.ENDINGS.some((x) => x.title === e.title && x.art === e.art),
+      "one who carried the banner and lived may take it home: its own ending, in the list (" + e.title + ")"); }
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

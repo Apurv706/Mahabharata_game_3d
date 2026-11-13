@@ -69,6 +69,7 @@
         { id: "forest", t: "Go to the forest with the old king", fx: { set: { endChoice: "forest" } } },
         { id: "teller", t: "Tell the story of the war", req: { any: [{ path: "bard" }, { skill: ["lore", 3] }, { flag: "remembered_hall" }] }, locked: "You would need a storyteller's training or memory.", fx: { set: { endChoice: "teller" } } },
         { id: "vengeance", t: "Hunt Ashwatthama", req: { vow: "vengeance", flag: "vengeance_ashwatthama" }, fx: { set: { endChoice: "vengeance" } } },
+        { id: "banner", t: "Take the banner home", req: { flag: "bore_banner" }, fx: { set: { endChoice: "banner" } } },
         { id: "home", t: "Go home", req: (S) => (S.spouse && !S.dead.includes(S.spouse)) || (S.child && !S.dead.includes(S.child)) || S.origin, fx: { set: { endChoice: "home" } } },
         { id: "wander", t: "Walk away", fx: { set: { endChoice: "wander" } } }
       ],
@@ -188,6 +189,7 @@
     { title: "The homecoming", art: "end_survivor", hint: "Survive, and go home with most of your people alive." },
     { title: "Broken survivor", art: "end_broken", hint: "Survive, having lost most of those you loved." },
     { title: "The wanderer", art: "end_river", hint: "Survive, and walk away from everything." },
+    { title: "The banner-bearer", art: "end_banner", hint: "Carry your division's banner through a day of the war, live, and take it home." },
     { title: "Glorious death", art: "end_death", hint: "Fall in battle with every vow kept." },
     { title: "The oath to the death", art: "end_oath", hint: "Swear the Samshaptakas' oath, and fall with it still on you." },
     { title: "Fallen at Kurukshetra", art: "end_death", hint: "Fall in battle." },
@@ -225,6 +227,7 @@
       else if (c === "forest") { title = "Renunciation"; art = "end_forest"; caption = "The forest, in old age"; }
       else if (c === "teller") { title = "The teller"; art = "end_teller"; caption = "A lamp, and a long story"; }
       else if (c === "vengeance") { title = "Vengeance"; art = "end_vengeance"; caption = "A road that does not end"; }
+      else if (c === "banner") { title = "The banner-bearer"; art = "end_banner"; caption = "The staff by the door"; }
       else if (c === "home") { title = lost >= 2 ? "Broken survivor" : "The homecoming"; art = lost >= 2 ? "end_broken" : "home_" + S.origin; caption = lost >= 2 ? "An empty house at evening" : K.ORIGINS[S.origin].name; }
       else if (lost >= 1 || weakBonds >= 4) { title = "Broken survivor"; art = "end_broken"; caption = "An empty house at evening"; }
       else { title = "The wanderer"; art = "end_river"; caption = "By the river, after everything"; }
@@ -241,7 +244,8 @@
       Vengeance: "You followed Ashwatthama across the world. People say you are still following him.",
       "The homecoming": "You went home. The house was smaller than you remembered. You stayed.",
       "Broken survivor": "You lived. Most of the people you loved did not. You learned to walk with it, the way Bhishma said.",
-      "The wanderer": "You walked away from the courts and the kings, and nobody ever found out where you went."
+      "The wanderer": "You walked away from the courts and the kings, and nobody ever found out where you went.",
+      "The banner-bearer": "The division was never mustered again, and no one came to ask for its banner. You rolled the cloth and tied it, and carried the staff home. It stood by your door for the rest of your life, and your hands wore it dark."
     }[title];
     const tell = telling(S);
     if (coda) tell.push(coda);

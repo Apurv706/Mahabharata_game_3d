@@ -169,7 +169,7 @@
     beats: twist(3, "His chariot turns back along the line, and the arrows come thicker.", fire(1)),
     win: { fx: { journal: "On the third day you stood under Bhishma's arrows and lived." }, text: "When the arrows stop, the ground around you is grey with them. You are still standing in it." },
     lose: { fx: { injury: "scar" }, text: "An arrow finds the gap in your shield. You are carried back to the tents before noon." } });
-  side({ id: "fs_d12_elephant", mahout3: true, kind: (S) => K.fightKind(S, 12, "weather"), title: "Supratika's charge", art: "war_capture", caption: "Four rounds",
+  side({ id: "fs_d12_elephant", mahout3: true, face3: "p_bhagadatta", kind: (S) => K.fightKind(S, 12, "weather"), title: "Supratika's charge", art: "war_capture", caption: "Four rounds",
     intro: (S) => (S.side === "kaurava" ? "You are in the press behind Bhagadatta's elephant when Arjuna turns on it. Every arrow aimed at the old king falls among you as well."
       : "Bhagadatta's elephant Supratika comes through the Pandava line, and men go under its feet. There is no fighting it. Keep out of its way, and stay alive."),
     holdText: "The worst of it is past you. You are still standing.",
@@ -260,7 +260,7 @@
       body: ["Bhishma's chariot comes along your line, and the arrows come down like rain."],
       choices: [{ id: "stand", t: "Stand under the arrows", combat: "fs_d3_storm", fx: mark(3, "weather"), hint: "Live through it" },
         { id: "back", t: "Fall back", fx: {}, text: "You fall back with the second rank. The arrows find the first." }] }),
-    scene({ id: "fs_d12", when: fighter, skipTo: "a6_capture", next: "a6_capture", art: "war_capture", place: "Kurukshetra · day 12", caption: "An elephant called Supratika", title: "Supratika's charge",
+    scene({ id: "fs_d12", when: fighter, skipTo: "a6_capture", next: "a6_capture", art: "scene_supratika", place: "Kurukshetra · day 12", caption: "An elephant called Supratika", title: "Supratika's charge",
       body: (S) => [S.side === "kaurava" ? "You follow Bhagadatta's elephant through the Pandava army, and Arjuna turns toward it." : "Old Bhagadatta's elephant Supratika is coming through your line.",
         S.side === "kaurava" ? "His arrows fall among you too." : null],
       choices: [{ id: "stand", t: "Live through it", combat: "fs_d12_elephant", fx: mark(12, "weather"), hint: "Live through it" }, LEAVE] }),

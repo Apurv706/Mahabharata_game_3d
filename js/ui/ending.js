@@ -14,7 +14,7 @@
   "use strict";
   const U = K.UI;
   const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII"];
-  const SURVIVED = ["The wise elder", "Renunciation", "The teller", "Vengeance", "The homecoming", "Broken survivor", "The wanderer"];
+  const SURVIVED = ["The wise elder", "Renunciation", "The teller", "Vengeance", "The homecoming", "Broken survivor", "The wanderer", "The banner-bearer"];
   // What each ending adds over its painting: light (a coloured wash that comes in), parts (particles),
   // smoke (a haze), wheel (Karna's wheel sinking), garland or emblem, and its theme (audio.js).
   const TOUCH = {

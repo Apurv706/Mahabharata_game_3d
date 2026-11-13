@@ -146,11 +146,54 @@ Checked by the rules tests (55), the fight bands (76 fights) and one opening sti
 | **The gate** (`e_gate`, Jayadratha's wall) | Built: his men stand as a shield wall across the mouth (`plan3: "wall"`). In a fight the story fixes by rounds the wall cannot be broken or routed; it stands until the rounds are out. |
 | **Abhimanyu's weapons and car** (`e_last_stand`) | Drawn now: the bow goes and a sword is in his hand; his car is lost under him (the driver down at the rail, the team lying in its traces, he on the ground beside it); the sword is shattered and he takes up a chariot wheel; at the end a mace. |
 | **Supratika's charge** (`fs_d12_elephant`) | Built: the elephant cannot be brought down from the front. Get under its flank and strike the mahout three times (`enc.mahout3`). |
-| **Karna's pinned chariot** (`hold_karna`) | The crossing shape: his car stands, and you cross the field to it. The wheel in the mud itself is still a story scene with choices (`a6_day17`), not a fight: making it one means rewiring a death the epic fixes, so it waits for a ruling. |
+| **Karna's pinned chariot** (`hold_karna`) | The crossing shape: his car stands, and you cross the field to it. The wheel in the mud itself became a fight later the same morning: see Part 9. |
 
 Checked by the rules tests (57), the fight bands (77 fights) and stills of the ride from above and behind. Not played through by hand.
 
 ## Part 8. Everything that moves, reviewed (13 November, morning)
 
 The owner asked for a review of every Blender model and every moving part, and for the moving parts to be made more lifelike. That work is written up in `Moving_Parts.md`. In one line each: horses and elephants are jointed and walk in true gaits; cattle, a deer, a tiger and a dog are real models where horses and boxes stood in; people walk from the hips and shift their weight; arrows turn in the air and stay where they strike; trees, reeds and grass move in a wind; the ranks stir; birds wheel over open country.
+
+## Part 9. Karna's wheel is a fight, and the second batch of paintings (13 November, morning)
+
+### Karna's wheel in the earth (day 17)
+
+Owner's ruling: "Make it a fight". The page for day 17 used to ask what you did. Now it offers a way in, and the question is put inside the fight as a card, with its cost shown under each answer. The arrow comes whatever you do, and it is seen.
+
+| Side | The fight | The card |
+|---|---|---|
+| Pandava (`kw_e_close`) | His car stands tilted with one wheel sunk, the team in the traces, Shalya at the rail, and Karna bent to the rim. His wheel-guard stands as a wall between you and him. Six rounds. No blow can be aimed at him. | When you come near, or in the third round: **Strike him at the wheel**, or **Shout to Arjuna to wait**. Strike, and for twenty seconds he can be reached: one blow is the whole of it. |
+| Kaurava (`kw_e_guard`) | You keep the Pandava foot off him while he heaves. If they bring him down you have failed him. Seven rounds. | In the second round: **Put your shoulder to the wheel**, or **Keep them off him**. At the wheel you cannot guard, and Arjuna's arrows find whoever is there. At the end: **Stand over Karna**, marked "You will not survive this", or **Stay where you are**. |
+
+The page after the fight (`kw_after`) shows only what you did, with the costs the old page's choices always had: a blow at the wheel breaks the same vows as the arrow did; a shoulder at the wheel is the same peril; to stand over him is still to die beside him. A fight with no card answered asks on the page, as before.
+
+A life that struck him with a mace or a sword is told as having struck him, not as having loosed an arrow.
+
+### A fault found on the way
+
+In Versions 40 to 42 Drona's order in "Your stretch of the ring" never appeared as a card in the browser. The view had two handlers with one name, the card's was never reached, the question timed out after ten seconds, and the life was recorded as having refused out loud, with that answer's costs. The rules tests did not see it because they answer the question without the page. Fixed: the card's event has its own name. The wheel's cards use the same code and were photographed in the page.
+
+### The second batch of paintings (four zips: all 30 of the brief, 21 new)
+
+| Painting | Where it is now |
+|---|---|
+| `scene_banner_down` | The banner-bearer, lost: a new page, "The banner is down", after the fight is lost. |
+| `end_banner` | A new ending, **The banner-bearer**: a life that carried the banner through its day and lived may choose "Take the banner home" at the end. Seventeen endings now. |
+| `scene_supratika` | The page before Supratika's charge. |
+| `p_bhagadatta` | The old king's face on the intro of that fight. Every fight's intro now shows the painted face of the one who leads them, where he has a portrait. |
+| `scene_abhimanyu_wheel` | In the heart of the wheel, at the turn where his sword is shattered and he takes up a wheel: the fight stops, the painting is shown over the field with the line, and you go on. |
+| `scene_gate_jayadratha` | At the gate, in the second round, the same way: the wall, and the car behind it under the boar banner. |
+| `scene_night_host` | The page before Ghatotkacha's night host. |
+
+A painting at a turn of a fight is new: any beat of a fight can name one (`art3`).
+
+Kept in `art_stock/`, outside the published game, until their stories are built: the message through the wheel (three), the race against the sun, the decoy, Karna's reins, Duryodhana's banner at the lake; and the seven for parked work (the two weapon quests, the two side quests, the wheel's mouth).
+
+**Room in the published parts.** Part Two was six files short of the host's limit of 512, and the new paintings would have pushed fifteen of its clips out. The engine's scripts and the pages' scripts now go out as one file each (`engine.js`, `ui.js`): Part One 434 files, Part Two 479.
+
+Checked by the rules tests (72, and the older set of the 2D game, which now runs in the full check and caught the loading curtain following the system's reduced-motion setting, which the game's rule forbids: removed), the fight bands (79 fights), the sixteen recorded lives re-recorded after reading what changed, and pictures of each card, page and ending at phone size. Not played by hand.
+
+### Godot or Unity? (owner's question, 13 November)
+
+Answer given: neither for now. The story engine, the text in two languages, the fight rules, the tests and the checks are a web page, and either engine is a rewrite of all of it. The game is played as a link. What the owner then named as wrong is how things move ("physics of the game doesnt feel right"), which is in how the movement was written and can be put right where it is. Ruling: a physics pass on seven named faults "plus animal movements and chariots", before the new story lines. If the game is ever to be a store app at native speed, Godot is the better fit of the two.
 

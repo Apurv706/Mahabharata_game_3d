@@ -229,3 +229,9 @@ body.in3d #b3d { display: block; }
 .b-ask .chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; } .b-ask .chips .chip { font-size: 12px; padding: 2px 8px; }
 
 .b-spirit.b-ours { top: calc(192px + var(--safe-t, 0px)); } .b-spirit.b-ours i { background: #e9c46a; } .b-spirit.b-ours.low i { background: #c9463a; }
+/* A turn of the fight with a painting of its own (a beat's art3), and the leader's painted face on the intro. */
+.b-card.b-plate { width: min(560px, calc(100% - 24px)); padding: 10px 10px 14px; text-align: center; }
+.b-plate .plate { aspect-ratio: 16 / 9; border-radius: 10px; background: #1a120c var(--img) center / cover no-repeat; box-shadow: inset 0 0 0 1px var(--line2); }
+.b-plate p { margin: 12px 8px; }
+.b-plate .btnrow { display: flex; justify-content: center; }
+.b-intro .thumb.face { width: 64px; height: 64px; margin: -46px auto 6px; }

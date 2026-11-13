@@ -28,7 +28,7 @@
     holdText: "The horns blow the recall along the whole line. The banner is still up, and your arm has forgotten how to let go of it.",
     win: { fx: { flag: "bore_banner", rep: { common: 1 }, duty: { court: 1 }, journal: "On the fifteenth day your division's banner-bearer fell, and you carried the banner until the horns blew." },
       next: "new_banner_dusk", text: "The lines draw apart. You are still holding it." },
-    lose: { fx: { flag: "banner_fell", injury: "scar" }, text: "The staff is cut through above your hand. The cloth comes down over you, and the division breaks before anyone can raise it." }
+    lose: { fx: { flag: "banner_fell", injury: "scar" }, next: "new_banner_down", text: "The staff is cut through above your hand. The cloth comes down over you, and the division breaks before anyone can raise it." }
   });
 
   const offer = (id, title, enc, when, skipTo, art, place, body, hold, decline) => K.scene({
@@ -46,6 +46,8 @@
   const after = (id, title, art, place, next, body) => K.scene({ id, act: 6, age: 44, war: true, away: true, canon: false, art, place, caption: "A moment in the day", title, next, skipTo: next, body, choices: [{ id: "on", t: "Go on", fx: {} }] });
   after("new_bhima_rises", "He rises", "scene_bhima_rises", "Kurukshetra · day 14, afternoon", "a6_day14", ["Bhima picks up his mace as if it weighed nothing. He does not thank you. He asks which way Karna went."]);
   after("new_banner_dusk", "Dusk", "scene_banner_dusk", "Kurukshetra · day 15, dusk", "a6_day16", ["A boy of the camp comes to take the staff from you at dusk. He has to open your fingers one at a time."]);
+  // And lost (the artist's second batch, 13 November): the cloth on the ground, and everyone going the other way.
+  after("new_banner_down", "The banner is down", "scene_banner_down", "Kurukshetra · day 15, afternoon", "a6_day16", ["The cloth lies across the trampled ground with the staff cut through. The men of your division go past it in every direction, and not one of them stoops.", "Someone drags you clear by the collar. By evening the banner is up again, lashed to a spear shaft, a hand shorter than it was."]);
 
   const before = (id, pre) => { K.BEFORE[id] = (K.BEFORE[id] || []).concat(pre); };
   before("a6_day14", ["new_over_bhima_offer"]);

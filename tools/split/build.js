@@ -67,20 +67,26 @@ for (const n of [1, 2]) {
   for (const f of k3d) { page = page.replace(new RegExp('<script src="' + f.replace(/[.\/]/g, "\\$&") + '"><\\/script>\\n?'), first ? '<script src="k3d.js"></script>\n' : ""); first = false; }
   const licence = fs.existsSync(path.join(G, "js/vendor/three.LICENSE.txt")) ? "/* three.js, whose code follows, is used under this licence:\n\n" + read("js/vendor/three.LICENSE.txt").replace(/\*\//g, "* /") + "\n*/\n" : "";
   fs.writeFileSync(path.join(dir, "k3d.js"), licence + k3d.map((f) => "/* " + f + " */\n" + read(f)).join("\n;\n"));
+  // The engine's scripts and the pages' own scripts go out as one file each, engine.js and ui.js, in the order the page
+  // loads them: thirty-four files fewer in each part, which is the room the new paintings need beside the clips.
+  const bundle = (name, re) => { const fl = [...html.matchAll(re)].map((m) => m[1]);
+    fl.forEach((f, i) => { page = page.replace(new RegExp('<script src="' + f.replace(/[.\/]/g, "\\$&") + '"><\\/script>\\n?'), i ? "" : '<script src="' + name + '"></script>\n'); });
+    fs.writeFileSync(path.join(dir, name), fl.map((f) => "/* " + f + " */\n" + read(f)).join("\n;\n")); return fl; };
+  const eng = bundle("engine.js", /<script src="(js\/engine\/[^"\/]+\.js)"><\/script>\n?/g), uis = bundle("ui.js", /<script src="(js\/ui\/[^"\/]+\.js)"><\/script>\n?/g);
   // Two more files saved the same way: the fights' stylesheet goes into the page, and the fights' Hindi into the Hindi file.
   page = page.replace('<link rel="stylesheet" href="css/battle3d.css">', "<style>\n" + read("css/battle3d.css") + "\n</style>");
   fs.writeFileSync(path.join(dir, "hi.js"), read("js/i18n/hi.js") + "\n;\n" + read("js/i18n/hi3d.js"));
   fs.writeFileSync(path.join(dir, "index.html"), page.replace(/<title>[^<]*<\/title>/, "<title>Kurukshetra 3D Part " + (n === 1 ? "One" : "Two") + "</title>"));
   fs.copyFileSync(path.join(__dirname, "part.js"), path.join(dir, "part.js"));
-  let files = all.filter((f) => f !== "index.html" && !k3d.includes(f) && !mods.includes(f) && !cont.includes(f) && f !== "css/battle3d.css" && f !== "js/i18n/hi3d.js" && parts(f).includes(n));
+  let files = all.filter((f) => f !== "index.html" && !k3d.includes(f) && !mods.includes(f) && !cont.includes(f) && !eng.includes(f) && !uis.includes(f) && f !== "css/battle3d.css" && f !== "js/i18n/hi3d.js" && parts(f).includes(n));
   // Clips are the first to go if a part is over the limit (the painting stays without one).
-  const room = LIMIT - 4 - chunks.length;
+  const room = LIMIT - 6 - chunks.length;
   if (files.length > room) { const vids = files.filter((f) => f.startsWith("video/")); const drop = new Set(vids.slice(0, files.length - room)); files = files.filter((f) => !drop.has(f)); }
   const map = { "part.js": path.join(dir, "part.js"), "k3d.js": path.join(dir, "k3d.js") };
   chunks.forEach((c, i) => { map["m" + (i + 1) + ".js"] = path.join(dir, "m" + (i + 1) + ".js"); });
-  map["content.js"] = path.join(dir, "content.js");
+  map["content.js"] = path.join(dir, "content.js"); map["engine.js"] = path.join(dir, "engine.js"); map["ui.js"] = path.join(dir, "ui.js");
   for (const f of files) map[f] = f === "js/i18n/hi.js" ? path.join(dir, "hi.js") : path.join(G, f);
   fs.writeFileSync(path.join(out, "part" + n + ".files.json"), JSON.stringify(map, null, 1));
   const c = (re) => files.filter((f) => re.test(f)).length;
-  console.log("part " + n + ": " + (files.length + 4 + chunks.length) + " files (art " + c(/^art\//) + ", video " + c(/^video\//) + ", music " + c(/^music\//) + ")");
+  console.log("part " + n + ": " + (files.length + 6 + chunks.length) + " files (art " + c(/^art\//) + ", video " + c(/^video\//) + ", music " + c(/^music\//) + ")");
 }

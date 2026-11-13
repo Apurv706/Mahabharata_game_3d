@@ -1607,7 +1607,7 @@ require(G + "content/war_fights.js");
   const WK = w.K; WK.headless = true;
   const SET = {
     "The wise elder": { endChoice: "elder" }, Renunciation: { endChoice: "forest" }, "The teller": { endChoice: "teller" }, Vengeance: { endChoice: "vengeance" },
-    "The homecoming": { endChoice: "home" }, "Broken survivor": { endChoice: "home", spouse: "madhavi", child: "vasu", dead: ["madhavi", "vasu"] }, "The wanderer": {},
+    "The homecoming": { endChoice: "home" }, "Broken survivor": { endChoice: "home", spouse: "madhavi", child: "vasu", dead: ["madhavi", "vasu"] }, "The wanderer": {}, "The banner-bearer": { endChoice: "banner", flags: ["bore_banner"] },
     "Glorious death": { alive: false, vows: [{ id: "never_lie", broken: false }] }, "The oath to the death": { alive: false, vows: [{ id: "samshaptaka", broken: false }] },
     "Fallen at Kurukshetra": { alive: false }, "Into the wheel": { alive: false, flags: ["died_with_abhimanyu"] }, "Against the boy in the wheel": { alive: false, flags: ["fell_to_abhimanyu"] },
     "A life cut short": { alive: false, act: 3, flags: ["peril_death"], deathAt: { act: 3 } }, "Beside Karna": { alive: false, flags: ["died_with_karna"] }, "The burnt house": { alive: false, act: 3, flags: ["died_in_fire"] },

@@ -337,7 +337,7 @@
   }
   function stepClose(R) {
     const B = R.B, s3 = R.step3; if (!s3) return; R.step3 = null;
-    const at = B.log.length, u = (s3.beat.run && s3.beat.run(B)) || {}; B.log.splice(at, 0, { key: s3.beat.text, u, ev: true });
+    const at = B.log.length, u = (s3.beat.run && s3.beat.run(B)) || {}; B.log.splice(at, 0, { key: s3.beat.text, u, ev: true, art: s3.beat.art3 || null });
     beatItem(R, s3.beat);
     if (s3.hit) { R.held = (R.held || 0) + 1; for (const a of living(B, "ally")) if (!a.line && a.person) { a.hp = Math.min(a.maxHp, a.hp + Math.round(a.maxHp * 0.12)); B.status(a, "inspired", 2); } R.fx.push({ k: "stepHeld", uid: s3.uid, n: R.held }); }
     R.fx.push({ k: "event", at });
@@ -1238,7 +1238,7 @@
       const stopper = beat && beat.stop && !R.noPlan ? living(B, "enemy").find((u) => u.g && (u.person === beat.stop || who(u) === beat.stop)) : null;
       if (beat && R.step3) stepClose(R); // (the last one's time is up)
       if (beat && stopper) { B.evented = true; R.step3 = { beat, uid: stopper.uid, until: R.t + P.story - 0.5, hit: false }; R.fx.push({ k: "stepOpen", uid: stopper.uid, what: beat.stopText || "" }); }
-      else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); beatItem(R, beat); }
+      else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true, art: beat.art3 || null }); R.fx.push({ k: "event", at }); beatItem(R, beat); }
       if (askStep(R)) { /* (a card of the story's: enc.asks3, enc.order3) */ }
       else if (B.round === 3 && B.enc.lethal && !B.evented && !B.enc.beats && living(B, "enemy").length) { const at = B.log.length; C.core.fieldEvent(); R.fx.push({ k: "event", at }); }
     }

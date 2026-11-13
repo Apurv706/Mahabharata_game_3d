@@ -386,3 +386,17 @@ The owner asked for a review of every model and everything that moves. The revie
 - **Hands.** `hand()` in `tools/blender/cast.py` has a bar inside each crease and a knuckle on the thumb.
 - **The checks** are `tools/blender/skills/` (see its README). `cast.py` has a `qa` stage and `props.py` a `qa` word.
 - **A rule learned four times over in this stretch:** never put a `//` comment in the middle of one of this code's long lines. It swallows the rest of the line. Use `/* */`.
+
+## The story's cards in a fight, the wheel, a painting at a turn (13 November, morning)
+
+Notes for whoever works on the code next. What the player gets is in `Gameplay_Ideas.md`, Part 9.
+
+- **Cards the story puts in a fight** are `enc.asks3`, a list (`enc.order3`, the older single form, is read as a list of one). Each: when it comes (`round`, and `near` metres from `on`, a person, or `at: "wheel"`), who it is from (`from`: his portrait), `title`, `text`, the two answers `yes` and `no`, and optionally a `task` once taken: `"strike"` (a blow on `on` within `secs`), `"heave"` (stand at the wheel doing nothing else for `need` seconds within `secs`), or `null` (the answer is the whole of it; `end: "win"` ends the fight there). What you did is pushed to the life as `<flag>_obey`, `_miss` or `_refuse`. `cost: { yes: (S) => choice, no: … }` names the story choice whose marks stand under the answer (`K.choiceMarks`, `K.preview`); `peril` and `doom` add "Can cost your life" and a line of your own.
+- **The card's event is `"ask"`.** It was `"order"`, which the view already used for a comrade striking at your word: with two cases of one name in a `switch` the second is never reached, so the card never showed in a browser and the question timed out as a refusal. The rules tests answer the question in the simulation and cannot see this. If a card of the story is ever silent again, look for a doubled `case` first.
+- **The wheel** (`enc.wheel3: person`): `wheelSetup` in `sim.js` puts him at the wheel, `still` (he takes no turn) and, as a foe, `apart` (no blow is aimed at him) until a strike is taken up. `R.wheel` is where the wheel is and which way the car stands; the view (`wheelProps`) brings his own parked car there, tilted, with Shalya at the rail. `R.finale` holds the sim for 2.4 seconds at the end so that the last arrow is seen (`wheelEnd`).
+- **A painting at a turn of a fight:** a beat with `art3` carries the key into its log row (`row.art`), and the view shows `plateCard`: the fight is paused, the painting and the line are shown, "Go on". The line is then not repeated as the banner. The image is fetched when the fight is built.
+- **The leader's painted face** is on the intro's "Against you" shot: `enc.face3`, or the portrait of the leader's `person`.
+- **`tests/content.js` knows `art3` and `face3`**, so a part that lacks one of those files fails the check.
+- **The split build makes six bundles now** (`tools/split/build.js`): `k3d.js`, `content.js`, `engine.js`, `ui.js`, `part.js` and the page, beside the model files. When a part comes near 512 files the clips are the first to be left out, silently for the player; `tests/content.js` reports it ("split part Two lacks a file it shows"). Paintings not yet shown anywhere live in `art_stock/`, which is not published.
+- **`tests/rules.js`** (the 2D game's rules) is part of the full check again. It had been left out since the conversion and one check in it had been failing since the loading curtain was added (`prefers-reduced-motion` in `index.html`).
+

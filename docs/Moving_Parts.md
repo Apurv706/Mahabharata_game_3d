@@ -100,7 +100,7 @@ Not measured on a phone. The owner reported the game as sluggish in the publishe
 ## 5. Not done
 
 - **Lighter beasts far off.** A horse is 8,800 triangles at any distance. A plainer horse beyond thirty metres would take about a tenth off a war fight's triangles. Worth doing if the phone is still slow.
-- **Karna's wheel in the mud** as a fight. It is a story scene with choices today; making it a fight rewires a death the epic fixes. Waiting for a ruling.
+- **Karna's wheel in the mud** as a fight: built later the same morning on the owner's ruling (`Gameplay_Ideas.md`, Part 9).
 - **Riders in the howdahs.** War elephants carry an empty howdah, except where the story puts a mahout in reach.
 - **Tents and awnings** do not move in the wind. Lotus pads do not bob.
 - **Feet are not planted** by measurement: a foot can slide a little on a turn.

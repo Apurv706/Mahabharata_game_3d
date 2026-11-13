@@ -148,6 +148,7 @@
     // ---------- The ground and the figures ----------
     function build() {
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
+      for (const bt of K.val(enc.beats) || []) if (bt.art3 && typeof Image !== "undefined") { const im = new Image(); im.src = U.artUrl(bt.art3); } /* (a turn's painting is fetched now, so it is there when its turn comes) */
       G.lookHint = (K.S && K.S.act >= 6) || enc.dream || (enc.lethal !== false && B.units.some((u) => u.line || u.plural || (u.g && (u.g.car || u.g.kind === "squad")))) ? "war" : ""; /* (who wears what: on a field where companies meet, everyone is in what he fights in; in a yard or a hall, his everyday dress. js/g3/model.js) */
       st = G.setStage(key, { clear: 15 });
       buildEdge(key);
@@ -541,7 +542,7 @@
           case "dot": { const at = posOf(e.uid, 1.4); if (at) { float(at, String(e.n), v.u.side === "enemy" ? "foe" : "mine"); G.fx.burst(e.s === "burn" ? "ember" : "hit", at, { n: 5 }); } break; }
           case "leave": if (v) { G.fx.burst("dust", posOf(e.uid, 0.5), { n: 14, s: 2 }); dropView(v, "now"); } break;
           case "fall": if (v) { if (!v.u.line || Math.hypot(v.u.g.x - p.g.x, v.u.g.z - p.g.z) < 7) sfx(v.u.side === "enemy" ? "fall" : "friendFalls"); if (v.mark) { v.mark.userData.free(); v.mark = null; } if (v.bar) v.bar.classList.add("gone"); if (v.kind === "cart") G.fx.burst("smoke", posOf(e.uid, 0.6), { n: 14, s: 2 }); } break;
-          case "event": { const row = B.log[e.at]; if (row) { banner(C.line(row)); sfx("drumCall"); if (!row.shown3d) { row.shown3d = true; fieldEvent(row.key); } } break; }
+          case "event": { const row = B.log[e.at]; if (row) { if (!row.art || U.battleBot) banner(C.line(row)); sfx("drumCall"); if (!row.shown3d) { row.shown3d = true; fieldEvent(row.key); if (row.art) plateCard(row.art, C.line(row)); } } break; } // (a turn with a painting says its line on the painting's card, once)
           case "toast": toast(U.tr(e.s)); break;
           // The champions' traits, your boons and the divine weapons' gifts (the 2D game's Build D): said once, and shown.
           case "trait": if (RT.TRAIT_TIP && RT.TRAIT_TIP[e.who] && !tips["trait_" + e.who]) { tips["trait_" + e.who] = true; toast(U.tr(RT.TRAIT_TIP[e.who]), "tip"); } break;
@@ -600,7 +601,7 @@
         }
       }
       // A line the fight itself spoke (the engine's log) that no event carried: the story beats.
-      for (; lastLog < B.log.length; lastLog++) { const row = B.log[lastLog]; if (row && (row.raw || row.ev) && started && lastLog > 0) { banner(C.line(row)); if (row.ev && !row.shown3d) { row.shown3d = true; fieldEvent(row.key); } } }
+      for (; lastLog < B.log.length; lastLog++) { const row = B.log[lastLog]; if (row && (row.raw || row.ev) && started && lastLog > 0) { if (!row.art || U.battleBot) banner(C.line(row)); if (row.ev && !row.shown3d) { row.shown3d = true; fieldEvent(row.key); if (row.art) plateCard(row.art, C.line(row)); } } }
     }
     // Each divine weapon comes in its own way. Indra's falls as forked lightning, one man after another, out of a sky gone
     // dark. Fire goes up as one burning arrow and comes down in a line that walks toward them, and stays on the ground.
@@ -702,6 +703,14 @@
       const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
+    }
+    // A turn of the fight that has a painting of its own (a beat's art3): the fight stops, the painting is shown over
+    // the field with the line the story speaks, and you go on when you have looked.
+    function plateCard(art, text) {
+      if (U.battleBot || closed) return; paused = true; U.setPaused("battle", true);
+      const el = U.el('<div class="b-card b-pause b-plate" role="dialog"><div class="plate" style="--img:url(\'' + U.artUrl(art) + '\')"></div><p></p><div class="btnrow"></div></div>'); el.querySelector("p").textContent = text;
+      const go = () => { el.remove(); if (!hud.querySelector(".b-pause")) { paused = false; U.setPaused("battle", false); } };
+      el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Go on"), go)); hud.appendChild(el);
     }
     // The story asks you something in the fight (enc.asks3; enc.order3 is one of these): a card with two answers. Under
     // an answer stands what it will cost you, as the story's own page would count it (ask.cost: the page's choice it
@@ -1146,7 +1155,7 @@
       const bh = boss.g.kind === "elephant" ? 3.2 : boss.g.car ? 2.2 : 1.38, bd = boss.g.kind === "elephant" ? 9 : boss.g.car ? 6.6 : boss.g.kind === "squad" ? 4.4 : 3.2;
       const rest = tally(every.filter((u) => u !== boss)), more = every.some((u) => u.g.entered === false) || (enc.rounds && !enc.hold && every.length > foes.length);
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
-        face: boss.g.kind === "man" || boss.g.car ? boss.uid : null,
+        face: boss.g.kind === "man" || boss.g.car ? boss.uid : null, pic: K.val(enc.face3) || (boss.person && U.portraitKey(boss.person)) || null, /* (his painted face, where he has one: the same man as on the story's pages) */
         text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
@@ -1165,7 +1174,7 @@
       intro.i++; intro.t = 0;
       const s = intro.shots[intro.i];
       if (!s) return ready(false);
-      const b = intro.box, pp = b.querySelector("p"); b.querySelector(".kind").textContent = s.kind; const plain = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">"); b.querySelector("h2").textContent = plain(s.head); pp.textContent = plain(s.text); pp.hidden = !s.text;
+      const b = intro.box, pp = b.querySelector("p"); b.querySelector(".kind").textContent = s.kind; const plain = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">"); b.querySelector("h2").textContent = plain(s.head); pp.textContent = plain(s.text); pp.hidden = !s.text; { const old = b.querySelector(".thumb"); if (old) old.remove(); if (s.pic) b.insertAdjacentHTML("afterbegin", U.thumb(s.pic, "face")); }
       b.classList.remove("in"); void b.offsetWidth; b.classList.add("in");
       s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" ? 0.6 : 1);
       const v = s.who != null ? views.get(s.who) : null; if (v && s.act) for (const f of v.figs) f.act(s.act, 1.7);

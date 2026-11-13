@@ -136,6 +136,8 @@ function fightArt(id, act) {
   try { st = K.val(e.stage); ar = K.val(e.art); } catch (x) { add("art throws", "fight " + id + ": " + x.message); }
   for (const k of [st || ar, bg || st || ar]) want(plainFile(k), act, "fight " + id);
   if (bg && (!U.fightTall || U.fightTall(bg))) want(plainFile(bg + "_tall"), act, "fight " + id + " (tall)"); // only where a tall one is painted (ui/battle.js U.fightTall, 6f23c4c)
+  // (the 3D fight's own pictures: a painting shown at a turn of the fight (a beat's art3), and a face on its intro (face3))
+  try { for (const bt of K.val(e.beats) || []) if (bt.art3) want(plainFile(bt.art3), act, "fight " + id + " (a turn's painting)"); if (K.val(e.face3)) want(plainFile(K.val(e.face3)), act, "fight " + id + " (intro face)"); } catch (x) { add("art throws", "fight " + id + ": " + x.message); }
   const e2 = encAct.get(id) || new Set(); e2.add(act); encAct.set(id, e2);
 }
 
