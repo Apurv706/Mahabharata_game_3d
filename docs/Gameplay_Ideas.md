@@ -203,3 +203,9 @@ Owner: "Game is not sluggish, physics of the game doesnt feel right", then "All 
 
 Still to build from the second batch of paintings: the message through the wheel, the race against the sun, the decoy, Karna's reins, Duryodhana's banner at the lake.
 
+
+## Part 11. Deepening the tests, one at a time (13 November)
+
+After the Reddit note ("the gameplay for most of them feels way too basic"), the thinnest tests are being deepened before anything new is added. Order agreed: archery, the chariot race, a real spar in place of the strength, push and rhythm tests; then herding and the sneak.
+
+**1. Archery (done, Version 48).** It was a timing press: the outcome was decided the moment you pressed. Now it is aimed. You drag a ring to where the arrow should fall; the arrow takes its real time to fly (about 0.4 s at 21 m/s), so a moving mark must be led; a side wind, new for each shot and shown beside the score, carries the arrow off the ring; whether it struck is decided when it arrives, by where the mark then is. A miss says which way (ahead, behind, over, under). The blind shot keeps its listening. Checked by a bot over six kinds of mark: an archer who leads and allows for wind won 18 of 18; tapping without aiming won 1 of 18. Not yet judged by a person's hands: the ring's speed under the thumb and the width of a hit may need tuning.

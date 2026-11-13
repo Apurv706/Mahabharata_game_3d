@@ -114,17 +114,24 @@
     if (!RUNNERS.has(icon)) tg.scale.setScalar(1.7);
     ctx.add(tg); ctx.x = { tg, icon, runner: RUNNERS.has(icon) };
     if (icon === "lamp" || t.dark) { const h = glow(0xffb648, 1.6); tg.add(h); }
-    // The line you shoot along.
-    const line = new T.Mesh(new T.PlaneGeometry(0.07, 11).rotateX(-Math.PI / 2), basic(0xffe2a0, 0.35)); line.position.set(-0.5, 0.04, -1.6); ctx.add(line, G.fxRoot);
     ctx.cam([1.5, 2.7, 8.6], [-0.4, 1.6, -3], 46, true);
   } };
+  // Archery is aimed, not timed. You move a ring over the place the arrow will come down; the arrow then takes its real
+  // time to fly there, so a mark that is moving must be led, and a side wind (shown, and new for each shot) carries the
+  // arrow off the ring. Whether it struck is decided when it arrives, by where the mark then is.
   PLAY.aim = function (ctx) {
     if (ctx.t.sling) return slingPlay(ctx);
-    const t = ctx.t, x = ctx.x, shots = t.shots || 3, need = t.need || 2, speed = t.speed || 1.6;
-    const hw = clamp(0.085 + ctx.power * 0.012 + (t.easy || 0), 0.08, t.practice ? 0.3 : 0.2) * (t.small ? 0.75 : 1) * 2, AMP = 3.0, Z = -4.5, X0 = -0.5;
-    let n = 0, hits = 0, ph = K.rng() * 6, busy = false, pos = 0, flew = 0;
-    const draw = () => ctx.score(pips(shots, hits, n - hits) + " " + tx("{n} of {m} needed", { n: need, m: shots }));
-    draw(); ctx.prompt(tx(t.blind ? "You cannot see it. Listen, and loose as it crosses your line." : "Loose as it crosses your line."));
+    const t = ctx.t, x = ctx.x, shots = t.shots || 3, need = t.need || 2, speed = t.speed || 1.6, AMP = 3.0, Z = -4.5, X0 = -0.5, VEL = 21;
+    const big = x.icon === "elephant" || x.icon === "chariot", cy0 = big ? 1.3 : 1.0;
+    const RAD = (big ? 1.0 : x.runner ? 0.7 : 0.58) * (t.small ? 0.75 : 1) * (t.practice ? 1.3 : 1) + clamp(ctx.power * 0.03 + (t.easy || 0) * 2, 0, 0.3);
+    let n = 0, hits = 0, ph = K.rng() * 6, busy = false, pos = 0, flew = 0, ax = X0, ay = x.runner ? cy0 : 1.8, wind = 0, drag = null, moved = false; const held = {};
+    const ring = new T.Mesh(new T.RingGeometry(0.17, 0.24, 22), basic(0xffe2a0, 0.95)); ring.renderOrder = 5; ring.material.depthTest = false; ctx.add(ring, G.fxRoot);
+    const dot = new T.Mesh(new T.CircleGeometry(0.045, 10), basic(0xffe2a0, 0.95)); dot.material.depthTest = false; ring.add(dot);
+    const gust = () => { wind = t.practice || t.blind || t.wind === 0 ? 0 : (K.rng() < 0.5 ? -1 : 1) * (2 + 4 * K.rng()) * (t.wind || 1); };
+    const windTxt = () => { if (!wind) return ""; const k = Math.abs(wind) > 4 ? 3 : Math.abs(wind) > 2.8 ? 2 : 1; return "  " + tx("Wind") + " " + (wind > 0 ? "→" : "←").repeat(k); };
+    const draw = () => ctx.score(pips(shots, hits, n - hits) + " " + tx("{n} of {m} needed", { n: need, m: shots }) + windTxt());
+    gust(); draw(); ctx.prompt(tx(t.blind ? "You cannot see it. Listen for it, set the ring, and tap to loose." : "Drag to set the ring where the arrow should fall. Lead a moving mark, allow for the wind, and tap to loose."));
+    const mark = () => [X0 + pos * AMP, x.runner ? cy0 : x.tg.position.y];
     ctx.loop((dt, tt) => {
       ph += dt * speed * (1 + n * 0.08);
       pos = x.runner ? ((ph * 0.45) % 2) - 1 : Math.sin(ph);
@@ -134,23 +141,39 @@
         if (x.icon === "elephant") G.stomp(x.tg, tt * 8, 1, mps); else if (x.icon === "chariot") G.roll(x.tg, (AMP * 0.45 * ph) / sc, tt, 1, mps); else G.gallop(x.tg, tt * 12, 1, mps); }
       x.tg.visible = !t.blind || Math.abs(pos) > 0.82 || flew > 0; if (flew > 0) flew -= dt;
       if (t.blind && Math.abs(pos) < 0.05 && !busy && Math.floor(tt * 8) % 2 === 0) sfx("tap");
-      ctx.me.drawBow(busy ? 0 : 0.5 + 0.5 * Math.sin(tt * 2));
+      const kx = (held.ArrowRight || held.d ? 1 : 0) - (held.ArrowLeft || held.a ? 1 : 0), ky = (held.ArrowUp || held.w ? 1 : 0) - (held.ArrowDown || held.s ? 1 : 0);
+      ax = clamp(ax + kx * dt * 3.2, X0 - AMP - 0.6, X0 + AMP + 0.6); ay = clamp(ay + ky * dt * 2.2, 0.3, 3.3);
+      ring.position.set(ax, ay, Z + 0.3); ring.visible = !busy; ring.scale.setScalar(1 + 0.06 * Math.sin(tt * 6));
+      ctx.me.drawBow(busy ? 0 : drag ? 0.95 : 0.55);
     });
-    ctx.button(t.verb || "Release", () => fire());
     const fire = () => {
       if (busy) return; busy = true; n++;
-      const hit = Math.abs(pos) <= hw, to = V(X0 + (hit ? pos * AMP : (pos > 0 ? -0.6 : 0.6)), x.runner ? 1.1 : x.tg.position.y, Z);
+      const from = ctx.me.tip(), secs = Math.hypot(ax - from.x, ay - from.y, Z - from.z) / VEL, to = V(ax + 0.5 * wind * secs * secs, ay, Z);
       ctx.me.act("loose", 0.35, 0.45); sfx("tap");
-      G.fx.arrow(ctx.me.tip(), to, 0.22, null, (shaft) => { if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
-        if (hit) { hits++; G.fx.burst("hit", to, { n: 12 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); flew = 0.6; } else { ctx.toast(tx("Missed"), "bad"); sfx("step"); }
-        draw();
+      G.fx.arrow(from, to, secs, null, (shaft) => {
+        const m = mark(), dx = to.x - m[0], dy = to.y - m[1], hit = x.runner ? Math.abs(dx) <= RAD && Math.abs(dy) <= (big ? 1.2 : 0.8) : Math.hypot(dx, dy) <= RAD;
+        if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
+        if (hit) { hits++; G.fx.burst("hit", to, { n: 12 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); flew = 0.6; }
+        else { ctx.toast(tx(Math.abs(dx) <= RAD ? (dy > 0 ? "Over it" : "Under it") : (dx > 0) === (x.runner || Math.cos(ph) > 0) ? "Ahead of it" : "Behind it"), "bad"); sfx("step"); }
         const left = shots - n;
-        if (hits >= need) return ctx.after(500, () => ctx.finish("win", null));
-        if (hits + left < need) return ctx.after(500, () => ctx.finish(hits === need - 1 ? "close" : "lose", null));
-        ctx.after(450, () => { busy = false; });
+        if (hits >= need) { draw(); return ctx.after(500, () => ctx.finish("win", null)); }
+        if (hits + left < need) { draw(); return ctx.after(500, () => ctx.finish(hits === need - 1 ? "close" : "lose", null)); }
+        gust(); draw(); ctx.after(450, () => { busy = false; });
       }, 0.9);
     };
-    ctx.onAct(fire);
+    ctx.button(t.verb || "Release", () => fire());
+    ctx.pointer = (kind, e) => {
+      if (kind === "down") { drag = { x: e.clientX, y: e.clientY }; moved = false; return true; }
+      if (!drag) return;
+      if (kind === "move") { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!moved && Math.hypot(dx, dy) < 8) return; moved = true; const k = 7.5 / Math.max(320, window.innerWidth); ax = clamp(ax + dx * k, X0 - AMP - 0.6, X0 + AMP + 0.6); ay = clamp(ay - dy * k, 0.3, 3.3); drag.x = e.clientX; drag.y = e.clientY; return; }
+      const tap = !moved; drag = null; if (tap) fire();   /* (a drag moves the ring; a tap looses) */
+    };
+    ctx.keys = (e, down) => { if (/^Arrow|^[wasd]$/.test(e.key)) { held[e.key] = down; return true; } };
+    ctx.tapActs = false; ctx.onAct(fire);
+    // (For the checks: set the ring as a good archer would, leading the mark by the arrow's own flight and allowing for the wind, and loose.)
+    U._aimLead = () => { if (busy) return false; const from = ctx.me.tip(); let secs = 0.4, px = 0, py = 0;
+      for (let k = 0; k < 4; k++) { const p2 = ph + speed * (1 + (n + 1) * 0.08) * secs, q = x.runner ? ((p2 * 0.45) % 2) - 1 : Math.sin(p2); px = X0 + q * AMP; py = x.runner ? cy0 : 1.9 + (x.icon === "bird" ? Math.sin(p2 * 3) * 0.3 : -Math.abs(q) * 0.25); secs = Math.hypot(px - from.x, py - from.y, Z - from.z) / VEL; }
+      ax = px - 0.5 * wind * secs * secs; ay = py; fire(); return true; };
   };
 
   // =====================================================================================================
