@@ -21,20 +21,94 @@ BUILD = {
   "womanO":  dict(mu=0.15, wide=0.88, girth=0.86, arm=0.6,  leg=0.84, soft=True,  abs=False, shape=dict(chest=0.82, trap=0.6,  neck=0.74, waist=0.96, lat=0.72), sex="f"),
   "girl":    dict(mu=0.1, wide=0.84, girth=0.8,  arm=0.58, leg=0.78, soft=True,  abs=False, shape=dict(chest=0.8,  trap=0.55, neck=0.74, waist=1.0,  lat=0.65), sex="f", flat=True),
 }
-FACE = {   # (a first pass: kinds of face. Each person's own measures are set on top of these: see PEOPLE below.)
-  "plain":  dict(),
-  "firm":   dict(jawsq=0.8, brow=0.7, chinw=1.08),
-  "broad":  dict(hw=1.03, cheekw=1.05, jaww=1.12, jawsq=0.9, chinw=1.15, brow=0.9, nosew=1.12, full=0.25, lipw=1.05),
-  "stern":  dict(jaww=1.08, jawsq=0.9, brow=1.0, browtilt=0.5, browth=1.25, eye=0.95, hood=0.3, nosel=1.04, corner=-0.3),
-  "long":   dict(lowh=1.1, nosel=1.1, jaww=0.92, cheekw=0.95, hw=0.96, full=-0.3),
-  "fine":   dict(jaww=0.92, chinw=0.9, brow=0.25, nosew=0.9, bridgew=0.85, browth=0.8, eye=1.05, lipu=1.1),
-  "young":  dict(brow=0.2, jaww=0.94, chinw=0.92, nosel=0.94, nosep=0.92, eye=1.08, full=0.2, browth=0.8, lowh=0.95),
-  "lean":   dict(full=-0.6, cheekp=0.9, jaww=0.9, nosel=1.12, hump=0.7, tip=-0.5, temple=0.6),
-  "old":    dict(fold=0.8, bag=0.6, full=-0.3, temple=0.5, jowl=0.4, nosel=1.06, tip=-0.25, lipu=0.75, lipl=0.8, hood=0.4, open=0.88, recede=0.6, hairline=0.006),
-  "woman":  dict(brow=0.0, fores=-0.6, jaww=0.9, chinw=0.82, jawsq=0.2, nosel=0.95, nosep=0.9, nosew=0.9, bridgew=0.85, eye=1.1, open=1.06, browth=0.6, browarch=0.7, lipu=1.2, lipl=1.15, lipw=0.95, full=0.2, lash=1.6, hw=0.97, cheekw=0.97),
-  "womanO": dict(brow=0.0, fores=-0.5, jaww=0.92, chinw=0.85, jawsq=0.25, nosel=1.0, nosep=0.93, nosew=0.92, eye=1.04, browth=0.6, browarch=0.6, lipu=0.9, lipl=0.95, fold=0.7, bag=0.5, jowl=0.3, hood=0.3, lash=1.2, hw=0.97, cheekw=0.97),
-  "child":  dict(brow=0.0, fores=-1.0, eyez=-0.008, nosel=0.8, nosep=0.72, tip=0.5, bridgeh=0.6, nosew=0.9, lowh=0.84, jaww=0.9, chinw=0.86, jawsq=0.1, full=0.8, eye=1.2, open=1.1, browth=0.6, lipw=0.86, hw=1.02, cheekp=0.2),
+# ---- Faces. Each person has measures of his or her own (what the measures are: face.py). They were set from the painted
+# portraits where a person has one, and from who the person is where not. A woman's face, a child's, a youth's and an old
+# face are changes made to those measures, so a person stays the same person through a life.
+WOMAN = dict(brow=0.0, fores=-0.6, jaww=0.9, chinw=0.82, jawsq=0.2, nosel=0.95, nosep=0.9, nosew=0.9, bridgew=0.85, eye=1.1, open=1.06, browth=0.6, browarch=0.7, lipu=1.2, lipl=1.15, lipw=0.95, full=0.2, lash=1.6, hw=0.97, cheekw=0.97)
+OLD = dict(fold=0.8, bag=0.6, temple=0.4, jowl=0.3, hood=0.4, recede=0.5, hairline=0.006)
+CHILD = dict(brow=0.0, fores=-1.0, eyez=-0.008, nosel=0.8, nosep=0.72, tip=0.5, bridgeh=0.6, nosew=0.9, lowh=0.84, jaww=0.9, chinw=0.86, jawsq=0.1, full=0.8, eye=1.2, open=1.1, browth=0.6, lipw=0.86, hw=1.02, cheekp=0.2)
+YOUTH = dict(brow=0.5, jaww=0.96, chinw=0.95, nosel=0.95, nosep=0.93, eye=1.07, browth=0.85, lowh=0.96, jawsq=0.8)
+AGED = ("fold", "bag", "jowl", "temple", "hood", "recede", "hairline", "hump")
+MULT = set("hw hh hl eye gap open browth browlen browgap nosel nosep nosew bridgew bridgeh tipw cheekw jaww chinw lowh lipw lipu lipl ear flare lobe hairth lash".split())
+def child_of(f):   # a child: the big skull, the small low face, the full cheek; a trace of who the child will be
+    g = {}
+    for k in set(f) | set(CHILD):
+        a = f.get(k, 1.0 if k in MULT else 0.0)
+        if k in AGED: continue
+        g[k] = CHILD.get(k, 1.0) * a ** 0.35 if k in MULT else CHILD.get(k, 0.0) + 0.3 * a
+    g["brow"] = 0.0; g["cheekp"] = 0.2; g["fores"] = -1.0; g["jawsq"] = 0.1; return g
+def youth_of(f):   # a youth: most of the way to the grown face, the bone not yet heavy
+    g = {}
+    for k in set(f) | set(YOUTH):
+        a = f.get(k, 1.0 if k in MULT else 0.0)
+        if k in AGED: continue
+        g[k] = YOUTH.get(k, 1.0) * a ** 0.75 if k in MULT else (a * YOUTH[k] if k in YOUTH else 0.75 * a)
+    g["full"] = g.get("full", 0.0) + 0.15; return g
+def elder_of(f):   # the same face grown old
+    g = dict(f)
+    for k, v in OLD.items(): g[k] = g.get(k, 0.0) + v
+    for k, v in dict(nosel=1.05, lipu=0.78, lipl=0.84, open=0.9, ear=1.06, browth=1.1).items(): g[k] = g.get(k, 1.0) * v
+    g["full"] = g.get("full", 0.0) - 0.3; g["tip"] = g.get("tip", 0.0) - 0.2; return g
+def old(**k): return dict(OLD, **k)
+PEOPLE = {
+  # the player: a face that could be anyone's
+  "player_m": dict(jawsq=0.6, cheekp=0.55), "player_f": dict(eye=1.1, tilt=0.1, browarch=0.6, cheekp=0.55),
+  # the five brothers
+  "yudhishthira": dict(hw=0.96, lowh=1.08, nosel=1.1, jaww=0.92, chinw=0.95, cheekw=0.96, full=-0.15, brow=0.35, browtilt=-0.45, browarch=0.2, browth=0.9, tilt=-0.02, open=0.9, hood=0.35, eye=0.98, nosew=0.95, bridgeh=1.05, lipw=0.95, lipu=0.9, corner=-0.15, fold=0.35, hairline=0.006, recede=0.3),
+  "bhima": dict(hw=1.05, cheekw=1.07, jaww=1.2, chinw=1.3, jawsq=0.7, full=0.9, jowl=0.5, lowh=0.98, nosel=0.95, nosew=1.28, tipw=1.3, nosep=0.95, bridgew=1.2, brow=0.8, browth=1.5, browarch=0.5, eye=0.9, open=0.92, gap=1.03, lipw=1.12, lipu=1.15, lipl=1.2, corner=0.5, cheekp=0.2, fores=0.2),
+  "arjuna": dict(hw=0.98, cheekp=1.0, full=-0.45, jaww=0.97, jawsq=0.85, chinw=0.95, chinp=0.2, lowh=1.02, nosel=1.04, nosew=0.92, bridgew=0.85, bridgeh=1.15, tipw=0.9, nosep=1.08, brow=0.75, browth=1.1, browtilt=0.3, browarch=0.25, deep=0.6, tilt=0.1, lipw=0.95, lipu=0.9, lipl=0.95, temple=0.2),
+  "nakula": dict(hw=0.97, cheekw=0.98, jaww=0.93, chinw=0.9, lowh=0.98, nosel=0.98, nosew=0.88, bridgew=0.8, tipw=0.88, brow=0.25, browth=0.85, browarch=0.6, eye=1.1, open=1.05, tilt=0.12, lipu=1.15, lipl=1.1, lipw=0.97, corner=0.25, cheekp=0.6, fores=-0.2),
+  "sahadeva": dict(hw=0.99, cheekw=0.99, jaww=0.95, jawsq=0.35, chinw=0.94, lowh=0.96, nosel=0.96, nosew=0.92, bridgew=0.85, nosep=0.96, tip=0.3, brow=0.2, browth=0.9, browarch=0.4, browtilt=-0.2, eye=1.08, tilt=0.06, lipu=1.1, lipl=1.05, full=0.25, cheekp=0.4, fores=-0.3),
+  "krishna": dict(hw=0.99, jaww=0.95, jawsq=0.35, chinw=0.92, nosew=0.9, bridgew=0.85, bridgeh=1.1, nosep=1.02, tipw=0.92, brow=0.2, browth=0.9, browarch=0.75, eye=1.14, tilt=0.14, lipw=1.02, lipu=1.2, lipl=1.2, corner=0.6, full=0.2, fores=-0.2, lash=1.4),
+  "draupadi": dict(eye=1.16, tilt=0.15, open=1.02, browth=0.8, browarch=0.8, browtilt=0.25, cheekp=0.9, cheekw=1.0, jaww=0.9, chinw=0.84, nosel=0.97, nosew=0.92, bridgeh=1.1, lipu=1.3, lipl=1.3, lipw=1.0, full=0.05, lash=1.9, chinp=0.15),
+  "kunti": old(nosel=1.05, bridgeh=1.1, cheekp=0.7, jaww=0.96, chinw=0.9, browarch=0.5, eye=1.0, lipu=0.8, lipl=0.9, corner=-0.1, lash=1.1),
+  "gandhari": old(full=0.3, jaww=0.98, chinw=0.95, nosew=1.0, lipu=0.95, jowl=0.5, cheekw=1.02, eye=1.0, lash=1.1),
+  "healer": old(full=-0.2, cheekp=0.8, nosew=1.08, tipw=1.15, fold=1.0, bag=0.8, lipu=0.7, lipl=0.8, corner=0.3, temple=0.5, eye=0.96, hood=0.6, browarch=0.3, lash=1.0),
+  "villager_f": dict(full=0.4, jaww=0.98, nosew=1.05, tipw=1.1, nosel=0.94, eye=1.06, lipu=1.1, corner=0.2, cheekw=1.02),
+  # the Kuru court
+  "duryodhana": dict(hw=1.04, cheekw=1.04, jaww=1.16, jawsq=1.0, chinw=1.25, chinp=0.3, lowh=1.02, brow=1.25, browth=1.5, browtilt=0.7, browarch=0.1, deep=0.7, hood=0.4, eye=0.94, open=0.92, nosel=1.04, nosew=1.1, bridgew=1.15, bridgeh=1.1, hump=0.6, tip=-0.3, tipw=1.1, lipu=0.85, corner=-0.55, full=0.1, fold=0.4, fores=0.4),
+  "dushasana": dict(hw=1.03, cheekw=1.06, jaww=1.18, jawsq=0.8, chinw=1.15, lowh=1.05, full=0.5, jowl=0.4, brow=1.2, browth=1.6, browtilt=0.5, browgap=0.6, eye=0.88, gap=0.96, open=0.9, hood=0.5, nosel=0.94, nosew=1.25, tipw=1.25, bridgew=1.2, bridgeh=0.85, lipw=1.08, lipu=1.3, lipl=1.35, corner=-0.3, hairline=-0.01, fores=0.6),
+  "karna": dict(cheekw=1.03, cheekp=0.75, jaww=1.1, jawsq=0.95, chinw=1.15, chinp=0.25, lowh=1.04, brow=0.6, browth=1.1, browtilt=-0.3, browarch=0.3, eye=1.04, open=0.88, hood=0.45, tilt=0.03, deep=0.3, nosel=1.05, nosew=1.02, bridgeh=1.12, tipw=1.1, nosep=1.05, lipw=1.02, lipu=1.15, lipl=1.2, corner=-0.2, full=-0.05),
+  "shakuni": old(hw=0.95, cheekw=0.94, cheekp=0.9, full=-0.75, temple=0.6, jaww=0.86, jawsq=0.3, chinw=0.78, chinp=0.35, lowh=1.08, nosel=1.15, nosep=1.15, nosew=0.92, bridgew=0.85, bridgeh=1.2, hump=1.1, tip=-0.9, tipw=0.85, eye=0.9, gap=0.94, open=0.82, tilt=0.16, hood=0.3, brow=0.5, browth=0.8, browarch=0.9, browtilt=0.45, lipw=0.95, lipu=0.6, lipl=0.7, corner=0.35, fold=0.9, bag=0.4, recede=0.7, hairline=0.008, jowl=0.0),
+  "ashwatthama": dict(cheekw=1.02, cheekp=0.8, jaww=1.06, jawsq=0.8, chinw=1.05, lowh=1.03, brow=1.1, browth=1.5, browtilt=0.8, browgap=0.75, deep=0.9, eye=0.96, open=0.9, nosew=1.15, tipw=1.15, bridgew=1.1, hump=0.3, lipl=1.05, corner=-0.45, full=-0.2, fold=0.5, temple=0.2),
+  "jayadratha": dict(hw=1.02, cheekw=1.05, jaww=1.04, jawsq=0.3, chinw=0.95, chinp=-0.3, full=0.6, jowl=0.5, lowh=0.97, brow=0.4, browarch=0.8, browtilt=0.1, eye=0.95, open=0.9, hood=0.3, gap=1.02, nosel=0.98, nosew=1.08, tipw=1.2, tip=0.2, lipw=0.9, lipu=1.2, lipl=1.25, corner=0.15),
+  "shalya": dict(hw=1.03, cheekw=1.03, jaww=1.1, jawsq=0.8, chinw=1.1, lowh=1.03, brow=0.9, browth=1.3, browtilt=0.2, deep=0.5, nosel=1.06, nosew=1.08, bridgeh=1.15, hump=0.5, eye=0.97, open=0.92, hood=0.4, lipw=1.02, lipu=0.9, corner=-0.2, fold=0.7, bag=0.4, full=-0.1, jowl=0.25, recede=0.4),
+  "bhishma": old(hw=0.99, hh=1.02, lowh=1.1, cheekw=0.98, cheekp=1.0, full=-0.55, temple=0.6, jawsq=0.7, brow=1.0, browth=1.5, browtilt=0.15, browarch=0.2, deep=1.0, eye=0.96, open=0.9, hood=0.5, nosel=1.12, nosep=1.12, bridgeh=1.25, hump=0.9, tip=-0.4, nosew=0.98, lipw=0.98, lipu=0.75, lipl=0.85, corner=-0.15, fold=0.9, bag=0.5, recede=0.8, hairline=0.01, jowl=0.1),
+  "drona": old(hw=0.96, cheekw=0.95, cheekp=1.1, full=-0.8, temple=0.8, jaww=0.9, jawsq=0.55, chinw=0.88, lowh=1.02, brow=0.8, browth=1.2, browtilt=0.6, deep=0.8, eye=0.94, open=0.86, tilt=0.08, nosel=1.08, nosep=1.1, nosew=0.9, bridgew=0.85, bridgeh=1.2, hump=0.4, tip=-0.2, tipw=0.88, lipw=0.94, lipu=0.65, lipl=0.75, corner=-0.35, fold=1.0, bag=0.5, recede=0.9, hairline=0.012, jowl=0.0),
+  "kripa": old(hw=0.95, hh=1.01, lowh=1.12, cheekw=0.94, cheekp=0.8, full=-0.6, temple=0.5, jaww=0.88, jawsq=0.4, chinw=0.92, brow=0.5, browth=0.9, browtilt=-0.2, browarch=0.3, eye=0.98, open=0.92, hood=0.5, nosel=1.14, nosew=0.95, bridgeh=1.1, tip=-0.3, lipw=0.92, lipu=0.6, lipl=0.7, bag=0.5, hairline=0.004, jowl=0.0),
+  "vidura": old(hw=0.98, lowh=1.04, cheekw=0.98, cheekp=0.7, full=-0.2, jaww=0.95, chinw=0.95, brow=0.5, browth=1.1, browtilt=-0.4, browarch=0.4, eye=1.02, open=0.95, tilt=0.0, nosel=1.1, nosew=1.05, hump=0.6, tip=-0.5, tipw=1.05, lipw=1.02, lipu=0.85, lipl=0.95, corner=0.45, fold=1.0),
+  "dhritarashtra": old(hw=1.05, cheekw=1.06, jaww=1.14, jawsq=0.5, chinw=1.15, full=0.5, jowl=0.8, lowh=1.04, brow=0.7, browth=1.4, browtilt=-0.3, eye=0.95, open=0.5, hood=0.8, nosel=1.06, nosew=1.15, tipw=1.2, lipw=1.02, lipu=0.9, lipl=1.05, corner=-0.4, fold=1.0, bag=0.9),
+  "drupada": old(hw=1.03, cheekw=1.03, jaww=1.1, jawsq=0.8, chinw=1.1, brow=1.1, browth=1.5, browtilt=0.7, deep=0.7, eye=0.95, open=0.88, hood=0.5, nosel=1.02, nosew=1.15, bridgew=1.15, tipw=1.15, lipu=0.8, corner=-0.5, fold=0.9, jowl=0.5),
+  "virata": old(hw=1.04, cheekw=1.06, jaww=1.1, jawsq=0.3, chinw=1.1, lowh=0.96, full=0.7, jowl=0.6, brow=0.4, browth=1.2, browtilt=-0.4, browarch=0.5, eye=1.02, open=0.95, nosel=0.97, nosew=1.2, tipw=1.25, bridgeh=0.9, lipw=1.05, lipu=0.95, lipl=1.1, corner=0.5, recede=0.3),
+  # allies and others
+  "dhrishtadyumna": dict(hw=0.99, cheekp=0.9, full=-0.3, jaww=1.02, jawsq=0.9, chinp=0.2, brow=0.8, browth=1.2, browtilt=0.75, browarch=0.2, eye=1.02, tilt=0.12, deep=0.4, nosew=0.95, bridgeh=1.15, nosep=1.06, lipw=0.97, lipu=0.9, corner=-0.2),
+  "satyaki": dict(hw=1.02, cheekw=1.05, cheekp=0.6, jaww=1.12, jawsq=0.75, chinw=1.12, lowh=0.98, full=0.15, brow=0.95, browth=1.35, browtilt=0.35, gap=1.03, nosel=0.97, nosew=1.18, bridgew=1.1, tipw=1.15, lipw=1.06, lipu=1.15, lipl=1.2, corner=0.1),
+  "shikhandi": dict(hw=0.96, cheekw=0.96, jaww=0.88, jawsq=0.25, chinw=0.84, brow=0.05, browth=0.75, browarch=0.8, eye=1.1, tilt=0.12, open=1.02, nosel=0.97, nosew=0.88, bridgew=0.82, nosep=0.95, lipw=0.95, lipu=1.2, lipl=1.15, cheekp=0.7, fores=-0.4, lash=1.4),
+  "uttara": dict(jaww=0.94, jawsq=0.2, chinw=0.9, chinp=-0.2, full=0.45, brow=0.15, browth=0.85, browarch=0.6, browtilt=-0.3, eye=1.12, open=1.1, nosel=0.93, nosep=0.9, tip=0.5, nosew=0.98, lipw=0.92, lipu=1.15, lipl=1.15, fores=-0.4),
+  "abhimanyu": dict(jaww=0.93, jawsq=0.3, chinw=0.9, full=0.35, brow=0.2, browth=0.9, browarch=0.5, eye=1.14, open=1.08, tilt=0.1, nosel=0.94, nosep=0.93, nosew=0.92, tip=0.2, lipu=1.1, lipl=1.1, corner=0.5, fores=-0.4, lowh=0.96),
+  "ghatotkacha": dict(hw=1.06, cheekw=1.08, cheekp=0.6, jaww=1.22, jawsq=0.9, chinw=1.35, lowh=1.06, full=0.3, brow=1.3, browth=1.6, browtilt=0.2, deep=0.6, eye=0.94, gap=1.06, nosel=0.92, nosew=1.32, bridgew=1.3, bridgeh=0.75, tipw=1.35, nosep=0.9, lipw=1.15, lipu=1.3, lipl=1.4, corner=0.5, ear=1.15, flare=1.3, fores=0.6),
+  "balarama": dict(hw=1.05, cheekw=1.06, jaww=1.15, jawsq=0.6, chinw=1.2, full=0.45, brow=0.7, browth=1.3, browarch=0.4, gap=1.04, nosel=1.02, nosew=1.12, bridgew=1.15, tipw=1.2, lipw=1.08, lipu=1.1, lipl=1.15, corner=0.2, jowl=0.25),
+  "ekalavya": dict(cheekw=1.06, cheekp=1.0, full=-0.3, jawsq=0.7, brow=0.7, browth=1.2, gap=1.05, tilt=0.1, nosel=0.95, nosew=1.2, bridgew=1.15, bridgeh=0.85, tipw=1.2, lipw=1.05, lipu=1.2, lipl=1.25),
+  "charu": dict(jaww=0.98, jawsq=0.4, chinw=0.95, full=0.15, brow=0.4, browarch=0.5, browtilt=-0.2, eye=1.08, open=1.05, nosel=0.95, nosew=1.05, tip=0.4, tipw=1.1, lipw=1.12, lipu=1.05, lipl=1.1, corner=0.6),
+  "ugra": dict(hw=1.05, cheekw=1.07, jaww=1.18, jawsq=0.6, chinw=1.2, full=0.8, jowl=0.7, brow=0.9, browth=1.2, browtilt=0.3, eye=0.86, open=0.78, hood=0.6, gap=1.02, nosel=0.96, nosew=1.25, tipw=1.3, bridgew=1.2, lipw=1.05, lipu=1.1, lipl=1.2, corner=0.35, fores=0.3),
+  "mauni": old(hw=0.96, cheekw=0.98, cheekp=1.2, full=-0.9, temple=0.9, jaww=0.9, jawsq=0.5, chinw=0.9, lowh=1.06, brow=0.9, browth=1.3, browtilt=0.1, deep=1.1, eye=1.04, open=1.08, hood=0.0, nosel=1.1, bridgeh=1.15, hump=0.5, lipw=0.95, lipu=0.7, lipl=0.8, fold=0.9, bag=0.7, recede=0.2, jowl=0.0),
+  "bard": dict(hw=0.96, lowh=1.06, cheekw=0.96, jaww=0.9, jawsq=0.3, chinw=0.88, full=-0.2, brow=0.3, browth=0.9, browarch=0.9, browtilt=-0.3, eye=1.08, open=1.05, nosel=1.06, nosew=0.92, bridgeh=1.1, tip=0.2, lipw=1.05, corner=0.5),
+  "brahmin": dict(hw=1.03, cheekw=1.05, jaww=1.1, jawsq=0.2, chinw=1.05, chinp=-0.3, full=1.0, jowl=0.9, lowh=0.97, brow=0.3, browth=0.9, browarch=0.6, eye=0.96, open=0.92, nosel=0.96, nosew=1.1, tipw=1.2, lipw=0.95, lipu=1.1, lipl=1.15, corner=0.3),
+  "villager_m": dict(cheekp=0.8, full=-0.35, jaww=0.98, brow=0.6, browth=1.1, nosew=1.1, tipw=1.1, fold=0.6, eye=0.98, lipu=0.95, temple=0.3),
+  "guard": dict(jaww=1.1, jawsq=0.9, chinw=1.1, brow=0.8, browth=1.2, browtilt=0.2, nosew=1.05, lipu=0.95, corner=-0.15),
+  "raider": dict(cheekw=1.03, jaww=1.06, jawsq=0.7, brow=1.1, browth=1.5, browtilt=0.8, deep=0.6, eye=0.92, open=0.85, nosew=1.2, hump=0.8, tip=-0.2, bridgew=1.2, lipu=0.9, corner=-0.5, full=-0.25, fold=0.5),
+  "soldier_foot": dict(jaww=1.04, jawsq=0.7, brow=0.7, browth=1.2, nosew=1.08),
+  "soldier_archer": dict(hw=0.97, jaww=0.94, full=-0.3, cheekp=0.8, nosel=1.05, eye=1.03, tilt=0.1),
+  "soldier_charioteer": dict(hw=1.02, full=0.35, jaww=1.06, nosew=1.15, tipw=1.15, browth=1.2, corner=0.1),
+  "soldier_cw": dict(jaww=1.08, jawsq=0.9, chinw=1.1, cheekp=0.8, brow=0.8, bridgeh=1.15, nosel=1.04, browtilt=0.3),
 }
+YOUNGEST = {"abhimanyu": "youth"}   # (these measures are of the person at this age, not grown)
+def face_of(key, sex, fix):
+    who, st = key.rsplit("_", 1); f = dict(WOMAN) if sex == "f" else {}; f.update(PEOPLE.get(who, {})); f.update(fix or {}); at = YOUNGEST.get(who)
+    if st == "child": f = child_of(f)
+    elif st == "youth" and at != "youth": f = youth_of(f)
+    elif st == "elder" and who in ("player_m", "player_f"): f = elder_of(f)
+    return {k: round(v, 4) for k, v in f.items()}
 def L(parts, **cols):
     if "hem" not in cols and "red" in cols: cols["hem"] = cols["red"]
     return dict(parts=parts.split(), cols=cols)
@@ -43,10 +117,9 @@ def add(key, build, face, skin, hair=BLACK, cm=None, looks=None, **kw):
     st = key.rsplit("_", 1)[1]; CAST[key] = dict(build=build, face=face, skin=skin, hair=hair, looks=looks or {}, size=round(cm / (100 * (1.47 + 0.33 * HEADK[st]) * SC[st]), 3) if cm else 1, **kw)
 def resolve(key):
     c = CAST[key]; H = dict(sex="m", stache=False, stubble=False, crown=None, locks=4, rich=False, belly=0); H.update({k: (dict(v) if isinstance(v, dict) else v) for k, v in BUILD[c["build"]].items()})
-    H["face"] = dict(FACE[c["face"]]); H["face"].update(c.get("facefix", {}))
     for k, v in c.items():
         if k not in ("build", "face", "facefix"): H[k] = v
-    return H
+    H["face"] = face_of(key, H["sex"], c.get("facefix")); return H
 
 # ---- The player: plain enough to belong anywhere. Undyed cotton with a madder border; bark-dyed in the forest; leather and iron at war.
 PM = 0xa86d40; PF = 0xbe7f4c
@@ -178,7 +251,7 @@ AB = 0xc98850
 add("abhimanyu_youth", "youth", "young", AB, BLACK, 172, crown="circlet", rich=True, mu=0.75, arm=0.8, looks={
   "home": L("hair locks crown gold ear bands girdle shawl dhoti", cloth=0xf6f0e2, red=0x1a3774, cloth2=0x66a7f3, hem=0x1a3774, gem=0x004efe),
   "war":  L("hair locks helmet cuirass pauldron lames tasset vambrace greave baldric dhotiS sash", cloth=0xf6f0e2, red=0x2567e8, hem=0x1a3774, armour=0xb9b4a8, leather=0x9a968c, iron=0xb0aca0, gem=0x004efe) })
-add("ghatotkacha_adult", "heavy", "broad", 0xa46037, BLACK, 215, rich=True, facefix=dict(brow=1.2, jaww=1.2), looks={
+add("ghatotkacha_adult", "heavy", "broad", 0xa46037, BLACK, 215, rich=True, facefix=dict(), looks={
   "war": L("ear bands anklets harness girdle shawl dhoti", cloth=0x29211e, red=0xa1241a, cloth2=0xbe2825, hem=0xcc6635, gold=0x8a6a3a, gem=0xa1241a) })
 add("drupada_elder", "oldking", "old", 0xcf9a68, 0xa9a39a, 180, crown="mukuta", rich=True, stache=True, looks={
   "court": L("hair locks longhair crown beardF stache gold ear bands girdle panel shawl dhoti", cloth=0xa3371e, red=0x671c0f, cloth2=0xa3371e, hem=0xd9a53a, gem=0xb0202a),

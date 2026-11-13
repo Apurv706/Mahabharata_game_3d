@@ -154,3 +154,22 @@ Checked by pictures of every helmeted head from the front, three-quarter, side, 
 
 **Not looked at yet:** the rest of "human forms dont look right". The helmets were the one fault named. Proportions, faces, hair and how joints bend have not been reviewed in this pass.
 
+
+## 8. Faces rebuilt from the anatomy of a face (13 November)
+
+**The fault.** Laid side by side, all 48 grown faces were one face: the same wide box of a jaw (as wide as the skull), the same low forehead, the same wedge of a nose, small eyes under one heavy bar of brow, one small disc for a mouth. People differed only by skin, hair and beard; the women had the men's face.
+
+**What was done.** The head is no longer lumps of clay run together. `tools/blender/face.py` builds it the way a face is built:
+
+- the skull's two outlines (front and side) are lofted through level sections, with real proportions: the face in thirds (hairline, brow, base of the nose, chin), the eyes at half the head's height, one eye's width between the eyes, the nose as wide as that gap, the mouth a third of the way from nose to chin, the jaw's angle below the mouth's level and narrower than the cheekbones;
+- the features stand on that: brow ridge, a nose with a bridge, tip, wings and nostrils, cheekbones, the mound of the mouth, the hollow under the lip, the chin;
+- the mesh's lines run as a face's do: round the eye, round the mouth, down the nose. The eye is a ball in a socket seen through an opening between two lids; the upper lid is skin that turns down over the ball (the game turns it, `face.lidr`), with a dark lash line on its edge. The mouth is two lips with a line between them that parts when the jaw drops, with the dark of the mouth behind;
+- ears stand where ears stand (brow to nose base, behind the jaw); the hair follows the skull to a hairline with temples and a place for the ear; short beards and stubble are taken from the face's own mesh so their edges are clean.
+
+**One person, one face.** About fifty measures say how one face differs from another (jaw width and squareness, chin, cheekbones, the cheek's flesh, nose length, width, bridge, hump and tip, eye size, spacing, tilt, depth and lid, brow weight, arch and slant, lip width and fullness, the mouth's corners, folds of age, hairline). `PEOPLE` in `cast_specs.py` gives each of 48 people their own, set from the painted portraits where there is one (Bhima round and fleshy, Arjuna lean with high cheekbones, Shakuni narrow with a hooked nose, Karna broad with heavy lids, and so on). A woman's face, a child's, a youth's and an old face are changes made to a person's measures, so the same person is recognisable at each age.
+
+**Cost.** The new head is no heavier: 2,584 triangles against 2,592, face parts 518 against 572, hair cap 816 against 1,408.
+
+**Checked.** Before and after sheets of all 48; children and youths; heads in crowns, helmets and the blindfold; the face's moods (set, glad, shout, pain, shut, blink); all tests pass.
+
+**Not done.** The necks under the women's and thinner men's heads show odd spikes at the collar (they did before as well); bodies are unchanged; teeth are not modelled; none of this has been seen on a phone.

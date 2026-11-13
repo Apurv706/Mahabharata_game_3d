@@ -300,7 +300,7 @@ def both(fn):
 EY = FACEM.build_eyes(FC)
 for nm_, role_ in (("eye", "sclera"), ("iris", "iris"), ("pupil", "pupil"), ("glint", "white")): parts.append(mesh_obj(nm_, EY[nm_], role_))
 _nc, _nr = FACEM.nostrils(FC)
-both(lambda sx: prim("uv_sphere", "nostril", "mouth", (sx * _nc[0], _nc[1], HZ + _nc[2]), _nr, segments=8, ring_count=5))
+if FC.P["nosep"] > 0.8: both(lambda sx: prim("uv_sphere", "nostril", "mouth", (sx * _nc[0], _nc[1], HZ + _nc[2]), _nr, segments=8, ring_count=5))
 parts.append(mesh_obj("lash", FACEM.build_lashes(FC), "lash"))
 parts.append(mesh_obj("lipU", HEADM["lipU"], "lip")); parts.append(mesh_obj("lipL", HEADM["lipL"], "lip")); parts.append(mesh_obj("mouth", FACEM.build_mouth(FC), "mouth"))
 BRL, BRR, BRC = FACEM.build_brows(FC)
@@ -637,7 +637,7 @@ bm = bmesh.new(); bm.from_mesh(vl.data); bmesh.ops.delete(bm, geom=[v for v in b
 for p in vl.data.polygons: p.use_smooth = True
 vl.select_set(False); rigid(vl, "H"); parts.append(vl)
 fall("veilfall", "cloth2", 0.0, 0.15, HZ - 0.08, 0.75, 0.15, top="T", edge=False, sway="sB"); since(n0, "veil"); n0 = len(parts)
-parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + FC.ze + 0.004), (1, 1.15, 3.2), major_radius=0.1 * FC.P["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
+parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + FC.ze + 0.004), (1, 1.13, 3.4), major_radius=0.109 * FC.P["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
 # a mark on the brow
 parts.append(prim("uv_sphere", "tilak", "gem", (0, FC.surf(0, FC.zbr + 0.024)[1] - 0.001, HZ + FC.zbr + 0.024), (0.006, 0.004, 0.014), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "tilak"); n0 = len(parts)
 

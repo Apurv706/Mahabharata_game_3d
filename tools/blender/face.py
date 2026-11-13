@@ -168,7 +168,7 @@ class Face:
         a = vnorm((math.cos(psi) * math.cos(tau), math.sin(psi) * math.cos(tau), math.sin(tau)))   # the line through the two corners, outward: the outer corner lies further back, and higher by the tilt
         n = (math.sin(psi), -math.cos(psi), 0.0); n = vnorm(vsub(n, vmul(a, vdot(n, a)))); s.ea, s.en, s.eu = a, n, vcross(n, a)
         s.fe = 0.0985 - 0.004 * P["deep"] - s.rl; s.ec = (s.cx, -s.fe, s.ze)
-        s.TU = 0.47 * P["open"]; s.TL = 0.31 * P["open"]; s.EU = [-1.0, -0.68, -0.38, 0.0, 0.40, 0.72, 1.0]
+        s.TU = 0.43 * P["open"]; s.TL = 0.28 * P["open"]; s.EU = [-1.0, -0.68, -0.38, 0.0, 0.40, 0.72, 1.0]
     def lidpt(s, u, th, r=None):
         r = r or s.rl; b = math.asin(clamp(u, -1.0, 1.0)); cb = math.cos(b)
         d = vadd(vmul(s.ea, math.sin(b)), vadd(vmul(s.en, cb * math.cos(th)), vmul(s.eu, cb * math.sin(th)))); return vadd(s.ec, vmul(d, r))
@@ -350,7 +350,7 @@ def flip_x(m):
     return M
 
 def build_eyes(F):   # -> the white, the iris, the pupil, and a point of light in it
-    c = F.ec; g = vnorm(vadd((0.0, -1.0, 0.05), vmul(F.en, 0.3))); ri = 0.0082 * F.P["eye"] ** 0.5; out = {}
+    c = F.ec; g = vnorm(vadd((0.0, -1.0, 0.05), vmul(F.en, 0.3))); ri = 0.0088 * F.P["eye"] ** 0.5; out = {}
     out["eye"] = cap(c, F.en, F.rb, 1.5, 5, 12)
     out["iris"] = cap(c, g, F.rb + 0.00035, math.asin(ri / F.rb), 2, 12)
     out["pupil"] = cap(c, g, F.rb + 0.0007, math.asin(0.0033 / F.rb), 1, 8)
@@ -450,7 +450,7 @@ def build_beard(F, kind="short", off=0.0045):   # hair on the jaw, taken from th
         if kind == "chin": return i < RI["sul"] and j <= 3 and i >= RI["c1"]
         if j <= 4 and RI["ub"] <= i < RI["sn"]: return kind == "stubble" and i >= RI["ub"]    # the upper lip: the moustache's place (stubble covers it)
         if j <= 4: return i < RI["lb"]
-        return i < lim(j + 1) and j <= 14
+        return i < lim(j + 1) and j <= 11
     PT = {}
     def P(i, jj):
         jj %= NU; k = (i, jj)
