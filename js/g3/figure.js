@@ -650,11 +650,29 @@
         // (the stride a swing of A degrees covers, so feet do not skate: one cycle is two steps)
         const A = 22 + 26 * sp2, stride = 4 * 0.87 * size * Math.sin(A * D);
         f.phase += dt * Math.max(2.4, (6.283 * f.speed) / stride);
-        const s = Math.sin(f.phase), c = Math.cos(f.phase), Kn = 34 + 34 * sp2, crouch = tg.y < -0.1;
-        tg.lL[0] += A * s; tg.lR[0] -= A * s; tg.kL[0] += Kn * Math.max(0, -c) + (crouch ? 0 : 4); tg.kR[0] += Kn * Math.max(0, c) + (crouch ? 0 : 4);
-        tg.y -= Math.abs(s) * 0.022 * (1 + sp2); tg.T[1] += 5 * s; tg.T[0] += 4 + 8 * sp2;
-        if (f.base === "stand" || f.base === "carry0") { const Ba = 18 + 24 * sp2; tg.aL[0] += -Ba * s; tg.aR[0] += Ba * s; tg.eL[0] = -14 - 46 * sp2; tg.eR[0] = -14 - 46 * sp2; }
-      } else if (f.fall < 0.2) { const br = Math.sin(t * 1.6 + f.phase); tg.T[0] += br * 1.2; tg.aL[2] += br * 0.8; tg.aR[2] -= br * 0.8; }
+        const s = Math.sin(f.phase), c = Math.cos(f.phase), crouch = tg.y < -0.1, free = f.base === "stand" || f.base === "carry0";
+        // (a walk becomes a run: the knees come higher, the body is lowest over the foot it lands on instead of between
+        // two steps, and the thighs work ahead of the body's lean)
+        const run = Math.max(0, Math.min(1, (sp2 - 0.6) / 0.3)), Kn = 34 + 34 * sp2 + 26 * run, ab = Math.abs(s);
+        tg.lL[0] += A * s - 5 * run; tg.lR[0] -= A * s + 5 * run;
+        tg.kL[0] += Kn * Math.max(0, -c) + (crouch ? 0 : 4) + 14 * run * Math.max(0, c); tg.kR[0] += Kn * Math.max(0, c) + (crouch ? 0 : 4) + 14 * run * Math.max(0, -c);
+        tg.y -= ab * 0.022 * (1 + sp2) * (1 - run) + (1 - ab) * 0.034 * run; tg.T[0] += 4 + 8 * sp2;
+        // The hips go with the legs and the shoulders against them (so the arm that swings forward has its shoulder
+        // behind it); the hip of the leg in the air hangs a little, the body rides over the foot that carries it, and
+        // the head is kept to its line through all of it. A stance held for a fight turns less: its feet are set.
+        const k = free ? 1 : 0.45, Pa = (3.5 + 3.5 * sp2) * k, Sa = (5 + 4 * sp2) * k, Pr = (2.6 - 1.2 * run) * k, lat = (0.016 - 0.008 * sp2) * size * k;
+        tg.P[1] += Pa * s; tg.T[1] -= (Pa + Sa) * s; tg.H[1] += Sa * s * 0.85; tg.H[0] -= (4 + 8 * sp2) * 0.55;
+        tg.P[2] += Pr * c; tg.T[2] -= Pr * c * 1.35; tg.H[2] += Pr * c * 0.35; f.latT = lat * c;
+        const lz = -(Pr + (lat / (0.87 * size)) / D) * c; tg.lL[2] += lz; tg.lR[2] += lz; // (the legs stay under the body as it tips and shifts)
+        if (free) { const Ba = 18 + 24 * sp2; tg.aL[0] += -Ba * s; tg.aR[0] += Ba * s; // the arm coming forward bends, the one going back straightens
+          tg.eL[0] = -14 - 46 * sp2 - (8 + 6 * sp2) * s; tg.eR[0] = -14 - 46 * sp2 + (8 + 6 * sp2) * s; tg.aL[2] += 2 * sp2; tg.aR[2] -= 2 * sp2; }
+      } else if (f.fall < 0.2) { // standing: breath, and (when simply standing) the weight going slowly from one foot to the other, the eyes wandering
+        const br = Math.sin(t * 1.6 + f.phase); tg.T[0] += br * 1.2; tg.aL[2] += br * 0.8; tg.aR[2] -= br * 0.8; f.latT = 0;
+        if (f.base === "stand" || f.base === "talk" || f.base === "carry0") { const ws = Math.sin(t * 0.41 + f.phase * 1.7), w2 = Math.sin(t * 0.27 + f.phase * 2.9);
+          tg.P[2] += ws * 1.7; tg.T[2] -= ws * 2.1; tg.H[2] += ws * 0.5; f.latT = ws * 0.013 * size; const lz = -(1.7 + (0.013 / 0.87) / D) * ws; tg.lL[2] += lz; tg.lR[2] += lz;
+          if (!f.look && !f.talk) { tg.H[1] += w2 * 5 + ws * 1.5; tg.T[1] += w2 * 1.6; } }
+        else if (STANCES.has(f.base)) tg.y += Math.sin(t * 2.3 + f.phase) * 0.006; // (a guard is never quite still)
+      } else f.latT = 0;
       if (f.talk && f.fall < 0.2) { const w = Math.sin(t * 2.6 + f.phase), w2 = Math.sin(t * 1.7 + f.phase * 2); if (f.base === "stand" || f.base === "talk") { tg.aR[0] = -36 + w * 10; tg.aR[2] = -14 + w2 * 8; tg.eR[0] = -74 + w * 22; tg.H[0] += w2 * 4; tg.T[0] += 3; } else tg.H[0] += w2 * 5; }
       if (f.look && f.fall < 0.2) { const a = Math.atan2(f.look.x - f.root.position.x, f.look.z - f.root.position.z) - f.root.rotation.y, d = Math.atan2(Math.sin(a), Math.cos(a)) / D; tg.H[1] += G.clamp(d, -62, 62) * 0.8; }
       // Going down: the knees give first, the body folds, and only then does it go over.
@@ -702,7 +720,7 @@
     function apply() {
       const c = f.cur, j = f.j;
       for (const k of JOINTS) j[k].rotation.set(c[k][0] * D, c[k][1] * D, c[k][2] * D);
-      j.P.position.y = 0.92 + c.y; j.P.position.z = c.z;
+      j.P.position.y = 0.92 + c.y; j.P.position.z = c.z; j.P.position.x = f.latC || 0;
       // Going down: once the knees have given, the whole body goes over about the feet until it lies along the ground.
       const fl = f.fall, over = fl < 0.3 ? 0 : (fl - 0.3) / 0.7, go = over * over * (3 - 2 * over);
       tilt.rotation.x = -go * (PI / 2) * f.fallDir + f.spin; tilt.position.y = go * 0.11 + (f.spin ? 0.5 * Math.abs(Math.sin(f.spin / 2)) * 1.1 : 0);
@@ -712,7 +730,7 @@
       f.dt = dt; compute(dt, t);
       const k = f.exact ? 1 : 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
       for (const key of JOINTS) { const a = c[key], b = tg[key]; a[0] += (b[0] - a[0]) * k; a[1] += (b[1] - a[1]) * k; a[2] += (b[2] - a[2]) * k; }
-      c.y += (tg.y - c.y) * k; c.z += (tg.z - c.z) * k;
+      c.y += (tg.y - c.y) * k; c.z += (tg.z - c.z) * k; f.latC = (f.latC || 0) + ((f.latT || 0) - (f.latC || 0)) * k;
       if (f.fall !== f.fallTo) f.fall = f.fallTo > f.fall ? Math.min(f.fallTo, f.fall + dt * 1.7) : Math.max(f.fallTo, f.fall - dt * 2.2);
       // Turn toward the facing asked for, the short way round.
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));

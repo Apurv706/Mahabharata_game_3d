@@ -98,7 +98,11 @@
     let tg;
     if (icon === "elephant") { tg = G.elephant(0xa3302a); tg.scale.setScalar(0.8); }
     else if (icon === "chariot") { tg = G.chariot({ flag: ["#a3302a", "#e2b55a", "sun"], col: 0x6e3026 }); tg.scale.setScalar(0.8); }
-    else if (icon === "deer" || icon === "tiger") { tg = G.horse(icon === "tiger" ? 0xe08a2a : 0xc9843e); tg.scale.setScalar(icon === "tiger" ? 0.85 : 0.7); }
+    else if (icon === "deer" || icon === "tiger") { tg = G.beast4(icon); if (G.PROPS && G.PROPS[icon]) tg.scale.setScalar(1.15); tg.traverse((m) => { if (m.isMesh) m.castShadow = true; }); }
+    else if (icon === "bird") { // a green parrot on the wing: a body, a red beak, a long tail, and two wings that beat
+      tg = new T.Group(); tg.add(mesh((b) => { b.sph(0.12, 0, 0, 0, 0x4f8a3a, 0.8, 8, 0.8, 1.5, 0x7fb84a); b.sph(0.075, 0, 0.05, 0.19, 0x4f8a3a, 1, 7); b.cone(0.03, 0.09, 0, 0.04, 0.25, 0xd0502a, 5, 0, Math.PI / 2); b.box(0.08, 0.014, 0.3, 0, -0.01, -0.34, 0x3f7a34); }));
+      tg.userData.wings = [-1, 1].map((sx) => { const w = mesh((b) => { b.box(0.34, 0.014, 0.2, sx * 0.17, 0, -0.02, 0x3f7a34); b.box(0.2, 0.012, 0.13, sx * 0.42, 0, -0.06, 0x356a2c); }); w.position.set(sx * 0.05, 0.04, 0.03); tg.add(w); return w; });
+    }
     else tg = mesh((b) => {
       if (icon === "lamp") { b.cyl(0.2, 0.1, 0.12, 0, -0.1, 0, 0xb5793a, 8); b.sph(0.09, 0, 0.1, 0, 0xffd27a, 1.6, 6); }
       else if (icon === "fruit") b.sph(0.2, 0, 0, 0, 0xf0a030, 1.2, 8);
@@ -125,7 +129,8 @@
       ph += dt * speed * (1 + n * 0.08);
       pos = x.runner ? ((ph * 0.45) % 2) - 1 : Math.sin(ph);
       const wx = X0 + pos * AMP, y = x.runner ? 0 : 1.9 + (x.icon === "bird" ? Math.sin(ph * 3) * 0.3 : -Math.abs(pos) * 0.25);
-      x.tg.position.set(wx, y, Z); if (x.runner) { x.tg.rotation.y = Math.PI / 2; if (x.icon === "elephant") G.stomp(x.tg, tt * 8, 1); else if (x.icon === "chariot") G.roll(x.tg, ph * 3, tt, 1); else G.gallop(x.tg, tt * 12, 1); }
+      x.tg.position.set(wx, y, Z); if (x.tg.userData.wings) { const a = Math.sin(tt * 21) * 0.8; x.tg.userData.wings[0].rotation.z = -a; x.tg.userData.wings[1].rotation.z = a; x.tg.rotation.y = Math.cos(ph) > 0 ? Math.PI / 2 : -Math.PI / 2; x.tg.rotation.z = Math.sin(tt * 21 + 1) * 0.06; } /* (it flies the way it is going) */
+      if (x.runner) { x.tg.rotation.y = Math.PI / 2; if (x.icon === "elephant") G.stomp(x.tg, tt * 8, 1); else if (x.icon === "chariot") G.roll(x.tg, ph * 3, tt, 1); else G.gallop(x.tg, tt * 12, 1); }
       x.tg.visible = !t.blind || Math.abs(pos) > 0.82 || flew > 0; if (flew > 0) flew -= dt;
       if (t.blind && Math.abs(pos) < 0.05 && !busy && Math.floor(tt * 8) % 2 === 0) sfx("tap");
       ctx.me.drawBow(busy ? 0 : 0.5 + 0.5 * Math.sin(tt * 2));
@@ -446,7 +451,7 @@
     }
     const goal = new T.Mesh(new T.RingGeometry(0.55, 0.8, 24).rotateX(-Math.PI / 2), basic(0x7fe08a, 0.85)); goal.position.set(0, 0.06, -SNEAK.D + 0.7); ctx.add(goal, G.fxRoot);
     let dog = null;
-    if (t.twist === "dog") { dog = { x: -2.2, z: 0.9, r: 2.3, m: ctx.add(mesh((b) => { b.box(0.5, 0.22, 0.24, 0, 0.02, 0, 0x8a6a48); b.sph(0.13, 0.3, 0.14, 0, 0x8a6a48); b.box(0.2, 0.05, 0.05, -0.32, 0.06, 0.05, 0x6a4e34); }), G.fxRoot), ring: new T.Mesh(new T.RingGeometry(2.2, 2.3, 32).rotateX(-Math.PI / 2), basic(0xff9a70, 0.5)) }; dog.m.position.set(dog.x, 0, dog.z); dog.ring.position.set(dog.x, 0.05, dog.z); ctx.add(dog.ring, G.fxRoot); }
+    if (t.twist === "dog") { dog = { x: -2.2, z: 0.9, r: 2.3, m: ctx.add(G.PROPS && G.PROPS.dog ? G.beast4("dog", 0x7a5a3c) : mesh((b) => { b.box(0.5, 0.22, 0.24, 0, 0.02, 0, 0x8a6a48); b.sph(0.13, 0.3, 0.14, 0, 0x8a6a48); b.box(0.2, 0.05, 0.05, -0.32, 0.06, 0.05, 0x6a4e34); }), G.fxRoot), ring: new T.Mesh(new T.RingGeometry(2.2, 2.3, 32).rotateX(-Math.PI / 2), basic(0xff9a70, 0.5)) }; dog.m.position.set(dog.x, 0, dog.z); dog.m.rotation.y = 0.9; if (G.lie) G.lie(dog.m, 1); dog.ring.position.set(dog.x, 0.05, dog.z); ctx.add(dog.ring, G.fxRoot); }
     ctx.x = { guards, goal, dog }; ctx.cam([0, 7.2, 12.4], [0, 0, SNEAK.D - 5], 54, true);
   } };
   PLAY.sneak = function (ctx) {
@@ -479,6 +484,7 @@
         if (running && grace <= 0 && dist < 2.7 && g.alert <= 0) { g.alert = 1.6; g.lx = w.x; g.lz = w.z; sfx("step"); G.fx.ring(new T.Vector3(w.x, 0.06, w.z), 0xffd9a0, 0.3, 2.7, 0.5); }
         g.cone.material.color.setHex(sees ? 0xff5a3a : g.alert > 0 ? 0xffa040 : 0xffd060); g.cone.material.opacity = sees ? 0.5 : 0.3;
       }
+      if (x.dog && x.dog.m.userData.bones) { const up = x.dog.r === 0; G.lie(x.dog.m, up ? 0 : 1, dt); if (up) { x.dog.m.rotation.y = Math.atan2(w.x - x.dog.x, w.z - x.dog.z); G.gallop(x.dog.m, tt, 0); x.dog.m.userData.bones.neck.rotation.x = -0.22 + (Math.sin(tt * 9) > 0.3 ? -0.22 : 0); } } /* (woken, it is on its feet, barking at you; then it settles again) */
       if (x.dog && running && grace <= 0 && Math.hypot(w.x - x.dog.x, w.z - x.dog.z) < x.dog.r) { ctx.toast(tx("The dog wakes and barks."), "bad"); sfx("hit"); hearAll(x.dog.x, x.dog.z, 9, 2.6); for (const g of x.guards) { g.lx = w.x; g.lz = w.z; } sus = Math.min(0.95, sus + 0.3); grace = 0.01; x.dog.r = 0; x.dog.ring.visible = false; ctx.after(6000, () => { if (x.dog) { x.dog.r = 2.3; x.dog.ring.visible = true; } }); }
       sus = clamp(sus + (inSight > 0 ? inSight * keen * 1.15 : -0.55) * dt, 0, 1); meter.firstChild.style.width = Math.round(sus * 100) + "%"; meter.classList.toggle("hot", inSight > 0);
       if (sus >= 1) { seen++; ctx.toast(tx(t.spotted || "A guard has seen you. You slip back."), "bad"); ctx.cue("bad"); draw(); if (seen >= maxSpots) { over = true; return ctx.finish(done >= trips - 1 && trips > 1 ? "close" : "lose", null); } back(); }
@@ -646,7 +652,7 @@
   PLAY.herd = function (ctx) {
     const t = ctx.t, need = t.need || 6, lose = 3, secs = clamp(38 + ctx.power, 38, 50), fire = t.theme !== "river", w = walker(ctx, 4.6, [11, 8]); w.z = 6;
     const cows = [], haz = []; let got = 0, lost = 0, left = secs;
-    for (let i = 0; i < need + 3; i++) { const h = G.horse(i % 2 ? 0xe8dcc0 : 0x8a5a3a); h.scale.setScalar(0.62); h.position.set((K.rng() - 0.5) * 20, 0, (K.rng() - 0.5) * 12 - 2); h.rotation.y = K.rng() * 6; ctx.add(h); cows.push({ h, with: false, gone: false }); }
+    for (let i = 0; i < need + 3; i++) { const h = G.cow(i % 2 ? 0xe4dac8 : 0x8a5a3a); h.traverse((m) => { if (m.isMesh) m.castShadow = true; }); h.position.set((K.rng() - 0.5) * 20, 0, (K.rng() - 0.5) * 12 - 2); h.rotation.y = K.rng() * 6; ctx.add(h); cows.push({ h, with: false, gone: false }); }
     const addHaz = (x, z, r) => { const m = ctx.add(new T.Mesh(new T.CircleGeometry(1, 20).rotateX(-Math.PI / 2), basic(fire ? 0xff6a20 : 0x2f6a8a, 0.55)), G.fxRoot); m.position.set(x, 0.05, z); haz.push({ m, x, z, r }); };
     for (let i = 0; i < 3; i++) addHaz((K.rng() - 0.5) * 16, (K.rng() - 0.5) * 10 - 1, fire ? 0.8 : 1.8);
     const draw = () => ctx.score(tx("Cattle with you: {f} of {n} · Lost: {d} of {l}", { f: got, n: need, d: lost, l: lose }));
@@ -657,7 +663,8 @@
       let k = 0;
       for (const c of cows) {
         if (c.gone) continue; const p = c.h.position;
-        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.9 + k * 0.9), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.9 + k * 0.9); p.x += (fx - p.x) * Math.min(1, dt * 3); p.z += (fz - p.z) * Math.min(1, dt * 3); c.h.rotation.y = Math.atan2(w.x - p.x, w.z - p.z); G.gallop(c.h, tt * 9, ctx.me.speed ? 1 : 0); }
+        if (!c.with) G.gallop(c.h, p.x * 3.1 + p.z, 0); /* (those not yet gathered stand at grass) */
+        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.9 + k * 0.9), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.9 + k * 0.9); p.x += (fx - p.x) * Math.min(1, dt * 3); p.z += (fz - p.z) * Math.min(1, dt * 3); c.h.rotation.y = Math.atan2(w.x - p.x, w.z - p.z); G.gallop(c.h, tt * 9 + k, ctx.me.speed ? 0.5 : 0); } /* (cattle follow at a trot) */
         else if (Math.hypot(p.x - w.x, p.z - w.z) < 1.3) { c.with = true; got++; sfx("tap"); ctx.toast(tx(t.gather || "Another cow falls in behind you."), "good"); draw(); if (got >= need) return ctx.finish("win", null); }
         for (const hz of haz) if (Math.hypot(p.x - hz.x, p.z - hz.z) < hz.r) { c.gone = true; c.h.visible = false; if (c.with) got--; lost++; ctx.toast(tx(fire ? "The fire takes one." : t.water || "The water is too deep there."), "bad"); ctx.cue("bad"); draw(); if (lost >= lose) return ctx.finish(got >= need - 1 ? "close" : "lose", null); break; }
       }

@@ -99,6 +99,34 @@
     const enc = K.ENCOUNTERS[encId];
     let B = C.start(encId, null), R = R3.begin(B, { assist: U.assist() });
     const views = new Map(), offs = [], shots = new Map(), grounds = new Map();
+    // An arrow that has arrived does not vanish: one that missed drops and stands in the ground, still shaking; one that
+    // struck stays in the man it hit (never in you: it would stand in front of your own eyes). A handful at a time.
+    const stuck = [], _qs = new T.Quaternion(), _xs = new T.Vector3(1, 0, 0);
+    function unstick(s) { if (s.f && s.f.arrowsIn) s.f.arrowsIn--; if (s.m.parent) s.m.parent.remove(s.m); G.dispose(s.m); }
+    function stick(m, uid, a) {
+      const v = uid != null ? views.get(uid) : null, f = v && !v.obj ? v.figs[0] : null, me = C.player(), rnd = Math.random;
+      if (uid != null && (!f || (me && uid === me.uid) || !f.j || !f.j.T || (f.arrowsIn || 0) >= 3)) { G.fxRoot.remove(m); G.dispose(m); return; }
+      if (f) { // in his body: the head a hand's breadth in, the shaft standing out toward where it came from
+        const J = f.j.T; J.updateWorldMatrix(true, false);
+        const q = J.getWorldQuaternion(new T.Quaternion()).invert(), sc = J.getWorldScale(new T.Vector3()).x || 1, pitch = 0.08 + rnd() * 0.22, yaw = a + (rnd() - 0.5) * 0.3;
+        const dir = new T.Vector3(Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).applyQuaternion(q);
+        J.add(m); m.userData.stuck = 1; m.quaternion.copy(q).multiply(new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, rnd() * 6, "YXZ")));
+        m.position.set((rnd() - 0.5) * 0.1, 0.2 + rnd() * 0.2, 0).addScaledVector(dir, -0.6 / sc); m.scale.setScalar(1 / sc); f.arrowsIn = (f.arrowsIn || 0) + 1;
+        stuck.push({ m, t: 0, f, life: 7, sc: 1 / sc, q0: m.quaternion.clone() });
+      } else { // into the ground a stride or two on, steeply
+        const pitch = 0.9 + rnd() * 0.45, yaw = a + (rnd() - 0.5) * 0.2, go = 1 + rnd() * 1.4;
+        stuck.push({ m, t: 0, f: null, life: 6 + rnd() * 3, sc: 1, fall: 0, from: m.position.clone(), q1: m.quaternion.clone(), to: new T.Vector3(m.position.x + Math.sin(yaw) * go, 0.36 * Math.sin(pitch), m.position.z + Math.cos(yaw) * go), q0: new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, rnd() * 6, "YXZ")) });
+      }
+      while (stuck.length > 14) unstick(stuck.shift());
+    }
+    function stuckFrame(dt) {
+      for (let i = stuck.length - 1; i >= 0; i--) { const s = stuck[i];
+        if (s.fall != null && s.fall < 1) { s.fall = Math.min(1, s.fall + dt / 0.13); const k = s.fall; s.m.position.lerpVectors(s.from, s.to, k); s.m.quaternion.slerpQuaternions(s.q1, s.q0, k); if (k >= 1) G.fx.burst("dust", s.to, { n: 1 }); continue; }
+        s.t += dt;
+        if (s.t < 0.7) s.m.quaternion.copy(s.q0).multiply(_qs.setFromAxisAngle(_xs, Math.sin(s.t * 58) * 0.11 * Math.exp(-s.t * 7)));
+        if (s.t > s.life || (s.f && !s.m.parent)) { unstick(s); stuck.splice(i, 1); } else if (s.t > s.life - 0.5) s.m.scale.setScalar(s.sc * Math.max(0.02, (s.life - s.t) * 2));
+      }
+    }
     let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, backMesh = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
     let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null;
@@ -393,10 +421,11 @@
         const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
         G.steer(c, g.ca != null ? g.ca : g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the car's own heading when another hand drives)
         v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
+        { const cb = c.userData.car; if (cb) { for (const f of v.figs) { f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
         if (u.hp > 0 && g.moving > 0.45 && mv > 0.004 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
       }
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
-        v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 1; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
+        v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 5.4; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
         if (v.bar) v.bar.style.display = "none"; return; }
       const alive = u.plural ? Math.max(u.hp > 0 ? 1 : 0, Math.ceil(v.bodies * u.hp / u.maxHp)) : u.hp > 0 ? 1 : 0;
       v.figs.forEach((f, i) => {
@@ -483,7 +512,7 @@
           case "windup": if (!tips.mark && v && v.u.side === "enemy" && C.player() && (R3.threats(R).length)) tip("mark", "A mark on the ground shows where a blow will land. Step or roll out of it before it fills."); break;
           case "swing": if (e.area && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); if (v && v.kind === "light") { G.fx.beam(at, new T.Vector3(e.x, 28, e.z), 0xfff0b0, 0.9, 0.7); G.fx.flash("rgba(255,240,200,.35)", 300); } G.fx.ring(at, 0xffb060, 0.4, e.r || 3, 0.5); G.fx.burst("dust", at, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } break;
           case "shot": sfx("tap"); if (f && e.uid !== p.uid) for (const x of v.figs) if (!x.action || !G.ACTS[x.action.name].bow) x.act("loose", 0.4, 0.55); break;
-          case "arrive": { const s = shots.get(e.shot.n); if (s) { if (e.uid != null) G.fx.burst("spark", s.position, { n: 4 }); G.fxRoot.remove(s); G.dispose(s); shots.delete(e.shot.n); } break; }
+          case "arrive": { const s = shots.get(e.shot.n); if (s) { if (e.uid != null) G.fx.burst("spark", s.position, { n: 4 }); shots.delete(e.shot.n); stick(s, e.uid, e.shot.a); } break; }
           case "parry": { const at = posOf(e.uid, 1.3); if (at && pf) { at.lerp(pf.root.position.clone().setY(1.3), 0.5); G.fx.burst("spark", at, { n: 16, s: 1.4 }); } if (pf) pf.act("parry", 0.3); sfx("clang"); if (!e.part) { toast(U.tr("Parried!"), "good"); G.fx.flash("rgba(255,255,255,.25)", 260); } break; }
           case "parried": if (pf) pf.act("hit", 0.3); sfx("clang"); toast(U.tr("Parried")); break;
           case "fblock": { const at = posOf(e.uid, 1.2); if (at) G.fx.burst("spark", at, { n: 8 }); sfx("clang"); float(at, U.tr("Blocked"), "note"); if (!tips.fblock) tip("fblock", "He took it on his shield. While he lowers it he cannot strike: hit him again."); break; }
@@ -1138,7 +1167,7 @@
     }
     function retryCard() {
       const el = U.el('<div class="b-card b-retry"><h2>' + U.tr("You are beaten") + "</h2><p>" + U.tr("One more try: you start a little hurt, and what you used stays used.") + '</p><div class="btnrow"></div></div>');
-      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
+      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); for (const x of stuck.splice(0)) unstick(x); R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
       const accept = () => { el.remove(); U.keys([]); R3.accept(R); asked = false; };
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Try again"), again, "battle-retry"));
       el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Accept the loss"), accept));
@@ -1202,8 +1231,9 @@
       // Arrows in the air.
       for (const s of R.shots) { if (R.t < s.t0) continue; let m = shots.get(s.n); if (!m) { m = G.arrowMesh(0.9); G.fxRoot.add(m); shots.set(s.n, m); } if (m.userData.x0 == null) { m.userData.x0 = s.x; m.userData.z0 = s.z; const tg2 = s.on != null ? B.units.find((u) => u.uid === s.on) : null; m.userData.len = Math.max(4, tg2 && tg2.g ? Math.hypot(tg2.g.x - s.x, tg2.g.z - s.z) : 14); }
         const k = Math.min(1, Math.hypot(s.x - m.userData.x0, s.z - m.userData.z0) / m.userData.len), lift = Math.min(1.6, m.userData.len * 0.07);
-        m.position.set(s.x, 1.35 + Math.sin(k * Math.PI) * lift, s.z); m.rotation.set(-Math.cos(k * Math.PI) * lift * 0.5, s.a, 0, "YXZ"); }
+        m.position.set(s.x, 1.35 + Math.sin(k * Math.PI) * lift, s.z); m.rotation.set(-Math.cos(k * Math.PI) * lift * 0.5, s.a, R.t * 13 + s.n * 2.1, "YXZ"); /* (its feathers turn it as it flies) */ }
       for (const [n, m] of shots) if (!R.shots.some((s) => s.n === n)) { G.fxRoot.remove(m); G.dispose(m); shots.delete(n); }
+      stuckFrame(dt);
       // The one you face.
       const tg = !R.over && started ? R3.target(R) : null;
       if (backMesh) backMesh.position.set(G.camera.position.x, backMesh.userData.y, G.camera.position.z);

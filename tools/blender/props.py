@@ -1,7 +1,9 @@
 # The beasts of the field, built in Blender by script after the artist's sheets (machine_horse, machine_elephant):
-# a war horse in harness, a war elephant in its trappings. Each goes out as one set of points with named parts; the
-# neck, head, tail, legs (in their lengths), trunk and ears are parts of their own, each written about the joint it turns on.
-#   python3 props.py -- <out dir> <horse|elephant> [render] [qa]      (qa: the mesh checks of tools/blender/skills)
+# a war horse in harness, a war elephant in its trappings; and the lesser beasts of the story's quieter places, on the
+# horse's plan: humped cattle, a spotted deer, a tiger, a village dog. Each goes out as one set of points with named
+# parts; the neck, head, tail, legs (in their lengths), trunk and ears are parts of their own, each written about the
+# joint it turns on.
+#   python3 props.py -- <out dir> <horse|elephant|cow|deer|tiger|dog> [render] [qa]      (qa: the mesh checks of tools/blender/skills)
 # Built with up = Blender Z and the head toward Blender -Y; written in the game's axes (y up, head toward +z).
 import bpy, bmesh, math, sys, os, json, base64, struct
 from mathutils import Vector, Euler
@@ -11,8 +13,9 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 S = bpy.context.scene
 def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
-ROLE0 = { "coat": 0x7a4a2a if NAME == "horse" else 0x7d7a76, "dark": 0x1c1612 if NAME == "horse" else 0x5e5b58, "hoof": 0x2a2018, "pale": 0xe8dcc0, "pink": 0xa89088, "eye": 0x100a08,
-          "tack": 0x8a1f24, "gold": 0xd9a53a, "leather": 0x4a3020 }
+COAT = { "horse": (0x7a4a2a, 0x1c1612), "elephant": (0x7d7a76, 0x5e5b58), "cow": (0xe4dac8, 0x3a2e26), "deer": (0xb8733a, 0x3a2a1c), "tiger": (0xe0892c, 0x1e1612), "dog": (0xc09660, 0x2a2018) }[NAME]
+ROLE0 = { "coat": COAT[0], "dark": COAT[1], "hoof": 0x2a2018, "pale": 0xe8dcc0, "pink": 0xa89088, "eye": 0x100a08,
+          "tack": 0x8a1f24, "gold": 0xd9a53a, "leather": 0x4a3020, "horn": 0xcdbf9c }
 M = {}
 for k, v in ROLE0.items():
     m = bpy.data.materials.new(k); m.use_nodes = True; b = m.node_tree.nodes["Principled BSDF"]; b.inputs["Base Color"].default_value = (*lin(hexc(v)), 1); b.inputs["Roughness"].default_value = 0.4 if k == "gold" else 0.75; b.inputs["Metallic"].default_value = 1.0 if k == "gold" else 0.0; M[k] = m
@@ -52,12 +55,14 @@ def prim(kind, role, part, loc=(0, 0, 0), scale=(1, 1, 1), rotv=(0, 0, 0), pivot
 def rod(p0, p1, r0, r1, role, part, pivot=None, seg=8):   # a tapering length between two points
     p0, p1 = Vector(p0), Vector(p1); d = p1 - p0; bpy.ops.mesh.primitive_cone_add(vertices=seg, radius1=r0, radius2=r1, depth=d.length, location=(p0 + p1) / 2)
     o = bpy.context.object; o.rotation_euler = d.to_track_quat("Z", "Y").to_euler(); bpy.ops.object.transform_apply(location=False, rotation=True, scale=True); return keep(o, role, part, pivot)
-def shell(src, role, part, off, planes, pick=None):   # a cloth lying on a body: its surface, cut clean along the planes given [(point, normal pointing to what is cut away)], stood off
+def shell(src, role, part, off, planes, pick=None, pivot=None, seal=False):   # a cloth lying on a body: its surface, cut clean along the planes given [(point, normal pointing to what is cut away)], stood off
     o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); bm = bmesh.new(); bm.from_mesh(o.data)
     for co, no in planes: bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=co, plane_no=no, clear_outer=True)
     if pick: bmesh.ops.delete(bm, geom=[v for v in bm.verts if not pick(v.co)], context="VERTS")
-    for v in bm.verts: v.co += v.normal * off
-    bm.to_mesh(o.data); bm.free(); return keep(o, role, part)
+    for v in bm.verts: v.co += v.normal * (-0.004 if seal and v.is_boundary else off)   # (sealed: its edge is turned in to meet what it lies on, so nothing shows under it)
+    n = len(bm.verts); bm.to_mesh(o.data); bm.free()
+    if not n: bpy.data.objects.remove(o); return None   # (the planes left nothing of it)
+    return keep(o, role, part, pivot)
 
 # The beasts are written in parts, each about the joint it turns on (its pivot), so that the game can bind every part
 # whole to a bone and move it (js/g3/kit.js `skinned`): a horse's neck, head and tail, and each leg in three (from the
@@ -107,7 +112,7 @@ if NAME == "horse":
     prim("cube", "gold", "headt", (0, -1.22, 2.04), (0.03, 0.01, 0.1), (-0.62, 0, 0), pivot=PL, size=2); prim("uv_sphere", "tack", "headt", (0, -1.16, 2.1), (0.024, 0.024, 0.024), pivot=PL, segments=8, ring_count=6)
     prim("cone", "tack", "headt", (0, -1.04, 2.28), (0.04, 0.04, 0.1), pivot=PL, vertices=7); prim("uv_sphere", "gold", "headt", (0, -1.04, 2.19), (0.03, 0.03, 0.03), pivot=PL, segments=8, ring_count=6)
     prim("torus", "tack", "tailt", (0, 1.0, 1.2), (1, 1, 1), (math.pi / 2, 0, 0), pivot=DK, major_radius=0.085, minor_radius=0.02, major_segments=10, minor_segments=5)                       # a ribbon in the tail
-else:
+elif NAME == "elephant":
     TP, TL = (0, -2.72, 2.72), (0, 1.92, 2.75)   # the root of the trunk; the root of the tail
     body = blob("body", sym([
       ((0, 0, 2.5), (1.1, 1.72, 1.18)), ((0, 0.1, 2.12), (0.95, 1.4, 0.75)), ((0, 1.2, 2.55), (0.98, 0.9, 1.05)), ((0, -1.3, 2.6), (0.95, 0.8, 1.05)),      # barrel, belly, rump, shoulders
@@ -143,12 +148,107 @@ else:
     q1, q2 = on(fr, (0, -3.2, 3.3)), on(fr, (0, -3.2, 3.05)); prim("uv_sphere", "gold", "cloth", (0, q1.y - 0.02, q1.z), (0.13, 0.06, 0.13), segments=10, ring_count=6); prim("uv_sphere", "pale", "cloth", (0, q2.y - 0.01, q2.z), (0.07, 0.04, 0.07), segments=8, ring_count=6)
     prim("torus", "leather", "cloth", (0, -0.75, 2.52), (1.03 / 1.1, 1, 1.2 / 1.1), (math.pi / 2, 0, 0), major_radius=1.13, minor_radius=0.045, major_segments=24, minor_segments=5)
     prim("uv_sphere", "gold", "cloth", (0, -0.75, 1.27), (0.11, 0.11, 0.14), segments=8, ring_count=6)   # the bell, on the girth
+else:
+    # ---- The lesser beasts. One plan, the horse's: a body, a neck, a head, a tail, four legs each in three lengths, with
+    # the same part names, so the game binds and moves them all as it does a horse (walk, trot, run; standing, grazing).
+    def legs4(px, fy, hy, hipz, kneez, fetz, r, res, paw=0, back=0.1, toe="hoof"):   # r: how stout; paw: a pad instead of a hoof (its size)
+        for nm, sx, y in (("FL", -1, fy), ("FR", 1, fy), ("HL", -1, hy), ("HR", 1, hy)):
+            x = sx * px; hip = (x, y, hipz); up = hipz - kneez; lo = kneez - fetz
+            if y < 0: B_ = [((x, y, hipz - up * 0.22), (0.1 * r, 0.125 * r, up * 0.42)), ((x, y, kneez + up * 0.36), (0.072 * r, 0.088 * r, up * 0.42)), ((x, y, kneez), (0.058 * r, 0.062 * r, 0.06 * r)),
+                            ((x, y + 0.005, (kneez + fetz) / 2), (0.042 * r, 0.047 * r, lo * 0.55)), ((x, y, fetz), (0.05 * r, 0.055 * r, 0.05 * r)), ((x, y - 0.02 * r, fetz * 0.62), (0.045 * r, 0.05 * r, fetz * 0.4))]
+            else: B_ = [((x, y, hipz - up * 0.2), (0.12 * r, 0.165 * r, up * 0.46)), ((x, y + back * 0.5, kneez + up * 0.36), (0.08 * r, 0.1 * r, up * 0.42), 2.0, rot(0.35, 0, 0)), ((x, y + back, kneez), (0.056 * r, 0.068 * r, 0.062 * r)),
+                        ((x, y + back * 0.85, (kneez + fetz) / 2), (0.042 * r, 0.049 * r, lo * 0.55)), ((x, y + back * 0.75, fetz), (0.05 * r, 0.055 * r, 0.05 * r)), ((x, y + back * 0.6, fetz * 0.62), (0.045 * r, 0.05 * r, fetz * 0.4))]
+            knee, fet = B_[2][0], B_[4][0]
+            blob("leg" + nm, B_[:3], "coat", "leg" + nm, res, 0.3, hip); blob("shin" + nm, lead(B_[2:5]), "coat", "shin" + nm, res, 0.3, knee); blob("hoof" + nm, lead(B_[4:]), "coat", "hoof" + nm, res, 0.5, fet)
+            fx, fyy = B_[5][0][0], B_[5][0][1]
+            if paw: prim("uv_sphere", "coat", "hoof" + nm, (fx, fyy - paw * 0.4, paw * 0.5), (paw * 0.82, paw * 1.15, paw * 0.52), pivot=fet, segments=10, ring_count=6)
+            else: prim("cone", toe, "hoof" + nm, (fx, fyy - 0.012 * r, 0.045 * r), (0.058 * r, 0.072 * r, 0.045 * r), pivot=fet, vertices=8, radius1=1, radius2=0.72, depth=2)
+    def spots(ob, pts, r, role="pale", part="body", pivot=None):   # marks lying on a coat: each is set where the coat really is
+        for q in pts:
+            ok, co, no, _ = ob.closest_point_on_mesh(Vector(q))
+            if ok: prim("uv_sphere", role, part, tuple(co - no * r * 0.12), (r, r, r * 0.3), tuple(no.to_track_quat("Z", "Y").to_euler()), pivot=pivot, segments=7, ring_count=4)
+    def onto(ob, p, out=0.0):   # the point of a surface nearest p (an eye or an ear is set where the head really is), stood out from it by `out`
+        ok, co, no, _ = ob.closest_point_on_mesh(Vector(p)); return tuple(co + no * out)
+    def band(ob, co, no, w, cut=(), pick=None, off=0.007, role="dark"):   # a bar of colour on a coat: the slab of it between two planes w apart (across `no`, at `co`), stood a little off the coat
+        no = Vector(no).normalized(); co = Vector(co); pv = ob.get("pivot")
+        return shell(ob, role, ob["part"], off, [(co - no * (w / 2), -no), (co + no * (w / 2), no)] + list(cut), pick, tuple(pv) if pv else None, seal=True)
+    if NAME == "cow":   # the humped cattle of the plains: a hump on the shoulders, a dewlap, horns that sweep up, a thin tail with a tuft
+        NB, PL, DK = (0, -0.56, 1.12), (0, -0.97, 1.21), (0, 0.8, 1.3)
+        body = blob("body", sym([((0, 0.0, 1.0), (0.3, 0.6, 0.34)), ((0, 0.06, 0.87), (0.285, 0.5, 0.24)), ((0, -0.44, 1.02), (0.275, 0.3, 0.37)), ((0, -0.62, 1.0), (0.2, 0.16, 0.26), 1.6),
+          ((0, 0.46, 1.05), (0.31, 0.34, 0.36)), ((0.19, 0.5, 1.22), (0.12, 0.15, 0.12), 1.6), ((0, 0.76, 1.24), (0.1, 0.1, 0.12), 1.6),
+          ((0, -0.47, 1.41), (0.12, 0.17, 0.16), 1.7),                                                  # the hump, over the shoulders
+          ((0, -0.6, 1.12), (0.16, 0.18, 0.23))]), "coat", "body", 0.035, 0.3)
+        blob("neck", sym([((0, -0.6, 1.12), (0.16, 0.18, 0.23)), ((0, -0.76, 1.16), (0.14, 0.19, 0.2)), ((0, -0.9, 1.2), (0.125, 0.15, 0.16)), ((0, -0.7, 0.9), (0.035, 0.2, 0.16), 1.6)]), "coat", "neck", 0.032, 0.3, NB)   # (with the dewlap hanging under it)
+        head = blob("head", sym([((0, -0.99, 1.21), (0.125, 0.14, 0.135)), ((0, -1.19, 1.09), (0.105, 0.22, 0.115), 2.0, rot(-0.6, 0, 0)), ((0, -1.36, 0.97), (0.1, 0.085, 0.09))]), "coat", "head", 0.028, 0.36, PL)
+        prim("uv_sphere", "dark", "head", (0, -1.42, 0.945), (0.08, 0.028, 0.06), (-0.35, 0, 0), pivot=PL, segments=10, ring_count=6)                      # the broad dark muzzle
+        for sx in (1, -1):
+            e0 = onto(head, (sx * 0.3, -0.96, 1.2)); prim("uv_sphere", "coat", "head", (e0[0] + sx * 0.075, e0[1], e0[2] - 0.02), (0.1, 0.022, 0.05), (0.3, sx * 0.45, 0), pivot=PL, segments=8, ring_count=6)   # ears, held out and a little down
+            prim("uv_sphere", "eye", "head", onto(head, (sx * 0.3, -1.1, 1.2), 0.004), (0.022, 0.024, 0.022), pivot=PL, segments=8, ring_count=6)
+            rod((sx * 0.08, -0.99, 1.3), (sx * 0.21, -0.98, 1.43), 0.034, 0.026, "horn", "head", PL); rod((sx * 0.21, -0.98, 1.43), (sx * 0.2, -1.0, 1.6), 0.026, 0.008, "horn", "head", PL)   # horns
+        rod((0, 0.8, 1.3), (0, 0.92, 0.5), 0.03, 0.018, "coat", "tail", DK); prim("uv_sphere", "dark", "tail", (0, 0.925, 0.4), (0.04, 0.04, 0.12), pivot=DK, segments=8, ring_count=6)
+        prim("uv_sphere", "pink", "body", (0, 0.3, 0.66), (0.1, 0.14, 0.08), segments=10, ring_count=6)                                                  # the udder
+        legs4(0.17, -0.48, 0.5, 0.92, 0.48, 0.16, 1.0, 0.024)
+    elif NAME == "deer":   # the spotted deer of the forest: light, long in the leg and neck, a stag's three-tined antlers, white spots on a red coat
+        NB, PL, DK = (0, -0.38, 0.94), (0, -0.57, 1.37), (0, 0.5, 0.96)
+        body = blob("body", sym([((0, 0.0, 0.86), (0.17, 0.42, 0.2)), ((0, 0.04, 0.8), (0.155, 0.34, 0.14)), ((0, -0.3, 0.88), (0.16, 0.2, 0.22)), ((0, -0.42, 0.9), (0.11, 0.1, 0.15), 1.6),
+          ((0, 0.32, 0.9), (0.17, 0.22, 0.21)), ((0, 0.48, 0.95), (0.07, 0.07, 0.08), 1.6), ((0, -0.4, 0.95), (0.1, 0.11, 0.14))]), "coat", "body", 0.024, 0.3)
+        blob("neck", sym([((0, -0.4, 0.95), (0.1, 0.11, 0.14)), ((0, -0.48, 1.1), (0.085, 0.095, 0.15)), ((0, -0.54, 1.25), (0.072, 0.08, 0.13)), ((0, -0.57, 1.36), (0.065, 0.07, 0.07))]), "coat", "neck", 0.022, 0.3, NB)
+        head = blob("head", sym([((0, -0.58, 1.38), (0.068, 0.08, 0.075)), ((0, -0.71, 1.33), (0.048, 0.11, 0.05), 2.0, rot(-0.4, 0, 0)), ((0, -0.8, 1.29), (0.036, 0.04, 0.036))]), "coat", "head", 0.018, 0.4, PL)
+        prim("uv_sphere", "dark", "head", (0, -0.835, 1.288), (0.026, 0.016, 0.022), pivot=PL, segments=8, ring_count=6)
+        for sx in (1, -1):
+            e0 = onto(head, (sx * 0.2, -0.55, 1.5)); prim("uv_sphere", "coat", "head", (e0[0] + sx * 0.035, e0[1], e0[2] + 0.055), (0.04, 0.016, 0.085), (0.25, sx * 0.6, 0), pivot=PL, segments=8, ring_count=6)   # ears
+            prim("uv_sphere", "eye", "head", onto(head, (sx * 0.2, -0.64, 1.4), 0.002), (0.014, 0.016, 0.014), pivot=PL, segments=8, ring_count=6)
+            a0, a1, a2 = (sx * 0.035, -0.555, 1.44), (sx * 0.13, -0.47, 1.68), (sx * 0.09, -0.43, 1.92)
+            rod(a0, a1, 0.017, 0.013, "horn", "head", PL, seg=6); rod(a1, a2, 0.013, 0.005, "horn", "head", PL, seg=6)                                   # the beam
+            rod((sx * 0.045, -0.565, 1.48), (sx * 0.075, -0.69, 1.6), 0.012, 0.004, "horn", "head", PL, seg=5); rod(a1, (sx * 0.2, -0.4, 1.8), 0.011, 0.004, "horn", "head", PL, seg=5)   # brow tine, rear tine
+        blob("tail", [((0, 0.5, 0.96), (0.035, 0.04, 0.05)), ((0, 0.55, 0.88), (0.035, 0.045, 0.09))], "pale", "tail", 0.018, 0.5, DK)
+        shell(body, "pale", "body", 0.006, [((0, 0, 0.78), (0, 0, 1))])                                                                               # the pale belly
+        import random; rr = random.Random(7)
+        spots(body, [(sx * 0.3, -0.4 + 0.088 * i + rr.uniform(-0.034, 0.034), 0.83 + 0.062 * j + rr.uniform(-0.024, 0.024)) for sx in (1, -1) for i in range(10) for j in range(4) if rr.random() < 0.8], 0.016)
+        spots(body, [(rr.uniform(-0.08, 0.08), -0.3 + 0.1 * i, 1.3) for i in range(7)], 0.015)                                                       # (and a line of them along the back)
+        legs4(0.085, -0.34, 0.36, 0.8, 0.43, 0.13, 0.6, 0.016, back=0.08)
+    elif NAME == "tiger":  # long and low, heavy in the shoulder and the paw, a great round head, a long tail carried low; barred
+        NB, PL, DK = (0, -0.56, 0.84), (0, -0.84, 0.9), (0, 0.72, 0.84)
+        body = blob("body", sym([((0, 0.0, 0.78), (0.22, 0.56, 0.23)), ((0, 0.04, 0.7), (0.2, 0.46, 0.15)), ((0, -0.42, 0.8), (0.22, 0.26, 0.27)), ((0.1, -0.42, 0.97), (0.1, 0.16, 0.09), 1.6),
+          ((0, 0.44, 0.8), (0.21, 0.28, 0.25)), ((0, 0.7, 0.84), (0.07, 0.08, 0.08), 1.6), ((0, -0.6, 0.85), (0.17, 0.18, 0.2))]), "coat", "body", 0.028, 0.3)
+        neck = blob("neck", sym([((0, -0.6, 0.85), (0.17, 0.18, 0.2)), ((0, -0.74, 0.88), (0.16, 0.16, 0.18)), ((0, -0.84, 0.9), (0.15, 0.13, 0.16))]), "coat", "neck", 0.028, 0.3, NB)
+        head = blob("head", sym([((0, -0.9, 0.92), (0.16, 0.16, 0.15)), ((0.1, -0.95, 0.85), (0.08, 0.09, 0.08), 1.6), ((0, -1.06, 0.86), (0.085, 0.1, 0.075))]), "coat", "head", 0.022, 0.4, PL)
+        prim("uv_sphere", "pale", "head", (0, -1.1, 0.835), (0.075, 0.06, 0.05), pivot=PL, segments=8, ring_count=6); prim("uv_sphere", "pink", "head", (0, -1.165, 0.875), (0.026, 0.018, 0.02), pivot=PL, segments=8, ring_count=6)   # the white of the muzzle; the nose
+        for sx in (1, -1):
+            prim("uv_sphere", "coat", "head", (sx * 0.115, -0.86, 1.06), (0.05, 0.022, 0.055), (0.2, sx * 0.4, 0), pivot=PL, segments=8, ring_count=6); prim("uv_sphere", "pale", "head", (sx * 0.115, -0.875, 1.06), (0.03, 0.012, 0.035), (0.2, sx * 0.4, 0), pivot=PL, segments=6, ring_count=4)
+            prim("uv_sphere", "eye", "head", onto(head, (sx * 0.085, -1.2, 0.99), 0.002), (0.017, 0.017, 0.017), pivot=PL, segments=8, ring_count=6); prim("uv_sphere", "pale", "head", onto(head, (sx * 0.3, -0.98, 0.84), -0.03), (0.05, 0.05, 0.06), pivot=PL, segments=8, ring_count=5)   # eyes; the white ruff of the cheek
+        tq = lambda t: (0, 0.72 + 0.92 * t, 0.84 - 0.42 * math.sin(min(1, t / 0.7) * math.pi / 2) + 0.14 * max(0, (t - 0.7) / 0.3) ** 2)   # the tail's line: down from the dock, level, the tip lifted
+        tail = blob("tail", [(tq(i / 12), (0.05 - 0.014 * i / 12, 0.075, 0.05 - 0.014 * i / 12)) for i in range(13)], "coat", "tail", 0.022, 0.4, DK)
+        shell(body, "pale", "body", 0.007, [((0, 0, 0.66), (0, 0, 1))])
+        legs4(0.14, -0.46, 0.48, 0.74, 0.42, 0.13, 1.25, 0.022, paw=0.085, back=0.09)
+        import random; rr = random.Random(11); up = [((0, 0, 0.7), (0, 0, -1))]                                                                    # (the bars stop above the pale belly)
+        for i in range(14): band(body, (0, -0.6 + i * 0.094 + rr.uniform(-0.012, 0.012), 0.85), (0, 1, 0.16 * math.sin(i * 0.9)), rr.uniform(0.03, 0.044), up)   # (leaning a little this way and that, never across one another)
+        for i in range(2): band(neck, (0, -0.7 - i * 0.085, 0.88), (0, 1, 0.1), 0.034)
+        for i in range(5): band(tail, tq(0.2 + i * 0.17), Vector(tq(0.24 + i * 0.17)) - Vector(tq(0.16 + i * 0.17)), 0.04)
+        band(tail, tq(1.0), (0, 1, 0.4), 0.11)                                                                                                        # the tail's black tip
+        for o in [o for o in OBJS if o["part"].startswith("leg") and o.data.materials[0].name == "coat"]:
+            for z in (0.57, 0.65): band(o, (0, 0, z), (0, 0.25 * (1 if o["part"][3] == "H" else -1), 1), 0.028)
+        for x in (0, 0.045, -0.045): band(head, (x, 0, 0), (1, 0, 0), 0.018, pick=lambda c: c.z > 0.99 and c.y > -1.0)                                 # the brow
+        for sx in (1, -1): band(head, (0, -0.93, 0.9), (0, 1, 0.9 * 1), 0.022, pick=lambda c, sx=sx: c.x * sx > 0.1 and c.z > 0.86)                      # a bar across each cheek
+    else:                  # a village dog: lean, prick-eared, its tail curled over its back
+        NB, PL, DK = (0, -0.26, 0.5), (0, -0.375, 0.615), (0, 0.3, 0.5)
+        body = blob("body", sym([((0, 0.0, 0.46), (0.105, 0.26, 0.115)), ((0, -0.18, 0.46), (0.105, 0.13, 0.14)), ((0, 0.2, 0.47), (0.095, 0.13, 0.115)), ((0, 0.06, 0.42), (0.085, 0.16, 0.075)),
+          ((0, -0.28, 0.51), (0.075, 0.08, 0.09))]), "coat", "body", 0.014, 0.34)
+        blob("neck", sym([((0, -0.28, 0.51), (0.075, 0.08, 0.09)), ((0, -0.33, 0.565), (0.068, 0.072, 0.08)), ((0, -0.37, 0.61), (0.062, 0.062, 0.065))]), "coat", "neck", 0.013, 0.34, NB)
+        head = blob("head", sym([((0, -0.4, 0.63), (0.068, 0.078, 0.066)), ((0, -0.51, 0.605), (0.04, 0.085, 0.04), 2.0, rot(-0.15, 0, 0)), ((0, -0.585, 0.595), (0.03, 0.035, 0.03))]), "coat", "head", 0.011, 0.44, PL)
+        prim("uv_sphere", "dark", "head", (0, -0.615, 0.6), (0.02, 0.013, 0.017), pivot=PL, segments=8, ring_count=6)
+        for sx in (1, -1):
+            prim("cone", "coat", "head", (sx * 0.048, -0.37, 0.72), (0.032, 0.018, 0.05), (0.15, sx * 0.3, 0), pivot=PL, vertices=6)                        # pricked ears
+            prim("uv_sphere", "eye", "head", onto(head, (sx * 0.12, -0.48, 0.66), 0.001), (0.011, 0.012, 0.011), pivot=PL, segments=8, ring_count=6)
+        cq = lambda t: (0, 0.3 + 0.1 * math.sin(t * 2.6), 0.5 + 0.13 * (1 - math.cos(t * 2.6)))                                                         # the tail's curl, up and over
+        blob("tail", [(cq(i / 9), (0.028 - 0.008 * i / 9, 0.034, 0.034)) for i in range(10)], "coat", "tail", 0.011, 0.5, DK)
+        legs4(0.065, -0.2, 0.22, 0.43, 0.25, 0.075, 0.55, 0.011, paw=0.034, back=0.055)
 
 if RENDER:
     w = bpy.data.worlds.new("w"); S.world = w; w.use_nodes = True; w.node_tree.nodes["Background"].inputs[0].default_value = (0.5, 0.5, 0.5, 1); w.node_tree.nodes["Background"].inputs[1].default_value = 0.7
     for n, loc, e in (("key", (4, -6, 6), 900), ("fill", (-6, -3, 3), 300)):
         l = bpy.data.lights.new(n, "AREA"); l.energy = e * (5 if NAME == "elephant" else 1); l.size = 6; o = bpy.data.objects.new(n, l); S.collection.objects.link(o); o.location = loc; o.rotation_euler = (Vector((0, 0, 1.2)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
-    k = 2.6 if NAME == "elephant" else 1; cam = bpy.data.cameras.new("c"); co = bpy.data.objects.new("c", cam); S.collection.objects.link(co); S.camera = co; cam.lens = 60
+    k = { "elephant": 2.6, "horse": 1, "cow": 0.82, "deer": 0.8, "tiger": 0.78, "dog": 0.4 }[NAME]; cam = bpy.data.cameras.new("c"); co = bpy.data.objects.new("c", cam); S.collection.objects.link(co); S.camera = co; cam.lens = 60
     S.render.engine = "CYCLES"; S.view_settings.view_transform = "Standard"; S.cycles.samples = 24; S.cycles.device = "CPU"; S.render.resolution_x, S.render.resolution_y = 640, 480
     for nm, loc in (("side", (7.5 * k, -0.2 * k, 1.4 * k)), ("front", (3.2 * k, -6.5 * k, 2.2 * k))):
         co.location = loc; co.rotation_euler = (Vector((0, -0.1 * k, 1.15 * k)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler(); S.render.filepath = OUT + "/" + NAME + "_" + nm + ".png"; bpy.ops.render.render(write_still=True)

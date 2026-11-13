@@ -19,6 +19,17 @@
     vcGlow: keepM(new T.MeshBasicMaterial({ vertexColors: true })), // lit from within: flames' cores, lamp bowls, gems
     surf: G.surfMat ? G.surfMat({ map: 0 }) : null, surfD: G.surfMat ? G.surfMat({ map: 0, side: T.DoubleSide }) : null, surfSide: G.surfMat ? G.surfMat({ map: 2 }) : null // what a thing is made of (js/g3/surf.js): wood, worked metal, leather, painted and woven things
   };
+  // The wind. Whatever was built "windy" (a tree, reeds, grass) leans with it and comes back, and its leaves stir: each
+  // point carries how far it bends (more the higher it stands above its root) and how much it flutters. Everything else
+  // carries nothing, and stands still. One clock for all of it; it stops with calm motion.
+  G.windU = { value: 0 };
+  const WIND_P = "\nattribute vec2 wind; uniform float uWindT;\n",
+    WIND_M = "\n{ float wp = uWindT * 1.25 + position.x * 0.21 + position.z * 0.17, wg = 0.62 + 0.38 * sin(uWindT * 0.33 + position.x * 0.05 + position.z * 0.03);\n  transformed.x += wind.x * wg * (sin(wp) * 0.7 + sin(wp * 2.7 + 1.3) * 0.3 + 0.45) + wind.y * sin(uWindT * 3.1 + position.y * 3.1 + position.z * 4.7);\n  transformed.z += wind.x * wg * cos(wp * 0.83) * 0.5 + wind.y * cos(uWindT * 2.7 + position.x * 5.3 + position.y * 2.2); }\n";
+  G.windy = (m, key) => { const was = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (was) was(sh, r); sh.uniforms.uWindT = G.windU; sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>" + WIND_P).replace("#include <begin_vertex>", "#include <begin_vertex>" + WIND_M); }; m.customProgramCacheKey = () => key; return m; };
+  G.windy(G.mat.vc, "vcw"); G.windy(G.mat.vcFlat, "vcfw"); G.windy(G.mat.vcDouble, "vcdw");
+  if (G.mat.surf && G.mat.surf.defines) { G.windy(G.mat.surf, "surf0w"); G.windy(G.mat.surfD, "surf0w"); }
+  G.mat.windDepth = G.windy(keepM(new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking })), "wdepth"); // (so the shadow of a tree moves with the tree)
+  if (G.onFrame) G.onFrame((dt, t) => { if (!(K.UI && K.UI.calm && K.UI.calm())) G.windU.value = t; });
   G.shade = (hex, k) => { _c.set(hex); _c.multiplyScalar(k); return _c.getHex(); };
   G.mix = (a, b, k) => { _c.set(a); _c2.set(b); _c.lerp(_c2, k); return _c.getHex(); };
 
@@ -45,6 +56,13 @@
     this.sf = p ? { p, c2, cell, b, c3, bw } : null;
     return this;
   };
+  // What is added inside fn bends in the wind: k is how far (metres, at a metre above where it is rooted; it grows as
+  // the square of the height), lf how much its leaves flutter (only what is added as leaf: see `leafy`).
+  BP.windy = function (k, lf, fn) {
+    const was = this.wk; if (!this.wd) this.wd = new Array((this.pos.length / 3) * 2).fill(0);
+    this.wk = { k, lf: lf || 0, f: 0, y0: _p.setFromMatrixPosition(this.m).y }; fn(this); this.wk = was; return this;
+  };
+  BP.leafy = function (fn) { const w = this.wk; if (w) w.f = w.lf; fn(this); if (w) w.f = 0; return this; };
   BP.geo = function (g, x, y, z, rx, ry, rz, col, col2) {
     _e.set(rx || 0, ry || 0, rz || 0); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(1, 1, 1);
     _m.compose(_p, _q, _s).premultiply(this.m);
@@ -54,10 +72,11 @@
     for (let i = 0; i < P.count; i++) { const yy = P.getY(i); if (yy < y0) y0 = yy; if (yy > y1) y1 = yy; }
     const span = Math.max(1e-6, y1 - y0);
     _c.set(col == null ? 0xffffff : col); if (col2 != null) _c2.set(col2);
-    const pos = this.pos, nor = this.nor, cl = this.col, ao = this.ao;
+    const pos = this.pos, nor = this.nor, cl = this.col, ao = this.ao, wd = this.wd, wk = this.wk;
     for (let i = 0; i < P.count; i++) {
       const ky = (P.getY(i) - y0) / span, sh = ao + (1 - ao) * ky;
       _v.fromBufferAttribute(P, i).applyMatrix4(_m); pos.push(_v.x, _v.y, _v.z);
+      if (wd) { if (wk) { const h = Math.max(0, _v.y - wk.y0); wd.push(wk.k * h * h, wk.f); } else wd.push(0, 0); }
       _n.fromBufferAttribute(N, i).applyMatrix3(_nm).normalize(); nor.push(_n.x, _n.y, _n.z);
       if (col2 != null) cl.push((_c.r + (_c2.r - _c.r) * ky) * sh, (_c.g + (_c2.g - _c.g) * ky) * sh, (_c.b + (_c2.b - _c.b) * ky) * sh);
       else cl.push(_c.r * sh, _c.g * sh, _c.b * sh);
@@ -108,10 +127,12 @@
     g.setAttribute("position", new T.Float32BufferAttribute(this.pos, 3));
     g.setAttribute("normal", new T.Float32BufferAttribute(this.nor, 3));
     g.setAttribute("color", new T.Float32BufferAttribute(this.col, 3));
+    if (this.wd) g.setAttribute("wind", new T.Float32BufferAttribute(this.wd, 2));
     g.computeBoundingSphere();
     if (this.sA) { G.surfAttrs(g, new Uint8Array(this.sA), new Uint8Array(this.sB), new Uint8Array(this.sC), new T.Float32BufferAttribute(this.sP, 4)); mat = mat === G.mat.vcDouble ? G.mat.surfD : !mat || mat === G.mat.vc ? G.mat.surf : mat; }
     const m = new T.Mesh(g, mat || G.mat.vc);
     m.castShadow = !noShadow; m.receiveShadow = true;
+    if (this.wd && !noShadow) m.customDepthMaterial = G.mat.windDepth;
     return m;
   };
   BP.empty = function () { return this.pos.length === 0; };
@@ -172,19 +193,21 @@
   G.lumpy = lumpy;
   const GREENS = [0x4f7a3a, 0x5c8a40, 0x456b35, 0x6a9248, 0x3f6a3a];
   // A mass of leaves: dark underneath, light where the sun is on it.
-  const leaf = (b, r, x, y, z, g, rnd, sy) => b.geo(lumpy(r, 1, 0.2, Math.floor(rnd() * 97)).scale(1, sy || 0.78, 1), x, y, z, 0, rnd() * 6.28, 0, G.shade(g, 0.62), G.shade(g, 1.28));
+  const leaf = (b, r, x, y, z, g, rnd, sy) => b.leafy((b) => b.geo(lumpy(r, 1, 0.2, Math.floor(rnd() * 97)).scale(1, sy || 0.78, 1), x, y, z, 0, rnd() * 6.28, 0, G.shade(g, 0.62), G.shade(g, 1.28)));
+  const WINDS = { palm: [0.006, 0.014], pine: [0.003, 0.007], sal: [0.0022, 0.012], dead: [0.0012, 0], bush: [0.05, 0.012], banyan: [0.0016, 0.014] }; // (how far each kind of tree gives, and how much its leaf stirs)
   G.tree = function (b, x, z, kind, s, rnd) {
     s = s || 1; rnd = rnd || Math.random;
     const g = GREENS[Math.floor(rnd() * GREENS.length)], g2 = G.shade(g, 1.18), bark = 0x5a4030, barkD = 0x45301f;
-    b.at(x, 0, z, rnd() * 6.28, s, (b) => {
+    const wn = WINDS[kind] || [0.0045, 0.014];
+    b.at(x, 0, z, rnd() * 6.28, s, (b) => b.windy(wn[0] / (s * s), wn[1], (b) => {
       if (kind === "palm") {
         const lean = (rnd() - 0.5) * 0.9;
         b.rod(0, 0, 0, lean * 0.4, 2.8, 0, 0.22, 0x7a6248, 7, 0.17); b.rod(lean * 0.4, 2.8, 0, lean, 5.6, 0, 0.17, 0x7a6248, 7, 0.12);
-        for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.28; b.geo(new T.ConeGeometry(0.34, 2.8, 4, 1).translate(0, 1.4, 0).scale(1, 1, 0.16), lean, 5.5, 0, 1.15 + rnd() * 0.45, a, 0, G.shade(g, 0.8), g2); }
+        b.leafy((b) => { for (let i = 0; i < 9; i++) { const a = (i / 9) * 6.28; b.geo(new T.ConeGeometry(0.34, 2.8, 4, 1).translate(0, 1.4, 0).scale(1, 1, 0.16), lean, 5.5, 0, 1.15 + rnd() * 0.45, a, 0, G.shade(g, 0.8), g2); } });
         b.sph(0.24, lean, 5.45, 0, 0x8a5a2c); for (let i = 0; i < 3; i++) b.sph(0.11, lean + Math.cos(i * 2.1) * 0.2, 5.25, Math.sin(i * 2.1) * 0.2, 0x6a7a2a, 1, 5);
       } else if (kind === "pine") {
         b.cyl(0.14, 0.22, 1.6, 0, 0, 0, bark, 6, 0, 0, 0, barkD);
-        for (let i = 0; i < 5; i++) b.cone(1.55 - i * 0.27, 1.6, 0, 1.0 + i * 0.92, 0, G.shade(0x2f5a3a, 0.8 + i * 0.1), 8, rnd() * 3, 0, 0, G.shade(0x2f5a3a, 1.15 + i * 0.08));
+        b.leafy((b) => { for (let i = 0; i < 5; i++) b.cone(1.55 - i * 0.27, 1.6, 0, 1.0 + i * 0.92, 0, G.shade(0x2f5a3a, 0.8 + i * 0.1), 8, rnd() * 3, 0, 0, G.shade(0x2f5a3a, 1.15 + i * 0.08)); });
       } else if (kind === "sal") { // tall and straight, its leaf in hanging tiers
         b.cyl(0.15, 0.3, 4.6, 0, 0, 0, bark, 7, 0, 0, 0, barkD); b.cone(0.5, 0.5, 0, 0, 0, barkD, 7);
         for (let i = 0; i < 4; i++) { const a = rnd() * 6.28, r = 0.5 + rnd() * 0.5; if (i < 3) b.rod(0, 3.2 + i * 0.7, 0, Math.cos(a) * r, 4.2 + i * 0.9, Math.sin(a) * r, 0.07, bark, 5, 0.03); leaf(b, 1.45 - i * 0.2, Math.cos(a) * r * 0.8, 4.4 + i * 1.0, Math.sin(a) * r * 0.8, i % 2 ? g2 : g, rnd, 0.82); }
@@ -202,7 +225,7 @@
         const n = 5;
         for (let i = 0; i < n; i++) { const a = (i / n) * 6.28 + rnd() * 0.6, r = i ? 1.0 + rnd() * 0.5 : 0, y = i ? 3.0 + rnd() * 0.6 : 3.9; if (i) b.rod(0, 1.8, 0, Math.cos(a) * r * 0.85, y - 0.3, Math.sin(a) * r * 0.85, 0.13, bark, 5, 0.06); leaf(b, i ? 1.15 + rnd() * 0.35 : 1.55, Math.cos(a) * r, y, Math.sin(a) * r, i % 2 ? g2 : g, rnd); }
       }
-    });
+    }));
   };
   // A stone: broken faces, darker toward the ground; a big one has a small one or two lying against it.
   G.rock = function (b, x, z, s, rnd, col) {
@@ -214,7 +237,7 @@
   // Tufts of grass: a few blades each.
   G.tuft = function (b, x, z, s, rnd, col) {
     rnd = rnd || Math.random; s = s || 1; col = col || 0x7a8a42;
-    for (let i = 0, n = 4 + Math.floor(rnd() * 3); i < n; i++) { const a = rnd() * 6.28, l = (0.22 + rnd() * 0.2) * s; b.geo(new T.ConeGeometry(0.035 * s, l, 3).translate(0, l / 2, 0), x + Math.cos(a) * 0.08 * s, 0, z + Math.sin(a) * 0.08 * s, (rnd() - 0.5) * 0.7, a, (rnd() - 0.5) * 0.7, G.shade(col, 0.7), G.shade(col, 1.2)); }
+    b.windy(0.25 / (s * s), 0, (b) => { for (let i = 0, n = 4 + Math.floor(rnd() * 3); i < n; i++) { const a = rnd() * 6.28, l = (0.22 + rnd() * 0.2) * s; b.geo(new T.ConeGeometry(0.035 * s, l, 3).translate(0, l / 2, 0), x + Math.cos(a) * 0.08 * s, 0, z + Math.sin(a) * 0.08 * s, (rnd() - 0.5) * 0.7, a, (rnd() - 0.5) * 0.7, G.shade(col, 0.7), G.shade(col, 1.2)); } });
   };
   // A far range seen edge-on: a wall of ground round the field whose top rises and falls, the colour of the distance at
   // its foot and its own colour along the crest. Nearer than a painted horizon, so it moves against it as the view turns.
@@ -232,7 +255,7 @@
     return m;
   };
   G.reeds = function (b, x, z, n, rnd, col) {
-    for (let i = 0; i < (n || 8); i++) { const px = x + (rnd() - 0.5) * 1.6, pz = z + (rnd() - 0.5) * 1.6, h = 1 + rnd() * 1.1; b.rod(px, 0, pz, px + (rnd() - 0.5) * 0.4, h, pz + (rnd() - 0.5) * 0.4, 0.035, col || 0x6f8a44, 3, 0.01); if (rnd() < 0.35) b.cyl(0.05, 0.05, 0.22, px, h * 0.82, pz, 0x6a4a2a, 5); }
+    b.windy(0.035, 0, (b) => { for (let i = 0; i < (n || 8); i++) { const px = x + (rnd() - 0.5) * 1.6, pz = z + (rnd() - 0.5) * 1.6, h = 1 + rnd() * 1.1; b.rod(px, 0, pz, px + (rnd() - 0.5) * 0.4, h, pz + (rnd() - 0.5) * 0.4, 0.035, col || 0x6f8a44, 3, 0.01); if (rnd() < 0.35) b.cyl(0.05, 0.05, 0.22, px, h * 0.82, pz, 0x6a4a2a, 5); } });
   };
   G.lotus = function (b, x, z, s, col) {
     b.at(x, 0.05, z, Math.random() * 6, s || 1, (b) => {
@@ -466,7 +489,7 @@
   const HORSE_TACK = new Set(["tack", "headt", "tailt"].concat(FOUR.map((k) => "shin" + k + "t")));
   const ELE_J = [["root", null, null, ["body", "cloth"]], ["trunk", "root", "trunk", ["trunk"]], ["trunkb", "trunk", "trunkb", ["trunkb"]], ["trunkc", "trunkb", "trunkc", ["trunkc"]], ["earL", "root", "earL", ["earL"]], ["earR", "root", "earR", ["earR"]], ["tail", "root", "tail", ["tail"]]]
     .concat(...FOUR.map((k) => [["leg" + k, "root", "leg" + k, ["leg" + k]], ["shin" + k, "leg" + k, "shin" + k, ["shin" + k]]]));
-  const limbs = (g) => { const B_ = g.userData.bones, U_ = g.userData; U_.legs = FOUR.map((k) => B_["leg" + k]); U_.shins = FOUR.map((k) => B_["shin" + k]); U_.hooves = FOUR.map((k) => B_["hoof" + k]).filter(Boolean); return g; };
+  const limbs = (g) => { const B_ = g.userData.bones, U_ = g.userData; U_.legs = U_.L = FOUR.map((k) => B_["leg" + k]); U_.shins = FOUR.map((k) => B_["shin" + k]); U_.hooves = FOUR.map((k) => B_["hoof" + k]).filter(Boolean); if (B_.neck) U_.neckY = B_.neck.position.y; return g; };
   function beast(name, body, legs, rc, extra) {   // a body, four legs that swing from the shoulder and the hip, and anything else that moves
     const g = new T.Group(); g.add(G.propMesh(name, body, rc)); g.userData.legs = legs.map((l) => { const m = G.propMesh(name, l, rc); g.add(m); return m; });
     for (const k in extra || {}) { const m = G.propMesh(name, extra[k], rc); g.add(m); g.userData[k] = m; }
@@ -510,6 +533,27 @@
     return g;
   };
   // ---------- How a beast goes ----------
+  // The lesser beasts (tools/blender/props.py), on the horse's plan and moved by its gaits: humped cattle, a spotted deer,
+  // a tiger, a village dog. kd: its size beside a horse (how far its body rises and falls), how much of its standing it
+  // spends with its head down at grass, whether it bounds, wags, or carries its head low. Without the model: a small horse.
+  const KINDS = { cow: { s: 0.78, graze: 0.62, rate: 0.9, gz: [1.05, 0.78, 0.13] }, deer: { s: 0.56, graze: 0.34, bounce: 1.7, rate: 1.25, alert: 1, gz: [1.9, 0.2, 0.07] }, tiger: { s: 0.56, low: 0.12, rate: 1.1, prowl: 1 }, dog: { s: 0.3, wag: 1, rate: 1.6 } };
+  const COW_COLS = [0xe4dac8, 0xe4dac8, 0xd8cdb8, 0x8a5a3a, 0xb9a48a, 0x4a3a30];
+  G.beast4 = function (kind, col) {
+    const P = G.PROPS && G.PROPS[kind];
+    if (!P) { const h = G.horse(col == null ? { deer: 0xc9843e, tiger: 0xe08a2a, dog: 0xc09660 }[kind] || 0xe8dcc0 : col); h.scale.setScalar({ cow: 0.62, deer: 0.7, tiger: 0.85, dog: 0.3 }[kind] || 0.6); return h; }
+    const g = limbs(skinned(kind, HORSE_J, col == null ? null : { coat: col })); g.userData.kd = KINDS[kind]; g.userData.kind = kind; return g;
+  };
+  G.cow = (col) => G.beast4("cow", col == null ? COW_COLS[Math.floor(Math.random() * COW_COLS.length)] : col);
+  // A beast lying down (a dog asleep by a door): the body on the ground, the legs folded under and before it, the head
+  // on its paws. on: 1 lying .. 0 up on its feet; it rises and settles over a moment.
+  G.lie = function (b, on, dt) {
+    const U_ = b.userData, B_ = U_.bones; if (!B_ || !U_.shins) return; const kd = U_.kd || { s: 1 };
+    U_.lie = U_.lie == null ? on : U_.lie + Math.max(-1, Math.min(1, on - U_.lie)) * Math.min(1, (dt || 1) * 3.2); const k = U_.lie, e = k * k * (3 - 2 * k), now = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    if (on === 0 && k < 0.02) { U_.lie = 0; return; } // (up: its standing is the gaits' business)
+    U_.L[0].rotation.x = U_.L[1].rotation.x = -1.35 * e; U_.shins[0].rotation.x = U_.shins[1].rotation.x = 0.25 * e; U_.L[2].rotation.x = U_.L[3].rotation.x = -1.2 * e; U_.shins[2].rotation.x = U_.shins[3].rotation.x = 2.3 * e;
+    for (let i = 0; i < 4; i++) if (U_.hooves[i]) U_.hooves[i].rotation.x = (i < 2 ? 0.2 : -0.9) * e;
+    B_.root.position.y = -0.9 * kd.s * e + Math.sin(now * 1.3) * 0.004 * e; B_.root.rotation.x = 0; B_.neck.rotation.x = 1.15 * e; B_.head.rotation.x = -0.35 * e; B_.tail.rotation.x = -0.4 * e; // (asleep, it breathes)
+  };
   // A leg's stride: on the ground it sweeps back under the body (the stance); then it is picked up, folded at the knee or
   // hock and at the fetlock, and carried forward through the air (the swing). u is where the leg is in its stride, duty
   // the share of the stride it spends on the ground. Gives [reach: +1 well forward .. -1 well back, fold: 0..1].
@@ -518,6 +562,7 @@
   // ground, the swing of the leg and the fold of its knee (radians), and strides a second. A walk goes one foot at a time,
   // a trot in diagonal pairs with a moment in the air between, a gallop hind feet then fore feet and then all four off the ground.
   const GAITS = { walk: { ph: [0.25, 0.75, 0, 0.5], duty: 0.62, A: 0.27, F: 0.8, rate: 0.95 }, trot: { ph: [0, 0.5, 0.5, 0], duty: 0.42, A: 0.4, F: 1.1, rate: 1.45 }, gallop: { ph: [0.42, 0.54, 0, 0.12], duty: 0.3, A: 0.6, F: 1.4, rate: 2.1 } };
+  const HORSE_KD = { s: 1, rate: 1 };
   const clockOf = (U_) => { const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000, dt = U_.now == null ? 0 : Math.max(0, Math.min(0.1, now - U_.now)); U_.now = now; return [now, dt]; };
   const ease = (o, k, to, f) => { o.rotation[k] += (to - o.rotation[k]) * f; };
   // G.gallop(horse, t, speed): speed 0 standing .. 1 at the full run. (t only sets one horse a little out of step with the
@@ -527,24 +572,37 @@
     const U_ = horse.userData, L = U_.legs; if (!L) return;
     speed = Math.max(0, Math.min(1, speed || 0));
     if (!U_.shins) { const a = 0.75 * speed; L[0].rotation.x = Math.sin(t) * a; L[1].rotation.x = Math.sin(t + 0.6) * a; L[2].rotation.x = Math.sin(t + PI) * a; L[3].rotation.x = Math.sin(t + PI + 0.6) * a; horse.children[0].position.y = Math.abs(Math.sin(t)) * 0.07 * speed; return; } // (the stiff-legged horse built in code)
-    const B_ = U_.bones, snap = U_.now == null || (t === 0 && speed === 0), [now, dt] = clockOf(U_);
+    const B_ = U_.bones, snap = U_.now == null || (t === 0 && speed === 0), [now, dt] = clockOf(U_), kd = U_.kd || HORSE_KD;
+    if (U_.lie > 0.02) return; // (lying down: G.lie has it)
     if (U_.ph == null) { U_.ph = (Math.abs(t) * 0.159) % 1; U_.sp = speed; U_.id = (Math.abs(t) * 0.37) % 6.28; }
     U_.sp += (speed - U_.sp) * (snap ? 1 : Math.min(1, dt * 3.5));
     const sp = U_.sp, was = U_.gait, name = sp < 0.04 ? null : sp < (was === "walk" ? 0.34 : 0.28) ? "walk" : sp < (was === "gallop" ? 0.62 : 0.7) ? "trot" : "gallop"; U_.gait = name;
     const gt = name && GAITS[name], k = !gt ? 0 : name === "walk" ? Math.min(1, sp / 0.3) : name === "trot" ? (sp - 0.28) / 0.42 : (sp - 0.62) / 0.38, f = snap ? 1 : Math.min(1, dt * 18), slow = snap ? 1 : Math.min(1, dt * 5), id = U_.id;
-    let y = 0, pitch = 0, roll = 0, neck = 0, head = 0, tailX = 0.04, tailZ = 0;
+    let y = 0, pitch = 0, roll = 0, neck = 0, head = 0, tailX = 0.04, tailZ = 0, drop = 0;
     if (gt) {
-      U_.ph = (U_.ph + dt * gt.rate * (0.85 + 0.25 * k)) % 1; const ph = U_.ph, A = gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
+      U_.ph = (U_.ph + dt * gt.rate * kd.rate * (0.85 + 0.25 * k)) % 1; const ph = U_.ph, A = gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
       for (let i = 0; i < 4; i++) { const [reach, fold] = stride(ph + gt.ph[i], gt.duty), hind = i > 1;
         ease(L[i], "x", -reach * A * (hind ? 0.9 : 1) + (hind ? 0.06 : 0), f); ease(U_.shins[i], "x", fold * gt.F * (hind ? 0.85 : 1), f); if (U_.hooves[i]) ease(U_.hooves[i], "x", fold * 0.9 - (fold ? 0 : 0.1 * (1 - Math.abs(reach))), f); }
       if (name === "walk") { y = 0.012 * Math.abs(Math.sin(TAU * ph * 2)); roll = 0.014 * Math.sin(TAU * ph); neck = 0.02 + 0.055 * Math.sin(TAU * ph * 2 + 0.6); tailZ = 0.1 * Math.sin(TAU * ph); }
       else if (name === "trot") { y = 0.035 * Math.abs(Math.sin(TAU * ph)); neck = -0.03 + 0.02 * Math.sin(TAU * ph * 2); tailX = 0.22; tailZ = 0.08 * Math.sin(TAU * ph * 2); }
       else { y = 0.04 + 0.05 * Math.sin(TAU * (ph - 0.67)); pitch = 0.055 * Math.sin(TAU * (ph - 0.2)); neck = 0.16 + 0.09 * Math.sin(TAU * (ph - 0.2)); head = -0.12; tailX = 0.5 + 0.2 * k + 0.08 * Math.sin(TAU * ph * 2); tailZ = 0.06 * Math.sin(TAU * ph * 2 + 1); }
+      y *= kd.s * (name === "gallop" ? kd.bounce || 1 : 1); if (kd.bounce && name === "gallop") { pitch *= 1.5; neck -= 0.18; tailX = -0.7; } // (a deer bounds, its head high and its white tail up)
+      if (kd.prowl) { neck += name === "walk" ? 0.1 : 0.02; tailX = name === "gallop" ? 0.35 : 0.02; tailZ += 0.12 * Math.sin(now * 1.7 + id); } // (a tiger carries its head low and its tail out behind)
+      if (kd.wag) { tailZ = 0.4 * Math.sin(now * 13 + id); tailX = -0.1; }
+    } else if (kd.graze != null || kd.prowl || kd.wag) { // the lesser beasts standing: cattle and deer at grass (a deer never for long: its head comes up, and it looks about), a tiger watching, a dog wagging
+      for (let i = 0; i < 4; i++) { ease(L[i], "x", 0, slow); ease(U_.shins[i], "x", 0, slow); if (U_.hooves[i]) ease(U_.hooves[i], "x", 0, slow); }
+      const cyc = Math.sin(now * (kd.alert ? 0.23 : 0.11) + id * 1.3), down = kd.graze != null && cyc < kd.graze * 2 - 1, sw = Math.sin(now * 0.31 + id);
+      if (down) { neck = kd.gz[0] + 0.03 * Math.sin(now * 5.5 + id); head = kd.gz[1] + 0.05 * Math.sin(now * 5.5 + id + 1); drop = kd.gz[2]; } // (the neck goes down from the shoulder until the muzzle is in the grass; cropping, the jaw works)
+      else { neck = (kd.low || 0) + 0.025 * Math.sin(now * 0.7 + id); head = 0.03 * Math.sin(now * 0.9 + id); if (kd.alert) B_.neck.rotation.y += ((Math.sin(now * 0.37 + id * 2) > 0.3 ? 0.55 * Math.sign(Math.sin(now * 0.13 + id)) : 0) - B_.neck.rotation.y) * slow; }
+      if (down || !kd.alert) B_.neck.rotation.y += (0 - B_.neck.rotation.y) * slow;
+      tailZ = kd.wag ? 0.45 * Math.sin(now * 12 + id) : kd.prowl ? 0.16 * Math.sin(now * 2.1 + id) + (Math.sin(now * 0.5 + id) > 0.8 ? 0.2 * Math.sin(now * 9) : 0) : (sw > 0.1 ? 0.34 : 0.05) * Math.sin(now * 4.6 + id); if (kd.alert && Math.sin(now * 0.8 + id) > 0.86) tailX = -0.5; // (a deer's tail flicks up)
+      roll = 0.005 * Math.sin(now * 0.4 + id);
     } else { // standing: square on three legs, one hind foot resting on its toe; the tail swishes at flies; the head nods and now and then tosses
       for (let i = 0; i < 4; i++) { const rest = i === 2 + (id > 3.14 ? 1 : 0); ease(L[i], "x", rest ? -0.1 : 0, slow); ease(U_.shins[i], "x", rest ? 0.28 : 0, slow); if (U_.hooves[i]) ease(U_.hooves[i], "x", rest ? 0.5 : 0, slow); }
       const sw = Math.sin(now * 0.31 + id); tailZ = (sw > 0.2 ? 0.3 : 0.05) * Math.sin(now * 5.2 + id); neck = 0.03 * Math.sin(now * 0.7 + id) + (Math.sin(now * 0.23 + id * 2) > 0.93 ? -0.16 : 0); head = 0.04 * Math.sin(now * 0.9 + id); roll = 0.006 * Math.sin(now * 0.4 + id);
     }
     const R_ = B_.root; R_.position.y += (y - R_.position.y) * f; ease(R_, "x", pitch, f); ease(R_, "z", roll, f);
+    if (U_.neckY != null) B_.neck.position.y += (U_.neckY - drop - B_.neck.position.y) * slow;
     ease(B_.neck, "x", neck, slow * 2 > 1 ? 1 : slow * 2); ease(B_.head, "x", head - neck * 0.5, slow * 2 > 1 ? 1 : slow * 2); ease(B_.tail, "x", tailX, slow); ease(B_.tail, "z", tailZ, f);
   };
   // A war chariot: the car and pole in one piece, two wheels that turn, a team of horses, a standard.
@@ -750,7 +808,9 @@
   function crowdMaterial() {
     if (crowdMat) return crowdMat;
     crowdMat = new T.MeshLambertMaterial({ vertexColors: true }); crowdMat.userData.keep = true;
-    crowdMat.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", "vColor = vec4(1.0);\n#ifdef USE_COLOR\nvColor.rgb *= color.rgb;\n#endif\n#ifdef USE_INSTANCING_COLOR\nvColor.rgb *= mix(vec3(1.0), instanceColor.rgb, step(0.55, min(color.r, min(color.g, color.b))));\n#endif"); };
+    crowdMat.onBeforeCompile = (sh) => { sh.uniforms.uWindT = G.windU; // (men standing are never still: each sways a little from the feet, in his own time, and breathes)
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uWindT;").replace("#include <begin_vertex>", "#include <begin_vertex>\n#ifdef USE_INSTANCING\n{ float cp = uWindT * 0.9 + instanceMatrix[3].x * 1.7 + instanceMatrix[3].z * 2.3, ch = max(0.0, transformed.y);\n  transformed.x += sin(cp) * 0.024 * ch; transformed.z += sin(cp * 0.63 + 1.3) * 0.017 * ch; transformed.y *= 1.0 + sin(cp * 1.9) * 0.007; }\n#endif\n");
+      sh.vertexShader = sh.vertexShader.replace("#include <color_vertex>", "vColor = vec4(1.0);\n#ifdef USE_COLOR\nvColor.rgb *= color.rgb;\n#endif\n#ifdef USE_INSTANCING_COLOR\nvColor.rgb *= mix(vec3(1.0), instanceColor.rgb, step(0.55, min(color.r, min(color.g, color.b))));\n#endif"); };
     crowdMat.customProgramCacheKey = () => "crowd";
     return crowdMat;
   }
