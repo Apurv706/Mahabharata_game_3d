@@ -130,7 +130,8 @@
       pos = x.runner ? ((ph * 0.45) % 2) - 1 : Math.sin(ph);
       const wx = X0 + pos * AMP, y = x.runner ? 0 : 1.9 + (x.icon === "bird" ? Math.sin(ph * 3) * 0.3 : -Math.abs(pos) * 0.25);
       x.tg.position.set(wx, y, Z); if (x.tg.userData.wings) { const a = Math.sin(tt * 21) * 0.8; x.tg.userData.wings[0].rotation.z = -a; x.tg.userData.wings[1].rotation.z = a; x.tg.rotation.y = Math.cos(ph) > 0 ? Math.PI / 2 : -Math.PI / 2; x.tg.rotation.z = Math.sin(tt * 21 + 1) * 0.06; } /* (it flies the way it is going) */
-      if (x.runner) { x.tg.rotation.y = Math.PI / 2; if (x.icon === "elephant") G.stomp(x.tg, tt * 8, 1); else if (x.icon === "chariot") G.roll(x.tg, ph * 3, tt, 1); else G.gallop(x.tg, tt * 12, 1); }
+      if (x.runner) { const sc = x.tg.scale.x || 1, mps = (AMP * 0.45 * speed * (1 + n * 0.08)) / sc; x.tg.rotation.y = Math.PI / 2; // (its feet and wheels keep the ground at the pace it is really crossing at)
+        if (x.icon === "elephant") G.stomp(x.tg, tt * 8, 1, mps); else if (x.icon === "chariot") G.roll(x.tg, (AMP * 0.45 * ph) / sc, tt, 1, mps); else G.gallop(x.tg, tt * 12, 1, mps); }
       x.tg.visible = !t.blind || Math.abs(pos) > 0.82 || flew > 0; if (flew > 0) flew -= dt;
       if (t.blind && Math.abs(pos) < 0.05 && !busy && Math.floor(tt * 8) % 2 === 0) sfx("tap");
       ctx.me.drawBow(busy ? 0 : 0.5 + 0.5 * Math.sin(tt * 2));
@@ -140,7 +141,7 @@
       if (busy) return; busy = true; n++;
       const hit = Math.abs(pos) <= hw, to = V(X0 + (hit ? pos * AMP : (pos > 0 ? -0.6 : 0.6)), x.runner ? 1.1 : x.tg.position.y, Z);
       ctx.me.act("loose", 0.35, 0.45); sfx("tap");
-      G.fx.arrow(ctx.me.tip(), to, 0.22, 0.2, (shaft) => { if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
+      G.fx.arrow(ctx.me.tip(), to, 0.22, null, (shaft) => { if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
         if (hit) { hits++; G.fx.burst("hit", to, { n: 12 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); flew = 0.6; } else { ctx.toast(tx("Missed"), "bad"); sfx("step"); }
         draw();
         const left = shots - n;
@@ -497,7 +498,7 @@
     const tossB = ctx.button(K.text(["Toss a pebble ({n})", { n: stones }]), () => toss());
     function toss() { if (stones <= 0 || over) return; stones--; tossB.textContent = K.text(["Toss a pebble ({n})", { n: stones }]); if (!stones) tossB.disabled = true;
       const a = ctx.me.face, px = clamp(w.x + Math.sin(a) * 4.5, -W, W), pz = clamp(w.z + Math.cos(a) * 4.5, -D, D), from = ctx.me.root.position.clone().setY(1.2), to = new T.Vector3(px, 0.1, pz);
-      G.fx.arrow(from, to, 0.5, 1.6, () => { sfx("tap"); G.fx.burst("dust", to, { n: 6 }); G.fx.ring(to, 0xffe9b0, 0.2, 2.4, 0.6); hearAll(px, pz, 7, 3); }, 0, "stone"); } /* (a pebble, not an arrow) */
+      G.fx.arrow(from, to, 0.95, null, () => { sfx("tap"); G.fx.burst("dust", to, { n: 6 }); G.fx.ring(to, 0xffe9b0, 0.2, 2.4, 0.6); hearAll(px, pz, 7, 3); }, 0, "stone"); } /* (a pebble, not an arrow) */
   };
 
   // =====================================================================================================
@@ -571,9 +572,9 @@
         else if (e.type === "end") return ctx.finish(e.outcome, e.line ? [e.line[0], e.line[1]] : null);
       }
       lx += (LANE[R.lane] - lx) * Math.min(1, dt * 10); me.position.set(lx, x.kind === "boat" ? Math.sin(tt * 2) * 0.12 : 0, 6);
-      roll += R.speed() * dt * 3; if (x.car && x.kind === "chariot") G.roll(x.car, roll, tt, R.speed() / 3); if (x.fig) x.fig.speed = R.speed() * 1.2;
+      roll += R.speed() * dt * 3; if (x.car && x.kind === "chariot") G.roll(x.car, roll, tt, R.speed() / 3, R.speed() * 3); if (x.fig) x.fig.speed = R.speed() * 3; /* (legs and hooves at the speed the ground goes by) */
       for (const [ob, m] of x.obs) m.position.set(LANE[ob.lane], ob.kind === "fire" ? 0.8 : 0, 6 - (ob.x - 17) * 0.42);
-      if (x.rival) { x.rival.position.set(LANE[R.rLane] + (x.rival.position.x - LANE[R.rLane]) * Math.max(0, 1 - dt * 8), 0, 6 - (R.rival - R.dist) * 0.9); if (x.kind === "chariot" && x.rival.userData.wheels) G.roll(x.rival, roll, tt, 1); }
+      if (x.rival) { x.rival.position.set(LANE[R.rLane] + (x.rival.position.x - LANE[R.rLane]) * Math.max(0, 1 - dt * 8), 0, 6 - (R.rival - R.dist) * 0.9); if (x.kind === "chariot" && x.rival.userData.wheels) G.roll(x.rival, roll, tt, 1, R.speed() * 3); }
       if (ctx.st.lastGround && ctx.st.lastGround.material.map) ctx.st.lastGround.material.map.offset.y = -roll * 0.02;
       if (K.rng() < dt * 8 * R.speed() / 3) G.fx.burst(x.kind === "boat" ? "splash" : "dust", V(lx, 0.1, 7.2), { n: 1 });
       ctx.score(tx(t.tally || "Distance: {d}% · Hits: {h} of {l}", { d: Math.min(100, Math.round(R.dist)), h: o.shield ? R.miss : R.hits, l: o.lives, c: R.caught, m: R.miss }));
@@ -664,7 +665,14 @@
       for (const c of cows) {
         if (c.gone) continue; const p = c.h.position;
         if (!c.with) G.gallop(c.h, p.x * 3.1 + p.z, 0); /* (those not yet gathered stand at grass) */
-        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.9 + k * 0.9), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.9 + k * 0.9); p.x += (fx - p.x) * Math.min(1, dt * 3); p.z += (fz - p.z) * Math.min(1, dt * 3); c.h.rotation.y = Math.atan2(w.x - p.x, w.z - p.z); G.gallop(c.h, tt * 9 + k, ctx.me.speed ? 0.5 : 0); } /* (cattle follow at a trot) */
+        if (c.with) { k++; const fx = w.x - Math.sin(ctx.me.root.rotation.y) * (0.9 + k * 0.9), fz = w.z - Math.cos(ctx.me.root.rotation.y) * (0.9 + k * 0.9);
+          // (a cow is not drawn along on a string: she gathers way, goes no faster than a trot, turns the way she is going, and keeps off the next)
+          let wx2 = (fx - p.x) * 1.8, wz2 = (fz - p.z) * 1.8; const wl = Math.hypot(wx2, wz2), top = 3.1; if (wl > top) { wx2 *= top / wl; wz2 *= top / wl; }
+          for (const o of cows) { if (o === c || o.gone) continue; const ox = p.x - o.h.position.x, oz = p.z - o.h.position.z, od = Math.hypot(ox, oz); if (od < 1.15 && od > 1e-3) { wx2 += (ox / od) * (1.15 - od) * 3; wz2 += (oz / od) * (1.15 - od) * 3; } }
+          c.vx = c.vx || 0; c.vz = c.vz || 0; const ax = wx2 - c.vx, az = wz2 - c.vz, al = Math.hypot(ax, az), am = 6 * dt; if (al <= am) { c.vx = wx2; c.vz = wz2; } else { c.vx += (ax / al) * am; c.vz += (az / al) * am; }
+          p.x += c.vx * dt; p.z += c.vz * dt; const mps = Math.hypot(c.vx, c.vz);
+          if (mps > 0.25) { let da = Math.atan2(c.vx, c.vz) - c.h.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); c.h.rotation.y += Math.max(-3.2 * dt, Math.min(3.2 * dt, da)); }
+          G.gallop(c.h, tt * 9 + k, 0, mps); }
         else if (Math.hypot(p.x - w.x, p.z - w.z) < 1.3) { c.with = true; got++; sfx("tap"); ctx.toast(tx(t.gather || "Another cow falls in behind you."), "good"); draw(); if (got >= need) return ctx.finish("win", null); }
         for (const hz of haz) if (Math.hypot(p.x - hz.x, p.z - hz.z) < hz.r) { c.gone = true; c.h.visible = false; if (c.with) got--; lost++; ctx.toast(tx(fire ? "The fire takes one." : t.water || "The water is too deep there."), "bad"); ctx.cue("bad"); draw(); if (lost >= lose) return ctx.finish(got >= need - 1 ? "close" : "lose", null); break; }
       }

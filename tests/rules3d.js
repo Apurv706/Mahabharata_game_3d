@@ -191,12 +191,16 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   ok(idle.ev.includes("taskFail:banner") && idle.flags.includes("war_setback") && !idle.R.over, "The banner left flying: they rally, and it costs you the next fight's start");
   ok(idle2.ev.includes("taskFail:sarathi"), "The charioteer not reached: his car rides your man down");
   ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
-  const bh = (bot, id) => { const K = fresh(11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start(id || "bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
+  const bh = (bot, id, seed) => { const K = fresh(seed || 11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start(id || "bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
     for (let i = 0; i < 60 * 150 && !R.over; i++) { if (!bot) p.hp = p.maxHp; R3.step(R, bot ? R3.bot(R) : {}); for (const e of R.fx) if (/^(lineFalls|turn|defended|checked|barred|crossed)$/.test(e.k)) ev.push(e.k); R.fx.length = 0; }
     const out = { over: R.over, ev, t: R.t, plan: R.plan, bh: B.units.find((u) => u.person === "bhishma") }; try { C.end(); } catch (e) {} return out; };
   const stood = bh(false), fought = bh(true);
   ok(stood.ev.filter((x) => x === "lineFalls").length === 3 && stood.ev.includes("turn") && stood.ev.includes("crossed") && stood.over !== "win", "Under Bhishma the line gives way three times; left alone, his car crosses and the line is broken");
-  ok(fought.ev.includes("defended") && fought.ev.filter((x) => x === "checked").length === 3 && fought.ev.includes("barred") && fought.over === "win" && fought.bh && fought.bh.hp > 0, "Bar his way: the first blow he turns aside, three checks and he turns his car away, unbeaten");
+  // (There are two ways to bar it: three checks, or his charioteer reached while his wheel-guards are off the wheels. Which a
+  // given fight takes depends on where his guards are when he turns, so three fights are fought: all are held with him
+  // unbeaten, and at least one is held by the checks.)
+  { const runs = [fought, bh(true, null, 12), bh(true, null, 13)], byChecks = runs.filter((r) => r.ev.includes("defended") && r.ev.filter((x) => x === "checked").length === 3);
+    ok(runs.every((r) => r.ev.includes("barred") && r.over === "win" && r.bh && r.bh.hp > 0) && byChecks.length >= 1, "Bar his way: the first blow he turns aside, three checks and he turns his car away, unbeaten (" + byChecks.length + " of 3 held by the checks, the rest at his charioteer)"); }
   for (const id of ["oath_king_hold", "hold_bhima", "oath_arjuna_12"]) { const lost = bh(false, id), won = bh(true, id);
     ok(lost.plan && lost.plan.kind === "bhishma" && lost.ev.filter((x) => x === "lineFalls").length === 3 && lost.ev.includes("crossed") && lost.over !== "win" && won.ev.includes("barred") && won.over === "win", id + ": the same shape, the line falls three times, then bar " + (lost.plan && lost.plan.who) + "'s way or he is through"); }
   ok(bh(false, "oath_arjuna_12").plan.noSarathi, "No one lays a hand on Arjuna's charioteer");
@@ -280,6 +284,56 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     const before = ids().includes("banner"); S.flags.push("bore_banner"); const after = ids().includes("banner"); S.endChoice = "banner"; const e = K.composeEnding(S);
     ok(!before && after && e.title === "The banner-bearer" && e.art === "end_banner" && e.telling.some((l) => /stood by your door/.test(String(l))) && K.ENDINGS.some((x) => x.title === e.title && x.art === e.art),
       "one who carried the banner and lived may take it home: its own ending, in the list (" + e.title + ")"); }
+}
+
+// 14. How bodies move (owner, 13 November: "physics of the game doesnt feel right"): weight in your own body, bodies that
+// push, blows that move what they strike, arrows that fly and fall, bodies thrown, cars and elephants that go the way
+// they point.
+{
+  const open = (id, seed, o) => { const K = fresh(seed || 5); life(K, o); const C = K.Combat, R3 = K.RT3, B = C.start(id, null), R = R3.begin(B, { noPlan: true }), p = C.player(); p.maxHp = p.hp = 99999; return { K, C, R3, B, R, p }; };
+  const away = (B, keep) => { for (const u of B.units) if (u.g && u.side !== "player" && !keep.includes(u)) { u.g.x = 40; u.g.z = -60; u.g.entered = false; u.g.wave = 9; } };
+  { // your own weight
+    const { R3, R, p, B } = open("e_day1"); away(B, []); p.g.x = 0; p.g.z = 0; const sp = () => Math.hypot(p.g.wx, p.g.wz), top = p.g.speed;
+    R3.step(R, { mx: 1, mz: 0 }); R3.step(R, { mx: 1, mz: 0 }); const early = sp(); let t90 = 0; for (let i = 2; i < 40 && !t90; i++) { R3.step(R, { mx: 1, mz: 0 }); if (sp() >= 0.9 * top) t90 = (i + 1) / 60; }
+    for (let i = 0; i < 30; i++) R3.step(R, { mx: 1, mz: 0 }); const x0 = p.g.x; R3.step(R, {}); R3.step(R, {}); const still = sp(); let ts = 0; for (let i = 2; i < 40 && !ts; i++) { R3.step(R, {}); if (sp() < 0.05) ts = (i + 1) / 60; }
+    ok(early < 0.4 * top && t90 > 0.1 && t90 <= 0.25 && still > 0.5 && ts > 0.08 && ts <= 0.3 && p.g.x - x0 > 0.15 && p.g.x - x0 < 0.6, "your body has weight: full speed in " + t90.toFixed(2) + " s, not one step; a stop takes " + ts.toFixed(2) + " s and " + (p.g.x - x0).toFixed(2) + " m");
+    for (let i = 0; i < 60; i++) R3.step(R, {}); const z0 = p.g.z; R3.step(R, { roll: true, mx: 0, mz: 1 }); const v = []; let k = 0; while (R.roll > 0 && k++ < 60) { const zb = p.g.z; R3.step(R, {}); v.push((p.g.z - zb) * 60); } const d = p.g.z - z0, mean = d / (k / 60);
+    ok(Math.abs(d - R3.P.rollDist) < 0.45 && v[0] < 0.8 * mean && Math.max(...v) > 1.12 * mean && v[v.length - 2] < 0.95 * mean, "a roll pushes off, flies and lands: " + d.toFixed(2) + " m, " + v[0].toFixed(1) + " m/s at the push, " + Math.max(...v).toFixed(1) + " at its fastest, " + v[v.length - 2].toFixed(1) + " coming down"); }
+  { // weight against weight
+    const push = (pick, hold) => { const { R3, R, p, B } = open("e_day1", 9); const o = pick(B); away(B, [o]); p.g.x = 0; p.g.z = 0; o.g.x = 0; o.g.z = -1.2; o.g.entered = true; const z0 = p.g.z, oz = o.g.z;
+      for (let i = 0; i < 60; i++) { o.g.cool = 99; o.g.rec = 99; if (o.g.atk) o.g.atk = null; R3.step(R, { mx: 0, mz: -1 }); } return { me: z0 - p.g.z, him: oz - o.g.z, top: p.g.speed }; };
+    const foe = push((B) => B.units.find((u) => u.side === "enemy" && u.g && u.g.kind === "man" && !u.line && !u.g.car)), own = push((B) => B.units.find((u) => u.side === "ally" && u.g && !u.line));
+    ok(foe.him > 0.3 && foe.me < foe.top * 0.45 && own.me > foe.me * 1.8 && own.him > 1.5, "bodies push: a foe on his feet gives ground slowly (you make " + foe.me.toFixed(1) + " m in a second, " + foe.top.toFixed(1) + " free), and one of your own steps out of your way (" + own.me.toFixed(1) + " m)");
+    const { R3, R, p, B } = open("fs_d12_elephant", 3); const el = B.units.find((u) => u.g && u.g.kind === "elephant"); away(B, [el]); el.g.entered = true; el.g.x = 0; el.g.z = -4; el.g.cool = 99; p.g.x = 0; p.g.z = 0; const ez = el.g.z, ex = el.g.x;
+    for (let i = 0; i < 60; i++) { el.g.cool = 99; if (el.g.atk) el.g.atk = null; const hx = el.g.x, hz = el.g.z; R3.step(R, { mx: el.g.x - p.g.x, mz: el.g.z - p.g.z }); el.g.x = hx; el.g.z = hz; el.g.cv = 0; }
+    ok(Math.hypot(p.g.x - el.g.x, p.g.z - el.g.z) >= el.g.rad + p.g.rad - 0.05, "and no one moves an elephant, or walks into one"); }
+  { // wheels
+    const slip = (id, pick, secs) => { const K = fresh(7); life(K); const C = K.Combat, R3 = K.RT3, B = C.start(id, null), R = R3.begin(B, {}), p = C.player(), u = B.units.find((x) => x.side === "enemy" && x.g && pick(x)); let nn = 0, sum = 0, w = 0, la = null, dist = 0;
+      for (let i = 0; i < 60 * secs && !R.over && u.hp > 0; i++) { p.hp = p.maxHp; const x0 = u.g.x, z0 = u.g.z; R3.step(R, id === "bh_line9" ? {} : R3.bot(R)); const dx = u.g.x - x0, dz = u.g.z - z0, v = Math.hypot(dx, dz) * 60; dist += v / 60;
+        if (u.g.ca != null) { if (la != null) w = Math.max(w, Math.abs(Math.atan2(Math.sin(u.g.ca - la), Math.cos(u.g.ca - la))) * 60); la = u.g.ca; }
+        if (v > 0.8 && u.g.entered && !(u.g.vx || u.g.vz)) { const a = Math.atan2(dx, dz); nn++; sum += Math.abs(Math.atan2(Math.sin(a - u.g.ca), Math.cos(a - u.g.ca))); } }
+      try { C.end(); } catch (e) {} return { deg: nn ? (sum / nn) * 57.3 : 99, w, dist }; };
+    const car = slip("bh_line9", (u) => u.g.car, 22), ele = slip("fs_d12_elephant", (u) => u.g.kind === "elephant", 25), P_ = fresh(1).RT3.PHYS;
+    ok(car.dist > 12 && car.deg < 3 && car.w <= P_.car.turn + 0.9, "a car goes the way it points: over " + car.dist.toFixed(0) + " m its path is " + car.deg.toFixed(1) + "° off its heading on average, and it never comes round faster than " + (car.w * 57.3).toFixed(0) + "° a second");
+    ok(ele.dist > 12 && ele.deg < 4, "an elephant goes the way it points (" + ele.deg.toFixed(1) + "° off, over " + ele.dist.toFixed(0) + " m)"); }
+  { // arrows
+    const shoot = (after) => { const { R3, R, p, B, C } = open("e_day1", 4, { path: "archer" }); const f = B.units.find((u) => u.side === "enemy" && u.g && u.g.kind === "man" && !u.line && !u.g.car); away(B, [f]); p.g.x = 0; p.g.z = 6; p.g.a = Math.PI; f.g.entered = true; f.maxHp = f.hp = 99999; let hit = null, top = 0, steered = false, a0 = null;
+      const drift = (vx) => { f.g.cool = 99; f.g.rec = 99; f.g.atk = null; f.g.wx = vx; f.g.wz = 0; f.g.walkN = R.n + 1; f.g.x += vx / 60; f.g.z = -6; };
+      f.g.x = -2; f.g.z = -6; R.lock = f.uid; let loosed = false, vx = 3;
+      for (let i = 0; i < 150 && hit === null; i++) { drift(vx); R3.step(R, i === 3 ? { strike: true } : {}); for (const e of R.fx) { if (e.k === "arrive" && e.shot.side === "player") hit = e.uid != null; }
+        for (const s of R.shots) if (s.side === "player" && R.t >= s.t0) { if (!loosed) { loosed = true; if (after) vx = after; } top = Math.max(top, s.y); a0 = a0 || {}; if (a0[s.n] == null) a0[s.n] = s.a; else if (Math.abs(s.a - a0[s.n]) > 1e-9) steered = true; } R.fx.length = 0; }
+      try { C.end(); } catch (e) {} return { hit, top, steered }; };
+    const led = shoot(0), fooled = shoot(-3), F = fresh(1).RT3.FLY;
+    ok(led.hit === true && !led.steered && led.top > F.y0 + 0.01, "an arrow is loosed at where a walking man will be, and finds him there; it rises " + ((led.top - F.y0) * 100).toFixed(0) + " cm above the bow at twelve metres (a war bow shoots flat that near) and does not steer");
+    ok(fooled.hit === false, "if he turns back once it is in the air, it comes down in the ground where he would have been"); }
+  { // blows move bodies
+    const { R3, R, p, B, C } = open("e_day1", 6); const f = B.units.find((u) => u.side === "enemy" && u.g && u.g.kind === "man" && !u.line && !u.g.car && !u.hero && !u.person); away(B, [f]); p.g.x = 0; p.g.z = 0; p.g.a = Math.PI; f.g.entered = true; f.g.x = 0; f.g.z = -1.5; f.maxHp = f.hp = 99999; f.sp = 0; f.shield = false; R.lock = f.uid; let landed = 0;
+    for (let i = 0; i < 40 && !landed; i++) { f.g.cool = 99; f.g.rec = 99; f.g.atk = null; const z0 = f.g.z; R3.step(R, i === 1 ? { strike: true } : {}); for (const e of R.fx) if (e.k === "hit" && e.uid === f.uid && !e.blocked) landed = 1; R.fx.length = 0; }
+    const zHit = f.g.z, st = f.g.stag; for (let i = 0; i < 40; i++) { f.g.cool = 99; f.g.rec = 99; f.g.atk = null; R3.step(R, {}); }
+    ok(landed && zHit - f.g.z > 0.06 && zHit - f.g.z < 0.6, "a light blow that lands moves the man it lands on (" + (zHit - f.g.z).toFixed(2) + " m), and does not throw him");
+    f.hp = 1; f.g.x = 0; f.g.z = -1.5; p.g.x = 0; p.g.z = 0; let dead = false; for (let i = 0; i < 200 && !dead; i++) { f.g.cool = 99; f.g.rec = 99; f.g.atk = null; if (f.hp > 0) { f.g.x = 0; f.g.z = -1.5; f.hp = 1; } R3.step(R, { strike: true }); dead = f.hp <= 0; R.fx.length = 0; }
+    const zd = f.g.z; for (let i = 0; i < 60; i++) R3.step(R, {});
+    ok(dead && f.g.thrown && zd - f.g.z > 0.15, "the body of a man killed goes the way the blow went (" + (zd - f.g.z).toFixed(2) + " m)"); try { C.end(); } catch (e) {} }
 }
 
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));

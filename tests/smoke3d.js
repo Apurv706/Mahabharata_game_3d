@@ -65,7 +65,7 @@ const CASES = {
     await sleep(500); check((await drawn(page)) > 40, "and it is drawn");
     await page.keyboard.press("r"); check((await page.evaluate(() => window.K.prefs().fightView)) === "top", "and round to the view from above");
     const p0 = await page.evaluate(() => { const p = window.K.Combat.player(); return [p.g.x, p.g.z]; });
-    await page.keyboard.down("w"); await sleep(900); await page.keyboard.up("w");
+    await page.keyboard.down("w"); await sleep(1700); await page.keyboard.up("w"); // (a body has weight now: it gathers way over a sixth of a second of the fight's own time, which on this slow renderer is most of a second)
     const p1 = await page.evaluate(() => { const p = window.K.Combat.player(); return [p.g.x, p.g.z]; });
     check(Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 0.5, "W moves your fighter (" + Math.hypot(p1[0] - p0[0], p1[1] - p0[1]).toFixed(1) + " m)");
     await page.evaluate(() => { window.K.UI.battleBot = true; window.K.UI.battleSpeed = 10; });

@@ -47,9 +47,9 @@
   // Each fight's own tuning in 3D, on top of the 2D game's (RT.TUNE). Set against the bot on all seven paths, with the line
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
-  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.38 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.5 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
-    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.9 }, wc_e_reach: { atk: 0.86 },
-    e_wheel: { hp: 0.9, atk: 0.9 }, e_day16: { hp: 0.9, atk: 0.84 }, e_road: { atk: 1.05 }, oath_king_hold: { atk: 0.88 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.15, atk: 1.4 },
+  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.6 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.53 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
+    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
+    e_wheel: { hp: 1, atk: 1.22 }, e_day16: { hp: 0.9, atk: 0.84 }, e_road: { atk: 1.4 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.15, atk: 1.62 },
     hold_duryodhana: { atk: 0.92 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
@@ -61,6 +61,87 @@
   const adiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
   const MELEE = RT.MELEE, RANGED = new Set(["arrows", "aimed", "pin", "volley"]), HEAVY = new Set(["heavy", "crush", "breaker", "aimed"]);
   const isSoldiers = (a) => a.plural && !a.person && !a.called;
+
+  // ---------- How bodies move ----------
+  // (Owner, 13 November: "physics of the game doesnt feel right".) Nothing here starts, stops or turns in an instant,
+  // and bodies have weight against each other.
+  //   legs    a body's own walking velocity (g.wx, g.wz) goes toward what its legs ask for at the rate its weight
+  //           allows, and runs down when they ask for nothing (walk).
+  //   wheels  a car or an elephant goes only the way it points (g.ca) at its speed (g.cv): it comes round no tighter
+  //           than that speed allows, gathers way slowly and loses it slowly (drive).
+  //   weight  where two bodies meet, each gives ground by the other's weight. One set to meet a blow gives little;
+  //           staggered or down he gives a lot; your own men step out of your way; no one moves an elephant (move).
+  //   blows   every blow that lands moves the body it lands on, a light one a hand's breadth, and what throws a body
+  //           back runs out over half a second, not a tenth (knock, nudge, PHYS.fric).
+  const PHYS = (R3.PHYS = {
+    acc: 30, brake: 38, accFoe: 17, brakeFoe: 24, accSquad: 12, turn: 15,
+    car: { acc: 4.6, brake: 7, turn: 2.1, pivot: 0.55, rmin: 2.6 }, ele: { acc: 2.4, brake: 3.6, turn: 1.5, pivot: 0.8, rmin: 1.9 },
+    fric: 5.5, knock: 3.9, sep: 4, rollTau: 0.12, rollEase: 0.5
+  });
+  const wheeled = (u) => !!(u.g && !u.g.ride && (u.g.car || u.g.kind === "elephant"));
+  const weight = (u) => (u.still ? 1e6 : u.g.kind === "elephant" ? 40 : u.g.kind === "cart" ? 20 : u.g.car ? 14 : u.g.kind === "squad" ? 3 : u.hero || u.person ? 1.5 : 1);
+  const locked = (R, u) => u.g.role === "wall" && !!R.plan && !R.plan.broken; // (shields locked: the wall is one weight)
+  const brace = (R, u, by) => { const g = u.g;
+    if (u.still) return 1e6;
+    if (u.side === "player") return by.side === "ally" ? 1e6 : R.block ? 4.5 : R.roll > 0 ? 0.5 : 2.9; // (your own men do not push you about)
+    if (by.side === "player" && u.side === "ally") return 0.15; // (and they step out of your way)
+    if (u.hp <= 0 || g.down > 0) return 0.4;
+    if (g.stag > 0 || held(u)) return 0.6;
+    return locked(R, u) || (R.through && by.side === "player") ? 9 : by.side === "player" ? 4 : 2.9; }; // (one posted to bar your way is set against you, and gives almost nothing)
+  function walk(R, u, vx, vz, dt, pass) {
+    const g = u.g, me = u.side === "player", going = vx || vz;
+    const rate = (going ? (me ? PHYS.acc : g.kind === "squad" ? PHYS.accSquad : PHYS.accFoe) : me ? PHYS.brake * (R.t < (g.landT || 0) ? 0.5 : 1) : PHYS.brakeFoe) * dt; // (out of a roll your feet take longer to stop you)
+    const dx = vx - g.wx, dz = vz - g.wz, l = Math.hypot(dx, dz);
+    if (l <= rate) { g.wx = vx; g.wz = vz; } else { g.wx += (dx / l) * rate; g.wz += (dz / l) * rate; }
+    g.walkN = R.n;
+    if (g.wx || g.wz) { const x0 = g.x, z0 = g.z; move(R, u, g.wx * dt, g.wz * dt, !!pass); g.lx = (g.x - x0) / dt; g.lz = (g.z - z0) / dt; } // (g.lx, g.lz: the ground its legs really covered, for the eye: a man leaning on another walks on the spot)
+  }
+  function drive(R, u, mx, mz, pace, dt) {
+    const g = u.g, V = g.kind === "elephant" ? PHYS.ele : PHYS.car;
+    if (g.ca == null) g.ca = g.a;
+    let wx = mx, wz = mz, l = Math.hypot(wx, wz); if (l > 1e-3) { wx /= l; wz /= l; }
+    // (the field's edge is seen coming, and turned along)
+    const look = 1.4 + g.cv * 0.7, ax = g.x + Math.sin(g.ca) * look, az = g.z + Math.cos(g.ca) * look, ar = Math.hypot(ax, az), lim = R.rad - g.rad - 0.3;
+    if (g.entered && ar > lim) { const k = Math.min(1, (ar - lim) / 1.6); wx = wx * (1 - k) - (ax / ar) * k * 1.5; wz = wz * (1 - k) - (az / ar) * k * 1.5; l = Math.hypot(wx, wz); if (l > 1e-3) { wx /= l; wz /= l; } }
+    const off = l > 1e-3 ? adiff(Math.atan2(wx, wz), g.ca) : 0, wmax = Math.min(V.turn, g.cv / V.rmin + V.pivot) * dt;
+    g.ca += clamp(off, -wmax, wmax);
+    const al = Math.cos(off), want = pace * (al > 0 ? 0.35 + 0.65 * al : 0.35);
+    g.cv = Math.max(0, g.cv + clamp(want - g.cv, -V.brake * dt, V.acc * dt));
+    g.walkN = R.n; g.wx = Math.sin(g.ca) * g.cv; g.wz = Math.cos(g.ca) * g.cv;
+    if (g.cv > 1e-3) { const x0 = g.x, z0 = g.z; move(R, u, g.wx * dt, g.wz * dt, false);
+      // (brought up against what will not move, it stalls, and comes round the way it is being turned: it does not slide along it)
+      const ddx = g.x - x0, ddz = g.z - z0, fwd = (ddx * Math.sin(g.ca) + ddz * Math.cos(g.ca)) / dt; g.lx = ddx / dt; g.lz = ddz / dt;
+      if (fwd < g.cv * 0.6) { g.cv = Math.max(0, fwd); const lat = ddx * Math.cos(g.ca) - ddz * Math.sin(g.ca); if (Math.abs(lat) > 1e-5) g.ca += Math.sign(lat) * (V.pivot + 0.6) * dt; } }
+  }
+  // (on legs or on wheels, toward (mx, mz) at sp metres a second)
+  function goTo(R, u, mx, mz, sp, dt) { if (wheeled(u)) return drive(R, u, mx, mz, sp, dt); const l = Math.hypot(mx, mz); if (l > 1e-3) walk(R, u, (mx / l) * sp, (mz / l) * sp, dt); }
+  function shove(R, u, dx, dz) { const g = u.g; if (g.ride) return; let x = g.x + dx, z = g.z + dz; const r = Math.hypot(x, z), lim = R.rad - 0.3; if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; } g.x = x; g.z = z; }
+  // A car or an elephant under way does not ease a man aside: it throws him, forward and to the side he was on.
+  function jostle(R, by, o, share) {
+    const g = by.g, og = o.g; if (!wheeled(by) || !(g.cv > 1.6) || og.kind === "elephant" || og.car || o.still || share < 0.5 || og.jostleT > R.t || (by.side === "enemy") === (o.side === "enemy")) return; // (its own side's men get out of its way; it is the other side's it throws)
+    og.jostleT = R.t + 0.8;
+    const side = Math.sign(Math.sin(g.ca) * (og.z - g.z) - Math.cos(g.ca) * (og.x - g.x)) || 1, a = g.ca - side * 1.1;
+    og.vx += Math.sin(a) * g.cv * 1.4; og.vz += Math.cos(a) * g.cv * 1.4;
+    if (o.side !== "player" && !steady(o)) { og.stag = Math.max(og.stag || 0, 0.5); if (og.atk) cancel(o); }
+    R.fx.push({ k: "jostle", uid: o.uid, by: by.uid });
+  }
+  // An arrow is loosed at where its man will be when it gets there, rises, and falls. It does not steer. (from: {x, z};
+  // on: the man; v: its speed over the ground; wait: seconds before it leaves the string.) Returns its heading, and the
+  // upward speed that brings it down to chest height at that range (R3.fly: gravity, and the height it leaves the bow at).
+  const FLY = (R3.FLY = { g: 9.81, y0: 1.45, chest: 1.15 });
+  const topOf = (u) => (u.g.kind === "elephant" ? 3.7 : u.g.car ? 2.7 : u.g.down > 0 ? 0.7 : 2.0);
+  function aimAt(from, on, v, wait) {
+    if (!on || !on.g) return null;
+    const ovx = (on.g.wx || 0) + (on.g.vx || 0) * 0.4, ovz = (on.g.wz || 0) + (on.g.vz || 0) * 0.4; let tx = on.g.x, tz = on.g.z, T_ = 0;
+    for (let k = 0; k < 3; k++) { T_ = Math.hypot(tx - from.x, tz - from.z) / v; tx = on.g.x + ovx * (T_ + (wait || 0)); tz = on.g.z + ovz * (T_ + (wait || 0)); }
+    T_ = Math.max(0.02, Math.hypot(tx - from.x, tz - from.z) / v);
+    return { a: Math.atan2(tx - from.x, tz - from.z), vy: (FLY.chest - FLY.y0 + 0.5 * FLY.g * T_ * T_) / T_ };
+  }
+  const flat = (v, d) => { const T_ = Math.max(0.02, d / v); return (FLY.chest - FLY.y0 + 0.5 * FLY.g * T_ * T_) / T_; }; // (the same for a range with no man at it)
+  // The roll: a push off, a flight, a landing. Most of its ground is covered early and you come out of it still moving.
+  // rollF(u): the share of the roll's ground covered when the share u of its time has gone (0..1).
+  const ROLLC = 1 / (1 - PHYS.rollEase / 2 - PHYS.rollTau + PHYS.rollEase * PHYS.rollTau * PHYS.rollTau);
+  const rollF = (u) => { const t = PHYS.rollTau, k = PHYS.rollEase, E = Math.exp(-u / t); return ROLLC * (u - (k * u * u) / 2 - t * (1 - E) + k * t * t * (1 - E) - k * t * u * E); };
 
   // ---------- The line ----------
   // A war or raid battle is not fought alone in an empty ring: a few soldiers of each host fight inside it, each with his
@@ -138,7 +219,7 @@
       speed: u.side === "player" ? P.run : (foe ? (archer ? P.archerRun : P.foeRun) : P.allyRun) * (kind === "squad" ? 0.92 : kind === "elephant" ? 1.15 : 1),
       windup: Math.max(0.3, (P.windup - Math.min(0.2, (u.atk || 0) * 0.006)) * R.D.wind),
       cool: foe ? rr(0.8, 1.9) : rr(0.3, 0.9), cd: {}, st: {}, down: 0, stag: 0, rec: 0, atk: null, entered: !foe, wave: 0, hits: [], bodies: u.plural ? 3 : 1, idx: i, sideIdx,
-      vx: 0, vz: 0, orbit: K.rng() < 0.5 ? 1 : -1, moving: 0, busy: 0, blow: null
+      vx: 0, vz: 0, wx: 0, wz: 0, lx: 0, lz: 0, cv: 0, orbit: K.rng() < 0.5 ? 1 : -1, moving: 0, busy: 0, blow: null
     };
     // The great archers fight from their chariots, as the epic has them: a wider body, a little faster over the ground.
     if (u.side !== "player" && !u.still && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
@@ -232,7 +313,7 @@
   const wheelGuards = (R) => { const pl = R.plan, c = pl && pl.car && R.B.units.find((u) => u.uid === pl.car); return c && c.hp > 0 ? living(R.B, "enemy").filter((u) => u.g && u.g.role === "wguard" && dist(u, c) < 4.5) : []; };
   // What a man with a part in the plan does this step. True when that was all he does.
   function roleStep(R, e, dt) {
-    const B = R.B, p = C.player(), g = e.g, pl = R.plan, go = (x, z, k) => { const dx = x - g.x, dz = z - g.z, l = Math.hypot(dx, dz); if (l > 0.12) { const sp = g.speed * k * dt; move(R, e, (dx / l) * Math.min(sp, l), (dz / l) * Math.min(sp, l), false); g.moving = Math.min(1, k); } g.a = turnTo(g.a, l > 1.5 ? Math.atan2(dx, dz) : angTo(e, p), 6 * dt); return l; };
+    const B = R.B, p = C.player(), g = e.g, pl = R.plan, wh = wheeled(e), go = (x, z, k) => { const dx = x - g.x, dz = z - g.z, l = Math.hypot(dx, dz); if (l > 0.12) { goTo(R, e, dx, dz, g.speed * k * Math.min(1, wh ? l / 2.5 + 0.3 : l / 0.45), dt); g.moving = Math.min(1, k); } g.a = turnTo(g.a, l > 1.5 ? Math.atan2(dx, dz) : angTo(e, p), 6 * dt); return wh ? Math.max(0, l - 1.3) : l; }; // (a car is "there" a car's length short: it cannot stop on a point)
     if (g.role === "wall") {
       const w = living(B, "enemy").filter((u) => u.g && u.g.role === "wall");
       if (!R.B.enc.rounds /* (a wall the story says cannot be broken that day, Jayadratha's at the gate, closes up and stands) */ && (pl.broken || w.length <= pl.wall - 2 || w.length < 2 || R.t > 30)) { if (!pl.broken) { pl.broken = true; turn(R, "standard"); } g.role = null; g.sx = null; return false; }
@@ -257,7 +338,7 @@
       return true; }
     if (g.role === "wguard") { const c = B.units.find((u) => u.uid === pl.car); if (!c || c.hp <= 0) { g.role = null; return false; }
       if (dist(p, c) < 4.2 || dist(p, e) < 2.6) return false; // you have come at the car: he fights
-      go(c.g.x + Math.cos(c.g.a) * g.wg * 1.9, c.g.z - Math.sin(c.g.a) * g.wg * 1.9, 1.1); return true; }
+      { const ca = c.g.ca != null ? c.g.ca : c.g.a; go(c.g.x + Math.cos(ca) * g.wg * 1.9, c.g.z - Math.sin(ca) * g.wg * 1.9, Math.max(1.1, Math.min(1.8, ((c.g.cv || 0) / g.speed) * 1.15))); } return true; } // (they keep to his wheels at whatever pace he drives)
     if (g.role === "raider") { const A = B.units.find((u) => u.uid === g.on); if (!A || A.hp <= 0 || !R.task) { g.role = null; return false; } g.tgt = A.uid; return false; }
     return false;
   }
@@ -389,7 +470,7 @@
       if (c.g.struck) { c.g.struck = false; pl.hits++;
         if (pl.hits === 1) R.fx.push({ k: "defended", uid: c.uid });
         else if (R.t < (pl.checkAt || 0)) { /* (one check to a breath: a flurry is one blow) */ }
-        else { pl.checks++; pl.checkAt = R.t + 1.4; c.g.stag = Math.max(c.g.stag || 0, 1.3); cancel(c); move(R, c, 0, -2.4, true); R.fx.push({ k: "checked", uid: c.uid, n: pl.checks }); if (pl.checks >= 3) return held("banner"); } }
+        else { pl.checks++; pl.checkAt = R.t + 1.4; c.g.stag = Math.max(c.g.stag || 0, 1.3); cancel(c); c.g.cv = 0; c.g.vz -= 2.4 * PHYS.fric; /* (thrown back on its haunches: it rolls back two paces, and does not jump there) */ R.fx.push({ k: "checked", uid: c.uid, n: pl.checks }); if (pl.checks >= 3) return held("banner"); } }
       if (!pl.noSarathi && dist(p, c) <= c.g.rad + 1.25 && !wheelGuards(R).length) { T_.held += STEP; if (T_.held >= 1) return held("sarathi"); } else T_.held = Math.max(0, T_.held - STEP);
       return; }
     const foes = living(B, "enemy").filter((u) => !u.line && !u.g.flee), n = foes.length;
@@ -550,7 +631,7 @@
     if (a.roll && R3.can(R, "roll")) {
       let dx = a.mx || 0, dz = a.mz || 0; const l = Math.hypot(dx, dz);
       if (l < 0.2) { dx = -Math.sin(g.a); dz = -Math.cos(g.a); } else { dx /= l; dz /= l; } // no direction: straight back
-      R.roll = P.roll; R.rollT = R.t; R.breath -= P.rollCost * tireCost(); R.stats.rolls++; R.rdx = dx; R.rdz = dz; R.readN = 0;
+      R.roll = R.rollDur = P.roll; R.rollT = R.t; R.breath -= P.rollCost * tireCost(); R.stats.rolls++; R.rdx = dx; R.rdz = dz; R.readN = 0;
       g.busy = 0; g.blow = null; R.buffer = false; R.combo = 0; R.kneel = 0; if (R.block) lowerShield(R);
       R.fx.push({ k: "roll", dx, dz });
     }
@@ -691,7 +772,7 @@
     const p = C.player(), g = p.g, B = R.B;
     const inR = foesIn(R).filter((e) => e.g.kind !== "light" && dist(e, p) <= P.shoot && Math.abs(adiff(angTo(p, e), g.a)) < 1.0).sort((x, y) => dist(x, p) - dist(y, p));
     const t1 = t && inR.includes(t) ? t : inR[0] || null, t2 = inR.find((e) => e !== t1) || null;
-    const one = (on, m, knock, dt) => { const s = { by: p.uid, side: "player", m, knock, on: on ? on.uid : null, x: g.x, z: g.z, a: on ? angTo(p, on) : g.a, t0: R.t + c.land + dt, v: P.myArrow, heavy: !!c.heavy && !dt, n: ++R.shotN, homing: true, life: 0.7 }; R.shots.push(s); R.fx.push({ k: "shot", uid: p.uid, shot: s, second: !!dt }); };
+    const one = (on, m, knock, dt) => { const am = aimAt(g, on, P.myArrow, c.land + dt), s = { by: p.uid, side: "player", m, knock, on: on ? on.uid : null, x: g.x, z: g.z, y: FLY.y0, a: am ? am.a : g.a, vy: am ? am.vy : flat(P.myArrow, 12), t0: R.t + c.land + dt, v: P.myArrow, heavy: !!c.heavy && !dt, n: ++R.shotN, life: 1.2 }; R.shots.push(s); R.fx.push({ k: "shot", uid: p.uid, shot: s, second: !!dt }); };
     one(t1, t2 ? c.m : c.m * P.bowSecond, c.knock || 0, 0);
     one(t2 || t1, c.m * P.bowSecond, 0, P.bowGap);
     g.busy = c.len; R.stats.blows++;
@@ -715,14 +796,14 @@
   function landBlow(R) {
     const B = R.B, p = C.player(), g = p.g, b = g.blow;
     g.blow = null; R.stats.blows++;
-    const reach = g.reach + P.lunge, half = b.c.arc === "sweep" ? P.sweep : g.weapon === "spear" ? 0.6 : 1.0;
+    const reach = g.reach + P.lunge, half = b.c.arc === "sweep" ? P.sweep : g.weapon === "spear" ? 0.6 : 0.85; /* (a blow lands on what the weapon is pointed at: a little narrower than it was) */
     const cands = foesIn(R).filter((e) => e.g.kind !== "light" && dist(e, p) <= reach + e.g.rad - 0.42 && (dist(e, p) < 1 || Math.abs(adiff(angTo(p, e), g.a)) <= half)).sort((x, y) => (x.uid === R.lock ? -1 : 0) - (y.uid === R.lock ? -1 : 0) || dist(x, p) - dist(y, p));
     if (!cands.length) { R.fx.push({ k: "whiffme" }); return; }
     // A mace's sweep carries through everyone in its arc (the first at full weight); every other blow is one man's.
     const ts = b.c.arc === "sweep" ? cands.slice(0, 3) : [cands[0]];
     ts.forEach((t, i) => {
       if (t.decoy) { vanishDecoy(R, t); return; } // only an illusion
-      if (i === 0 && foeParries(R, t, b.c.heavy)) return;
+      if (i === 0 && foeParries(R, t, b.c.heavy)) { nudge(R, p, angTo(t, p), 0.2); return; } // (turned aside: it comes back up your own arm)
       if (t.g.wheelUntil > R.t && !R.struckWheel) { // Karna at his sunken wheel: the story remembers it
         R.struckWheel = true; K.apply({ flag: "struck_karna_wheel", duty: { conscience: -2 }, journal: "On the seventeenth day you struck Karna while he bent to free his sunken wheel." }); if (K.breakTags) K.breakTags(["strike_unarmed"]); }
       let m = b.c.m * (i ? 0.6 : 1);
@@ -739,7 +820,7 @@
       R.stats.hits++; storyHit(R, t);
       hitFx(R, t, d, b.c.heavy, p, true, caught < 1);
       if (b.c.heavy && caught === 1) giftsOnHeavy(R, t, d);
-      if (b.c.knock && t.hp > 0) knock(R, t, angTo(p, t), b.c.knock, false);
+      if (b.c.knock && t.hp > 0) knock(R, t, angTo(p, t), b.c.knock, false); else nudge(R, t, angTo(p, t), caught < 1 ? 0.1 : 0.24);
       if (steady(t)) { if (b.c.stag || b.c.heavy) tip(R, "kripaSteady"); }
       else if (b.c.stag && t.hp > 0 && !t.g.atk) t.g.stag = Math.max(t.g.stag, b.c.stag);
       else if (!b.c.heavy && caught === 1 && t.hp > 0 && !t.g.atk && K.rng() < RT.STRENGTH.flinch[RT.tierOf(t)]) t.g.stag = Math.max(t.g.stag, P.lightStag);
@@ -784,13 +865,21 @@
   function knock(R, u, ang, d, down) {
     if (u.still || u.g.kind === "elephant" || u.g.kind === "light") return;
     if (down && u.g.atk) cancel(u);
-    const k = u.hero || u.person ? 0.6 : 1;
-    u.g.vx += Math.sin(ang) * d * 5 * k; u.g.vz += Math.cos(ang) * d * 5 * k;
+    const k = (u.hero || u.person ? 0.6 : 1) * (u.g.car ? 0.35 : u.g.kind === "squad" ? 0.7 : 1);
+    u.g.vx += Math.sin(ang) * d * PHYS.knock * k; u.g.vz += Math.cos(ang) * d * PHYS.knock * k;
     if (!u.g.atk && !steady(u)) u.g.stag = Math.max(u.g.stag, 0.3);
     if (down) u.g.down = Math.max(u.g.down, 1.2);
   }
+  // A blow that lands moves the body it lands on, even when it does not throw him: no stagger, only ground given.
+  function nudge(R, u, ang, d) {
+    if (!u || !u.g || u.still || u.hp <= 0 || u.g.kind === "elephant" || u.g.kind === "light" || u.g.ride) return;
+    const k = (u.hero || u.person ? 0.6 : 1) * (u.g.car ? 0.2 : u.g.kind === "squad" ? 0.7 : 1);
+    u.g.vx += Math.sin(ang) * d * PHYS.knock * k; u.g.vz += Math.cos(ang) * d * PHYS.knock * k;
+  }
   function hitFx(R, t, d, heavy, by, melee, blocked) {
     if (t.g && by && by.g) t.g.lastFrom = { x: by.g.x, z: by.g.z };
+    if (t.g && t.hp <= 0 && d > 0 && by && by.g && !t.g.thrown && !t.still && t.g.kind !== "elephant" && t.g.kind !== "light" && !t.g.car) { // (the body of a man killed goes the way the blow went: far for a heavy one)
+      const a = angTo(by, t), v = (heavy ? 4.4 : melee ? 1.9 : 1.2) * (t.g.kind === "squad" ? 0.5 : 1); t.g.thrown = heavy ? 2 : 1; t.g.vx += Math.sin(a) * v; t.g.vz += Math.cos(a) * v; }
     R.fx.push({ k: "hit", uid: t.uid, n: d, heavy: !!heavy, by: by ? by.uid : null, melee: !!melee, blocked: !!blocked });
   }
   function skill(R) {
@@ -801,13 +890,13 @@
     if (t && id !== "ridedown") g.a = angTo(p, t);
     R.fx.push({ k: "skill", id });
     switch (id) {
-      case "aimed": { g.busy = 0.5; const s = { by: p.uid, side: "player", id, on: t ? t.uid : null, x: g.x, z: g.z, a: g.a, t0: R.t + 0.28, v: P.myArrow * 1.2, heavy: true, n: ++R.shotN, homing: true, life: 1 }; R.shots.push(s); R.fx.push({ k: "shot", uid: p.uid, shot: s }); break; }
+      case "aimed": { g.busy = 0.5; const am = aimAt(g, t, P.myArrow * 1.2, 0.28), s = { by: p.uid, side: "player", id, on: t ? t.uid : null, x: g.x, z: g.z, y: FLY.y0, a: am ? am.a : g.a, vy: am ? am.vy : flat(P.myArrow * 1.2, 12), t0: R.t + 0.28, v: P.myArrow * 1.2, heavy: true, n: ++R.shotN, sure: 0.9, life: 1.3 }; R.shots.push(s); R.fx.push({ k: "shot", uid: p.uid, shot: s }); break; } // (a shot taken with care: it allows more for the man's moving)
       case "quake": { g.busy = 0.62; const ts = foesIn(R).filter((e) => e.g.kind !== "light" && dist(e, p) <= P.quake + e.g.rad); if (ts.length) { ab.use(B, p, ts); ts.forEach((u) => { hitFx(R, u, 0, true, p, true); if (u.hp > 0) knock(R, u, angTo(p, u), 1.2, true); }); } R.fx.push({ k: "quake", r: P.quake }); break; }
       case "ridedown": { // a charge straight through whoever stands in the way
         const len = 6.5, s = Math.sin(g.a), c = Math.cos(g.a);
         const ts = foesIn(R).filter((e) => { if (e.g.kind === "light") return false; const dx = e.g.x - g.x, dz = e.g.z - g.z, al = dx * s + dz * c; return al > -0.5 && al < len + 0.6 && Math.abs(dx * c - dz * s) < 1.3 + e.g.rad; });
         ts.forEach((u) => { ab.use(B, p, u); hitFx(R, u, 0, true, p, true); if (u.hp > 0) knock(R, u, g.a + (K.rng() < 0.5 ? 1.2 : -1.2), 1.1, true); });
-        R.roll = 0.32; R.rollT = -9; R.rdx = s * (len / 0.32) / (P.rollDist / P.roll); R.rdz = c * (len / 0.32) / (P.rollDist / P.roll); g.busy = 0.36; R.dash = true;
+        R.roll = R.rollDur = 0.32; R.rollT = -9; R.rdx = s * (len / 0.32) / (P.rollDist / P.roll); R.rdz = c * (len / 0.32) / (P.rollDist / P.roll); g.busy = 0.36; R.dash = true;
         break;
       }
       case "command": {
@@ -827,7 +916,9 @@
     g.moving = 0;
     if (R.roll > 0) {
       R.roll -= dt;
-      { const far = R.dash ? 1 : RT.rollMul ? RT.rollMul() : 1; move(R, p, R.rdx * (P.rollDist * far / P.roll) * dt, R.rdz * (P.rollDist * far / P.roll) * dt, true); } // (Vayu's gift: a roll carries a fifth further)
+      { const far = R.dash ? 1 : RT.rollMul ? RT.rollMul() : 1, T_ = R.rollDur || P.roll, whole = P.rollDist * far * (T_ / P.roll), u1 = clamp(1 - R.roll / T_, 0, 1), u0 = clamp(u1 - dt / T_, 0, 1), d = (rollF(u1) - rollF(u0)) * whole; // (Vayu's gift: a roll carries a fifth further)
+        move(R, p, R.rdx * d, R.rdz * d, true);
+        if (R.roll <= 0) { const v = (ROLLC * (1 - PHYS.rollEase) * whole) / T_ * 0.45; g.wx = R.rdx * v; g.wz = R.rdz * v; g.landT = R.t + 0.3; } } // (you land still moving: your feet take it up or run it down)
       if (R.roll <= 0) R.dash = false;
     } else if (R.block) { R.breath -= P.blockDrain * tireCost() * dt; if (R.breath <= 0) { R.breath = 0; lowerShield(R, true); } }
     else { R.breath = Math.min(P.breathMax, R.breath + P.breathRegen * (boon("bala") ? 1.5 : 1) * (kept("varuna") ? 1.2 : 1) * dt); if (R.winded && R.breath >= P.rollMin) R.winded = false; }
@@ -839,7 +930,7 @@
     if (R.herbCd > 0) R.herbCd -= dt;
     if (R.kneel > 0) { R.kneel -= dt; if (R.kneel <= 0) { const h0 = p.hp; C.core.use(p, "herbs", p.uid); if (boon("sanjivani") && (K.S.charges || {}).sanjivani && p.hp > h0) p.hp = Math.min(p.maxHp, p.hp + Math.round((p.hp - h0) * 0.5)); delete p.cds.herbs; R.herbCd = 2 * ROUND; R.fx.push({ k: "heal", uid: p.uid }); } return; }
     if (R.salve && R.t >= R.salve.next) { living(B, "friends").filter((u) => !u.still && dist(u, p) <= 5.5).forEach((u) => B.heal(p, u, Math.max(1, Math.round(u.maxHp * 0.28 / 3)))); R.fx.push({ k: "heal", uid: p.uid }); R.salve.left--; R.salve.next = R.t + 1; if (!R.salve.left) R.salve = null; }
-    if (g.stepT > 0) { g.stepT -= dt; move(R, p, g.stepX * dt, g.stepZ * dt, false); }
+    if (g.stepT > 0) { g.stepT -= dt; walk(R, p, g.stepX, g.stepZ, dt); }
     if (g.blow && R.t >= g.blow.at) landBlow(R);
     if (g.busy > 0) { g.busy -= dt; if (g.busy <= 0 && R.buffer) { R.buffer = false; if (!g.blow) blow(R); } }
     if (held(p) || R.roll > 0) return;
@@ -847,19 +938,19 @@
     if (l > 0.12 && g.busy <= 0) {
       if (l > 1) { mx /= l; mz /= l; }
       const sp = g.speed * (RT.walkMul ? RT.walkMul() : 1) * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
-      move(R, p, mx * sp * dt, mz * sp * dt, false);
+      walk(R, p, mx * sp, mz * sp, dt);
       g.moving = Math.min(1, l) * (R.block ? P.blockWalk : 1);
       if (R.block) faceThreat(R);
       else if (a.strafe) { // the close views: you keep your face to the one you fight, and step round him
         const f = R.through && R.goal ? null : R3.target(R);
         g.a = turnTo(g.a, f && dist(f, p) < 18 ? angTo(p, f) : a.look != null ? a.look : Math.atan2(mx, mz), 12 * dt);
-      } else g.a = Math.atan2(mx, mz);
+      } else g.a = turnTo(g.a, Math.atan2(mx, mz), PHYS.turn * dt); // (from above you come round to the way you go, quickly, and not in one frame)
     } else if (R.block) faceThreat(R);
     else if (g.busy <= 0) { const f = R3.target(R); if (f && dist(f, p) < 9) g.a = turnTo(g.a, angTo(p, f), 9 * dt); }
     if (R.through && R.goal && Math.hypot(g.x - R.goal.x, g.z - R.goal.z) <= R.goal.r && !B.enc.cannot) { B.progress = B.enc.reach || 1; R.reached = true; }
   }
   const turnTo = (a, to, max) => a + clamp(adiff(to, a), -max, max);
-  // Move a body, kept on the field and out of other bodies (a roll passes through; foes stop you, friends do not).
+  // Move a body, kept on the field and out of other bodies (a roll passes through; where two meet, each gives by the other's weight).
   function rideStep(R, dt) {
     const p = C.player(), g = p && p.g; if (!g || !g.ride || p.hp <= 0) return;
     const a = R.rad * 0.56, b = R.rad * 0.4, c0 = R.rad * 0.06, th = (g.ride.th += 0.36 * dt);
@@ -870,10 +961,13 @@
     const g = u.g; let x = g.x + dx, z = g.z + dz;
     if (!pass) for (const o of R.B.units) {
       if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light") continue;
-      if (u.side === "player" && o.side !== "enemy" && !o.still) continue;
       if (u.side !== "player" && o.side === "player" && u.side !== "enemy") continue;
       const min = g.rad + o.g.rad + (u.side !== o.side && !(u.side !== "enemy" && o.side !== "enemy") ? 0.25 : 0), ox = x - o.g.x, oz = z - o.g.z, d = Math.hypot(ox, oz);
-      if (d < min && d > 1e-4) { x = o.g.x + (ox / d) * min; z = o.g.z + (oz / d) * min; }
+      if (d < min && d > 1e-4) { // each gives ground by the other's weight (a wall's locked shields push as one)
+        const pen = min - d, mu = weight(u) * (locked(R, u) ? 3 : 1), mo = weight(o) * brace(R, o, u), sh0 = mu / (mu + mo), share = sh0 > 0.8 ? 1 : sh0; /* (what is far the heavier is not turned from its way) */
+        if (share > 0.004) { const bx = o.g.x, bz = o.g.z; shove(R, o, -(ox / d) * pen * share, -(oz / d) * pen * share); jostle(R, u, o, share); const got = Math.hypot(o.g.x - bx, o.g.z - bz); x += (ox / d) * (pen - got); z += (oz / d) * (pen - got); }
+        else { x = o.g.x + (ox / d) * min; z = o.g.z + (oz / d) * min; }
+      }
     }
     const r = Math.hypot(x, z), lim = R.rad - 0.3;
     if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; }
@@ -944,27 +1038,28 @@
     R.fx.push({ k: "windup", uid: e.uid, id, heavy: g.atk.heavy, ranged, arc, wind: g.atk.land - R.t });
   }
   function loose(R, e, a) {
-    const g = e.g, s = { by: e.uid, side: e.side, id: a.id, on: a.on, x: g.x, z: g.z, a: a.dir, t0: R.t, v: P.arrow, heavy: a.heavy, n: ++R.shotN, at0: a.t0, life: 1.6 };
+    const g = e.g, on = R.B.units.find((u) => u.uid === a.on), s = { by: e.uid, side: e.side, id: a.id, on: a.on, x: g.x, z: g.z, y: FLY.y0 + (g.car ? 0.85 : 0), a: a.dir, vy: flat(P.arrow, on && on.g ? Math.max(3, dist(e, on)) : 10) - (g.car ? 0.85 / Math.max(0.1, (on && on.g ? Math.max(3, dist(e, on)) : 10) / P.arrow) : 0), t0: R.t, v: P.arrow, heavy: a.heavy, n: ++R.shotN, at0: a.t0, life: 1.6 };
     R.shots.push(s); R.fx.push({ k: "shot", uid: e.uid, shot: s });
   }
-  // Arrows fly: yours find their man; a foe's flies straight down its lane and strikes the first of your side it meets.
+  // Arrows fly: each rises and falls as its speed and its range make it (s.y, s.vy). Yours is loosed at where your man will
+  // be and strikes the first of theirs it meets; a foe's flies down its lane and strikes the first of your side it meets.
   function shotsStep(R) {
     const B = R.B, dt = STEP;
     for (const s of R.shots.slice()) {
       if (R.t < s.t0) continue;
       const by = B.units.find((u) => u.uid === s.by);
-      if (s.homing) {
-        const t = B.units.find((u) => u.uid === s.on && u.hp > 0 && !u.spared);
-        if (t) s.a = Math.atan2(t.g.x - s.x, t.g.z - s.z);
+      if (s.vy != null) { s.y += s.vy * dt; s.vy -= FLY.g * dt; }
+      if (s.side !== "enemy") { // yours and your men's: it flies where it was sent, strikes the first of theirs it meets, or comes down in the ground
         s.x += Math.sin(s.a) * s.v * dt; s.z += Math.cos(s.a) * s.v * dt; s.life -= dt;
-        if (t && Math.hypot(t.g.x - s.x, t.g.z - s.z) <= t.g.rad + 0.5) { R.shots.splice(R.shots.indexOf(s), 1); if (by) myShot(R, by, s, t); continue; }
-        if (s.life <= 0 || !t) { R.shots.splice(R.shots.indexOf(s), 1); R.fx.push({ k: "arrive", shot: s, uid: null }); }
+        const t = foesIn(R).find((e) => e.g.kind !== "light" && s.y > 0 && s.y < topOf(e) && Math.hypot(e.g.x - s.x, e.g.z - s.z) <= e.g.rad + (e.uid === s.on ? s.sure || 0.5 : 0.28));
+        if (t) { R.shots.splice(R.shots.indexOf(s), 1); if (by) myShot(R, by, s, t); continue; }
+        if (s.y <= 0 || s.life <= 0 || Math.hypot(s.x, s.z) > R.rad + 8) { R.shots.splice(R.shots.indexOf(s), 1); R.fx.push({ k: "arrive", shot: s, uid: null }); }
         continue;
       }
       s.x += Math.sin(s.a) * s.v * dt; s.z += Math.cos(s.a) * s.v * dt; s.life -= dt;
       const t = living(B, "friends").find((f) => f.g && Math.hypot(f.g.x - s.x, f.g.z - s.z) <= f.g.rad + 0.34 && (targetable(R, f) || f.side === "player"));
       if (t) { R.shots.splice(R.shots.indexOf(s), 1); if (by) resolve(R, by, { id: s.id, on: s.on, heavy: s.heavy, ranged: true, shot: s }, t); continue; }
-      if (s.life <= 0 || Math.hypot(s.x, s.z) > R.rad + 6) { R.shots.splice(R.shots.indexOf(s), 1); R.fx.push({ k: "arrive", shot: s, uid: null }); }
+      if (s.life <= 0 || s.y <= 0 || Math.hypot(s.x, s.z) > R.rad + 6) { R.shots.splice(R.shots.indexOf(s), 1); R.fx.push({ k: "arrive", shot: s, uid: null }); }
     }
   }
   function myShot(R, p, s, t) {
@@ -1039,18 +1134,19 @@
     const doHit = () => { if (a.id === "arrows") B.hit(e, t, 1, { verb: "Arrows rain on {t} for {n}." }); else ab.use(B, e, ab.target === "enemies" ? [t] : t); };
     if (sh > 0) { if (sh !== 1) { const atk = e.atk; e.atk = Math.round(atk * sh * 10) / 10; try { doHit(); } finally { e.atk = atk; } } else doHit(); }
     hitFx(R, t, before - t.hp, a.heavy, e, !a.ranged, blocked);
+    if (!a.area) nudge(R, t, from + Math.PI, blocked ? (a.heavy ? 0.3 : 0.12) : before > t.hp ? (a.ranged ? 0.14 : a.heavy ? 0.42 : 0.24) : 0); // (you give ground to every blow, a little on your shield)
     { const w = who(e); // after a champion's blow: Bhurishravas's heavy blow knocks you down; Abhimanyu's sweeps the next one too
       if (w === "bhurishravas" && a.heavy && t === p && before > t.hp && !blocked && !perfectBlock) { p.g.busy = Math.max(p.g.busy, 0.6); p.g.blow = null; R.fx.push({ k: "knocked", uid: p.uid }); tip(R, "bhurishravas"); }
       if (w === "abhimanyu" && !a.ranged && t.hp >= 0) sweepNext(R, e, t); }
     if (t === p && before > t.hp) { R.stats.taken += before - t.hp; R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked && (!RT.P.strength || tier >= RT.tierOf(p))) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } } // (only one of your tier or above staggers you)
     // A mace's sweep, an elephant, a heavy blow from a champion: thrown back.
-    if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged))) { const d = (e.g.kind === "elephant" ? 2.6 : P.maceShove) * (blocked ? 0.5 : 1) * STR.knock[tier]; t.g.vx += Math.sin(from + Math.PI) * d * 5; t.g.vz += Math.cos(from + Math.PI) * d * 5; }
+    if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged))) { const d = (e.g.kind === "elephant" ? 2.6 : P.maceShove) * (blocked ? 0.5 : 1) * STR.knock[tier]; t.g.vx += Math.sin(from + Math.PI) * d * PHYS.knock; t.g.vz += Math.cos(from + Math.PI) * d * PHYS.knock; }
   }
   function foeStep(R, e, dt) {
     const B = R.B, p = C.player(), g = e.g;
     if (e.decoy) { if (R.t >= e.decoy || !B.units.some((x) => x.uid === e.real && x.hp > 0)) vanishDecoy(R, e); else if (p && p.g) g.a = turnTo(g.a, angTo(e, p), 6 * dt); return; } // a false Ghatotkacha only stands and looks at you
     if (g.flee) { // he has seen a divine weapon land: he runs, and is out of the fight
-      g.a = turnTo(g.a, angTo(p, e), 9 * dt); g.x += Math.sin(g.a) * 5.4 * dt; g.z += Math.cos(g.a) * 5.4 * dt; g.moving = 1; g.atk = null;
+      g.a = turnTo(g.a, angTo(p, e), 9 * dt); g.x += Math.sin(g.a) * 5.4 * dt; g.z += Math.cos(g.a) * 5.4 * dt; g.moving = 1; g.atk = null; g.walkN = R.n; g.wx = Math.sin(g.a) * 5.4; g.wz = Math.cos(g.a) * 5.4;
       if (R.t >= g.flee) { e.hp = 0; e.fled = true; R.fx.push({ k: "fled", uid: e.uid }); }
       return; }
     traitStep(R, e);
@@ -1066,7 +1162,7 @@
     if (g.rec > 0) { g.rec -= dt; return; }
     if (!g.entered) { // waiting off the field: the next come on as it thins
       if (foesIn(R).filter((x) => !x.line).length >= Math.max(3, B.enc.atOnce || 3) && g.wave) return;
-      const d = Math.hypot(g.x, g.z); g.x -= (g.x / d) * g.speed * dt; g.z -= (g.z / d) * g.speed * dt; g.moving = 1; g.a = Math.atan2(-g.x, -g.z);
+      const d = Math.hypot(g.x, g.z); g.x -= (g.x / d) * g.speed * dt; g.z -= (g.z / d) * g.speed * dt; g.moving = 1; g.a = Math.atan2(-g.x, -g.z); g.walkN = R.n; g.wx = -(g.x / d) * g.speed; g.wz = -(g.z / d) * g.speed; if (wheeled(e)) { g.ca = g.a; g.cv = g.speed; }
       if (d <= R.rad - 1) { g.entered = true; R.fx.push({ k: "enter", uid: e.uid }); }
       return;
     }
@@ -1080,11 +1176,13 @@
         else if (!a.area) {
           // He turns after his mark as he winds up (an arrow's lane follows freely), then commits.
           const want = angTo(e, t), rate = a.ranged ? 9 : P.turn * (e.hero || e.person ? 1.5 : 1) * (a.heavy ? 0.8 : 1);
-          a.dir = turnTo(a.dir, want, rate * dt); g.a = a.dir;
+          a.dir = turnTo(a.dir, want, rate * dt); if (g.kind === "elephant" && g.ca != null) a.dir = g.ca + clamp(adiff(a.dir, g.ca), -0.6, 0.6); /* (its head swings a little way; the rest is the whole beast coming round) */ g.a = a.dir;
           if (left <= (a.ranged ? P.lock : P.meleeLock)) a.locked = true;
         }
       }
       if (left <= 1e-6) landAttack(R, e);
+      else if (g.kind === "elephant" && !e.still) drive(R, e, Math.sin(a.dir), Math.cos(a.dir), 0, dt); // (it comes round on its mark as it winds up)
+      else if (g.car && !e.still && !g.role) drive(R, e, g.dmx || 0, g.dmz || 0, (g.dsp || 0) * 0.6, dt); // (a car does not stop for the draw: he looses as it rolls)
       return;
     }
     if (g.role && R.plan && roleStep(R, e, dt)) return;
@@ -1093,7 +1191,7 @@
     if (!t || !targetable(R, t) || (g.cool <= 0 && K.rng() < 0.02 && g.role !== "raider")) { t = pickTarget(R, e); g.tgt = t ? t.uid : null; }
     if (!t) return;
     const d = dist(e, t), ang = angTo(e, t);
-    g.a = turnTo(g.a, ang, 6 * dt);
+    g.a = turnTo(g.a, ang, 6 * dt); if (g.kind === "elephant" && g.ca != null) g.a = g.ca + clamp(adiff(g.a, g.ca), -0.6, 0.6);
     if (g.kind === "light") { if (g.cool <= 0 && R3.attacking(R) < 2) startAttack(R, e, t); return; }
     const own = !!e.line && t.side !== "player"; // a soldier of the line at his own man: no part of the turn-taking against you
     const others = living(B, "enemy").filter((o) => o !== e && o.g.atk && !(o.line && o.g.atk.on !== p.uid));
@@ -1101,7 +1199,7 @@
     const inRange = g.ranged && (g.archer || d > g.reach * 2.2) ? d <= 19 : d <= hitReach(e) + t.g.rad - 0.42 - 0.12;
     const free = own || R3.attacking(R) < blowsAtOnce(R);
     const mayAttack = g.cool <= 0 && free && spaced && onField(R, e);
-    if (mayAttack && inRange) { startAttack(R, e, t); return; }
+    if (mayAttack && inRange && (g.kind !== "elephant" || g.ca == null || Math.abs(adiff(ang, g.ca)) < 0.7)) { startAttack(R, e, t); return; } // (an elephant strikes at what is in front of it)
     // Where to stand: an archer keeps his distance; a man with a turn to strike closes; the rest circle and wait.
     const engaged = g.cool <= 0.9 && free && !g.archer;
     let want = g.archer ? g.keep : engaged ? (g.reach * 0.9 + t.g.rad - 0.42) : Math.max(g.reach + 1.4, P.wait);
@@ -1110,18 +1208,19 @@
       const edge = Math.hypot(g.x, g.z) > R.rad - 1.4;
       if (d < want - 2.2 && !(edge && d < 4)) { mx -= Math.sin(ang); mz -= Math.cos(ang); }
       else if (d > want + 2.5) { mx += Math.sin(ang); mz += Math.cos(ang); }
-      mx += Math.cos(ang) * g.orbit * 0.35; mz -= Math.sin(ang) * g.orbit * 0.35;
-      if (edge) { mx -= g.x / R.rad * 0.8; mz -= g.z / R.rad * 0.8; }
+      mx += Math.cos(ang) * g.orbit * (g.car ? 1 : 0.35); mz -= Math.sin(ang) * g.orbit * (g.car ? 1 : 0.35); // (a car keeps moving: it wheels round you as he shoots)
+      if (edge && !g.car) { mx -= g.x / R.rad * 0.8; mz -= g.z / R.rad * 0.8; }
     } else {
       if (d > want + 0.15) { mx += Math.sin(ang); mz += Math.cos(ang); }
-      else if (d < want - 0.5) { mx -= Math.sin(ang) * 0.7; mz -= Math.cos(ang) * 0.7; }
+      else if (d < want - 0.5 && g.kind !== "elephant") { mx -= Math.sin(ang) * 0.7; mz -= Math.cos(ang) * 0.7; } // (an elephant does not back off a man)
       if (!engaged) { mx += Math.cos(ang) * g.orbit * 0.55; mz -= Math.sin(ang) * g.orbit * 0.55; if (K.rng() < dt * 0.25) g.orbit = -g.orbit; }
     }
     // Keep off each other, so each stands clear on the ground.
     for (const o of living(B, "enemy")) { if (o === e || !o.g.entered) continue; const od = dist(o, e); if (od < 1.7 + o.g.rad) { mx += (g.x - o.g.x) / (od + 0.01) * 0.9; mz += (g.z - o.g.z) / (od + 0.01) * 0.9; } }
     if (g.role === "wall" && g.sx != null) { mx = g.sx - g.x; mz = g.sz - g.z; g.a = turnTo(g.a, g.sa, 6 * dt); const wl = Math.hypot(mx, mz); if (wl > 1) { mx /= wl; mz /= wl; } } // (the wall keeps its line and comes on at a walk)
     const l = Math.hypot(mx, mz);
-    if (l > 0.05) { const sp = g.speed * (g.role === "wall" ? 0.6 : g.role === "raider" ? 1.25 : engaged ? 1 : 0.55) * Math.min(1, l); move(R, e, (mx / l) * sp * dt, (mz / l) * sp * dt, false); g.moving = Math.min(1, l) * (engaged ? 1 : 0.55); }
+    if (l > 0.05) { const sp = g.speed * (g.role === "wall" ? 0.6 : g.role === "raider" ? 1.25 : engaged ? 1 : g.car ? 0.62 : 0.55) * Math.min(1, l); g.dmx = mx; g.dmz = mz; g.dsp = sp; goTo(R, e, mx, mz, sp, dt); g.moving = Math.min(1, l) * (engaged ? 1 : 0.55); }
+    else if (g.kind === "elephant") drive(R, e, Math.sin(ang), Math.cos(ang), 0, dt); // (standing, it still comes round to face its man)
   }
 
   // ---------- Friends and soldiers ----------
@@ -1131,7 +1230,7 @@
     g.moving = 0;
     if (who(a) === "bhima" && a.hp > 0 && R.t >= (g.cryNext || 4)) { g.cryUntil = R.t + 3; g.cryNext = R.t + 15; R.fx.push({ k: "cry", uid: a.uid }); tip(R, "bhima"); } // his war cry, every 15 s, turns every foe on him for 3 s
     if (a.still) return;
-    if (R.duel && !a.line) { if (g.atk) g.atk = null; const c = B.units.find((u) => u.uid === R.duel.uid) || p, d = dist(a, c); if (d < 7) { const an = angTo(c, a); move(R, a, Math.sin(an) * g.speed * 0.7 * dt, Math.cos(an) * g.speed * 0.7 * dt, false); g.moving = 0.7; } g.a = turnTo(g.a, angTo(a, c), 6 * dt); return; } // (single combat: your men stand off and watch)
+    if (R.duel && !a.line) { if (g.atk) g.atk = null; const c = B.units.find((u) => u.uid === R.duel.uid) || p, d = dist(a, c); if (d < 7) { const an = angTo(c, a); walk(R, a, Math.sin(an) * g.speed * 0.7, Math.cos(an) * g.speed * 0.7, dt); g.moving = 0.7; } g.a = turnTo(g.a, angTo(a, c), 6 * dt); return; } // (single combat: your men stand off and watch)
     if (g.down > 0) { g.down -= dt; return; }
     if (held(a)) { g.atk = null; return; }
     if (g.rec > 0) { g.rec -= dt; return; }
@@ -1145,7 +1244,7 @@
         const t = B.units.find((x) => x.uid === g.atk.on && x.hp > 0), id = g.atk.id, shot = !!g.atk.ranged; g.atk = null;
         g.cool = rr(1.4, 2.3) * hast * (order === "allout" ? 0.75 : 1); g.rec = 0.3;
         const ab = K.ABILITIES[id];
-        if (shot && t) { const s = { by: a.uid, side: a.side, m: order === "allout" ? 1.25 : 1, on: t.uid, x: g.x, z: g.z, a: angTo(a, t), t0: R.t, v: P.myArrow, n: ++R.shotN, homing: true, life: 1 }; R.shots.push(s); R.fx.push({ k: "shot", uid: a.uid, shot: s }); }
+        if (shot && t) { const am = aimAt(g, t, P.myArrow, 0), s = { by: a.uid, side: a.side, m: order === "allout" ? 1.25 : 1, on: t.uid, x: g.x, z: g.z, y: FLY.y0, a: am.a, vy: am.vy, t0: R.t, v: P.myArrow, n: ++R.shotN, sure: 0.7, life: 1.2 }; R.shots.push(s); R.fx.push({ k: "shot", uid: a.uid, shot: s }); }
         else if (ab.target === "ally") { ab.use(B, a, t); R.fx.push({ k: "heal", uid: t && t.uid }); }
         else if (t && dist(a, t) <= g.reach * 1.25 + P.lunge + t.g.rad) { const before = t.hp; if (order === "allout" && id === "strike") B.hit(a, t, 1.25); else ab.use(B, a, ab.target === "enemies" ? [t] : t); hitFx(R, t, before - t.hp, false, a, MELEE.has(id)); if (who(a) === "abhimanyu" && MELEE.has(id)) sweepNext(R, a, t); R.fx.push({ k: "swing", uid: a.uid, id }); }
       }
@@ -1191,7 +1290,7 @@
     }
     { const pd = dist(a, p); if (pd < 1.15) { gx = g.x + (g.x - p.g.x) / (pd + 0.01) * 1.2; gz = g.z + (g.z - p.g.z) / (pd + 0.01) * 1.2; } } // never standing in you
     const dx = gx - g.x, dz = gz - g.z, d = Math.hypot(dx, dz);
-    if (d > 0.25) { const sp = g.speed * Math.min(1, d / 0.8); move(R, a, (dx / d) * sp * dt, (dz / d) * sp * dt, false); g.moving = Math.min(1, d / 0.8); g.a = turnTo(g.a, Math.atan2(dx, dz), 8 * dt); }
+    if (d > 0.25) { const sp = g.speed * Math.min(1, d / 0.8); walk(R, a, (dx / d) * sp, (dz / d) * sp, dt); g.moving = Math.min(1, d / 0.8); g.a = turnTo(g.a, Math.atan2(dx, dz), 8 * dt); }
     if (foe && d <= 0.6) g.a = turnTo(g.a, angTo(a, foe), 8 * dt);
     const hurt = living(B, "friends").find((f) => !f.still && f.hp / f.maxHp < 0.45 && dist(f, a) < 5);
     if (g.cool <= 0 && hurt && a.abilities.includes("salve") && !(g.cd.salve > 0)) { g.atk = { id: "salve", on: hurt.uid, land: R.t + 0.5, t0: R.t }; g.cd.salve = 3 * ROUND; return; }
@@ -1218,8 +1317,16 @@
         else if (s !== "crit") u.status[s] = Math.max(1, Math.ceil(u.g.st[s] / ROUND));
       }
       // what throws a body back wears off quickly
-      if (u.g.vx || u.g.vz) { move(R, u, u.g.vx * dt, u.g.vz * dt, true); const k = Math.max(0, 1 - 9 * dt); u.g.vx *= k; u.g.vz *= k; if (Math.abs(u.g.vx) + Math.abs(u.g.vz) < 0.05) { u.g.vx = 0; u.g.vz = 0; } const r = Math.hypot(u.g.x, u.g.z); if (r > R.rad - 0.3 && u.g.entered) { u.g.x *= (R.rad - 0.3) / r; u.g.z *= (R.rad - 0.3) / r; } }
+      if (u.g.walkN !== R.n) { if (wheeled(u)) { if (u.g.cv > 0) drive(R, u, 0, 0, 0, dt); } else if (u.g.wx || u.g.wz) walk(R, u, 0, 0, dt, u.hp <= 0); } // (legs asked for nothing run down; a car runs on a little)
+      if (u.g.vx || u.g.vz) { move(R, u, u.g.vx * dt, u.g.vz * dt, true); const k = Math.max(0, 1 - PHYS.fric * dt); u.g.vx *= k; u.g.vz *= k; if (Math.abs(u.g.vx) + Math.abs(u.g.vz) < 0.05) { u.g.vx = 0; u.g.vz = 0; } const r = Math.hypot(u.g.x, u.g.z); if (r > R.rad - 0.3 && u.g.entered) { u.g.x *= (R.rad - 0.3) / r; u.g.z *= (R.rad - 0.3) / r; } }
     }
+    // Bodies that have ended up in each other (a roll's end, a body thrown back, a press) ease apart, each by the other's weight.
+    { const us = B.units.filter((u) => u.g && u.hp > 0 && !u.spared && !u.g.ride && u.g.kind !== "light" && (u.side !== "enemy" || u.g.entered)), cap = PHYS.sep * dt;
+      for (let i = 0; i < us.length; i++) for (let j = i + 1; j < us.length; j++) { const a = us[i], b = us[j];
+        if ((a.still && b.still) || (R.roll > 0 && (a.side === "player" || b.side === "player"))) continue;
+        const dx = b.g.x - a.g.x, dz = b.g.z - a.g.z, d = Math.hypot(dx, dz), min = a.g.rad + b.g.rad; if (d >= min || d < 1e-4) continue;
+        const ma = weight(a) * brace(R, a, b), mb = weight(b) * brace(R, b, a), pen = Math.min(min - d, cap), sa = mb / (ma + mb);
+        shove(R, a, -(dx / d) * pen * sa, -(dz / d) * pen * sa); shove(R, b, (dx / d) * pen * (1 - sa), (dz / d) * pen * (1 - sa)); } }
     if (R.slow > 0) R.slow -= dt;
     if (R.haste > 0) R.haste -= dt;
     R.doT -= dt;
@@ -1298,6 +1405,7 @@
       return R;
     }
     joined(R);
+    for (const u of B.units) if (u.g) { u.g.lx = 0; u.g.lz = 0; }
     if (R.assist && R.blocker && !R.broken && !act.block && R3.wantBlock(R, 0.14, 0.3)) act = Object.assign({}, act, { block: true });
     playerAct(R, act);
     joined(R);

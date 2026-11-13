@@ -119,6 +119,15 @@
       }
       while (stuck.length > 14) unstick(stuck.shift());
     }
+    // What a man lets go of as he falls: his weapon and his shield leave his hands with the way his body was going, turn
+    // in the air, strike the ground and lie there.
+    function dropArms(v, f, g) {
+      const T3 = T.Vector3, rnd = Math.random, vx = (g.vx || 0) * 0.6 + (g.lx || 0) * 0.5, vz = (g.vz || 0) * 0.6 + (g.lz || 0) * 0.5;
+      const let_go = (m, r, flat, up) => { if (!m || !m.parent) return; G.fx.toss(m, new T3(vx + (rnd() - 0.5) * 1.4, up * 0.7 + rnd() * 0.8, vz + (rnd() - 0.5) * 1.4), new T3((rnd() - 0.5) * 9, (rnd() - 0.5) * 5, (rnd() - 0.5) * 9), { r, flat, life: 6 + rnd() * 2 }); };
+      if (f.item) { const m = f.item; f.item = null; let_go(m, 0.05, [Math.PI / 2, 0], 1.4); }
+      if (f.bow) { const m = f.bow; f.bow = null; let_go(m, 0.04, [Math.PI / 2, 0], 1.1); }
+      if (f.shield && v.u.side !== "player") { const m = f.shield; f.shield = null; let_go(m, 0.06, [Math.PI / 2, 0], 1.8); }
+    }
     function stuckFrame(dt) {
       for (let i = stuck.length - 1; i >= 0; i--) { const s = stuck[i];
         if (s.fall != null && s.fall < 1) { s.fall = Math.min(1, s.fall + dt / 0.13); const k = s.fall; s.m.position.lerpVectors(s.from, s.to, k); s.m.quaternion.slerpQuaternions(s.q1, s.q0, k); if (k >= 1) G.fx.burst("dust", s.to, { n: 1 }); continue; }
@@ -411,19 +420,20 @@
       const u = v.u, g = u.g;
       if (v.obj) {
         if (v.kind === "light") { v.obj.position.set(g.x * 0.5, 15, g.z * 0.5 - 6); v.obj.material.opacity = 0.75 + Math.sin(t * 3) * 0.2; return; }
-        v.obj.position.set(g.x, 0, g.z); v.obj.rotation.y = g.a;
-        if (v.kind === "elephant") G.stomp(v.obj, t * 7, u.hp > 0 ? g.moving * 1.2 : 0);
-        if (v.kind === "elephant" && u.hp > 0 && g.moving > 0.3 && Math.random() < dt * 5) G.fx.burst("dust", new T.Vector3(g.x + (Math.random() - 0.5) * 2, 0.15, g.z + (Math.random() - 0.5) * 2.6), { n: 2 }); // (and from under an elephant's feet)
+        { const mps = Math.hypot(g.lx || 0, g.lz || 0); v.obj.position.x += (g.x - v.obj.position.x) * Math.min(1, snap ? 1 : dt * 20); v.obj.position.z += (g.z - v.obj.position.z) * Math.min(1, snap ? 1 : dt * 20); v.obj.position.y = 0;
+          let da = (g.ca != null ? g.ca : g.a) - v.obj.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); v.obj.rotation.y += da * Math.min(1, snap ? 1 : dt * 14); v.mps = mps;
+          if (v.kind === "elephant") G.stomp(v.obj, t * 7, 0, u.hp > 0 ? mps : 0); } // (it points the way it goes, and its feet keep the ground at the pace it is really making)
+        if (v.kind === "elephant" && u.hp > 0 && v.mps > 1 && Math.random() < dt * 5) G.fx.burst("dust", new T.Vector3(g.x + (Math.random() - 0.5) * 2, 0.15, g.z + (Math.random() - 0.5) * 2.6), { n: 2 }); // (and from under an elephant's feet)
         if (u.hp <= 0 && v.kind === "elephant") v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2);
         return;
       }
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
-        const mx = g.x - c.position.x, mz = g.z - c.position.z, mv = Math.hypot(mx, mz); c.position.x += mx * Math.min(1, dt * 20); c.position.z += mz * Math.min(1, dt * 20);
-        G.steer(c, g.ca != null ? g.ca : g.a, dt, g.moving * 1.4, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the car's own heading when another hand drives)
-        v.rolled = (v.rolled || 0) + mv; G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, g.moving * 1.4) : 0); if (v.driver) v.driver.update(dt, t);
+        const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
+        G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
+        v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t); // (thrown back, its wheels turn back)
         { const cb = c.userData.car; if (cb) { for (const f of v.figs) { f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
-        if (u.hp > 0 && g.moving > 0.45 && mv > 0.004 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
+        if (u.hp > 0 && mps > 2.2 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
       }
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
         v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 5.4; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
@@ -434,13 +444,19 @@
         const x = g.x + o[0] * c + o[1] * s, z = g.z - o[0] * s + o[1] * c;
         const down = i >= alive;
         if (v.car) { f.root.rotation.y = g.ca != null ? g.a - v.car.rotation.y : 0; f.face = 0; } // (in a car another drives you turn on the deck to aim)
-        else if (!f.fellAt) {
+        else if (!f.fellAt || t - f.fellAt < 1.1) { // (a body thrown by the blow that killed it slides as it goes down)
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
-          f.face = g.a;
+          if (!f.fellAt) f.face = g.a;
         }
-        if (down && !f.fellAt) { f.fellAt = t || 0.001; f.drop(true, g.lastFrom && ((g.lastFrom.x - g.x) * s + (g.lastFrom.z - g.z) * c) > 0 ? 1 : -1); f.speed = 0; if (f.shield && u.side === "enemy") f.setShield(false); G.fx.burst("dust", f.root.position, { n: 6 }); }
+        if (down && !f.fellAt) { f.fellAt = t || 0.001; f.vf = 0; f.vs = 0;
+          // he goes down the way he was struck: onto his back from a blow in front, onto his face from one behind, over
+          // onto his side from one at his side; fast from a heavy blow, and never lying quite square
+          const lf = g.lastFrom, fw = lf ? (lf.x - g.x) * s + (lf.z - g.z) * c : 1, sd = lf ? (lf.x - g.x) * c - (lf.z - g.z) * s : 0, hard = g.thrown === 2;
+          f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
+          f.speed = 0; G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g); }
         if (f.fellAt) { f.update(dt, t); return; }
-        f.speed = v.car ? 0 : g.moving * g.speed * (u.side === "player" && R.block ? 0.5 : 1);
+        { const face = f.root.rotation.y, sn = Math.sin(face), cs = Math.cos(face), lx = v.car ? 0 : g.lx || 0, lz = v.car ? 0 : g.lz || 0; // (his legs go at the pace and the way he is really going: forward, back or to the side)
+          f.vf = lx * sn + lz * cs; f.vs = lx * cs - lz * sn; f.speed = Math.hypot(lx, lz); }
         // How it holds itself now.
         let pose = READY[g.weapon] || "ready";
         if (v.over) pose = v.over;
@@ -566,12 +582,15 @@
             if (dv.driver) { dv.driver.pose("down", true); dv.driver.update(0.016, 0); }
             (c.userData.horses || []).forEach((h, i) => { h.rotation.z = (i % 2 ? -1 : 1) * 1.45; h.position.y = 0.28; G.gallop(h, 0, 0); });
             c.rotation.z = 0.07; G.fx.burst("dust", c.position.clone().setY(0.3), { n: 22 }); sfx("clang"); G.shake(0.25, 0.3);
+            { const ws = c.userData.wheels || [], w0 = ws[1] || ws[0]; if (w0 && w0.parent) { const sn = Math.sin(c.rotation.y), cs = Math.cos(c.rotation.y); c.userData.wheels = ws.filter((q) => q !== w0); c.rotation.z = 0.2; // (a wheel comes off, runs on a few paces, and falls over)
+              G.fx.toss(w0, new T.Vector3(sn * 2.6 + cs * 1.4, 1.6, cs * 2.6 - sn * 1.4), new T.Vector3(7, 0.6, 1.6), { r: 0.1, flat: [0, Math.PI / 2], life: 9 }); } }
             if (dv.parked) { if (dv.parked.parent) dv.parked.parent.remove(dv.parked); G.dispose(dv.parked); } dv.parked = c; dv.car = null; } break; }
           case "mahout": banner(U.tr(e.n >= 3 ? "The mahout cries out and hauls the beast's head round." : "You are in under its flank, at the mahout's leg. {n} of 3!", { n: e.n })); sfx("clang"); G.shake(0.2, 0.25); break;
           case "ask": orderCard(e.uid, e.i || 0); sfx("drumCall"); break;
           case "orderTaken": orderTaken(e.i || 0, e.uid); break;
           case "orderDone": orderDone(e.how, e.i || 0); break;
-          case "wheelArrow": { const me = C.player(), to = new T.Vector3(me.g.x, 1.35, me.g.z), far = wheelFar(); G.fx.arrow(far, to, 0.34, 2.2, () => { G.fx.burst("spark", to, { n: 5 }); }, 0); float(to.clone().setY(2.1), "-" + e.n, "mine"); G.fx.flash("rgba(190,40,30,.22)", 220); sfx("hit"); G.shake(0.18, 0.2);
+          case "jostle": { const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: 8 }); sfx("hit"); if (e.uid === p.uid) G.shake(0.3, 0.3); break; } // (shouldered aside by a car or an elephant under way)
+          case "wheelArrow": { const me = C.player(), to = new T.Vector3(me.g.x, 1.35, me.g.z), far = wheelFar(); G.fx.arrow(far, to, 0.8, null, () => { G.fx.burst("spark", to, { n: 5 }); }, 0); float(to.clone().setY(2.1), "-" + e.n, "mine"); G.fx.flash("rgba(190,40,30,.22)", 220); sfx("hit"); G.shake(0.18, 0.2);
             if (!tips.wheelArrow) tip("wheelArrow", "Arjuna's arrows find whoever is at the wheel. Step away to guard; come back to heave."); break; }
           case "wheelEnd": wheelEnd(!!e.stand); break;
           case "stepOpen": banner(U.tr("{t} is about to do it. A blow on him now will spoil his stroke!", { t: nameOf(e.uid) })); sfx("drumCall"); break;
@@ -693,7 +712,9 @@
       const WON = { standard: "You pull their banner down. Their host breaks.", banner: "His banner falls. Their host breaks.", sarathi: "His charioteer is down, and the car stands still.", raid: "You cut him off. Your man lives." };
       const LOST = { standard: "Too slow: their banner is carried off and they rally.", banner: "Too slow: his guards close round the car again, and they rally.", sarathi: "Too slow: his car rides your man down.", raid: "Your man is cut down." };
       if (won) { sfx("gong"); banner(U.tr(WON[e.kind] || WON.raid));
-        if (e.kind === "banner" && R.plan) { const v = views.get(R.plan.car), fl = v && v.car && v.car.userData.banner; if (fl) { let t = 0; G.fx.run((dt, cut) => { t += dt; fl.rotation.x = Math.min(1.5, t * 2.4); if (t > 0.7 || cut) { fl.visible = false; return true; } return false; }); const at = posOf(R.plan.car, 2.4); if (at) G.fx.burst("dust", at, { n: 14, s: 1.6 }); } } }
+        if (e.kind === "banner" && R.plan) { const v = views.get(R.plan.car), fl = v && v.car && v.car.userData.banner; if (fl) { let t = 0, th = 0.1, w = 0.5, lay = 0; G.fx.run((dt, cut) => { t += dt; const h = Math.min(dt, 1 / 30); // (a staff cut through topples as a staff does: slowly at first, then all at once; it strikes, jumps once, and lies)
+              if (!lay) { w += 4.2 * Math.sin(th) * h; th += w * h; if (th >= 1.5) { th = 1.5; if (w > 1.2) { w = -w * 0.22; G.fx.burst("dust", at || fl.getWorldPosition(new T.Vector3()).setY(0.1), { n: 6 }); } else lay = t; } }
+              fl.rotation.x = th; if ((lay && t > lay + 2.5) || t > 7 || cut) { fl.visible = false; return true; } return false; }); const at = posOf(R.plan.car, 2.4); if (at) G.fx.burst("dust", at, { n: 14, s: 1.6 }); } } }
       else { sfx("drum"); G.shake(0.3, 0.3); banner(U.tr(LOST[e.kind] || LOST.raid) + " " + U.tr(e.big ? "The day is lost." : "You will carry this into the next fight.")); }
     }
     function duelCard(uid) {
@@ -759,7 +780,7 @@
       const to = f.chest ? f.chest(new T.Vector3()) : new T.Vector3(f.root.position.x, 1.3, f.root.position.z), far = wheelFar();
       if (stand && pf) { const dx = far.x - to.x, dz = far.z - to.z, l = Math.hypot(dx, dz) || 1; me.g.x = to.x + (dx / l) * 1.1; me.g.z = to.z + (dz / l) * 1.1; me.g.a = Math.atan2(dx, dz); pf.place(me.g.x, me.g.z, me.g.a); if (pv) pv.over = "proud"; } // (you, between him and the arrow)
       sfx("drumCall"); G.fx.flash("rgba(255,244,214,.3)", 500);
-      G.fx.arrow(far, to, 0.9, 4.5, () => { sfx("hit"); G.shake(0.45, 0.5); G.fx.burst("spark", to, { n: 16, s: 1.4, col: 0xfff0c0 }); G.fx.ring(to.clone().setY(0.1), 0xf2d27a, 0.4, 5, 0.9); G.fx.flash("rgba(255,244,214,.45)", 700);
+      G.fx.arrow(far, to, 0.95, null, () => { sfx("hit"); G.shake(0.45, 0.5); G.fx.burst("spark", to, { n: 16, s: 1.4, col: 0xfff0c0 }); G.fx.ring(to.clone().setY(0.1), 0xf2d27a, 0.4, 5, 0.9); G.fx.flash("rgba(255,244,214,.45)", 700);
         v.over = null; if (!f.fellAt) { f.fellAt = R.t || 0.001; f.drop(true, 1); f.speed = 0; } if (v.bar) v.bar.classList.add("gone");
         if (stand && pf && !pf.fellAt) { pf.fellAt = R.t || 0.001; pf.drop(true, 1); pf.speed = 0; }
         banner(U.tr(stand ? "The arrow comes through you both." : "Arjuna's arrow takes him at the wheel.")); }, 0);
@@ -1288,8 +1309,9 @@
       windups(t);
       // Arrows in the air.
       for (const s of R.shots) { if (R.t < s.t0) continue; let m = shots.get(s.n); if (!m) { m = G.arrowMesh(0.9); G.fxRoot.add(m); shots.set(s.n, m); } if (m.userData.x0 == null) { m.userData.x0 = s.x; m.userData.z0 = s.z; const tg2 = s.on != null ? B.units.find((u) => u.uid === s.on) : null; m.userData.len = Math.max(4, tg2 && tg2.g ? Math.hypot(tg2.g.x - s.x, tg2.g.z - s.z) : 14); }
-        const k = Math.min(1, Math.hypot(s.x - m.userData.x0, s.z - m.userData.z0) / m.userData.len), lift = Math.min(1.6, m.userData.len * 0.07);
-        m.position.set(s.x, 1.35 + Math.sin(k * Math.PI) * lift, s.z); m.rotation.set(-Math.cos(k * Math.PI) * lift * 0.5, s.a, R.t * 13 + s.n * 2.1, "YXZ"); /* (its feathers turn it as it flies) */ }
+        if (s.vy != null) { m.position.set(s.x, Math.max(0.05, s.y), s.z); m.rotation.set(-Math.atan2(s.vy, s.v), s.a, R.t * 13 + s.n * 2.1, "YXZ"); } /* (where the rules have it, nose along its flight: up as it leaves, down as it comes in; its feathers turn it) */
+        else { const k = Math.min(1, Math.hypot(s.x - m.userData.x0, s.z - m.userData.z0) / m.userData.len), lift = Math.min(1.6, m.userData.len * 0.07);
+          m.position.set(s.x, 1.35 + Math.sin(k * Math.PI) * lift, s.z); m.rotation.set(-Math.cos(k * Math.PI) * lift * 0.5, s.a, R.t * 13 + s.n * 2.1, "YXZ"); } }
       for (const [n, m] of shots) if (!R.shots.some((s) => s.n === n)) { G.fxRoot.remove(m); G.dispose(m); shots.delete(n); }
       stuckFrame(dt);
       // The one you face.

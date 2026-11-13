@@ -138,11 +138,41 @@
   // on its own line as it flies (its feathers do that); with `stick` it stays where it struck for that many seconds,
   // shaking at first (done may hang it on what it hit: it is shaken where it then is). what "stone": a pebble, tumbling.
   const _qa = new T.Quaternion(), _xa = new V3(1, 0, 0);
+  // Things fall. F.toss(obj, vel, spin, o): obj (already in the scene, anywhere) is let go with a velocity (m/s) and a spin
+  // (rad/s about its own x, y, z). It falls under its own weight, strikes the ground, bounces a little, loses its spin
+  // and lies where it stops; after o.life seconds (7) it shrinks away. o.r: how high its middle rests off the ground
+  // (0.05); o.flat: the angle (x, z) it comes to rest at. At most sixteen at one time: the oldest goes.
+  const G_ = 9.81, tossed = [];
+  F.toss = function (obj, vel, spin, o) {
+    if (!G.ok || !obj) return null; o = o || {};
+    G.fxRoot.attach(obj); // (it keeps the place and the turn it had in the hand that held it)
+    const it = { obj, v: vel.clone(), w: spin ? spin.clone() : new V3(), r: o.r != null ? o.r : 0.05, life: o.life || 7, t: 0, rest: false, flat: o.flat || null, s0: obj.scale.x, done: false };
+    tossed.push(it); while (tossed.length > 16) { const old = tossed.shift(); old.done = true; if (old.obj.parent) old.obj.parent.remove(old.obj); G.dispose(old.obj); }
+    shapes.push((dt) => {
+      if (it.done) return true;
+      if (dt > 50) { it.done = true; if (obj.parent) obj.parent.remove(obj); G.dispose(obj); return true; }
+      it.t += dt; const h = Math.min(dt, 1 / 30);
+      if (!it.rest) {
+        it.v.y -= G_ * h; obj.position.addScaledVector(it.v, h); obj.rotation.x += it.w.x * h; obj.rotation.y += it.w.y * h; obj.rotation.z += it.w.z * h;
+        if (obj.position.y <= it.r) { obj.position.y = it.r;
+          if (it.v.y < -1.2) { it.v.y = -it.v.y * 0.3; it.v.x *= 0.62; it.v.z *= 0.62; it.w.multiplyScalar(0.5); if (it.v.y > 0.8) F.burst("dust", obj.position.clone().setY(0.05), { n: 2 }); } // a bounce
+          else { it.v.y = 0; const k = Math.max(0, 1 - 7 * h); it.v.x *= k; it.v.z *= k; it.w.multiplyScalar(Math.max(0, 1 - 9 * h)); // sliding to a stop
+            if (it.flat) { obj.rotation.x += (it.flat[0] - obj.rotation.x) * Math.min(1, h * 12); obj.rotation.z += (it.flat[1] - obj.rotation.z) * Math.min(1, h * 12); }
+            if (Math.abs(it.v.x) + Math.abs(it.v.z) < 0.08 && it.w.lengthSq() < 0.05) it.rest = true; } }
+      }
+      if (it.t > it.life - 0.6) obj.scale.setScalar(it.s0 * Math.max(0.02, (it.life - it.t) / 0.6));
+      if (it.t >= it.life) { it.done = true; const i = tossed.indexOf(it); if (i >= 0) tossed.splice(i, 1); if (obj.parent) obj.parent.remove(obj); G.dispose(obj); return true; }
+      return false;
+    });
+    return it;
+  };
+  // (arc: how high the flight rises above the straight line. Left out, it is what the flight's own time gives a thing
+  // thrown or shot: g·t²/8. The path is the true one, a parabola.)
   F.arrow = function (a, b, secs, arc, done, stick, what) {
     if (!G.ok) { if (done) done(); return null; }
     const stone = what === "stone", m = stone ? new T.Mesh(new T.IcosahedronGeometry(0.05, 0), new T.MeshLambertMaterial({ color: 0x8a8378, flatShading: true })) : G.arrowMesh(0.85); G.fxRoot.add(m);
     let t = 0; const p = new V3(), q = new V3();
-    const at = (k, out) => out.lerpVectors(a, b, k).setY(a.y + (b.y - a.y) * k + Math.sin(k * PI) * (arc || 0));
+    const lift = arc == null ? (G_ * secs * secs) / 8 : arc, at = (k, out) => out.lerpVectors(a, b, k).setY(a.y + (b.y - a.y) * k + 4 * k * (1 - k) * lift);
     const gone = () => { if (m.parent) m.parent.remove(m); G.dispose(m); };
     arrows.push((dt) => {
       t += dt; const k = Math.min(1, t / Math.max(0.03, secs));

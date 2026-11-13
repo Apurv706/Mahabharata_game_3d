@@ -568,8 +568,11 @@
   // G.gallop(horse, t, speed): speed 0 standing .. 1 at the full run. (t only sets one horse a little out of step with the
   // next; the beast keeps its own time, so its pace can follow its speed.) Standing, it shifts its weight, rests a hind
   // foot, swishes its tail and nods; it walks, then trots, then gallops as speed rises, and does not change gait in a frame.
-  G.gallop = function (horse, t, speed) {
+  // (mps: its real speed over the ground, metres a second, where the caller knows it: then the reach of each leg is set
+  // from it, so that a hoof on the ground stays where it was put down.)
+  G.gallop = function (horse, t, speed, mps) {
     const U_ = horse.userData, L = U_.legs; if (!L) return;
+    if (mps != null) speed = mps / 7;
     speed = Math.max(0, Math.min(1, speed || 0));
     if (!U_.shins) { const a = 0.75 * speed; L[0].rotation.x = Math.sin(t) * a; L[1].rotation.x = Math.sin(t + 0.6) * a; L[2].rotation.x = Math.sin(t + PI) * a; L[3].rotation.x = Math.sin(t + PI + 0.6) * a; horse.children[0].position.y = Math.abs(Math.sin(t)) * 0.07 * speed; return; } // (the stiff-legged horse built in code)
     const B_ = U_.bones, snap = U_.now == null || (t === 0 && speed === 0), [now, dt] = clockOf(U_), kd = U_.kd || HORSE_KD;
@@ -580,7 +583,7 @@
     const gt = name && GAITS[name], k = !gt ? 0 : name === "walk" ? Math.min(1, sp / 0.3) : name === "trot" ? (sp - 0.28) / 0.42 : (sp - 0.62) / 0.38, f = snap ? 1 : Math.min(1, dt * 18), slow = snap ? 1 : Math.min(1, dt * 5), id = U_.id;
     let y = 0, pitch = 0, roll = 0, neck = 0, head = 0, tailX = 0.04, tailZ = 0, drop = 0;
     if (gt) {
-      U_.ph = (U_.ph + dt * gt.rate * kd.rate * (0.85 + 0.25 * k)) % 1; const ph = U_.ph, A = gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
+      const rate = gt.rate * kd.rate * (0.85 + 0.25 * k); U_.ph = (U_.ph + dt * rate) % 1; const ph = U_.ph, A = mps != null ? Math.max(0.1, Math.min(0.72, Math.asin(Math.min(0.95, (mps * gt.duty) / (2 * 1.25 * (kd.s || 1) * rate))))) : gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
       for (let i = 0; i < 4; i++) { const [reach, fold] = stride(ph + gt.ph[i], gt.duty), hind = i > 1;
         ease(L[i], "x", -reach * A * (hind ? 0.9 : 1) + (hind ? 0.06 : 0), f); ease(U_.shins[i], "x", fold * gt.F * (hind ? 0.85 : 1), f); if (U_.hooves[i]) ease(U_.hooves[i], "x", fold * 0.9 - (fold ? 0 : 0.1 * (1 - Math.abs(reach))), f); }
       if (name === "walk") { y = 0.012 * Math.abs(Math.sin(TAU * ph * 2)); roll = 0.014 * Math.sin(TAU * ph); neck = 0.02 + 0.055 * Math.sin(TAU * ph * 2 + 0.6); tailZ = 0.1 * Math.sin(TAU * ph); }
@@ -687,9 +690,9 @@
     if (U_.team) U_.team.rotation.y = U_.lead; (U_.horses || []).forEach((h) => { h.rotation.y = U_.lead * 0.35; });
     U_.yaw = dt > 0 ? step / dt : 0; U_.spin = (U_.spin || 0) + step * 0.98 / 0.72;
   };
-  G.roll = function (ch, dist, t, speed) { const U_ = ch.userData, sp = U_.spin || 0, turn = Math.min(0.6, Math.abs(U_.yaw || 0) * 0.5); // (a team turning on the spot still steps)
+  G.roll = function (ch, dist, t, speed, mps) { const U_ = ch.userData, sp = U_.spin || 0, turn = Math.min(0.6, Math.abs(U_.yaw || 0) * 0.5); // (a team turning on the spot still steps)
     const jolt = speed > 0.05 ? (Math.abs(Math.sin(dist * 1.9)) * 0.016 + Math.abs(Math.sin(dist * 0.67 + 1)) * 0.02) * Math.min(1, speed) : 0; if (U_.car) { U_.car.position.y = jolt; U_.car.rotation.z = Math.sin(dist * 0.83) * 0.014 * Math.min(1, speed); } // (the car jolts and rocks on its axle as it runs; wheels and team stay on the ground)
-    (U_.wheels || []).forEach((w, k) => { w.rotation.x = dist / 0.72 + (k ? -sp : sp); }); (U_.horses || []).forEach((h, k) => G.gallop(h, t * 11 + k * 1.3, Math.max(speed, turn))); if (U_.banner) G.wave(U_.banner, t); };
+    (U_.wheels || []).forEach((w, k) => { w.rotation.x = dist / 0.72 + (k ? -sp : sp); }); (U_.horses || []).forEach((h, k) => G.gallop(h, t * 11 + k * 1.3, Math.max(speed, turn), mps != null ? Math.max(mps, turn * 2) : undefined)); if (U_.banner) G.wave(U_.banner, t); };
   // A war elephant with a howdah; its legs and trunk are pivots.
   function howdah(b, cloth, GOLDE) {
     // The howdah: a railed box with posts and a canopy; the driver's goad stands beside it.
@@ -730,15 +733,16 @@
   // G.stomp(elephant, t, speed): an elephant only ever walks, one foot at a time and each long on the ground, however fast
   // it comes; its body rolls from side to side with the stride. Standing or going, its trunk swings in three lengths, its
   // ears fan, its tail switches.
-  G.stomp = function (el, t, speed) {
+  G.stomp = function (el, t, speed, mps) {
     const U_ = el.userData, L = U_.legs; if (!L) return;
     if (!U_.shins) { const a = 0.3 * Math.min(1, speed); L[0].rotation.x = Math.sin(t) * a; L[3].rotation.x = Math.sin(t) * a; L[1].rotation.x = -Math.sin(t) * a; L[2].rotation.x = -Math.sin(t) * a; U_.trunk.rotation.x = Math.sin(t * 0.7) * 0.25; el.children[0].position.y = Math.abs(Math.sin(t)) * 0.05; return; }
-    const B_ = U_.bones, snap = U_.now == null, [now, dt] = clockOf(U_); speed = Math.max(0, Math.min(1, speed || 0));
+    const B_ = U_.bones, snap = U_.now == null, [now, dt] = clockOf(U_); if (mps != null) speed = mps / 3.7; speed = Math.max(0, Math.min(1, speed || 0));
     if (U_.ph == null) { U_.ph = (Math.abs(t) * 0.159) % 1; U_.sp = speed; U_.id = (Math.abs(t) * 0.37) % 6.28; }
     U_.sp += (speed - U_.sp) * (snap ? 1 : Math.min(1, dt * 2.5));
     const sp = U_.sp, go = sp > 0.05, f = snap ? 1 : Math.min(1, dt * 12), slow = snap ? 1 : Math.min(1, dt * 4), id = U_.id, TAU = PI * 2, PH = [0.25, 0.75, 0, 0.5];
     let y = 0, roll = 0, pitch = 0;
-    if (go) { U_.ph = (U_.ph + dt * (0.5 + 0.6 * sp)) % 1; const A = 0.17 + 0.13 * sp;
+    if (go) { let rate = 0.5 + 0.6 * sp, A = 0.17 + 0.13 * sp; if (mps != null) { const need = (mps * 0.68) / (2 * 1.9 * rate), top = Math.sin(0.45); if (need > top) { rate = (mps * 0.68) / (2 * 1.9 * top); A = 0.45; } else A = Math.max(0.06, Math.asin(need)); } // (its feet stay where they are put down: a longer reach, then a quicker step)
+      U_.ph = (U_.ph + dt * rate) % 1;
       for (let i = 0; i < 4; i++) { const [reach, fold] = stride(U_.ph + PH[i], 0.68); ease(L[i], "x", -reach * A, f); ease(U_.shins[i], "x", fold * (0.4 + 0.2 * sp), f); }
       y = 0.03 * Math.abs(Math.sin(TAU * U_.ph * 2)); roll = (0.02 + 0.015 * sp) * Math.sin(TAU * U_.ph); pitch = 0.012 * Math.sin(TAU * U_.ph * 2); }
     else { for (let i = 0; i < 4; i++) { ease(L[i], "x", 0, slow); ease(U_.shins[i], "x", 0, slow); } roll = 0.012 * Math.sin(now * 0.35 + id); } // (standing, it rocks its weight from side to side)

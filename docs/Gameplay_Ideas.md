@@ -197,3 +197,9 @@ Checked by the rules tests (72, and the older set of the 2D game, which now runs
 
 Answer given: neither for now. The story engine, the text in two languages, the fight rules, the tests and the checks are a web page, and either engine is a rewrite of all of it. The game is played as a link. What the owner then named as wrong is how things move ("physics of the game doesnt feel right"), which is in how the movement was written and can be put right where it is. Ruling: a physics pass on seven named faults "plus animal movements and chariots", before the new story lines. If the game is ever to be a store app at native speed, Godot is the better fit of the two.
 
+## Part 10. The physics pass (13 November, later)
+
+Owner: "Game is not sluggish, physics of the game doesnt feel right", then "All of these 7 plus animal movements and chariots". Done before the new story lines, as ruled. In one line each: your body has weight; bodies push by weight; every blow moves what it strikes and a killing blow throws the body; arrows are loosed at where the man will be, rise and fall, and no longer steer; a man falls the way he was struck and lets go of his weapon; cut banners topple and a lost car sheds a wheel; a roll pushes off and lands; cars and elephants go only the way they point, with a turning circle and time to gather way; hooves and feet keep the ground at the speed really made. The measured numbers, and what was deliberately not changed, are in `Moving_Parts.md`, section 6.
+
+Still to build from the second batch of paintings: the message through the wheel, the race against the sun, the decoy, Karna's reins, Duryodhana's banner at the lake.
+
