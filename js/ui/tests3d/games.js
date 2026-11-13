@@ -431,7 +431,10 @@
     return true;
   }
   SETUP.sneak = { clear: 11, setup(ctx) {
-    const t = ctx.t; G.setSky(t.daylight ? "day" : "hall", t.daylight ? null : { hi: 1.5, amb: 0.75, si: 1.9, fd: 0.008 }); meAt(ctx, 0, SNEAK.D - 0.6, Math.PI, "sneak", { item: null });
+    const t = ctx.t, field = /field|river/.test(K.val(t.stage) || ""); // (out on the field after dark: a night sky with the moon behind cloud, not a lamplit hall)
+    if (field && !t.daylight) G.setSky("night", { hi: 0.95, amb: 0.5, si: 1.25 }); else G.setSky(t.daylight ? "day" : "hall", t.daylight ? null : { hi: 1.5, amb: 0.75, si: 1.9, fd: 0.008 });
+    meAt(ctx, 0, SNEAK.D - 0.6, Math.PI, "sneak", { item: null });
+    if (/^Carry/.test(t.verb || "")) { try { const who = /Iravan/.test(K.val(ctx.c && ctx.c.t) || "") && K.PUPPETS.iravan ? "iravan" : "guard", bd = ctx.figure(who, { item: null }); bd.pose("down", true); const hold = ctx.me.j && (ctx.me.j.T || ctx.me.j.P); if (hold) { hold.add(bd.root); bd.root.rotation.set(0, 0, Math.PI / 2); bd.root.position.set(0.82, 0.5, -0.16); bd.root.scale.setScalar(0.92); bd.pose("stand", true); ctx.x0 = { carried: bd }; } } catch (e) {} } // the one you carry, across your shoulders
     const wood = new T.MeshLambertMaterial({ color: 0x7a5632 }), dark = new T.MeshLambertMaterial({ color: 0x5a3e24 });
     SNEAK.cover.forEach(([cx, cz, hw, hd], i) => { const m = new T.Mesh(new T.BoxGeometry(hw * 2, i % 3 === 2 ? 1.5 : 0.95, hd * 2), i % 2 ? wood : dark); m.position.set(cx, i % 3 === 2 ? 0.75 : 0.475, cz); m.castShadow = true; ctx.add(m, G.fxRoot); const lid = new T.Mesh(new T.BoxGeometry(hw * 2 + 0.1, 0.07, hd * 2 + 0.1), wood); lid.position.set(cx, i % 3 === 2 ? 1.5 : 0.95, cz); ctx.add(lid, G.fxRoot); });
     const n = 2 + (t.twist === "turns" ? 1 : 0), range = 5.0, half = 0.5, guards = [];
