@@ -62,3 +62,45 @@ The rest as taste dictates.
 - Should men who flee a divine weapon count as beaten?
 - The counter: a contest you play, or a scene you watch?
 - May a clean invocation hit harder than today's weapon, or only a poor one hit softer? (The second keeps today's balance.)
+
+## Part 3. Story fights that the new battle options would improve (12 November, night)
+
+Asked for: look for other story lines that can be improved by the new options (enemy plans, a turn with a task, banner, charioteer, wheel-guards, morale, flanks, single combat, panic). Nothing in this part is built.
+
+What was found: of the game's 74 fights, about 45 are "hold for N rounds", which in 3D means standing under blows until a count runs out. That was exactly what was wrong with the line under Bhishma. The best candidates, in order:
+
+| Fight | Today | With the new options | Work |
+|---|---|---|---|
+| **The heart of the wheel** (`e_last_stand`, Abhimanyu's last stand) and **Holding the gate** (`e_gate`, Jayadratha) | Six rounds, five rounds | The epic's own sequence as tasks: his bow is cut, his charioteer killed, his wheel-guards cut down, and then he fights on foot with a wheel. On the Kaurava side you do each; on the Pandava side you are a wheel-guard trying to stop each. At the gate, Jayadratha's men are the wall that cannot be broken while the count runs. | Medium. The most rewarding: it is the war's best-known day. |
+| **The king's chariot** (`oath_king_hold`, Drona tries to take Yudhishthira alive) | Six rounds | You are the king's wheel-guard. Drona's car makes for the king's car; your king's banner must stay up; your side's spirit is the bar that matters. | Small to medium: it is the Bhishma fight turned round. |
+| **At Arjuna's wheel / At Vrishasena's wheel / Karna's chariot, pinned** (`kd_e_wheel`, `kd_e_son`, `hold_karna`) | Six rounds | Karna's wheel is in the mud. On his side you guard the wheel while he frees it; on the other the choice to strike or hold (already in the story) is made in the fight itself, with the dharma cost shown as you close. | Small: the wheel rule exists. |
+| **Supratika's charge** (`fs_d12_elephant`) | Four rounds of dodging | The charge plan with an elephant: a marked lane, then the task is its mahout, the elephant's charioteer. | Medium: the elephant needs a rider to reach. |
+| **Bhima's charge** (`hold_bhima`) | Seven rounds | The champion's charge as built, with a wall of your own to order up and single combat that you may not be wise to accept. | Small. |
+| **Against Arjuna's chariot** (`hold_arjuna`, `oath_arjuna_12`, `oath_arjuna_16`) | Six or seven rounds | His banner is the ape; his wheel-guards are named men. His charioteer is Krishna, who cannot be touched: reaching for him is a choice that costs you. | Small to medium. |
+| **Over Satyaki** (`e_kb_hold`, Bhurishravas) | Six rounds | Single combat that someone else breaks (Arjuna's arrow), which is the point of the episode. | Small. |
+| **Ghatotkacha's night host** (`wc_e_ghost`) | Five rounds | Your own side's spirit breaking in the dark; Karna's spear as the one divine weapon that ends it. | Medium. |
+| The seven "skirmish" fights (`fs_sk_*`) and `e_iravan` | Four rounds each | Simply let them draw a plan like the other war days. | Small: they are excluded only because they are holds. |
+
+## Part 4. New story lines (12 November, night)
+
+Asked for: new improvised story lines, such as taking Arjuna's place in his chariot when he is hurt, and the same for Bhima and others; other ideas of the kind; and how feasible each is.
+
+The rule they all have to keep: the game's own promise is "You cannot change the Mahabharata." So each is an interlude inside a day whose outcome the epic has already fixed. You can do well or badly and it can cost you, but the named men end the day where the epic puts them.
+
+| Idea | What you do | Fits the epic? | Feasibility |
+|---|---|---|---|
+| **In Arjuna's place** (archer) | He is struck senseless in his car (it happens more than once in the text). Krishna keeps driving. You stand under the ape banner so the enemy does not know he is down, and live through the day: they come for the banner, the wheel-guards are yours to order, and Krishna tells you which way the car will turn. | Yes. | **The largest piece is new:** today you never ride a car in 3D, only the enemy does. Fighting from a moving car needs building (the car carries you, you aim and loose, you keep your feet). Everything else exists. Medium to large. |
+| **Over Bhima** (mace) | He is down, stunned or netted among elephants. You stand over him until he rises: a champion charges, you may take single combat, your men's spirit is what you are really holding. | Yes. | Small to medium: it is the "Over Satyaki" fight with the new options. No new machinery. |
+| **The king's wheel-guard** (any) | Days 11 and 12: Drona has sworn to take Yudhishthira alive. You are posted at the king's wheel. | Yes, and the role is canon. | Small to medium: the Bhishma fight turned round. |
+| **The banner-bearer** (any) | The man holding your host's banner falls. You take it up: while it stands your side's spirit holds, and you fight one-handed. | Yes. | Small: a morale bar for your own side and a carried item. |
+| **The message through the wheel** (any) | Abhimanyu is inside the wheel and the gate has shut. You are sent to tell Bhima. A run through three short fights against a count. | Yes: the message always arrives too late. | Small: the breakthrough fight exists. |
+| **Prince Uttara's charioteer** (any, before the war) | The cattle raid at Virata: you drive, he shoots, and he is terrified. | Close: in the text Arjuna drives. It could be a second car. | Large: driving is a new way to play. |
+| **The decoy** (any) | You wear a great man's armour to draw their champion off while the real fight happens elsewhere. Survive, then run. | In the epic's spirit (the sworn men draw Arjuna away). | Small to medium. |
+| **The race against the sun** (day 14) | Jayadratha must fall before sunset. The count is the sun itself; you clear the way for Arjuna's car. | Yes. | Small to medium: a breakthrough with a sun for a clock. |
+| **The healer's run** (healer or any) | A named man is down between the lines; bring the herbs to him under arrows and carry him out. | Yes. | Small: the carry fight exists. |
+| **Kaurava mirrors** | Karna's reins when Shalya will not drive; Duryodhana's banner at the lake; Jayadratha's guard as the sun goes down. | Yes. | The same work as their Pandava twins. |
+
+**What each costs beyond the fight:** two to four story scenes of text, in English and Hindi; a painting for each scene (the game has 452 and can reuse some, but a new story line with only reused paintings will look thin); and a place in the day's flow where it can happen without breaking the saved lives that exist.
+
+**Suggested first three:** the king's wheel-guard, Over Bhima and the banner-bearer. All three are small, use only what is built, and give each fighting path something new. In Arjuna's place is the best idea of all and should come after, because riding a car is the one thing that has to be built first.
+
