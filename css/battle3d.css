@@ -223,5 +223,9 @@ body.in3d #b3d { display: block; }
 .b-spirit.low i { background: #e9c46a; }
 .bhud.pre .b-spirit { display: none; }
 .b-card.b-duel { width: min(420px, calc(100% - 24px)); } .b-card.b-duel p { margin: 6px 0 12px; }
+/* A card of the story's inside a fight (battle/view.js orderCard): two answers side by side, and under each what it will cost. */
+.b-ask .b-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.b-ask .ask-opt { display: flex; flex-direction: column; gap: 7px; min-width: 0; } .b-ask .ask-opt button { width: 100%; min-height: 52px; padding: 8px 8px; font-size: 15.5px; line-height: 1.25; }
+.b-ask .chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; } .b-ask .chips .chip { font-size: 12px; padding: 2px 8px; }
 
 .b-spirit.b-ours { top: calc(192px + var(--safe-t, 0px)); } .b-spirit.b-ours i { background: #e9c46a; } .b-spirit.b-ours.low i { background: #c9463a; }

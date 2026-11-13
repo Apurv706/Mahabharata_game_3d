@@ -141,7 +141,7 @@
       vx: 0, vz: 0, orbit: K.rng() < 0.5 ? 1 : -1, moving: 0, busy: 0, blow: null
     };
     // The great archers fight from their chariots, as the epic has them: a wider body, a little faster over the ground.
-    if (u.side !== "player" && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
+    if (u.side !== "player" && !u.still && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
     // In a great man's car (enc.ride3, owner 13 Nov: "Krishna drives"): you stand on the deck with your bow and the charioteer takes the
     // car round the field on his own line. You do not steer: you aim, loose and brace.
     if (u.side === "player" && R.B.enc.ride3) { u.g.car = true; u.g.rad = 1.25; u.g.ride = { th: 0 }; }
@@ -191,7 +191,7 @@
     const B = R.B, enc = B.enc, rad = R.rad;
     if ((enc.plan === "bhishma" || CROSS[enc.id]) && !opts.noPlan) return bhishmaPlan(R);
     if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && !HOLD_PLAN[enc.id] && !enc.plan3) || (enc.rounds && !enc.plan3) || enc.dream || R.kind || R.through || R.escort) return;
-    const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g), foot = foes.filter((u) => !u.g.archer && !u.g.car && (u.g.kind === "man" || u.g.kind === "squad")).concat(B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g)); // (the named foot, and then the men of their line)
+    const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g && !u.still), foot = foes.filter((u) => !u.g.archer && !u.g.car && (u.g.kind === "man" || u.g.kind === "squad")).concat(B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g)); // (the named foot, and then the men of their line)
     if (foot.length < 3) return;
     const champ = foes.filter((u) => !u.plural && (u.g.kind === "man") && (u.hero || u.person || tier(u) >= 1 || u.g.car)).sort((a, b) => (b.hero ? 3 : b.person ? 2 : tier(b)) - (a.hero ? 3 : a.person ? 2 : tier(a)))[0] || null;
     const kinds = ["wall", "pincer"].concat(champ ? ["charge"] : []), want = opts.plan || R3.forcePlan || enc.plan3, kind = kinds.includes(want) ? want : kinds[Math.floor(K.rng() * kinds.length)];
@@ -291,6 +291,40 @@
     spirit(R, 25);
     if (pl.big) end(R, "lose"); else if (K.S && K.S.flags && !K.S.flags.includes("war_setback")) K.S.flags.push("war_setback");
   }
+  // The wheel in the earth (enc.wheel3: a person; the seventeenth day). His car stands with one wheel sunk to the axle
+  // and he is down beside it with both hands on the rim, his bow on the deck. He does not fight and is not beaten here:
+  // the arrow that ends him is Arjuna's, when the count is out. Across the field from you (he is of the other side) his
+  // guards stand between and no blow reaches him until you have chosen to strike him; behind you (he is of yours) he is
+  // what you keep whole. R.wheel: where the wheel is, and which way the car stands (the view draws it from this).
+  function wheelSetup(R) {
+    const B = R.B, enc = B.enc; if (!enc.wheel3) return;
+    const k = B.units.find((u) => u.person === enc.wheel3 && u.g); if (!k) return;
+    if (k.side === "enemy") { R.wheel = { x: 1.5, z: -R.rad * 0.5, ca: -Math.PI / 2, uid: k.uid }; k.g.x = R.wheel.x; k.g.z = R.wheel.z + 0.85; k.g.a = Math.PI; k.g.apart = true; k.g.entered = true; k.g.wave = 0; k.g.role = null; if (R.plan) R.plan.turned = true; } // (no horn here: the day has its own turn)
+    else { R.wheel = { x: k.g.x, z: k.g.z + 0.85, ca: Math.PI / 2, uid: k.uid }; k.g.a = 0; }
+    k.g.car = false; k.g.rad = 0.42;
+  }
+  // What the story asks you in the fight (enc.asks3; enc.order3 is one of these). Each is a card with two answers, and
+  // comes at its round, or sooner when you come within `near` metres of the man (or the wheel) it is about. yes may set
+  // you a thing to do against a count: task "strike" (the first, Drona's order: land a blow on him), "heave" (stand at
+  // the wheel, hands on it, for `need` seconds in all: you cannot guard while you do), or nothing; `end` ends the
+  // fight there. How each came out is told to the view (fx orderDone: obey, miss, refuse), which keeps it for the story.
+  const asksOf = (enc) => enc.asks3 || (enc.order3 ? [enc.order3] : []);
+  const askNow = (R) => (R.order ? asksOf(R.B.enc)[R.order.i] : null);
+  const askOpen = (R) => !!R.offer || !!(R.order && (R.order.state === "asked" || R.order.state === "doing"));
+  const askAt = (R, a) => (a.at === "wheel" ? R.wheel : null) || (() => { const t = R.B.units.find((u) => u.person === a.on && u.g && u.hp > 0); return t ? t.g : null; })();
+  function askStep(R, late) {
+    const B = R.B, list = asksOf(B.enc); if (!list.length || R.noPlan || R.over || askOpen(R) || R.frozen > 0 || R.duel) return false;
+    R.asked = R.asked || {}; const p = C.player();
+    for (let i = 0; i < list.length; i++) { const a = list[i]; if (R.asked[i]) continue;
+      const at = askAt(R, a), near = a.near && at && Math.hypot(p.g.x - at.x, p.g.z - at.z) <= a.near;
+      if (!(near || (a.round && B.round >= a.round) || late)) continue;
+      const t = a.on ? B.units.find((u) => u.person === a.on && u.hp > 0) : null; if (a.on && !t) { R.asked[i] = true; continue; }
+      R.asked[i] = true; R.order = { i, uid: t ? t.uid : null, state: "asked", held: 0 }; R.offer = { kind: "order", uid: t ? t.uid : null, n: 0, i }; R.fx.push({ k: "ask", uid: t ? t.uid : null, i }); return true; } // ("ask", not "order": that word is already the mark over a comrade who strikes at your word, and the card never showed while the two shared it)
+    return false;
+  }
+  function askDone(R, how) { const o = R.order, a = askNow(R); if (!o || !a) return; o.state = how; R.heave = false;
+    if (a.task === "strike" || !a.task) { const t = R.B.units.find((u) => u.uid === o.uid); if (t && t.g && R.B.enc.wheel3 && t.person === R.B.enc.wheel3) { t.g.apart = true; if (R.lock === t.uid) R.lock = null; } }
+    R.fx.push({ k: "orderDone", how, uid: o.uid, i: o.i }); }
   // The banner-bearer (enc.bearer): the man who carried your host's banner is down and you have taken it up. While it
   // stands your side holds. Its bar falls as your men fall and each time you are struck, and rises as theirs fall;
   // at nothing the banner is down and the fight is lost. You fight with one hand (blows at four-fifths weight).
@@ -299,7 +333,7 @@
   // is written), but the friend it is done to takes heart, and it is counted to you.
   function storyHit(R, t) {
     if (R.step3 && !R.step3.hit && t.uid === R.step3.uid) { R.step3.hit = true; stepClose(R); }
-    if (R.order && R.order.state === "doing" && t.uid === R.order.uid) { R.order.state = "obey"; R.fx.push({ k: "orderDone", how: "obey", uid: t.uid }); }
+    if (R.order && R.order.state === "doing" && t.uid === R.order.uid && (askNow(R).task || "strike") === "strike") askDone(R, "obey");
   }
   function stepClose(R) {
     const B = R.B, s3 = R.step3; if (!s3) return; R.step3 = null;
@@ -328,7 +362,15 @@
   function storyStep(R) {
     mahoutStep(R);
     if (R.step3 && R.t >= R.step3.until) stepClose(R);
-    const o = R.order; if (o && o.state === "doing" && R.t >= o.until) { o.state = "miss"; R.fx.push({ k: "orderDone", how: "miss", uid: o.uid }); }
+    const o = R.order, a = askNow(R);
+    if (o && o.state === "doing" && a.task === "heave" && R.wheel) { // hands on the wheel: it counts while you stand at it and do nothing else, and Arjuna's arrows find whoever is there
+      const p = C.player(), g = p.g, at = Math.hypot(g.x - R.wheel.x, g.z - R.wheel.z) <= 2.3 && !R.block && !(R.roll > 0) && !g.blow && !g.atk && !(g.stag > 0) && !(g.down > 0) && p.hp > 0;
+      R.heave = at;
+      if (at) g.a = turnTo(g.a, Math.atan2(R.wheel.x - g.x, R.wheel.z + (R.wheel.ca > 0 ? 1 : -1) - g.z), 9 * STEP); // (you face what you are lifting)
+      if (at) { o.held += STEP; o.at = true; if (R.t >= (o.arrowAt || 0)) { if (o.arrowAt) { const n = Math.max(1, Math.round(p.maxHp * 0.055)); p.hp = Math.max(0, p.hp - n); R.stats.taken += n; R.fx.push({ k: "wheelArrow", uid: p.uid, n }); } o.arrowAt = R.t + (o.arrowAt ? 2.8 : 1.6); } }
+      if (o.held >= (a.need || 6)) askDone(R, "obey"); }
+    if (o && o.state === "doing" && R.t >= o.until) askDone(R, "miss");
+    askStep(R, R.wheel && !living(R.B, "enemy").some((u) => !u.line && !u.still)); // (and with no one left between, the question is put at once)
   }
   function bearerStep(R) {
     const B = R.B; if (!(B.enc.bearer || B.enc.nerve3) || R.over) return; /* nerve3: the same bar with no banner in your hand, your own line's nerve */ const p = C.player(), al = living(B, "ally").length, en = living(B, "enemy").length;
@@ -376,6 +418,7 @@
     B.units.forEach((u) => initUnit(R, u));
     place(R);
     planFor(R, opts);
+    wheelSetup(R);
     const p = C.player();
     if (K.S && K.S.flags && K.S.flags.includes("war_setback") && K.S.act >= 6) { K.S.flags.splice(K.S.flags.indexOf("war_setback"), 1); p.hp = Math.max(1, Math.round(p.hp * 0.88)); R.fx.push({ k: "setback" }); } // (what the last fight's failed task cost)
     if (opts.hp) p.hp = Math.max(1, Math.round(p.maxHp * opts.hp));
@@ -391,7 +434,7 @@
 
   // ---------- On the ground ----------
   const onField = (R, u) => Math.hypot(u.g.x, u.g.z) <= R.rad + 0.2;
-  const foesIn = (R) => living(R.B, "enemy").filter((e) => e.g.entered);
+  const foesIn = (R) => living(R.B, "enemy").filter((e) => e.g.entered && !e.g.apart); // (apart: a man no blow is aimed at, Karna at his wheel until you choose)
   // (a soldier of the line is the nearest only when he is much the nearer: your fight is with the named)
   function nearestFoe(R, from, max) {
     let best = null, bd = max || 1e9, man = null, md = 1e9;
@@ -406,7 +449,7 @@
   };
   // (the line's soldiers at their own men are no part of the turn-taking against you)
   R3.attacking = (R) => { const me = C.player().uid; return living(R.B, "enemy").filter((e) => e.g.atk && !(e.line && e.g.atk.on !== me)).length; };
-  R3.count = (R) => living(R.B, "enemy").reduce((n, e) => n + (e.line ? 0 : e.plural ? Math.max(1, Math.ceil(e.g.bodies * e.hp / e.maxHp)) : 1), 0);
+  R3.count = (R) => living(R.B, "enemy").reduce((n, e) => n + (e.line || e.still ? 0 : e.plural ? Math.max(1, Math.ceil(e.g.bodies * e.hp / e.maxHp)) : 1), 0);
   const blowsAtOnce = (R) => (R.line && R.line.dream ? 2 + (R.t > 20 ? 1 : 0) + (R.t > 38 ? 1 : 0) : 2);
   const ready = (id) => { const row = C.available().find((a) => a.id === id); return !!row && !row.why; };
   const swinging = (p) => !!(p && p.g && (p.g.busy > 0 || p.g.blow));
@@ -1196,7 +1239,7 @@
       if (beat && R.step3) stepClose(R); // (the last one's time is up)
       if (beat && stopper) { B.evented = true; R.step3 = { beat, uid: stopper.uid, until: R.t + P.story - 0.5, hit: false }; R.fx.push({ k: "stepOpen", uid: stopper.uid, what: beat.stopText || "" }); }
       else if (beat) { B.evented = true; const at = B.log.length; const u = (beat.run && beat.run(B)) || {}; B.log.splice(at, 0, { key: beat.text, u, ev: true }); R.fx.push({ k: "event", at }); beatItem(R, beat); }
-      if (B.enc.order3 && !R.noPlan && !R.order && B.round === B.enc.order3.round) { const t = living(B, "enemy").find((u) => u.person === B.enc.order3.on); if (t) { R.order = { uid: t.uid, state: "asked" }; R.offer = { kind: "order", uid: t.uid, n: 0 }; R.fx.push({ k: "order", uid: t.uid }); } }
+      if (askStep(R)) { /* (a card of the story's: enc.asks3, enc.order3) */ }
       else if (B.round === 3 && B.enc.lethal && !B.evented && !B.enc.beats && living(B, "enemy").length) { const at = B.log.length; C.core.fieldEvent(); R.fx.push({ k: "event", at }); }
     }
   }
@@ -1205,13 +1248,15 @@
     if (B.over) return B.over;
     C.core.amulet(p);
     if (p.hp <= 0) return "lose";
-    const named = living(B, "enemy").filter((u) => !u.line); // the fight is decided by the named: when they fall, the line breaks
+    if (R.finale) return R.finale === true ? "win" : R.finale; // (the last arrow has flown)
+    const named = living(B, "enemy").filter((u) => !u.line && !u.still); // the fight is decided by the named: when they fall, the line breaks (a man who only stands, Karna at his wheel, decides nothing)
+    const fin = (out) => { if (enc.wheel3) { R.finale = out; R.frozen = 2.4; R.fx.push({ k: "wheelEnd" }); return null; } return out; }; // (at the wheel the end is Arjuna's arrow, and it is seen)
     if (R.through) { if (R.reached) return "win"; if (R.t >= (enc.hold || 4) * P.story) return enc.roundOut || "lose"; if (!named.length && !enc.cannot) return "win"; return null; }
     { const r2 = B.rule && B.rule.over ? B.rule.over(B) : null; if (r2) return r2; }
-    if (!named.length) return "win";
+    if (!named.length) { if (enc.wheel3) { if (askOpen(R) || asksOf(enc).some((a, i) => !(R.asked || {})[i])) return null; B.say(enc.holdText || "You held until the end."); return fin("win"); } return "win"; } // (at the wheel, with no one left between, the story still asks what it has to ask before the arrow comes)
     if (enc.dream && R.line) { if (R.t >= R.line.dreamSecs) { B.say(enc.roundsText || "You held long enough."); return "win"; } }
     else if (enc.rounds && R.t >= enc.rounds * P.story) { B.say(enc.roundsText || "You held long enough."); return "win"; }
-    if (enc.hold && R.t >= enc.hold * P.story && !(R.plan && R.plan.kind === "bhishma")) { B.say(enc.holdText || "You held until the end."); return "win"; } // (under Bhishma the fight ends when he is barred or has crossed, not by the count)
+    if (enc.hold && R.t >= enc.hold * P.story && !(R.plan && R.plan.kind === "bhishma")) { if (enc.wheel3 && R.order && R.order.state === "doing") askDone(R, "miss"); B.say(enc.holdText || "You held until the end."); return fin("win"); } // (under Bhishma the fight ends when he is barred or has crossed, not by the count)
     if (R.t >= P.cap) { const mine = p.hp / p.maxHp, theirs = named.reduce((s, e) => s + e.hp / e.maxHp, 0) / Math.max(1, B.units.filter((u) => u.side === "enemy" && !u.line).length); R.capped = true; return mine >= theirs ? "win" : "lose"; }
     return null;
   }
@@ -1234,7 +1279,10 @@
     R.n++;
     if (R.offer) { // the champion has offered single combat: the fight waits on your answer (no answer in ten seconds is a refusal)
       const o = R.offer; o.n++; const ans = act.duel || (o.n > 600 ? "no" : null); if (!ans) return R; R.offer = null;
-      if (o.kind === "order") { if (ans === "yes") { R.order.state = "doing"; R.order.until = R.t + 12; R.lock = o.uid; R.fx.push({ k: "orderTaken", uid: o.uid }); } else { R.order.state = "refuse"; R.fx.push({ k: "orderDone", how: "refuse", uid: o.uid }); } }
+      if (o.kind === "order") { const a = askNow(R), task = a.task === undefined ? "strike" : a.task;
+        if (ans !== "yes") askDone(R, "refuse");
+        else if (!task) { askDone(R, "obey"); if (a.end) { R.stood = true; if (B.enc.wheel3 && !R.finale) { R.finale = a.end; R.frozen = 2.4; R.fx.push({ k: "wheelEnd", stand: true }); } else end(R, a.end); } }
+        else { R.order.state = "doing"; R.order.until = R.t + (a.secs || 12); if (task === "strike") { const t = B.units.find((u) => u.uid === o.uid); if (t && t.g) t.g.apart = false; R.lock = o.uid; } R.fx.push({ k: "orderTaken", uid: o.uid, i: o.i }); } }
       else if (ans === "yes") { R.duel = { uid: o.uid }; R.lock = o.uid; for (const u of living(B, "enemy")) if (u.g && !u.line && u.uid !== o.uid) { u.g.role = "ring"; cancel(u); } R.fx.push({ k: "duel", uid: o.uid }); }
       else { for (const a of living(B, "ally")) if (a.g && !a.line) a.g.cool = Math.max(a.g.cool || 0, 6); spirit(R, 20); R.fx.push({ k: "duelNo", uid: o.uid }); } }
     if (R.frozen > 0) { // a divine weapon's moment: the fight stands still

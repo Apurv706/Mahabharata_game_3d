@@ -121,7 +121,7 @@
     if (has("held_the_ring")) t.push("On the thirteenth day {they} held {their} place in the ring that closed on Abhimanyu.");
     if (has("refused_ring")) t.push("On the thirteenth day {they} lowered {their} bow and would not close in on a lone boy.");
     if (has("spread_the_lie")) t.push("On the fifteenth day {they} shouted the half-truth that killed Drona.");
-    if (has("shot_karna")) t.push("On the seventeenth day {they} loosed an arrow at Karna as he lifted his wheel.");
+    if (has("shot_karna")) t.push(has("struck_karna") ? "On the seventeenth day {they} struck Karna from behind as he lifted his wheel." : "On the seventeenth day {they} loosed an arrow at Karna as he lifted his wheel.");
     if (has("joined_raid")) t.push("On the last night {they} went with Ashwatthama into the sleeping camp. No one sings that part aloud.");
     if (has("saved_vasu_raid") || has("woke_camp")) t.push("On the night of the raid {they} pulled the living out of the fire.");
     if (has("nishada_came")) t.push("When {they} whistled in the dark, the Nishada archers came, because of a hand {they} once bound.");

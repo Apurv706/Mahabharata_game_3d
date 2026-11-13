@@ -224,6 +224,12 @@
     "The mahout cries out and hauls the beast's head round.": "महावत चीख़ उठता है और हाथी का सिर घुमा देता है।",
     "You are in under its flank, at the mahout's leg. {n} of 3!": "तुम उसके पार्श्व के नीचे हो, महावत के पाँव तक। {n} / 3!",
     "Come at the mahout from its flank: {n} of 3": "पार्श्व से महावत तक पहुँचो: {n} / 3",
-    "The mahout has had enough. He turns the beast out of your division.": "महावत हार मान लेता है। वह हाथी को तुम्हारी टुकड़ी से बाहर मोड़ देता है।"
+    "The mahout has had enough. He turns the beast out of your division.": "महावत हार मान लेता है। वह हाथी को तुम्हारी टुकड़ी से बाहर मोड़ देता है।",
+    "Arjuna's arrows find whoever is at the wheel. Step away to guard; come back to heave.": "अर्जुन के बाण पहिये पर खड़े हर किसी को खोज लेते हैं। बचाव के लिए हट जाओ; ज़ोर लगाने को लौट आओ।",
+    "The arrow comes through you both.": "बाण तुम दोनों को बेधता निकल जाता है।",
+    "Arjuna's arrow takes him at the wheel.": "अर्जुन का बाण उसे पहिये पर ही ले लेता है।",
+    "Keep them off Karna": "उन्हें कर्ण से दूर रखो",
+    "His guards stand between you and Karna": "उसके रक्षक तुम्हारे और कर्ण के बीच खड़े हैं",
+    "It is done": "हो चुका"
   });
 })(window.K = window.K || {});

@@ -225,5 +225,45 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   C.settle("flee"); C.end();
 }
 
+// 12. The wheel in the earth (day 17): the story's cards inside the fight, on both sides.
+{
+  // One fight to its end. ans(i, R): the answer to card i. each(R, B, p): once a step, before it.
+  const run = (id, side, ans, each) => { const K = fresh(13); life(K, { side }); const C = K.Combat, R3 = K.RT3, B = C.start(id, null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 99999;
+    const got = { asked: [], done: {}, taken: [], end: null, hitEarly: false, t: {} }; const k = B.units.find((u) => u.person === "karna");
+    for (let i = 0; i < 60 * 90 && !R.over; i++) { const act = (each && each(R, B, p, k, got)) || {};
+      if (R.offer && R.offer.kind === "order") { if (!got.asked.includes(R.offer.i)) { got.asked.push(R.offer.i); got.t[R.offer.i] = R.t; } act.duel = ans(R.offer.i, R); }
+      R3.step(R, act);
+      for (const e of R.fx) { if (e.k === "orderDone") got.done[e.i] = e.how; if (e.k === "orderTaken") got.taken.push(e.i); if (e.k === "wheelEnd") got.end = { stand: !!e.stand, t: R.t }; }
+      R.fx.length = 0; }
+    const out = { R, B, got, k, over: R.over, karnaHp: k ? k.hp / k.maxHp : 0, apart: k && k.g ? !!k.g.apart : null, wheel: R.wheel }; try { C.end(); } catch (e) {} return out; };
+  // Pandava: he is set apart behind his guards; the card comes; refused, he is never touched.
+  { const r = run("kw_e_close", "pandava", () => "no");
+    ok(r.wheel && r.k && r.k.still && r.got.asked.length === 1 && r.got.done[0] === "refuse" && r.karnaHp === 1 && r.apart === true, "Karna's wheel, Pandava: the card comes in the fight; refused, no blow is ever aimed at him (asked at " + (r.got.t[0] || 0).toFixed(1) + " s)");
+    ok(r.over === "win" && r.got.end && !r.got.end.stand, "Karna's wheel, Pandava: when the count is out the arrow comes, and then the fight is over (" + r.over + ")"); }
+  // Taken: he can be struck, and one blow is the whole of it.
+  { const r = run("kw_e_close", "pandava", () => "yes", (R, B, p, k) => { if (R.order && R.order.state === "doing" && k && k.g) { p.g.x = k.g.x; p.g.z = k.g.z + 1.1; p.g.a = Math.PI; return { strike: true }; } return null; });
+    ok(r.got.taken.includes(0) && r.got.done[0] === "obey" && r.karnaHp < 1 && r.karnaHp > 0.5 && r.apart === true, "Karna's wheel, Pandava: taken, a blow of yours lands on him, once, and he is set apart again (he has " + Math.round(r.karnaHp * 100) + "% left)"); }
+  { const r = run("kw_e_close", "pandava", () => "yes");
+    ok(r.got.done[0] === "miss" || r.got.done[0] === "obey", "Karna's wheel, Pandava: taken and not reached in the count, it is a miss (" + r.got.done[0] + ")"); }
+  // Kaurava: keep them off him; the wheel; the last card.
+  { const r = run("kw_e_guard", "kaurava", () => "no", (R, B, p, k) => { if (k) k.hp = k.maxHp; return null; });
+    ok(r.got.asked.length === 2 && r.got.done[0] === "refuse" && r.got.done[1] === "refuse" && r.over === "win" && r.got.end && !r.got.end.stand, "Karna's wheel, Kaurava: both cards come (the wheel, then the arrow); refused both, you live and the arrow comes (" + r.over + ")"); }
+  { let hp0 = 0; const r = run("kw_e_guard", "kaurava", (i) => (i === 0 ? "yes" : "no"), (R, B, p, k) => { if (k) k.hp = k.maxHp; if (R.order && R.order.state === "doing" && R.wheel) { if (!hp0) hp0 = p.hp; p.g.x = R.wheel.x - 1.2; p.g.z = R.wheel.z - 0.4; } return null; });
+    ok(r.got.done[0] === "obey", "Karna's wheel, Kaurava: hands on the wheel for the count, and it moves (" + r.got.done[0] + ")"); }
+  { const r = run("kw_e_guard", "kaurava", (i) => (i === 0 ? "yes" : "no"), (R, B, p, k) => { if (k) k.hp = k.maxHp; return null; });
+    ok(r.got.done[0] === "miss" || r.got.done[0] === "obey", "Karna's wheel, Kaurava: taken, and never at the wheel long enough, the earth keeps it (" + r.got.done[0] + ")"); }
+  { const r = run("kw_e_guard", "kaurava", (i) => (i === 1 ? "yes" : "no"), (R, B, p, k) => { if (k) k.hp = k.maxHp; return null; });
+    ok(r.got.done[1] === "obey" && r.got.end && r.got.end.stand && r.over === "win" && r.R.stood, "Karna's wheel, Kaurava: stand over him, and the fight ends there with the arrow (the page after is your death)"); }
+  { const r = run("kw_e_guard", "kaurava", () => "no", (R, B, p, k) => { if (k && R.t > 6) k.hp = 0; return null; });
+    ok(r.over === "lose", "Karna's wheel, Kaurava: let them reach him, and you have failed him (" + r.over + ")"); }
+  // The page: the two ways in; and after, only what you did.
+  { const K = fresh(2); const S = life(K, { side: "pandava" }); const ids = (sc) => K.val(K.SCENES[sc].choices, S).map((c) => c.id).join(",");
+    const a = ids("a6_day17"); S.flags.push("kw_won"); const b = ids("kw_after"); S.flags.push("wheel3d_obey"); const c = K.val(K.SCENES.kw_after.choices, S);
+    ok(/^close,guard/.test(a) && /watch/.test(a) && !/shoot|call|wheel|stand/.test(a) && b === "shoot,call,watch" && c.length === 1 && c[0].id === "shoot" && (c[0].tags || []).includes("strike_karna") && c[0].fx.flag.includes("shot_karna"),
+      "Karna's wheel: the page offers the two ways in; after a fight with no card answered it asks as it always did; after a card, only what you did, with its old costs");
+    S.flags = S.flags.filter((f) => f !== "wheel3d_obey"); S.side = "kaurava"; S.flags.push("stand3d_obey"); const d = K.val(K.SCENES.kw_after.choices, S);
+    ok(d.length === 1 && d[0].id === "stand" && d[0].fx.die === true, "Karna's wheel: to stand over him is still to die beside him"); }
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

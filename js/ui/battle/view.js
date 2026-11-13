@@ -370,7 +370,7 @@
           v.driver = G.figure(who === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
         }
         for (let i = 0; i < n; i++) {
-          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
+          const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: B.enc.wheel3 && u.person === B.enc.wheel3 ? null : itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
           f.trails = true; // the streak of a weapon through its blow
           const plainMan = !(u.hero || u.person) && u.side !== "player" && !NAMED.some(([re]) => re.test(String(u.src || u.name)));
           if (u.side === "player" ? R.shield && !R.broken : u.line ? g.weapon !== "mace" : u.side === "enemy" ? !!(u.shield || u.shieldDrawn) && g.weapon !== "bow" : false) f.setShield(true, u.line ? undefined : u.side === "enemy" ? 0x6e3026 : undefined, plainMan ? "hide" : undefined);
@@ -446,7 +446,7 @@
         else if (u.side === "player") {
           f.spin = R.roll > 0 && !R.dash ? Math.PI * 2 * (1 - R.roll / R3.P.roll) : 0;
           if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
-          if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
+          if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.heave) pose = "push"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
         } else {
           if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
@@ -567,9 +567,12 @@
             c.rotation.z = 0.07; G.fx.burst("dust", c.position.clone().setY(0.3), { n: 22 }); sfx("clang"); G.shake(0.25, 0.3);
             if (dv.parked) { if (dv.parked.parent) dv.parked.parent.remove(dv.parked); G.dispose(dv.parked); } dv.parked = c; dv.car = null; } break; }
           case "mahout": banner(U.tr(e.n >= 3 ? "The mahout cries out and hauls the beast's head round." : "You are in under its flank, at the mahout's leg. {n} of 3!", { n: e.n })); sfx("clang"); G.shake(0.2, 0.25); break;
-          case "order": orderCard(e.uid); sfx("drumCall"); break;
-          case "orderTaken": banner(U.tr(B.enc.order3.taken)); break;
-          case "orderDone": orderDone(e.how); break;
+          case "ask": orderCard(e.uid, e.i || 0); sfx("drumCall"); break;
+          case "orderTaken": orderTaken(e.i || 0, e.uid); break;
+          case "orderDone": orderDone(e.how, e.i || 0); break;
+          case "wheelArrow": { const me = C.player(), to = new T.Vector3(me.g.x, 1.35, me.g.z), far = wheelFar(); G.fx.arrow(far, to, 0.34, 2.2, () => { G.fx.burst("spark", to, { n: 5 }); }, 0); float(to.clone().setY(2.1), "-" + e.n, "mine"); G.fx.flash("rgba(190,40,30,.22)", 220); sfx("hit"); G.shake(0.18, 0.2);
+            if (!tips.wheelArrow) tip("wheelArrow", "Arjuna's arrows find whoever is at the wheel. Step away to guard; come back to heave."); break; }
+          case "wheelEnd": wheelEnd(!!e.stand); break;
           case "stepOpen": banner(U.tr("{t} is about to do it. A blow on him now will spoil his stroke!", { t: nameOf(e.uid) })); sfx("drumCall"); break;
           case "stepHeld": banner(U.tr("You are on him as he looses. It is done all the same, but not cleanly, and Abhimanyu has seen you there.")); break;
           case "bannerSways": banner(U.tr(!B.enc.bearer ? (e.v < 35 ? "Men are throwing down their spears. Stand where they can see you!" : "Men of yours are down. The line wavers, and holds.") : e.v < 35 ? "The banner dips. Your men are looking over their shoulders!" : "Men of yours are down. The banner sways, and holds.")); break;
@@ -700,15 +703,58 @@
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
     }
-    // An order reaches you in the fight (enc.order3): do it, or refuse it out loud.
-    function orderCard(uid) {
-      if (U.battleBot) return; paused = true; U.setPaused("battle", true); const o3 = B.enc.order3;
-      const el = U.el('<div class="b-card b-pause b-duel" role="dialog">' + (U.portraitKey(o3.from) ? U.thumb(U.portraitKey(o3.from), "face") : "") + '<h2>' + U.tr(o3.title) + '</h2><p>' + U.tr(o3.text) + '</p><div class="btnrow"></div></div>');
-      const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
-      el.querySelector(".btnrow").appendChild(U.button("primary", U.tr(o3.yes), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr(o3.no), () => ans("no")));
+    // The story asks you something in the fight (enc.asks3; enc.order3 is one of these): a card with two answers. Under
+    // an answer stands what it will cost you, as the story's own page would count it (ask.cost: the page's choice it
+    // stands for): what rises and falls, a vow it breaks, a death it risks (ask.peril) or is (ask.doom).
+    const asks3 = () => B.enc.asks3 || (B.enc.order3 ? [B.enc.order3] : []);
+    const costOf = (a, k) => { const S = K.S, c = a.cost && a.cost[k] ? a.cost[k](S) : null, out = [];
+      if (k === "yes" && a.doom) out.push(["bad", U.tr(a.doom)]); else if (k === "yes" && a.peril && a.peril(S)) out.push(["bad", U.tr("Can cost your life")]);
+      if (c) { for (const m of K.choiceMarks(c, S)) if (m[0] === "breakvow" || m[0] === "friend" || m[0] === "astra") out.push(["bad", m[1]]);
+        for (const [cls, txt] of K.preview(c, S)) if (cls === "up" || cls === "down") out.push([cls === "down" ? "bad" : "good", txt]); }
+      return out.map(([cls, txt]) => '<span class="chip ' + cls + '">' + U.esc(txt) + "</span>").join(""); };
+    function orderCard(uid, i) {
+      if (U.battleBot) return; paused = true; U.setPaused("battle", true); const o3 = asks3()[i], S = K.S;
+      const el = U.el('<div class="b-card b-pause b-duel b-ask" role="dialog">' + (U.portraitKey(o3.from) ? U.thumb(U.portraitKey(o3.from), "face") : "") + '<h2>' + U.tr(o3.title) + '</h2><p>' + U.tr(K.val(o3.text, S)) + '</p><div class="b-opts"><div class="ask-opt"></div><div class="ask-opt"></div></div></div>');
+      const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); if (v === "yes" && o3.peril && o3.peril(S) && S && !S.flags.includes(o3.flag + "_peril")) S.flags.push(o3.flag + "_peril"); tap("duel", v); };
+      const opts = el.querySelectorAll(".ask-opt");
+      [["yes", "cta"], ["no", "cta secondary"]].forEach(([k, cls], n) => { opts[n].appendChild(U.button(cls, U.tr(o3[k]), () => ans(k))); const c = costOf(o3, k); if (c) opts[n].appendChild(U.el('<div class="chips">' + c + "</div>")); });
       hud.appendChild(el);
     }
-    function orderDone(how) { const S = K.S, o3 = B.enc.order3; if (S && o3 && !S.flags.some((f) => f.indexOf(o3.flag + "_") === 0)) S.flags.push(o3.flag + "_" + how); banner(U.tr(o3[how])); }
+    function orderTaken(i, uid) { const a = asks3()[i]; banner(U.tr(a.taken)); const task = a.task === undefined ? "strike" : a.task; let t = 0;
+      G.fx.run((dt, cut) => { t += dt; if (cut || !R.order || R.order.i !== i || R.order.state !== "doing") return true; // (where to go, while the count runs)
+        const at = task === "heave" && R.wheel ? new T.Vector3(R.wheel.x - 1.05, 0.1, R.wheel.z - (R.wheel.ca > 0 ? 0.75 : -0.75)) : posOf(uid, 0.1); // (beside him, at the rim)
+        if (at && Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(at, 0xf2d27a, 0.4, task === "heave" ? 2.3 : 2.6, 0.7); const me = C.player(), near = task === "heave" && me && me.g && Math.hypot(me.g.x - at.x, me.g.z - at.z) < 6; if (!near) G.fx.beam(at.clone().setY(task === "heave" ? 0.2 : 2.6), at.clone().setY(12), 0xf2d27a, 0.1, 0.7); } return false; }); } // (the beam is to find the place from far off: close to, it would stand across your whole view)
+    function orderDone(how, i) { const S = K.S, o3 = asks3()[i]; if (!o3) return; if (S && !S.flags.some((f) => f === o3.flag + "_obey" || f === o3.flag + "_miss" || f === o3.flag + "_refuse")) S.flags.push(o3.flag + "_" + how); banner(U.tr(o3[how]));
+      if (B.enc.wheel3 && how === "obey") { const v = wheelView(); if (o3.task === "strike" && v) { v.over = "stagger"; v.struckAt = R.t; sfx("hit"); G.shake(0.2, 0.25); } if (o3.task === "heave") { wheelUp = 1; sfx("clang"); G.shake(0.25, 0.3); } } }
+    // The wheel in the earth (enc.wheel3): his car stands where it stuck, down on one side with the wheel sunk to the
+    // axle, its team still in the traces; he is bent to the rim, heaving. (His own car, the one a hero on foot leaves
+    // at the field's edge, is brought here.) When the count is out the arrow comes, and it is seen.
+    let wheelUp = 0, wheelDone = false, wheelMud = null;
+    const wheelView = () => (R.wheel ? views.get(R.wheel.uid) : null);
+    const wheelFar = () => new T.Vector3(R.wheel && R.wheel.ca > 0 ? 5 : -6, 2.6, (R.wheel && R.wheel.ca > 0 ? -1 : 1) * (R.rad + 34)); // (where Arjuna's car stands, far across the field from the wheel)
+    function wheelProps(t, dt) {
+      const W = R.wheel, v = W && wheelView(); if (!W || !v || !v.figs[0]) return;
+      const car = v.parked, lx = Math.cos(W.ca), lz = -Math.sin(W.ca), f = v.figs[0];
+      if (car) { const up = wheelUp * 0.06, heave = wheelDone ? 0 : Math.max(0, Math.sin(t * 3.4)) * 0.012;
+        car.position.set(W.x - lx * 1.02, -0.13 + up, W.z - lz * 1.02); car.rotation.y = W.ca; car.rotation.z = -0.17 + up * 1.2 + heave; if (G.roll) G.roll(car, 0, t, 0);
+        car.visible = viewMode === "top" || !!intro || Math.hypot(G.cam.pos.x - car.position.x, G.cam.pos.z - car.position.z) > 2.5; // (a close camera does not look out through the floor of his car)
+        if (!wheelMud) { wheelMud = new T.Mesh(new T.CircleGeometry(1.5, 18), new T.MeshBasicMaterial({ color: 0x2a1c12, transparent: true, opacity: 0.55, depthWrite: false })); wheelMud.rotation.x = -Math.PI / 2; wheelMud.position.set(W.x, 0.03, W.z); wheelMud.renderOrder = 2; G.fxRoot.add(wheelMud); } // (the wet ground that took the wheel)
+        if (!v.driver) { try { v.driver = G.figure(D3("shalya"), { item: "whip", noBlob: true }); } catch (e) { v.driver = G.figure(Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", gear: ["bands"], whiskers: "stache", face: "long" }), { item: "whip", noBlob: true }); }
+          v.driver.pose("drive", true); car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55); v.driver.update(0.016, 0); } } // (Shalya, who drove him, still at the rail)
+      if (wheelDone) return;
+      if (v.over === "stagger" && R.t - (v.struckAt || 0) < 1.1) return; // (struck: he sags against the rim, and then takes hold again)
+      v.over = Math.sin(t * 3.4) > 0 ? "heave2" : "heave";
+    }
+    function wheelEnd(stand) {
+      const v = wheelView(), f = v && v.figs[0], me = C.player(), pv = views.get(me.uid), pf = pv && pv.figs[0]; if (!f) return; wheelDone = true;
+      const to = f.chest ? f.chest(new T.Vector3()) : new T.Vector3(f.root.position.x, 1.3, f.root.position.z), far = wheelFar();
+      if (stand && pf) { const dx = far.x - to.x, dz = far.z - to.z, l = Math.hypot(dx, dz) || 1; me.g.x = to.x + (dx / l) * 1.1; me.g.z = to.z + (dz / l) * 1.1; me.g.a = Math.atan2(dx, dz); pf.place(me.g.x, me.g.z, me.g.a); if (pv) pv.over = "proud"; } // (you, between him and the arrow)
+      sfx("drumCall"); G.fx.flash("rgba(255,244,214,.3)", 500);
+      G.fx.arrow(far, to, 0.9, 4.5, () => { sfx("hit"); G.shake(0.45, 0.5); G.fx.burst("spark", to, { n: 16, s: 1.4, col: 0xfff0c0 }); G.fx.ring(to.clone().setY(0.1), 0xf2d27a, 0.4, 5, 0.9); G.fx.flash("rgba(255,244,214,.45)", 700);
+        v.over = null; if (!f.fellAt) { f.fellAt = R.t || 0.001; f.drop(true, 1); f.speed = 0; } if (v.bar) v.bar.classList.add("gone");
+        if (stand && pf && !pf.fellAt) { pf.fellAt = R.t || 0.001; pf.drop(true, 1); pf.speed = 0; }
+        banner(U.tr(stand ? "The arrow comes through you both." : "Arjuna's arrow takes him at the wheel.")); }, 0);
+    }
     let oursEl = null, bearerBn = null, fallenFig = null;
     function oursHud() {
       if (!R.ours) return; if (!oursEl) { oursEl = U.el('<div class="b-spirit b-ours"><span>' + U.tr(B.enc.bearer ? "Your banner" : "Your line's nerve") + '</span><div><i></i></div></div>'); hud.appendChild(oursEl); }
@@ -723,7 +769,7 @@
       if (enc.fallen && !fallenFig) { try { fallenFig = G.figure(D3(enc.fallen), { item: null }); fallenFig.pose("down", true); fallenFig.root.position.set(0.9, 0, R.rad * 0.34 + 1.5); fallenFig.root.rotation.y = 0.6; G.actors.add(fallenFig.root); } catch (e) { fallenFig = {}; } }
     }
     function spiritHud() {
-      oursHud(); storyProps(R.t);
+      oursHud(); storyProps(R.t); if (B.enc.wheel3) wheelProps(R.t, 0);
       if (!R.morale) return; if (!spiritEl) { spiritEl = U.el('<div class="b-spirit"><span>' + U.tr("Their spirit") + '</span><div><i></i></div></div>'); hud.appendChild(spiritEl); }
       spiritEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.morale.theirs)) + "%"; spiritEl.classList.toggle("low", R.morale.theirs < 35);
     }
@@ -849,7 +895,9 @@
       // The close views turn with you: the one you face (or the place you must reach) is kept ahead.
       const tg = started && !R.over ? R3.target(R) : null;
       let want = lookYaw, far = 4;
+      const hv = R.wheel && R.order && R.order.state === "doing" && asks3()[R.order.i].task === "heave" && Math.hypot(R.wheel.x - p.g.x, R.wheel.z - p.g.z) < 4.5; // (the wheel you have been asked to put your shoulder to)
       if (R.through && R.goal) want = Math.atan2(R.goal.x - p.g.x, R.goal.z - p.g.z);
+      else if (hv) { want = Math.atan2(R.wheel.x - p.g.x, R.wheel.z + (R.wheel.ca > 0 ? 1 : -1) - p.g.z); far = 3; }
       else if (tg && tg.g) { far = Math.hypot(tg.g.x - p.g.x, tg.g.z - p.g.z); if (far > 0.6) want = Math.atan2(tg.g.x - p.g.x, tg.g.z - p.g.z); }
       else if (!started) want = p.g.a;
       let dy = want - lookYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
@@ -1011,7 +1059,8 @@
       if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
       if (B.enc.mahout3 && B.units.some((x) => x.side === "enemy" && x.hp > 0 && x.g && x.g.kind === "elephant")) return K.tr("Come at the mahout from its flank: {n} of 3", { n: (R.mahout && R.mahout.n) || 0 }) + (left != null ? " · " + n + " s" : "");
       if (R.step3) return K.tr("Get to {t}", { t: nameOf(R.step3.uid) }) + " · " + Math.max(0, Math.ceil(R.step3.until - R.t)) + " s";
-      if (R.order && R.order.state === "doing") return K.tr(B.enc.order3.goal) + " · " + Math.max(0, Math.ceil(R.order.until - R.t)) + " s";
+      if (R.order && R.order.state === "doing") { const a = asks3()[R.order.i], s2 = Math.max(0, Math.ceil(R.order.until - R.t)); return (a.task === "heave" ? K.tr(a.goal) + ": " + Math.min(100, Math.round(100 * R.order.held / (a.need || 6))) + "%" : K.tr(a.goal)) + " · " + s2 + " s"; }
+      if (B.enc.wheel3 && R.wheel) return R.finale ? "" : K.tr(R.escort ? "Keep them off Karna" : "His guards stand between you and Karna") + " · " + n + " s";
       if (R.duel) return K.tr("Single combat");
       if (enc.dream && R.line) return K.tr("They keep coming. Stand as long as you can.");
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });
@@ -1167,7 +1216,7 @@
     }
     function retryCard() {
       const el = U.el('<div class="b-card b-retry"><h2>' + U.tr("You are beaten") + "</h2><p>" + U.tr("One more try: you start a little hurt, and what you used stays used.") + '</p><div class="btnrow"></div></div>');
-      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); for (const x of stuck.splice(0)) unstick(x); R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
+      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); for (const x of stuck.splice(0)) unstick(x); if (K.S) for (const a of asks3()) K.S.flags = K.S.flags.filter((f) => f.indexOf(a.flag + "_") !== 0); wheelUp = 0; wheelDone = false; R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
       const accept = () => { el.remove(); U.keys([]); R3.accept(R); asked = false; };
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Try again"), again, "battle-retry"));
       el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Accept the loss"), accept));
@@ -1179,13 +1228,13 @@
     function finish() {
       if (ending) return; ending = true;
       const out = R.over;
-      const word = enc.dream ? "The dream breaks." : out === "win" ? "Victory" : out === "spare" ? "Spared" : out === "flee" ? "You withdraw" : "You are beaten";
+      const word = enc.dream ? "The dream breaks." : enc.wheel3 && out === "win" ? "It is done" : out === "win" ? "Victory" : out === "spare" ? "Spared" : out === "flee" ? "You withdraw" : "You are beaten";
       const res = U.el('<div class="t-result ' + (out === "win" || out === "spare" ? "win" : out === "flee" ? "close" : "lose") + '"><b>' + U.tr(word) + "</b></div>"); document.body.appendChild(res);
       sfx(out === "win" || out === "spare" ? "gong" : "drum");
       const p = C.player(), pv = p && views.get(p.uid), pf = pv && pv.figs[0];
-      if (pf && p.hp > 0) pf.pose(out === "win" || out === "spare" ? "cheer" : "slump");
+      if (pf && p.hp > 0 && !pf.fellAt) pf.pose(enc.wheel3 && out === "win" ? "stand" : out === "win" || out === "spare" ? "cheer" : "slump"); // (no one cheers at the wheel)
       // The line breaks with the named: the beaten side's soldiers give up the ground, the other raises its weapons.
-      for (const v of views.values()) if (v.u.line && v.u.hp > 0) { const won = (v.u.side === "ally") === (out === "win" || out === "spare"); v.over = won ? "cheer" : "plead"; }
+      for (const v of views.values()) if (v.u.line && v.u.hp > 0 && !enc.wheel3) { const won = (v.u.side === "ally") === (out === "win" || out === "spare"); v.over = won ? "cheer" : "plead"; }
       setTimeout(() => {
         U.curtain(() => {
           res.remove(); close(); U.b3d.off();
@@ -1203,7 +1252,7 @@
       for (const v of [...views.values()]) dropView(v, "now");
       for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } for (const m of grounds.values()) { G.fxRoot.remove(m); G.dispose(m); }
       for (const p2 of far.pairs) for (const f of p2.f) f.dispose(); for (const a of far.arrows) { G.fxRoot.remove(a.m); G.dispose(a.m); } far.pairs.length = 0; far.arrows.length = 0;
-      if (lockRing) { G.fxRoot.remove(lockRing); G.dispose(lockRing); } if (goalMark) goalMark.userData.free();
+      if (lockRing) { G.fxRoot.remove(lockRing); G.dispose(lockRing); } if (goalMark) goalMark.userData.free(); if (wheelMud) { G.fxRoot.remove(wheelMud); G.dispose(wheelMud); wheelMud = null; }
       hud.remove(); U.setPaused("battle", false); U.astraFx = null; U.battleState = null;
       const sh = U.$("shade"); if (sh) sh.style.background = "";
       G.clear(G.actors);

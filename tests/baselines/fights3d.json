@@ -387,6 +387,16 @@
    "win": 92,
    "secs": 48,
    "capped": 0
+  },
+  "kw_e_close": {
+   "win": 83,
+   "secs": 45,
+   "capped": 0
+  },
+  "kw_e_guard": {
+   "win": 83,
+   "secs": 55,
+   "capped": 0
   }
  }
 }
