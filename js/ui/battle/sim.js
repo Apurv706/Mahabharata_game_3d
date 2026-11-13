@@ -235,7 +235,7 @@
     const B = R.B, p = C.player(), g = e.g, pl = R.plan, go = (x, z, k) => { const dx = x - g.x, dz = z - g.z, l = Math.hypot(dx, dz); if (l > 0.12) { const sp = g.speed * k * dt; move(R, e, (dx / l) * Math.min(sp, l), (dz / l) * Math.min(sp, l), false); g.moving = Math.min(1, k); } g.a = turnTo(g.a, l > 1.5 ? Math.atan2(dx, dz) : angTo(e, p), 6 * dt); return l; };
     if (g.role === "wall") {
       const w = living(B, "enemy").filter((u) => u.g && u.g.role === "wall");
-      if (pl.broken || w.length <= pl.wall - 2 || w.length < 2 || R.t > 30) { if (!pl.broken) { pl.broken = true; turn(R, "standard"); } g.role = null; g.sx = null; return false; }
+      if (!R.B.enc.rounds /* (a wall the story says cannot be broken that day, Jayadratha's at the gate, closes up and stands) */ && (pl.broken || w.length <= pl.wall - 2 || w.length < 2 || R.t > 30)) { if (!pl.broken) { pl.broken = true; turn(R, "standard"); } g.role = null; g.sx = null; return false; }
       let cx = 0, cz = 0; for (const u of w) { cx += u.g.x; cz += u.g.z; } cx /= w.length; cz /= w.length;
       const nx = p.g.x - cx, nz = p.g.z - cz, nl = Math.hypot(nx, nz) || 1, ux = nx / nl, uz = nz / nl, off = Math.max(0, nl - (g.reach * 0.9 + 0.2)), adv = Math.min(off, 1.15 * dt * 60 * 0.0167 * 60 > 0 ? off : off); void adv;
       g.sx = cx + ux * Math.min(off, 1.2) + uz * g.slot * 1.5; g.sz = cz + uz * Math.min(off, 1.2) - ux * g.slot * 1.5; g.sa = Math.atan2(ux, uz);
@@ -261,7 +261,7 @@
     if (g.role === "raider") { const A = B.units.find((u) => u.uid === g.on); if (!A || A.hp <= 0 || !R.task) { g.role = null; return false; } g.tgt = A.uid; return false; }
     return false;
   }
-  function rout(R) { if (R.routed) return; R.routed = true; let n = 0; for (const u of living(R.B, "enemy")) if (u.g && (common(u) || u.line) && !u.g.car && !u.g.flee) { u.g.flee = R.t + 1.6 + n * 0.15; u.g.burnUntil = 0; u.g.role = null; cancel(u); n++; } if (R.morale) R.morale.theirs = 0; R.fx.push({ k: "rout", n }); }
+  function rout(R) { if (R.routed || R.B.enc.rounds) return; R.routed = true; let n = 0; for (const u of living(R.B, "enemy")) if (u.g && (common(u) || u.line) && !u.g.car && !u.g.flee) { u.g.flee = R.t + 1.6 + n * 0.15; u.g.burnUntil = 0; u.g.role = null; cancel(u); n++; } if (R.morale) R.morale.theirs = 0; R.fx.push({ k: "rout", n }); }
   function spirit(R, d) { if (!R.morale || R.routed) return; R.morale.theirs = clamp(R.morale.theirs + d, 0, 100); if (R.morale.theirs <= 0) rout(R); }
   function turn(R, kind) {
     const B = R.B, pl = R.plan, p = C.player(); if (!pl || pl.turned || R.routed) return;

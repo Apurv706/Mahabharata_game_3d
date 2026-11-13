@@ -377,7 +377,7 @@
     flee: { tags: ["retreat"], next: "a6_d13_bow", fx: { duty: { conscience: 1 }, flag: "left_ring" }, text: "You pull back out of the ring. Others close the gap you leave, and die in it." }
   });
   war("e_gate", "Holding the gate", [K.foe("Jayadratha's guard", 4, { abilities: ["strike", "guard"] }), K.foe("Sindhu archer", 3, { abilities: ["strike", "arrows"] })], {
-    caption: "The breach Jayadratha holds", rounds: 5, plan3: "wall", // (in 3D his guard is a shield wall across the gap: a mace's heavy blow or a way round its end) roundsText: "The gate never opens. But you held your ground in front of it.", spare: false,
+    caption: "The breach Jayadratha holds", rounds: 5, roundsText: "The gate never opens. But you held your ground in front of it.", spare: false,
     win: { fx: { flag: "could_not_break_through", memory: ["arjuna", "You were among those who could not break through."], journal: "On the thirteenth day you were among those who could not break through." }, text: "Whatever you do, Jayadratha's line does not break today. Nothing would have broken it." },
     lose: { deathText: "You fell at the breach of the Chakravyuha, trying to reach Abhimanyu." },
     flee: { fx: { duty: { conscience: -1 } }, text: "You pull back from the gate." }
