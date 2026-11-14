@@ -75,7 +75,7 @@
     const auto = K.loadSlot("auto");
     const inProgress = auto && auto.alive && auto.lifeId === kept.id && !(K.SCENES[auto.scene] || {}).ending;
     U.openModal("Start again from an act",
-      '<p class="note">' + U.tr("{name}'s life, at the start of each act it reached. Going back takes up the life as it was then; everything after is lived again.", { name: U.esc(kept.name || K.tr("Unnamed")) }) + "</p>" +
+      '<p class="note">' + U.tr("{name}'s life, at the start of each act it reached. Going back takes up the life as it was then; everything after is lived again.", { name: kept.name || K.tr("Unnamed") }) + "</p>" +
       (inProgress ? '<p class="note">' + U.tr("Your life in progress is replaced. Tap an act twice to go back.") + "</p>" : "") +
       '<div class="actlist">' + U.actButtons(kept) + "</div>",
       () => U.wireActs(document.querySelector(".modal .actlist"), inProgress));

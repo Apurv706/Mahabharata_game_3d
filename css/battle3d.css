@@ -264,3 +264,8 @@ body.in3d #b3d { display: block; }
 .b-ask .b-views { margin: 0; justify-content: flex-start; }
 .b-ask .btnrow { display: flex; margin-left: auto; }
 .b-ask .b-view { padding: 4px 8px; font-size: 0.72rem; } .b-ask .b-views { gap: 4px; flex: 1 1 0; min-width: 0; }
+/* What is on you and what gifts you carry share one row under your bars, so the box with the fight's name below never has marks drawn over it. */
+.b-me .b-status { display: inline-block; vertical-align: middle; margin-right: 8px; }
+#b3d .b-me .b-gifts { display: inline-flex; vertical-align: middle; margin-top: 2px; }
+#b3d .b-me .b-gifts[hidden] { display: none; }
+.bhud .b-line, .bhud .b-spirit { margin-top: var(--hud-push, 0px); }

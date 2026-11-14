@@ -737,7 +737,7 @@
     function duelCard(uid) {
       if (U.battleBot) return; paused = true; U.setPaused("battle", true);
       const du = B.units.find((x) => x.uid === uid), pk = du && (U.portraitKey(du.person) || (/^Kalinga captain/.test(du.src || du.name || "") ? "p_kalinga" : null));
-      const el = U.el('<div class="b-card b-pause b-duel" role="dialog">' + (pk ? U.thumb(pk, "face") : "") + '<h2>' + U.tr("{t} calls you out", { t: U.esc(nameOf(uid)) }) + '</h2><p>' + U.tr("Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.") + '</p><div class="btnrow"></div></div>');
+      const el = U.el('<div class="b-card b-pause b-duel" role="dialog">' + (pk ? U.thumb(pk, "face") : "") + '<h2>' + U.tr("{t} calls you out", { t: nameOf(uid) }) + '</h2><p>' + U.tr("Single combat, and both hosts stand off. Beat him and his men will run. Refuse, and your own will lose heart.") + '</p><div class="btnrow"></div></div>');
       const ans = (v) => { el.remove(); paused = false; U.setPaused("battle", false); tap("duel", v); };
       el.querySelector(".btnrow").appendChild(U.button("primary", U.tr("Fight him alone"), () => ans("yes"))); el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Refuse"), () => ans("no")));
       hud.appendChild(el);
@@ -1122,7 +1122,11 @@
       if (left != null) return K.tr("Hold your ground") + " · " + n + " s · " + K.tr("Foes left: {n}", { n: R3.count(R) });
       return K.tr("Foes left: {n}", { n: R3.count(R) });
     }
+    let hudGap = 0;
     function drawHud(dt) {
+      { hudGap = (hudGap || 0) - dt; if (hudGap <= 0) { hudGap = 0.4; // (your status and gift marks can make your corner taller: the box with the fight's name moves down clear of it, and what is under that box with it)
+        const meB = hud.querySelector(".b-me"), top = hud.querySelector(".b-top"); if (meB && top) { top.style.marginTop = ""; const a = meB.getBoundingClientRect(), b = top.getBoundingClientRect(), over = a.bottom + 6 - b.top;
+          const stacked = a.width && b.width && b.left < a.right && b.right > a.left; const push = stacked && over > 0 ? Math.ceil(over) : 0; top.style.marginTop = push ? push + "px" : ""; hud.style.setProperty("--hud-push", push + "px"); } } }
       const p = C.player(); if (!p) return;
       me.hp.style.transform = "scaleX(" + clamp(p.hp / p.maxHp, 0, 1).toFixed(3) + ")"; me.hpN.textContent = Math.max(0, Math.ceil(p.hp)) + " / " + p.maxHp;
       me.hp.parentNode.classList.toggle("low", p.hp <= p.maxHp * 0.3);
