@@ -189,3 +189,27 @@ Two tests moved by rule of thumb: the race car jumped between three lanes, and a
 | **The families at Khandava** | Drawn as cows. | People, each with a pale ring at the feet until you reach them. |
 
 **Checked.** `node tests/tests3d_rules.js`: 18 checks on the rules alone (the same seed gives the same run; a turn is a turn and not a jump; the car slides under the whip; a square hit against a brush; a walked-up cow moves off and a rushed one bolts; a herd worked from behind closes up). Bots played each in a browser at phone size. **Not checked:** how any of it feels under a thumb.
+
+## 10. The arm joins the body (13 November, night)
+
+**The fault** (owner: "there is a clear gap between the arms and the body"). There were two, one behind the other.
+
+- **On slight frames the shoulder hung in the air.** Every woman and every child (19 of the 79 models) had daylight between the shoulder and the body: about six centimetres at a woman's shoulder. The clay of the trunk is all muscle, and on a frame with little muscle it had shrunk until the chest and the back no longer reached the shoulder. It had been so since the builds were first told apart on 12 November.
+- **On every frame the arm was a separate skin.** It passed through the trunk at the shoulder, with a ball set on the joint to fill the hollow. Once each figure had a dark line round it, the ball and the seam stood out; with the arm raised it was a doll's joint.
+
+It showed most in the new bouts (bare arms, close, seen from behind) and on the child wrestling at the river.
+
+**What was done** (`tools/blender/cast.py`; all 79 models rebuilt).
+
+- **Bone for a slight frame.** A slight frame is given what a heavy one has inside its muscle: a shelf from the root of the neck to the joint (collar bone, the blade's ridge, the shoulder's point) and the two folds that close the armpit. It fades out as arms thicken; a heavy frame gets none.
+- **One skin at the shoulder** (`fuse_shoulders`). The arm's length is swung out from under the armpit, the two solids are joined where they still meet (the shoulder and the top of the armpit, nowhere else), the arm is hung back, and the line where the skins met is worked smooth. The ball is gone.
+- **The joints' shares run across.** The skin is now held by chest, collar and arm in one run with no break. An arm's hold on the trunk fades out a hand's breadth in from the joint, so a raised arm does not drag the breast toward the breastbone.
+- **Cloth on the shoulder goes with the shoulder.** An upper cloth takes the very shares of the skin under it where it lies on the shoulder, so a raised arm lifts it and does not come through it. A breastplate does not go up with the arm: the arm moves in its arm-hole (its edge rose in spikes).
+- **Crumbs taken away.** Bits of clay that hung free (a neck's cords on a neck too thin for them, a calf's outer head on the girl) are removed.
+- **The build now refuses a split body.** Each body must come out as one closed skin, or the build says which model did not.
+
+**Cost.** Lighter: a man's body 3,318 triangles (was 3,714), a woman's 2,565 (was 2,845); the models are 28 MB (were 29).
+
+**Checked.** All 79 standing; six builds in nine poses, front and back; plain dress and armour with the arms raised; the same views from four earlier builds beside them; the model checks of section 1 on five figures (fewer faults than before, none new).
+
+**Not done.** With the arm straight overhead a wide upper cloth rises to a peak with the shoulder (a woman's shawl at a cheer). The hand is still a separate piece set on the wrist. Seen on the way, and older: in the greeting with joined palms the hands do not meet. None of this has been seen on a phone.

@@ -145,9 +145,94 @@ def hand(sx):
     return balls
 def lean(balls, k=0.86):   # a youth's build: the same frame with less on it; nothing is moved, and none of the cut lines
     return [((b[0]), (b[1][0] * k, b[1][1] * k, b[1][2])) + tuple(b[2:]) for b in balls if not (len(b) > 4 and b[4])]
+# The trunk and the arms are shaped apart (an arm hangs against the flank, and clay that close would run together all the
+# way down), and then made one skin at the shoulder, as a body is: the arm's length is swung out from under the armpit, the
+# two solids are joined where they still meet (the shoulder and the armpit's top, nowhere else), the arm is hung back
+# where it was, and the line where the two skins met is worked smooth. One skin there means no line to see, no notch
+# between the shoulder and the neck, and joints' shares that run on from the chest into the arm with no break.
+JZ = 1.41   # the shoulder joint's height
+def fuse_shoulders(Bt, Ba, swing=math.radians(24), z0=1.15, z1=1.255, R=0.034, passes=12):
+    from mathutils.kdtree import KDTree
+    orig = [v.co.copy() for v in Ba.data.vertices]
+    for v in Ba.data.vertices:
+        k = 1 - sm(z0, z1, v.co.z)
+        if k <= 0: continue
+        sx = 1 if v.co.x > 0 else -1; an = sx * swing * k; c, s_ = math.cos(an), math.sin(an); dx, dz = v.co.x - sx * SHX, v.co.z - JZ
+        v.co.x = sx * SHX + dx * c - dz * s_; v.co.z = JZ + dx * s_ + dz * c
+    Ba.data.update()
+    kt = KDTree(len(Bt.data.vertices)); ka = KDTree(len(Ba.data.vertices))
+    for i, v in enumerate(Bt.data.vertices): kt.insert(v.co, i)
+    for i, v in enumerate(Ba.data.vertices): ka.insert(v.co, i)
+    kt.balance(); ka.balance()
+    md = Bt.modifiers.new("fuse", "BOOLEAN"); md.operation = "UNION"; md.object = Ba; md.solver = "EXACT"
+    bpy.ops.object.select_all(action="DESELECT"); bpy.context.view_layer.objects.active = Bt; Bt.select_set(True); bpy.ops.object.modifier_apply(modifier="fuse"); Bt.select_set(False)
+    bpy.data.objects.remove(Ba, do_unlink=True)
+    bm = bmesh.new(); bm.from_mesh(Bt.data); seam = []
+    for v in bm.verts:
+        _, i, d = ka.find(v.co)
+        if d < 2e-5: v.co = orig[i]; continue
+        _, i, d = kt.find(v.co)
+        if d >= 2e-5: seam.append(v.co.copy())
+    if not seam: print("FUSE: the arms do not meet the trunk"); bm.free(); return Bt
+    ks = KDTree(len(seam))
+    for i, c in enumerate(seam): ks.insert(c, i)
+    ks.balance()
+    dist = lambda v: ks.find(v.co)[2]
+    # the join leaves splinters along the line: the faces round it are cut to triangles and points a hair apart become one
+    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if any(dist(v) < R for v in f.verts)])
+    bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts if dist(v) < R], dist=0.0016)   # (a hair: wider, and the two sides of a crease were pinched together along an edge)
+    bmesh.ops.dissolve_degenerate(bm, edges=bm.edges[:], dist=1e-5)
+    for _ in range(4):   # (points made one can leave a fin: a face standing on the skin by one edge, its other edges in the air. A closed skin has none: they are cut off, and any hole is closed)
+        fins = [f for f in bm.faces if any(len(e.link_faces) == 1 for e in f.edges) and any(len(e.link_faces) > 2 for e in f.edges)]
+        if not fins: break
+        bmesh.ops.delete(bm, geom=fins, context="FACES")
+    rim = [e for e in bm.edges if len(e.link_faces) == 1]
+    if rim: bmesh.ops.holes_fill(bm, edges=rim, sides=12); bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
+    band = [(v, 1 - sm(R * 0.45, R, dist(v))) for v in bm.verts if dist(v) < R]
+    for _ in range(passes):   # each point of the band moves toward the middle of its neighbours: the crease fills, the lip sinks, and it is one slope
+        new = []
+        for v, w in band:
+            nb = [e.other_vert(v).co for e in v.link_edges]
+            if nb: new.append((v, v.co.lerp(sum(nb, Vector()) / len(nb), 0.5 * w)))
+        for v, c in new: v.co = c
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    zs = [c.z for c in seam]; bm.to_mesh(Bt.data); bm.free(); Bt.data.materials.clear(); Bt.data.update()   # (the join leaves an empty material slot)
+    print("FUSE seam points", len(seam), "between", round(min(zs), 3), "and", round(max(zs), 3), "band", len(band))
+    return Bt
+def pieces(o, say=False):   # how many separate skins a mesh is made of
+    seen = set(); n = 0; adj = {}
+    for e in o.data.edges: a_, b_ = e.vertices; adj.setdefault(a_, []).append(b_); adj.setdefault(b_, []).append(a_)
+    for v in range(len(o.data.vertices)):
+        if v in seen: continue
+        n += 1; st = [v]; seen.add(v); mine = [v]
+        while st:
+            for u in adj.get(st.pop(), []):
+                if u not in seen: seen.add(u); st.append(u); mine.append(u)
+        if say:
+            cs = [o.data.vertices[i].co for i in mine]; print("   piece of", len(mine), "points: x", round(min(c.x for c in cs), 3), round(max(c.x for c in cs), 3), "y", round(min(c.y for c in cs), 3), round(max(c.y for c in cs), 3), "z", round(min(c.z for c in cs), 3), round(max(c.z for c in cs), 3))
+    return n
+def specks(o, least=200):   # crumbs of clay that hang in the air, joined to nothing (a neck's cords on a neck too thin for them): taken away
+    bm = bmesh.new(); bm.from_mesh(o.data); seen = set(); gone = []
+    for v in bm.verts:
+        if v in seen: continue
+        st = [v]; seen.add(v); mine = [v]
+        while st:
+            cur = st.pop()
+            for e in cur.link_edges:
+                u = e.other_vert(cur)
+                if u not in seen: seen.add(u); st.append(u); mine.append(u)
+        if len(mine) < least: gone += mine
+    if gone: bmesh.ops.delete(bm, geom=gone, context="VERTS"); bm.to_mesh(o.data); o.data.update()
+    bm.free(); return len(gone)
 def mk_body(name, t, a):
     Bt = metaballs(name + "t", t, 0.0125, 0.62); Ba = metaballs(name + "a", a, 0.0115, 0.62)
-    bpy.ops.object.select_all(action="DESELECT"); Bt.select_set(True); Ba.select_set(True); bpy.context.view_layer.objects.active = Bt; bpy.ops.object.join(); o = bpy.context.object; o.name = name; o.select_set(False); return o
+    if not os.environ.get("CAST_NOFUSE"):
+        n_ = specks(Bt)
+        if n_: print("FUSE crumbs taken from the trunk:", n_, "points")
+    if os.environ.get("CAST_NOFUSE"):
+        bpy.ops.object.select_all(action="DESELECT"); Bt.select_set(True); Ba.select_set(True); bpy.context.view_layer.objects.active = Bt; bpy.ops.object.join(); o = bpy.context.object; o.name = name; o.select_set(False); return o
+    print("FUSE before: trunk in", pieces(Bt, bool(os.environ.get("CAST_SAY"))), "arms in", pieces(Ba, bool(os.environ.get("CAST_SAY"))))
+    o = fuse_shoulders(Bt, Ba); o.name = name; print("FUSE body in", pieces(o, bool(os.environ.get("CAST_SAY"))), "piece(s)"); return o
 def frame(balls):   # Bhima's own lists, refitted to this hero's frame and build
     out = []
     for b in balls:
@@ -175,7 +260,18 @@ if SHE:   # a woman's frame: breasts (not a girl), fuller hips and seat
     if not H.get("flat"): torso += sym([((0.07, -0.088, 1.285), (0.06, 0.055, 0.056), 1.7)])
     torso += sym([((0.125, 0.02, 0.93), (0.075, 0.095, 0.09), 1.7), ((0.08, 0.085, 0.9), (0.085, 0.08, 0.09), 1.7)])
 if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["belly"], 0.11), 1.7)]
-B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])), [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
+# The shoulder girdle. The collar bone, the shoulder blade and the point of the shoulder are bone: they span from the neck
+# to the joint however little muscle a frame carries. The clay above is all muscle, and on a slight frame (a woman, a
+# child, an old man) it shrank until the chest and the back no longer reached the shoulder, which then hung in the air
+# beside the body. So a slight frame is given the bone: a shelf from the root of the neck to the joint, and the two
+# folds that close the armpit in front and behind. A heavy frame has all this inside its muscle already, and gets none.
+QG = 1 - sm(0.70, 0.90, H["arm"]); GK = 0.55 + 0.45 * QG
+girdle = [] if QG < 0.05 else sym([
+  ((0.60 * SHX, 0.012, 1.412), (0.45 * SHX, (0.030 + 0.022 * GI) * GK, (0.024 + 0.010 * GI) * GK)),    # the shelf: collar bone in front, the blade's ridge behind, the shoulder's point at its end
+  ((0.76 * SHX, -0.030, 1.345), (0.26 * SHX, 0.026 * GK, 0.050 * GK)),                                 # the armpit's front fold: the breast muscle's cord to the arm
+  ((0.76 * SHX, 0.040, 1.335), (0.26 * SHX, 0.028 * GK, 0.060 * GK)),                                  # and its back fold
+])
+B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])) + girdle, [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
 for o_ in HANDS:   # (a closed hand is all creases: every face is turned outward again, so none is lit from the wrong side; found by the mesh check)
     bm_ = bmesh.new(); bm_.from_mesh(o_.data); bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.to_mesh(o_.data); bm_.free()
@@ -219,6 +315,11 @@ for o in [B] + HANDS:
     bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="sm")
     for p in o.data.polygons: p.use_smooth = True
 print("body verts", len(B.data.vertices), "head verts", len(Hd.data.vertices))
+def odd_edges(o, say=""):   # edges of a closed skin that are not shared by exactly two faces: a pinch, a tear or a doubled face
+    bm_ = bmesh.new(); bm_.from_mesh(o.data); bad = [e for e in bm_.edges if len(e.link_faces) != 2]
+    if bad: print("ODD", say, len(bad), "edges not shared by two faces, at", [tuple(round(c, 3) for c in (e.verts[0].co + e.verts[1].co) / 2) for e in bad[:6]], [len(e.link_faces) for e in bad[:6]])
+    bm_.free(); return len(bad)
+odd_edges(B, "body before thinning:")
 
 # ---- The skeleton: the game's own joints, by the game's own names, where the game has them -----------------------
 JOINTS = ["P", "T", "H", "aL", "eL", "wL", "aR", "eR", "wR", "lL", "kL", "lR", "kR",        # the thirteen the poses turn
@@ -238,6 +339,25 @@ LOD = H.get("lod", 1.0)
 for o, r in ((B, 0.115 * LOD), (HANDS[0], 0.2 if LOD >= 1 else 0.13), (HANDS[1], 0.2 if LOD >= 1 else 0.13)):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
+def no_fins(o):   # thinning a skin can leave a fin where two folds lay close (inside an armpit): cut off, and any hole closed
+    bm_ = bmesh.new(); bm_.from_mesh(o.data); n_ = 0
+    for _ in range(4):
+        fins = [f for f in bm_.faces if any(len(e.link_faces) == 1 for e in f.edges) and any(len(e.link_faces) > 2 for e in f.edges)]
+        if not fins: break
+        n_ += len(fins); bmesh.ops.delete(bm_, geom=fins, context="FACES")
+    rim = [e for e in bm_.edges if len(e.link_faces) == 1]
+    if rim: bmesh.ops.holes_fill(bm_, edges=rim, sides=12); bmesh.ops.triangulate(bm_, faces=[f for f in bm_.faces if len(f.verts) > 4])
+    if n_ or rim: bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.to_mesh(o.data); o.data.update()
+    bm_.free(); return n_
+if not os.environ.get("CAST_NOFUSE"):
+    nf_ = no_fins(B)
+    if nf_:
+        print("body: fins cut off after thinning:", nf_)
+        nc_ = specks(B, 60)   # (a fin's root can be a bubble shut inside the skin: with the fin gone it hangs free, and goes too)
+        if nc_: print("body: a bubble inside the skin taken out:", nc_, "points")
+        for p in B.data.polygons: p.use_smooth = True
+    odd_edges(B, "body after thinning:")
+    print("FUSE body after thinning in", pieces(B), "piece(s)")
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
 def bone(n, h, t, parent=None):
     b = arm.edit_bones.new(n); b.head = h; b.tail = t
@@ -277,7 +397,23 @@ for o in (B,):
         for n in drop: o.vertex_groups[n].remove([v.index])
         for n, w in ws.items():
             if n not in drop: o.vertex_groups[n].add([v.index], w / t, "REPLACE")
-    print(o.name, "unweighted", len(lost), "verts", len(o.data.vertices), "limb weights cleaned", fixed)
+    # The shoulder is one skin with the chest and the back, and the automatic weights would let a raised arm pull the
+    # breast and the shoulder blade far in toward the breastbone (through whatever cloth lies there). An arm's hold on the
+    # trunk's skin fades out a hand's breadth in from the joint, as it did when the arm was a separate skin.
+    held = 0
+    if not os.environ.get("CAST_NOFUSE"):
+        nm_ = [g.name for g in o.vertex_groups]; SK_ = SHX / 0.2295   # (the distances were set on a frame of that half-width)
+        for v in o.data.vertices:
+            if v.co.z < 1.1 or abs(v.co.x) > SHX - 0.03 * SK_: continue
+            g_ = 1 - sm(0.03 * SK_, 0.13 * SK_, SHX - abs(v.co.x)); ws = {nm_[g.group]: g.weight for g in v.groups if g.weight > 0}; arm_ = [n for n in ws if n[0] in "aew"]
+            if not arm_ or g_ >= 0.999: continue
+            rest = sum(w for n, w in ws.items() if n not in arm_); cut = sum(ws[n] for n in arm_) * (1 - g_); held += 1
+            for n in arm_: o.vertex_groups[n].add([v.index], ws[n] * g_, "REPLACE")
+            if rest > 1e-4:
+                for n, w in ws.items():
+                    if n not in arm_: o.vertex_groups[n].add([v.index], w * (rest + cut) / rest, "REPLACE")
+            else: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], cut, "REPLACE")
+    print(o.name, "unweighted", len(lost), "verts", len(o.data.vertices), "limb weights cleaned", fixed, "arm's hold on the trunk eased at", held)
 def rigid(o, bone_name):
     g = o.vertex_groups.new(name=bone_name); g.add(range(len(o.data.vertices)), 1.0, "REPLACE")
 # The head goes with the head joint, and what lies below the mouth's line with the jaw, which opens.
@@ -360,7 +496,7 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side, sway=sway)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side, sway, z_top, ln); parts.append(e)
     return o
-def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
+def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stiff=False):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
     bm = bmesh.new(); bm.from_mesh(o.data)
     if cut:
@@ -375,9 +511,21 @@ def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None):   #
         bmesh.ops.delete(bm, geom=[f for f in bm.faces if abs(f.calc_center_median().x) < xh and f.calc_center_median().z > zl], context="FACES")
     dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")   # (skin the arm has a real hold on is left bare: under armour that does not move it would be hidden at rest and missing when the arm rose)
     for v in bm.verts: v.co += v.normal * off
-    bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
+    bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o)
+    if stiff:   # armour does not go up with a raised arm as skin does: the arm moves in its arm-hole (its edge rose in spikes otherwise)
+        nm_ = [g.name for g in o.vertex_groups]
+        for v in o.data.vertices:
+            ws = {nm_[g.group]: g.weight for g in v.groups if g.weight > 0}; arm_ = [n for n in ws if n[0] in "aew"]
+            if not arm_: continue
+            rest = sum(w for n, w in ws.items() if n not in arm_)
+            for n in arm_: o.vertex_groups[n].remove([v.index])
+            if rest > 1e-4:
+                for n, w in ws.items():
+                    if n not in arm_: o.vertex_groups[n].add([v.index], w / rest, "REPLACE")
+            else: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], 1.0, "REPLACE")
+    return o
 trunk = lambda c: not (c.z > 1.4 and abs(c.x) < 0.085)
 def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
     ux, uz = -0.3, -0.44; l = math.hypot(ux, uz); d = abs((c.x - 0.14) * uz - (c.z - 1.44) * ux) / l; return d < w and 0.99 < c.z < 1.47 and trunk(c)
@@ -414,7 +562,7 @@ from mathutils.bvhtree import BVHTree
 BVB = BVHTree.FromObject(B, bpy.context.evaluated_depsgraph_get())
 # The shoulder joint, bulked: a ball of the arm's own girth set on each joint and carried by the arm, so the shoulder
 # stays whole whichever way the arm is raised (the skin alone pinched there and left a hollow at the joint).
-for sx in (1, -1):
+for sx in ((1, -1) if os.environ.get("CAST_NOFUSE") else ()):   # (not needed since the shoulder became one skin: see fuse_shoulders)
     h = BVB.ray_cast(Vector((sx * (SHX + 0.3), 0, 1.385)), Vector((-sx, 0, 0)), 0.6)
     r = max(0.045, min(0.082, (abs(h[0].x) - SHX) if h[0] is not None else 0.065))
     o = prim("uv_sphere", "joint", "skin", (sx * (SHX + 0.003), 0.0, 1.386), (r, r * 1.02, r * 0.94), segments=14, ring_count=9); rigid(o, "aL" if sx > 0 else "aR"); o["part"] = "body"; parts.append(o)
@@ -475,7 +623,7 @@ for k in range(22):
     a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
 since(n0, "beads"); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.013, cut=(1.03, 1.45), sides=SHX - 0.022, neck=(0.085, 1.4))
+shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.013, cut=(1.03, 1.45), sides=SHX - 0.022, neck=(0.085, 1.4), stiff=True)
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 for (dx_, z_, sc_, tilt) in ((0.0, 1.425, (0.098, 0.108, 0.046), 0.28), (0.052, 1.39, (0.088, 0.104, 0.04), 0.62), (0.092, 1.342, (0.074, 0.096, 0.036), 0.95)):   # three lapped plates down the shoulder, each tipped further over the arm
@@ -505,6 +653,20 @@ shell("hide", "hide", lambda c: band(c, 0.11), 0.017); since(n0, "hide"); n0 = l
 shell("bandeau", "band", lambda c: 1.214 < c.z < 1.371 and trunk(c), 0.01, cut=(1.215, 1.37)); since(n0, "bandeau"); n0 = len(parts)
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
+def skin_shares(src, bvh, co, gn):   # the joints' shares of the skin at the place nearest a point: taken across the face it falls on
+    loc, _, fi, _ = bvh.find_nearest(co)
+    if loc is None: return {"T": 1.0}
+    pl = src.data.polygons[fi]; vs = list(pl.vertices); out = {}
+    if len(vs) == 3:
+        from mathutils.geometry import barycentric_transform
+        a_, b_, c_ = (src.data.vertices[i].co for i in vs)
+        wv = barycentric_transform(loc, a_, b_, c_, Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))); bw = [max(0.0, wv.x), max(0.0, wv.y), max(0.0, wv.z)]
+    else:
+        ds = [1 / max(1e-6, (src.data.vertices[i].co - loc).length) for i in vs]; bw = ds
+    t_ = sum(bw) or 1.0
+    for i, w_ in zip(vs, bw):
+        for g in src.data.vertices[i].groups: out[gn[g.group]] = out.get(gn[g.group], 0) + g.weight * w_ / t_
+    t_ = sum(out.values()) or 1.0; return {n_: w_ / t_ for n_, w_ in out.items()}
 def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02, names=("strap", "strapedge", "strapstud"), stud=3, edge="gold", off=0.011):
     dg = bpy.context.evaluated_depsgraph_get(); bvh = BVHTree.FromObject(src, dg); kd = KDTree(len(src.data.vertices))
     for v in src.data.vertices: kd.insert(v.co, v.index)
@@ -525,11 +687,18 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
         for i in range(N): a, b = i * 2, ((i + 1) % N) * 2; fs.append((a, b, b + 1, a + 1))
         me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
         for pl in o.data.polygons: pl.use_smooth = True
-        for v in o.data.vertices:   # a band round the trunk is carried by the trunk and the hips alone: an arm that swings must not drag it
+        for v in o.data.vertices:
+            # A band round the trunk is carried by the trunk and the hips alone: an arm that swings by the hip must not drag it.
+            # But where the cloth lies on the shoulder it is the shoulder that carries it: there it takes the very shares of
+            # the skin under it (found on the skin's own face, not at its nearest point), so a raised arm lifts the cloth
+            # with the shoulder and never comes through it.
             sv = src.data.vertices[kd.find(v.co)[1]]; gs = [g for g in sorted(sv.groups, key=lambda g: -g.weight) if gn[g.group][0] not in "aew"][:2]; tot = sum(g.weight for g in gs)
-            if tot < 0.05: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], 1.0, "REPLACE")
-            else:
-                for g in gs: (o.vertex_groups.get(gn[g.group]) or o.vertex_groups.new(name=gn[g.group])).add([v.index], g.weight / tot, "REPLACE")
+            low = {"T": 1.0} if tot < 0.05 else {gn[g.group]: g.weight / tot for g in gs}
+            k_ = sm(1.24, 1.33, v.co.z); ws = {n_: w_ * (1 - k_) for n_, w_ in low.items()}
+            if k_ > 0:
+                for n_, w_ in skin_shares(src, bvh, v.co, gn).items(): ws[n_] = ws.get(n_, 0) + w_ * k_
+            for n_, w_ in ws.items():
+                if w_ > 0.004: (o.vertex_groups.get(n_) or o.vertex_groups.new(name=n_)).add([v.index], w_, "REPLACE")
         parts.append(o); return o
     strip(names[0] + suffix, mid, -half, half, off)
     if edge: strip(names[1] + suffix, edge, -half - 0.01, -half, off + 0.0015); strip(names[1] + suffix, edge, half, half + 0.01, off + 0.0015)

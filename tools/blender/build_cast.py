@@ -8,7 +8,10 @@ from cast_specs import CAST
 keys = sys.argv[1:] or list(CAST); os.makedirs(OUT, exist_ok=True)
 def one(k):
     r = subprocess.run([sys.executable, os.path.join(HERE, "cast.py"), "--", OUT, "export", k], capture_output=True, text=True)
-    ok = "exported" in r.stdout; print(("ok   " if ok else "FAIL ") + k + ("" if ok else "\n" + (r.stdout + r.stderr)[-1500:]), flush=True); return ok
+    ok = "exported" in r.stdout; m = re.search(r"FUSE body after thinning in (\d+) piece", r.stdout) or re.search(r"FUSE body in (\d+) piece", r.stdout); one_skin = bool(m) and m.group(1) == "1"
+    # (the body must come out as one skin: a shoulder or a limb that hangs in the air beside it is a fault, and is said so)
+    odd = re.search(r"ODD body after thinning: (\d+)", r.stdout)   # (and closed: every edge shared by two faces)
+    print(("ok   " if ok and one_skin else "FAIL " if not ok else "SPLIT ") + k + ("" if one_skin or not ok else "  (the body is in " + (m.group(1) if m else "?") + " pieces)") + ("  (" + odd.group(1) + " edges of the body are not shared by two faces)" if odd else "") + ("" if ok else "\n" + (r.stdout + r.stderr)[-1500:]), flush=True); return ok and one_skin
 with ThreadPoolExecutor(2) as ex: res = list(ex.map(one, keys))
 p = os.path.join(ROOT, "index.html"); s = open(p).read()
 import json
