@@ -230,7 +230,8 @@
       if (ft) { // the sole stays level and keeps the leg's heading; a foot well off the ground is let hang
         Q1.copy(j.P.quaternion).multiply(j["l" + sd].quaternion).multiply(j["k" + sd].quaternion);
         Q2.set(0, Q1.y, 0, Q1.w); if (Q2.lengthSq() < 1e-6) Q2.identity(); else Q2.normalize();
-        const h = ankle(j, sd) - R.ankle, down = Math.asin(Math.max(0, Math.min(0.9, h / (0.15 * R.leg)))); // (a raised heel: the foot tips until the ball of it is on the ground; higher than that and it hangs)
+        const h = ankle(j, sd) - R.ankle; let down = Math.asin(Math.max(0, Math.min(0.9, h / (0.15 * R.leg))));
+        if (f.footW) down += (-f.footTh[s] - down) * f.footW; // (walking or running, the foot's own roll from the stride: heel down, flat, onto the toes, and pointed as it swings) // (a raised heel: the foot tips until the ball of it is on the ground; higher than that and it hangs)
         Q2.multiply(Q3.setFromAxisAngle(X1, down)); Q1.invert().multiply(Q2); const ang = 2 * Math.acos(Math.min(1, Math.abs(Q1.w)));
         ft.quaternion.slerpQuaternions(ID, Q1, (ang > 1.0 ? 1.0 / ang : 1) * (1 - (f.fall || 0))); }
       const g = j["g" + sd], h = j["h" + sd];

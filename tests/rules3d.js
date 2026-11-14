@@ -191,6 +191,19 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   ok(idle.ev.includes("taskFail:capture") && idle.flags.includes("war_setback") && !idle.flags.some((f) => /^took_/.test(f)) && !idle.R.over, "The man not taken: his men bring him off, they rally, and it costs you the next fight's start");
   ok(idle2.ev.includes("taskFail:sarathi"), "The charioteer not reached: his car rides your man down");
   ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
+  { // Turning and stepping are two things: a turn turns you where you stand; with a foe near, a step to the side is a side-step, slower than going ahead
+    const K = fresh(23); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player(); p.maxHp = p.hp = 99999;
+    for (const u of B.units) if (u.side === "enemy" && u.g) { u.g.x = 50; u.g.z = -50; u.g.cool = 99; u.g.speed = 0; }
+    const a0 = p.g.a, x0 = p.g.x, z0 = p.g.z; for (let i = 0; i < 30; i++) R3.step(R, { turn: 1 });
+    const turned = Math.atan2(Math.sin(p.g.a - a0), Math.cos(p.g.a - a0)), stayed = Math.hypot(p.g.x - x0, p.g.z - z0);
+    const foe = B.units.find((u) => u.side === "enemy" && u.g && !u.line && u.hp > 0); foe.g.x = p.g.x; foe.g.z = p.g.z - 3; foe.g.a = 0; R.faceHold = 0;
+    for (let i = 0; i < 30; i++) R3.step(R, {}); const face = p.g.a, sx = p.g.x, sz = p.g.z;
+    for (let i = 0; i < 30; i++) { foe.g.x = p.g.x; foe.g.z = p.g.z - 3; R3.step(R, { mx: 1, mz: 0 }); }
+    const side = Math.hypot(p.g.x - sx, p.g.z - sz), kept = Math.abs(Math.atan2(Math.sin(p.g.a - face), Math.cos(p.g.a - face)));
+    for (const u of B.units) if (u.side === "enemy" && u.g) { u.g.x = 50; u.g.z = -50; } const fx = p.g.x, fz = p.g.z; for (let i = 0; i < 30; i++) R3.step(R, { mx: Math.sin(p.g.a), mz: Math.cos(p.g.a) });
+    const ahead = Math.hypot(p.g.x - fx, p.g.z - fz);
+    ok(turned > 1.2 && stayed < 0.01 && kept < 0.2 && side > 0.3 && side < ahead * 0.9, "Turn and step are two things: a turn left turns you where you stand (" + (turned * 57.3).toFixed(0) + " degrees, moved " + stayed.toFixed(2) + "), a step left with a foe near keeps your face to him (" + (kept * 57.3).toFixed(0) + " degrees) and goes " + side.toFixed(2) + " to " + ahead.toFixed(2) + " ahead");
+    try { C.settle("flee"); C.end(); } catch (e) {} }
   { // A host down to two-fifths of its spirit is shaken: said once, undone if they rally, and their men come on slower
     const swings = (low) => { const K = fresh(17); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { plan: "wall" }), p = C.player(); p.maxHp = p.hp = 99999; let n = 0, said = 0, back = 0, first = null;
       const fx = () => { for (const e of R.fx) { if (e.k === "shaken") said++; if (e.k === "rallied") back++; } R.fx.length = 0; };

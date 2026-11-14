@@ -234,6 +234,54 @@
     taunt: { land: 0.5, keys: [[0, { aR: [-60, 0, -20], eR: -80, T: [0, 0, 0], H: [0, 0, 0] }], [0.3, { aR: [-160, 0, -24], eR: -30, wR: [-20, 0, 0], T: [-10, 0, 0], H: [-12, 0, 0] }], [0.5, { aR: [-166, 0, -10], eR: -44, wR: [-30, 0, 0], T: [-12, 0, 0], H: [-14, 0, 0] }], [0.7, { aR: [-160, 0, -28], eR: -26, wR: [-16, 0, 0], T: [-10, 0, 0], H: [-12, 0, 0] }], [1, { aR: [-60, 0, -20], eR: -80, T: [0, 0, 0], H: [0, 0, 0] }]] }
   };
   G.ACTS = ACTS;
+  // ---------- The legs in a walk and a run (owner, 13 November: "allow for movements in knee and feet") ----------
+  // The foot is placed, and the leg found to reach it, instead of the thigh and knee swung by a clock. Over one stride
+  // each foot lands on its heel ahead of the hip, rolls flat, stays where it was put while the body goes over it, rises
+  // onto its toes and pushes off; then it is carried forward with the knee folded and reaches out for the next step.
+  // In a walk one foot is always down and the hips are highest over the foot that carries them; in a run each foot is
+  // down for under a third of the stride, the knee folds high behind, and the body flies between steps. (Lengths are the
+  // body's: thigh 0.45, shin 0.385, the ankle 0.085 off the ground; speeds in body-lengths a second.)
+  const LEG = { a: 0.45, b: 0.385, ank: 0.085, heel: 0.05, toe: 0.16, hip: 0.92, max: 0.8345, min: 0.36 };
+  const sm01g = (x) => { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); };
+  // The ankle (x ahead of the hip, y over the ground) of a foot whose heel, were it flat, would be X ahead of the hip, with the sole pitched th (toes up): it turns about its heel when the toes are up and about its toe when the heel is.
+  function ankleOf(X, th, o) { const c = Math.cos(th), s = Math.sin(th); if (th >= 0) { o[0] = X + LEG.heel * c - LEG.ank * s; o[1] = LEG.heel * s + LEG.ank * c; } else { o[0] = X + LEG.heel + LEG.toe - LEG.toe * c - LEG.ank * s; o[1] = -LEG.toe * s + LEG.ank * c; } return o; }
+  function gaitOf(v, back, g) {
+    g = g || { p0: [0, 0], p1: [0, 0] };
+    const run = back ? 0 : sm01g((v - 2.0) / 0.9);
+    const SLw = Math.max(0.3, Math.min(0.62 + 0.62 * v, 1.95, v / 0.42)) * (back ? 0.7 : 1), SLr = Math.min(0.95 + 0.47 * v, 3.7);
+    g.v = v; g.run = run; g.SL = SLw + (SLr - SLw) * run;
+    const bw = 0.63 - 0.025 * v, br = Math.max(0.26, Math.min(0.4, 0.47 - 0.035 * v)); g.beta = bw + (br - bw) * run;
+    g.thHS = (17 - 20 * run) * D; g.thTO = (55 + 13 * run) * D; g.f0 = 0.14 - 0.04 * run; g.f1 = 0.5 - 0.1 * run;
+    const travel = Math.max(0.02, g.beta * g.SL - (LEG.heel + LEG.toe)); g.a = (0.46 - 0.14 * run) * travel;
+    g.lift = (0.045 + 0.02 * v) * (1 - run) + (0.06 + 0.032 * Math.min(v, 6.5)) * run; g.skew = 0.8 - 0.08 * run;
+    ankleOf(g.a, g.thHS, g.p1); ankleOf(g.a - g.beta * g.SL, -g.thTO, g.p0);
+    const reach = (L, p) => p[1] + Math.sqrt(Math.max(0.01, L * L - p[0] * p[0]));
+    g.Htop = 0.916; g.Hlow = Math.min(g.Htop - 0.01, reach(0.832, g.p1), reach(LEG.max, g.p0));
+    g.Htd = Math.min(0.895, reach(0.832, g.p1)); g.dip = 0.028;
+    const tf = g.beta < 0.5 ? ((0.5 - g.beta) * g.SL) / Math.max(0.5, v) : 0; g.rise = Math.max(0.006, Math.min(0.06, (9.81 * tf * tf) / 8));
+    return g;
+  }
+  function hipAt(u, g) {
+    const Hw = g.Hlow + ((g.Htop - g.Hlow) * (1 + Math.cos(4 * PI * (u - g.beta / 2)))) / 2; if (g.run <= 0) return Hw;
+    const ub = u % 0.5, b = Math.min(g.beta, 0.5); let Hr;
+    if (ub < b) Hr = g.Htd - g.dip * Math.sin((PI * ub) / b); else { const q = (ub - b) / (0.5 - b); Hr = g.Htd + g.rise * 4 * q * (1 - q); }
+    return Hw + (Hr - Hw) * g.run;
+  }
+  function footAt(u, g, o) {
+    const b = g.beta;
+    if (u < b) { const t = u / b; let th; if (t < g.f0) th = g.thHS * (1 - sm01g(t / g.f0)); else if (t < g.f1) th = 0; else th = -g.thTO * Math.pow((t - g.f1) / (1 - g.f1), 1.6);
+      ankleOf(g.a - t * b * g.SL, th, o); o[2] = th; o[3] = 1; return o; }
+    const s = (u - b) / (1 - b), m = -g.SL * (1 - b), m0 = m * 0.25, m1 = m * 0.6, s2 = s * s, s3 = s2 * s;
+    const x = (2 * s3 - 3 * s2 + 1) * g.p0[0] + (s3 - 2 * s2 + s) * m0 + (-2 * s3 + 3 * s2) * g.p1[0] + (s3 - s2) * m1;
+    const th = -g.thTO + (g.thHS + g.thTO) * sm01g((s - 0.08) / 0.7);
+    let y = g.p0[1] + (g.p1[1] - g.p0[1]) * sm01g(s) + g.lift * Math.sin(PI * Math.pow(s, g.skew));
+    const c = Math.cos(th), sn = Math.sin(th), floor = (th >= 0 ? LEG.heel * sn + LEG.ank * c : -LEG.toe * sn + LEG.ank * c) + 0.02 * Math.sin(PI * s);
+    if (y < floor) y = floor; o[0] = x; o[1] = y; o[2] = th; o[3] = 0; return o;
+  }
+  // The leg that reaches an ankle x ahead of the hip and dy below it: [thigh forward, knee bent] in degrees, and whether it had to fall short.
+  function legIK(x, dy, o) { let d = Math.hypot(x, dy), short = 0; if (d > LEG.max) { short = d - LEG.max; d = LEG.max; } else if (d < LEG.min) d = LEG.min;
+    const a = LEG.a, b = LEG.b, flex = Math.acos(Math.max(-1, Math.min(1, (d * d - a * a - b * b) / (2 * a * b)))), al = Math.acos(Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d))));
+    o[0] = (Math.atan2(x, dy) + al) / D; o[1] = flex / D; o[2] = short; return o; }
   const JOINTS = ["P", "T", "H", "aL", "aR", "eL", "eR", "wL", "wR", "lL", "lR", "kL", "kR"];
   const vec = (v) => (typeof v === "number" ? [v, 0, 0] : v);
   function fillPose(out, src) { for (const k of JOINTS) { const v = vec(src[k] != null ? src[k] : REST[k]); const o = out[k]; o[0] = v[0]; o[1] = v[1]; o[2] = v[2]; } out.y = src.y != null ? src.y : 0; out.z = src.z || 0; return out; }
@@ -659,21 +707,26 @@
         const h = Math.max(dt, 1e-3), aF = G.clamp((vF - (f.pvF || 0)) / h, -40, 40), aS = G.clamp((vS - (f.pvS || 0)) / h, -40, 40), k = Math.min(1, dt * 9); f.pvF = vF; f.pvS = vS;
         f.accF = (f.accF || 0) + (aF - (f.accF || 0)) * k; f.accS = (f.accS || 0) + (aS - (f.accS || 0)) * k;
         if (f.vf != null && f.fall < 0.2) { tg.T[0] += G.clamp(f.accF * 0.3, -9, 11); tg.T[2] -= G.clamp(f.accS * 0.28, -8, 8); } }
+      f.legExact = false;
       if (moving) {
-        // (the stride a swing of A degrees covers, so feet do not skate: one cycle is two steps)
-        const back = cf < -0.25, fw = Math.abs(cf), sw = Math.abs(sf), A = (22 + 26 * sp2) * (back ? 0.72 : 1), Th = 12 + 9 * sp2;
-        const stride = fw * 4 * 0.87 * size * Math.sin(A * D) + sw * 2 * 0.87 * size * Math.sin(Th * D);
-        f.phase += (back ? -1 : 1) * dt * Math.max(2.4, (6.283 * spd) / Math.max(0.2, stride));
-        const s = Math.sin(f.phase), c = Math.cos(f.phase), crouch = tg.y < -0.1, free = f.base === "stand" || f.base === "carry0";
-        // (a walk becomes a run: the knees come higher, the body is lowest over the foot it lands on instead of between
-        // two steps, and the thighs work ahead of the body's lean)
-        const run = Math.max(0, Math.min(1, (sp2 - 0.6) / 0.3)), Kn = 34 + 34 * sp2 + 26 * run, ab = Math.abs(s);
-        tg.lL[0] += (A * s - 5 * run) * fw; tg.lR[0] -= (A * s + 5 * run) * fw;
-        tg.kL[0] += (Kn * Math.max(0, -c) + 14 * run * Math.max(0, c)) * fw + (crouch ? 0 : 4); tg.kR[0] += (Kn * Math.max(0, c) + 14 * run * Math.max(0, -c)) * fw + (crouch ? 0 : 4);
+        // Forward or back: the feet are placed (gaitOf, footAt, legIK above), each leg's thigh and knee found to reach its
+        // foot, so a foot on the ground stays where it was put. To the side the legs open and close as before. Both
+        // share the one clock, f.phase: a whole turn of it is a stride, two steps.
+        const back = cf < -0.25, fw = Math.abs(cf), sw = Math.abs(sf), Th = 12 + 9 * sp2, crouch = tg.y < -0.1, free = f.base === "stand" || f.base === "carry0";
+        const vb = spd / size, gv = Math.max(0.35, vb * fw), g = gaitOf(gv, back, f.gt || (f.gt = { p0: [0, 0], p1: [0, 0] })), side = 2 * 0.87 * Math.sin(Th * D);
+        f.phase += (back ? -1 : 1) * dt * 2 * PI * Math.max(0.55, fw * gv / g.SL + sw * vb / Math.max(0.2, side));
+        f.gw = Math.min(1, (f.gw || 0) + dt * 6);
+        const u = (((f.phase / (2 * PI)) % 1) + 1) % 1, wf = fw * f.gw, run = g.run, s = -Math.cos(2 * PI * u), c = Math.sin(2 * PI * u), ab = Math.abs(s);
+        if (wf > 0.01) {
+          const sink = Math.min(0, tg.y) * 0.6, H = hipAt(u, g) + sink, o = f.ft || (f.ft = [0, 0, 0, 0]), q = f.ik || (f.ik = [0, 0, 0]), th = f.footTh || (f.footTh = [0, 0]);
+          for (let n = 0; n < 2; n++) { const sd = n ? "R" : "L"; footAt((u + n * 0.5) % 1, g, o); legIK(o[0], H - o[1], q);
+            tg["l" + sd][0] += (-q[0] - tg["l" + sd][0]) * wf; tg["k" + sd][0] += (q[1] - tg["k" + sd][0]) * wf; th[n] = o[2]; }
+          tg.y += (H - 0.92 - sink * 0.0 - tg.y) * wf; f.footW = wf; f.legExact = true;
+        } else f.footW = 0;
         if (sw > 0.05) { const open = Th * (1 - c) * 0.5 * sw, lift = (22 + 10 * sp2) * sw, up = Math.max(0, s), dn = Math.max(0, -s); tg.lL[2] += open; tg.lR[2] -= open; // (the side step: the leading foot lifts as the legs open, the other as they close)
           if (sf > 0) { tg.kL[0] += lift * up; tg.lL[0] -= lift * 0.4 * up; tg.kR[0] += lift * dn; tg.lR[0] -= lift * 0.4 * dn; } else { tg.kR[0] += lift * up; tg.lR[0] -= lift * 0.4 * up; tg.kL[0] += lift * dn; tg.lL[0] -= lift * 0.4 * dn; }
-          tg.T[2] -= (2 + 4 * sp2) * sf; }
-        tg.y -= ab * 0.022 * (1 + sp2) * (1 - run) + (1 - ab) * 0.034 * run; tg.T[0] += (4 + 8 * sp2) * (back ? -0.35 : fw);
+          tg.T[2] -= (2 + 4 * sp2) * sf; tg.y -= ab * 0.02 * (1 - wf); }
+        tg.T[0] += (4 + 10 * sp2 + 6 * run) * (back ? -0.35 : fw);
         // The hips go with the legs and the shoulders against them (so the arm that swings forward has its shoulder
         // behind it); the hip of the leg in the air hangs a little, the body rides over the foot that carries it, and
         // the head is kept to its line through all of it. A stance held for a fight turns less: its feet are set.
@@ -683,7 +736,7 @@
         const lz = -(Pr + (lat / (0.87 * size)) / D) * c; tg.lL[2] += lz; tg.lR[2] += lz; // (the legs stay under the body as it tips and shifts)
         if (free) { const Ba = 18 + 24 * sp2; tg.aL[0] += -Ba * s; tg.aR[0] += Ba * s; // the arm coming forward bends, the one going back straightens
           tg.eL[0] = -14 - 46 * sp2 - (8 + 6 * sp2) * s; tg.eR[0] = -14 - 46 * sp2 + (8 + 6 * sp2) * s; tg.aL[2] += 2 * sp2; tg.aR[2] -= 2 * sp2; }
-      } else if (f.fall < 0.2) { // standing: breath, and (when simply standing) the weight going slowly from one foot to the other, the eyes wandering
+      } else if (f.fall < 0.2) { f.gw = 0; f.footW = 0; // standing: breath, and (when simply standing) the weight going slowly from one foot to the other, the eyes wandering
         const br = Math.sin(t * 1.6 + f.phase); tg.T[0] += br * 1.2; tg.aL[2] += br * 0.8; tg.aR[2] -= br * 0.8; f.latT = 0;
         if (f.base === "stand" || f.base === "talk" || f.base === "carry0") { const ws = Math.sin(t * 0.41 + f.phase * 1.7), w2 = Math.sin(t * 0.27 + f.phase * 2.9);
           tg.P[2] += ws * 1.7; tg.T[2] -= ws * 2.1; tg.H[2] += ws * 0.5; f.latT = ws * 0.013 * size; const lz = -(1.7 + (0.013 / 0.87) / D) * ws; tg.lL[2] += lz; tg.lR[2] += lz;
@@ -747,8 +800,9 @@
     f.update = function (dt, t) {
       f.dt = dt; compute(dt, t);
       const k = f.exact ? 1 : 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
-      for (const key of JOINTS) { const a = c[key], b = tg[key]; a[0] += (b[0] - a[0]) * k; a[1] += (b[1] - a[1]) * k; a[2] += (b[2] - a[2]) * k; }
-      c.y += (tg.y - c.y) * k; c.z += (tg.z - c.z) * k; f.latC = (f.latC || 0) + ((f.latT || 0) - (f.latC || 0)) * k;
+      const kl = f.legExact && !f.action ? 1 : k; // (a placed foot is not eased toward: easing it is what made feet slide)
+      for (const key of JOINTS) { const a = c[key], b = tg[key], kk = key[0] === "l" || key[0] === "k" ? kl : k; a[0] += (b[0] - a[0]) * kk; a[1] += (b[1] - a[1]) * kk; a[2] += (b[2] - a[2]) * kk; }
+      c.y += (tg.y - c.y) * kl; c.z += (tg.z - c.z) * k; f.latC = (f.latC || 0) + ((f.latT || 0) - (f.latC || 0)) * k;
       if (f.fall !== f.fallTo) f.fall = f.fallTo > f.fall ? Math.min(f.fallTo, f.fall + dt * 1.7 * (f.fallRate || 1)) : Math.max(f.fallTo, f.fall - dt * 2.2);
       // Turn toward the facing asked for, the short way round.
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));

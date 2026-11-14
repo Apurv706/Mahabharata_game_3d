@@ -25,7 +25,7 @@
     story: 8,            // seconds for each "round" of a fight's story: holds, beats, the field event
     hpFoe: 4.6, hpFriend: 1.55, hpAlly: 3.0, atkFoe: 0.74,
     rad: 13,             // the field's radius (m)
-    run: 5.3, foeRun: 3.2, archerRun: 2.6, allyRun: 3.7, blockWalk: 0.42,
+    run: 5.3, turnRate: 3.4, turnHold: 2.5, faceNear: 6, sideWalk: 0.78, backWalk: 0.62, foeRun: 3.2, archerRun: 2.6, allyRun: 3.7, blockWalk: 0.42,
     turn: 2.4,           // how fast a foe winding up can still turn after you (rad/s); a champion turns faster
     gap: [2.0, 3.4], windup: 0.64, heavyWind: 1.0, track: 0.85, lock: 0.38, meleeLock: 0.18,
     breathMax: 100, rollCost: 30, rollMin: 30, breathRegen: 20, roll: 0.42, rollDist: 3.9, perfect: 0.16,
@@ -1038,19 +1038,30 @@
     if (g.blow && R.t >= g.blow.at) landBlow(R);
     if (g.busy > 0) { g.busy -= dt; if (g.busy <= 0 && R.buffer) { R.buffer = false; if (!g.blow) blow(R); } }
     if (held(p) || R.roll > 0) return;
+    // Turning and stepping are two things (owner, 13 November: "turn left and walk left should mean two different
+    // things"). a.turn (+1 left, -1 right) turns you where you stand; the stick or the keys move you without turning you
+    // whenever a foe is near enough to fight, so a step to the left is a side-step with your face still to him. Once you
+    // have turned yourself, your facing is yours for turnHold seconds (or until you choose a foe), and you step in it.
+    const tn = clamp(a.turn || 0, -1, 1);
+    if (Math.abs(tn) > 0.05 && g.busy <= 0) { g.a += tn * P.turnRate * dt; R.faceHold = R.t + P.turnHold; }
+    if (a.lock || a.lockOn) R.faceHold = 0;
+    const mine = R.faceHold > R.t;
     let mx = a.mx || 0, mz = a.mz || 0; const l = Math.hypot(mx, mz);
     if (l > 0.12 && g.busy <= 0) {
       if (l > 1) { mx /= l; mz /= l; }
-      const sp = g.speed * (RT.walkMul ? RT.walkMul() : 1) * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
+      const rel = Math.abs(adiff(Math.atan2(mx, mz), g.a)), way = rel < 1.05 ? 1 : rel < 2.2 ? P.sideWalk : P.backWalk;   // (a side-step and a step back are slower than going where you face)
+      const sp = g.speed * way * (RT.walkMul ? RT.walkMul() : 1) * (R.block ? P.blockWalk : 1) * (p.status.weakened ? 0.85 : 1);
       walk(R, p, mx * sp, mz * sp, dt);
       g.moving = Math.min(1, l) * (R.block ? P.blockWalk : 1);
       if (R.block) faceThreat(R);
+      else if (mine) { /* (you step in the facing you chose) */ }
       else if (a.strafe) { // the close views: you keep your face to the one you fight, and step round him
         const f = R.through && R.goal ? null : R3.target(R);
         g.a = turnTo(g.a, f && dist(f, p) < 18 ? angTo(p, f) : a.look != null ? a.look : Math.atan2(mx, mz), 12 * dt);
-      } else g.a = turnTo(g.a, Math.atan2(mx, mz), PHYS.turn * dt); // (from above you come round to the way you go, quickly, and not in one frame)
+      } else { const f = R.through && R.goal ? null : R3.target(R); // (from above: with a foe near, your face stays to him and you step; with none, you come round to the way you go, quickly and not in one frame)
+        if (f && dist(f, p) < P.faceNear && !a.run) g.a = turnTo(g.a, angTo(p, f), 9 * dt); else g.a = turnTo(g.a, Math.atan2(mx, mz), PHYS.turn * dt); }
     } else if (R.block) faceThreat(R);
-    else if (g.busy <= 0) { const f = R3.target(R); if (f && dist(f, p) < 9) g.a = turnTo(g.a, angTo(p, f), 9 * dt); }
+    else if (g.busy <= 0 && !mine) { const f = R3.target(R); if (f && dist(f, p) < 9) g.a = turnTo(g.a, angTo(p, f), 9 * dt); }
     if (R.through && R.goal && Math.hypot(g.x - R.goal.x, g.z - R.goal.z) <= R.goal.r && !B.enc.cannot) { B.progress = B.enc.reach || 1; R.reached = true; }
   }
   const turnTo = (a, to, max) => a + clamp(adiff(to, a), -max, max);

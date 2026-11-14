@@ -944,7 +944,8 @@
       const tg = started && !R.over ? R3.target(R) : null;
       let want = lookYaw, far = 4;
       const hv = R.wheel && R.order && R.order.state === "doing" && asks3()[R.order.i].task === "heave" && Math.hypot(R.wheel.x - p.g.x, R.wheel.z - p.g.z) < 4.5; // (the wheel you have been asked to put your shoulder to)
-      if (R.through && R.goal) want = Math.atan2(R.goal.x - p.g.x, R.goal.z - p.g.z);
+      if (R.faceHold > R.t) want = p.g.a;   // (you have turned yourself: the view turns with you)
+      else if (R.through && R.goal) want = Math.atan2(R.goal.x - p.g.x, R.goal.z - p.g.z);
       else if (hv) { want = Math.atan2(R.wheel.x - p.g.x, R.wheel.z + (R.wheel.ca > 0 ? 1 : -1) - p.g.z); far = 3; }
       else if (tg && tg.g) { far = Math.hypot(tg.g.x - p.g.x, tg.g.z - p.g.z); if (far > 0.6) want = Math.atan2(tg.g.x - p.g.x, tg.g.z - p.g.z); }
       else if (!started) want = p.g.a;
@@ -971,13 +972,16 @@
     function act() {
       if (U.battleBot) return R3.bot(R);
       let up = 0, right = 0; const ks = input.keys;
-      if (ks.has("w") || ks.has("arrowup")) up += 1; if (ks.has("s") || ks.has("arrowdown")) up -= 1; if (ks.has("d") || ks.has("arrowright")) right += 1; if (ks.has("a") || ks.has("arrowleft")) right -= 1;
+      if (ks.has("w") || ks.has("arrowup")) up += 1; if (ks.has("s") || ks.has("arrowdown")) up -= 1; if (ks.has("d")) right += 1; if (ks.has("a")) right -= 1;
+      let turn = (ks.has("arrowleft") ? 1 : 0) - (ks.has("arrowright") ? 1 : 0); // (the arrows turn you where you stand; A and D step you to the side)
+      if (input.look) turn += clamp(-input.look.x / 70, -1, 1);
       if (input.stick) { up += input.stick.y; right += input.stick.x; }
       if (input.pad) { up += input.pad.y; right += input.pad.x; }
       // Up on the stick is away from the camera.
       const yaw = G.camYaw(), fx = Math.sin(yaw), fz = Math.cos(yaw);
       const a = { mx: fx * up - fz * right, mz: fz * up + fx * right, block: input.block || input.mouseBlock || input.padBlock || ks.has("k") || ks.has("shift") };
       if (viewMode !== "top") { a.strafe = true; a.look = lookYaw; }
+      if (turn) a.turn = clamp(turn, -1, 1);
       Object.assign(a, input.taps); input.taps = {};
       return a;
     }
@@ -1048,10 +1052,11 @@
       if (!started || paused || R.over) return;
       if (e.pointerType === "mouse") { if (e.button === 2) input.mouseBlock = true; else if (e.button === 0) { const hit = pickFoe(e.clientX, e.clientY); if (hit) tap("lockOn", hit); tap("strike"); } return; }
       if (e.clientX < G.W * 0.5 && !input.stick) { input.stick = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: 0, y: 0 }; stickEl.style.left = e.clientX + "px"; stickEl.style.top = e.clientY + "px"; stickEl.classList.add("on"); knob.style.transform = ""; try { cv.setPointerCapture(e.pointerId); } catch (er) { /* gone */ } }
-      else { const hit = pickFoe(e.clientX, e.clientY); if (hit) { tap("lockOn", hit); } }
+      else if (!input.look) { input.look = { id: e.pointerId, x0: e.clientX, x: 0, drag: false }; try { cv.setPointerCapture(e.pointerId); } catch (er) { /* gone */ } }
     }
-    function pmove(e) { const s = input.stick; if (!s || s.id !== e.pointerId) return; const dx = e.clientX - s.x0, dy = e.clientY - s.y0, l = Math.hypot(dx, dy), m = 52, k = l > m ? m / l : 1; s.x = (dx * k) / m; s.y = -(dy * k) / m; if (l < 8) { s.x = 0; s.y = 0; } knob.style.transform = "translate(" + dx * k + "px," + dy * k + "px)"; }
-    function pup(e) { if (e.pointerType === "mouse") { if (e.button === 2) input.mouseBlock = false; return; } const s = input.stick; if (s && s.id === e.pointerId) { input.stick = null; stickEl.classList.remove("on"); } }
+    function pmove(e) { const lk = input.look; if (lk && lk.id === e.pointerId) { const dx = e.clientX - lk.x0; if (Math.abs(dx) > 12) lk.drag = true; lk.x = lk.drag ? clamp(dx, -70, 70) : 0; return; } // (a finger drawn left or right on the right half of the screen turns you; a tap there still chooses a foe)
+      const s = input.stick; if (!s || s.id !== e.pointerId) return; const dx = e.clientX - s.x0, dy = e.clientY - s.y0, l = Math.hypot(dx, dy), m = 52, k = l > m ? m / l : 1; s.x = (dx * k) / m; s.y = -(dy * k) / m; if (l < 8) { s.x = 0; s.y = 0; } knob.style.transform = "translate(" + dx * k + "px," + dy * k + "px)"; }
+    function pup(e) { if (e.pointerType === "mouse") { if (e.button === 2) input.mouseBlock = false; return; } const lk = input.look; if (lk && lk.id === e.pointerId) { if (!lk.drag) { const hit = pickFoe(e.clientX, e.clientY); if (hit) tap("lockOn", hit); } input.look = null; return; } const s = input.stick; if (s && s.id === e.pointerId) { input.stick = null; stickEl.classList.remove("on"); } }
     const noMenu = (e) => { if (started && !closed) e.preventDefault(); };
     function pickFoe(cx, cy) { let best = null, bd = 70; for (const v of views.values()) { const u = v.u; if (u.side !== "enemy" || u.hp <= 0 || !u.g.entered || u.g.kind === "light") continue; G.toScreen(tmp.set(u.g.x, 1, u.g.z), scr); const d = Math.hypot(scr.x - cx, scr.y - cy); if (d < bd) { bd = d; best = u.uid; } } return best; }
     function gamepad() {
@@ -1175,7 +1180,7 @@
     // ---------- Before, and after ----------
     // Every fight opens close on you, shows who stands against you (and who stands with you), then pulls back to the
     // field and waits for your word. A tap or a key moves it on; Skip goes straight to the field.
-    const HOW_TOUCH = "Left thumb: move. Right thumb: Strike, Roll, Guard and your skill. Tap a foe to face them.", HOW_KEYS = "Move: WASD or arrows. Strike: J or left click. Roll: Space. Guard: K or Shift. Skill: L. Face the next foe: Q. Herbs: H. Help: C. Divine weapon: 1–3. Spare: F. Withdraw: X.";
+    const HOW_TOUCH = "Left thumb: move (to the side is a side-step). Draw a finger across the right half to turn. Tap a foe to face them.", HOW_KEYS = "Move: W and S; step aside: A and D. Turn: left and right arrows. Strike: J or left click. Roll: Space. Guard: K or Shift. Skill: L. Face the next foe: Q. Herbs: H. Help: C. Divine weapon: 1–3. Spare: F. Withdraw: X.";
     const tally = (list) => { const n = new Map(); for (const u of list) { const k = K.text(u.name); n.set(k, (n.get(k) || 0) + (u.plural && u.g ? u.g.bodies || 1 : 1)); } return [...n].map(([k, c]) => (c > 1 && !/s$|ें$|ों$/.test(k) ? c + " × " + k : k)); };
     // The two sides' plans, said and shown (owner, 13 November: "have the strategy of foe side and friend side be more visible").
     const PLAN_SAYS = { wall: "A wall of shields: their foot come on abreast. A blow at its front does half; it is weak in the side.", pincer: "A pincer: one holds you in front while two go wide, to come in behind you.", charge: "Their champion's charge: he comes straight for you while his men hold back." };

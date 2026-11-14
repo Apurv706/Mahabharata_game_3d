@@ -330,3 +330,11 @@ So the ramp is gentle over most of the war and steep on the fights that were alr
 - **Whether the trades can be read in the thick of it.** Each is said over the man's head and has a tip the first time, but a spearman's set point lasts a third of a second.
 - **Whether "harder with each battle" is felt.** By the figures it is six points over ten battles for a fighter who makes no mistakes of judgment; a person may feel it more, or not at all.
 - **Points 3 and 4** (knees and feet in a walk and a run; a true trot and gallop) are the next piece of work.
+
+### Points 3 and 4: knees and feet, trot and gallop (Version 53)
+
+**People.** The legs were swung on a clock and their feet slid along the ground: about 1.2 m of slide per step at a walk, a metre at a run. Now each foot is placed and the leg is found to reach it: the heel lands ahead, the foot rolls flat, stays where it was put while the body goes over it, rises onto the toes and pushes off, and is carried forward with the knee folded. At a run each foot is down for under a third of the stride, the knee comes through high and the heel kicks up behind, and there is a moment with both feet off the ground. Slide is now under 3 cm a step. (Measured on Arjuna from the side: walk 1.4 m/s, knee 4–66°; run 5.3 m/s, knee 4–109°, thigh up to 60° forward.)
+
+**Animals.** The same for horses, cattle and deer: each hoof is put down ahead, stays down while the body passes over it, and is picked up and carried forward folded. The walk goes one foot at a time, the trot in diagonal pairs, the gallop hind feet then fore feet with all four off the ground between. Hoof slide went from 0.8 m to under 8 cm, and the forelegs, which never quite reached the ground in a trot, now do.
+
+**Turn left and walk left are two things** (owner, 13 November). In a fight a step to the side is now a side-step: with a foe within six metres your face stays to him while you move, from above as well as in the close views, and a side-step is a little slower than going ahead (a step back slower still). Turning is its own control: the left and right arrow keys, or a finger drawn across the right half of the screen (a tap there still chooses a foe). Once you turn yourself, your facing is yours for two and a half seconds, or until you choose a foe, and the close views turn with you. W and S move; A and D step aside.

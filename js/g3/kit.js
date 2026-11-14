@@ -561,7 +561,7 @@
   // The gaits of a horse: where each leg [near fore, off fore, near hind, off hind] is in the stride, the share of it on the
   // ground, the swing of the leg and the fold of its knee (radians), and strides a second. A walk goes one foot at a time,
   // a trot in diagonal pairs with a moment in the air between, a gallop hind feet then fore feet and then all four off the ground.
-  const GAITS = { walk: { ph: [0.25, 0.75, 0, 0.5], duty: 0.62, A: 0.27, F: 0.8, rate: 0.95 }, trot: { ph: [0, 0.5, 0.5, 0], duty: 0.42, A: 0.4, F: 1.1, rate: 1.45 }, gallop: { ph: [0.42, 0.54, 0, 0.12], duty: 0.3, A: 0.6, F: 1.4, rate: 2.1 } };
+  const GAITS = { walk: { ph: [0.25, 0.75, 0, 0.5], duty: 0.62, A: 0.27, F: 0.8, rate: 0.95 }, trot: { ph: [0, 0.5, 0.5, 0], duty: 0.38, A: 0.4, F: 1.1, rate: 1.45 }, gallop: { ph: [0.42, 0.54, 0, 0.12], duty: 0.22, A: 0.6, F: 1.4, rate: 2.1 } };
   const HORSE_KD = { s: 1, rate: 1 };
   const clockOf = (U_) => { const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000, dt = U_.now == null ? 0 : Math.max(0, Math.min(0.1, now - U_.now)); U_.now = now; return [now, dt]; };
   const ease = (o, k, to, f) => { o.rotation[k] += (to - o.rotation[k]) * f; };
@@ -570,6 +570,19 @@
   // foot, swishes its tail and nods; it walks, then trots, then gallops as speed rises, and does not change gait in a frame.
   // (mps: its real speed over the ground, metres a second, where the caller knows it: then the reach of each leg is set
   // from it, so that a hoof on the ground stays where it was put down.)
+  // A leg as two links (the leg and the shin, each from its joint to the next) found to put its hoof joint at a point:
+  // r is the leg's rest shape, read once from where its joints stand; a fold is always backward, as the beast's own fold was.
+  const IKO = [0, 0];
+  function hoofRig(U_) { if (U_.ikr !== undefined) return U_.ikr; const B_ = U_.bones, legs = [];
+    for (let i = 0; i < 4; i++) { const l = U_.L[i], sh = U_.shins[i], hf = U_.hooves[i]; if (!l || !sh || !hf) return (U_.ikr = null);
+      const v1 = sh.position, v2 = hf.position, a1 = Math.atan2(-v1.z, -v1.y), a2 = Math.atan2(-v2.z, -v2.y), L1 = Math.hypot(v1.y, v1.z), L2 = Math.hypot(v2.y, v2.z);
+      const py = B_.root.position.y * 0 + l.position.y, pz = l.position.z, h0 = py + v1.y + v2.y, c = (v1.z + v2.z) + 0.04;
+      legs.push({ a1, a2, L1, L2, py, pz: pz, h0, c: pz + c }); }
+    const drop = 0.085 * Math.min(...legs.map((r) => r.L1 + r.L2)), cap = Math.min(...legs.map((r) => 2 * Math.sqrt(Math.max(0.01, (r.L1 + r.L2) * (r.L1 + r.L2) * 0.985 - (r.py - drop - r.h0) * (r.py - drop - r.h0)))));
+    return (U_.ikr = { legs, cap, drop }); }   // (a leg standing straight cannot reach ahead or behind: the body goes a little lower on the move, as a horse's does when it lengthens)
+  function hoofIK(r, dz, dy, o) { let d = Math.hypot(dz, dy); const mx = (r.L1 + r.L2) * 0.995, mn = Math.abs(r.L1 - r.L2) + 0.02; d = Math.max(mn, Math.min(mx, d));
+    const Th = Math.atan2(-dz, -dy), c = Math.max(-1, Math.min(1, (d * d - r.L1 * r.L1 - r.L2 * r.L2) / (2 * r.L1 * r.L2))), gm = Math.acos(c), l1 = Th - Math.atan2(r.L2 * Math.sin(gm), r.L1 + r.L2 * Math.cos(gm));
+    o[0] = l1 - r.a1; o[1] = gm + r.a1 - r.a2; return o; }
   G.gallop = function (horse, t, speed, mps) {
     const U_ = horse.userData, L = U_.legs; if (!L) return;
     if (mps != null) speed = mps / 7;
@@ -583,13 +596,22 @@
     const gt = name && GAITS[name], k = !gt ? 0 : name === "walk" ? Math.min(1, sp / 0.3) : name === "trot" ? (sp - 0.28) / 0.42 : (sp - 0.62) / 0.38, f = snap ? 1 : Math.min(1, dt * 18), slow = snap ? 1 : Math.min(1, dt * 5), id = U_.id;
     let y = 0, pitch = 0, roll = 0, neck = 0, head = 0, tailX = 0.04, tailZ = 0, drop = 0;
     if (gt) {
-      const rate = gt.rate * kd.rate * (0.85 + 0.25 * k); U_.ph = (U_.ph + dt * rate) % 1; const ph = U_.ph, A = mps != null ? Math.max(0.1, Math.min(0.72, Math.asin(Math.min(0.95, (mps * gt.duty) / (2 * 1.25 * (kd.s || 1) * rate))))) : gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
+      let rate = gt.rate * kd.rate * (0.85 + 0.25 * k); if (mps != null && U_.hooves.length === 4 && hoofRig(U_)) rate = Math.max(rate, (mps * gt.duty) / hoofRig(U_).cap); U_.ph = (U_.ph + dt * rate) % 1; const ph = U_.ph, A = mps != null ? Math.max(0.1, Math.min(0.72, Math.asin(Math.min(0.95, (mps * gt.duty) / (2 * 1.25 * (kd.s || 1) * rate))))) : gt.A * (0.7 + 0.3 * k), TAU = PI * 2;
+      const ik = mps != null && mps > 0.05 && U_.hooves.length === 4 ? hoofRig(U_) : null;
+      if (ik) { // the hooves placed: each is put down ahead, stays where it was put while the body goes over it, and is picked up and carried forward folded (owner, 13 November: "allow for trotting and galloping")
+        const span = Math.min((mps * gt.duty) / rate, ik.cap), lift = (name === "walk" ? 0.1 : name === "trot" ? 0.2 : 0.3) * (kd.s || 1), ry = B_.root.position.y;
+        for (let i = 0; i < 4; i++) { let u = (ph + gt.ph[i]) % 1; const r = ik.legs[i]; let z, y;
+          if (u < gt.duty) { const t = u / gt.duty; z = r.c + span * (0.5 - t); y = r.h0; }
+          else { const q = (u - gt.duty) / (1 - gt.duty), e = q * q * (3 - 2 * q); z = r.c + span * (-0.5 + e); y = r.h0 + lift * Math.sin(PI * Math.pow(q, 0.75)); }
+          hoofIK(r, z - r.pz, y - r.py - ry, IKO); L[i].rotation.x = IKO[0]; U_.shins[i].rotation.x = IKO[1];
+          U_.hooves[i].rotation.x = u < gt.duty ? -(IKO[0] + IKO[1]) : -(IKO[0] + IKO[1]) * 0.4 + 1.1 * Math.sin(PI * (u - gt.duty) / (1 - gt.duty)); }
+      } else
       for (let i = 0; i < 4; i++) { const [reach, fold] = stride(ph + gt.ph[i], gt.duty), hind = i > 1;
         ease(L[i], "x", -reach * A * (hind ? 0.9 : 1) + (hind ? 0.06 : 0), f); ease(U_.shins[i], "x", fold * gt.F * (hind ? 0.85 : 1), f); if (U_.hooves[i]) ease(U_.hooves[i], "x", fold * 0.9 - (fold ? 0 : 0.1 * (1 - Math.abs(reach))), f); }
       if (name === "walk") { y = 0.012 * Math.abs(Math.sin(TAU * ph * 2)); roll = 0.014 * Math.sin(TAU * ph); neck = 0.02 + 0.055 * Math.sin(TAU * ph * 2 + 0.6); tailZ = 0.1 * Math.sin(TAU * ph); }
       else if (name === "trot") { y = 0.035 * Math.abs(Math.sin(TAU * ph)); neck = -0.03 + 0.02 * Math.sin(TAU * ph * 2); tailX = 0.22; tailZ = 0.08 * Math.sin(TAU * ph * 2); }
       else { y = 0.04 + 0.05 * Math.sin(TAU * (ph - 0.67)); pitch = 0.055 * Math.sin(TAU * (ph - 0.2)); neck = 0.16 + 0.09 * Math.sin(TAU * (ph - 0.2)); head = -0.12; tailX = 0.5 + 0.2 * k + 0.08 * Math.sin(TAU * ph * 2); tailZ = 0.06 * Math.sin(TAU * ph * 2 + 1); }
-      y *= kd.s * (name === "gallop" ? kd.bounce || 1 : 1); if (kd.bounce && name === "gallop") { pitch *= 1.5; neck -= 0.18; tailX = -0.7; } // (a deer bounds, its head high and its white tail up)
+      y *= kd.s * (name === "gallop" ? kd.bounce || 1 : 1); if (ik) y = y * 0.6 - ik.drop; if (kd.bounce && name === "gallop") { pitch *= 1.5; neck -= 0.18; tailX = -0.7; } // (a deer bounds, its head high and its white tail up)
       if (kd.prowl) { neck += name === "walk" ? 0.1 : 0.02; tailX = name === "gallop" ? 0.35 : 0.02; tailZ += 0.12 * Math.sin(now * 1.7 + id); } // (a tiger carries its head low and its tail out behind)
       if (kd.wag) { tailZ = 0.4 * Math.sin(now * 13 + id); tailX = -0.1; }
     } else if (kd.graze != null || kd.prowl || kd.wag) { // the lesser beasts standing: cattle and deer at grass (a deer never for long: its head comes up, and it looks about), a tiger watching, a dog wagging
