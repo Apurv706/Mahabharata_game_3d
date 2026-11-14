@@ -511,7 +511,7 @@ def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stif
         bmesh.ops.delete(bm, geom=[f for f in bm.faces if abs(f.calc_center_median().x) < xh and f.calc_center_median().z > zl], context="FACES")
     dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > 0.3], context="VERTS")   # (skin the arm has a real hold on is left bare: under armour that does not move it would be hidden at rest and missing when the arm rose)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > (0.66 if stiff else 0.3)], context="VERTS")   # (skin the arm has a real hold on is left bare: under armour that does not move it would be hidden at rest and missing when the arm rose)
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o)
     if stiff:   # armour does not go up with a raised arm as skin does: the arm moves in its arm-hole (its edge rose in spikes otherwise)
@@ -519,12 +519,16 @@ def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stif
         for v in o.data.vertices:
             ws = {nm_[g.group]: g.weight for g in v.groups if g.weight > 0}; arm_ = [n for n in ws if n[0] in "aew"]
             if not arm_: continue
-            rest = sum(w for n, w in ws.items() if n not in arm_)
-            for n in arm_: o.vertex_groups[n].remove([v.index])
-            if rest > 1e-4:
-                for n, w in ws.items():
-                    if n not in arm_: o.vertex_groups[n].add([v.index], w / rest, "REPLACE")
-            else: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], 1.0, "REPLACE")
+            # (all of the arm's hold taken off, the skin under the plates went up with a raised arm and the plates did not: the
+            # back and the shoulder showed through them. So the plates keep the arm's hold where it is slight, as the skin under
+            # them does, and lose it only toward the arm-hole's edge, where the spikes were.)
+            aw = sum(ws[n] for n in arm_); t = min(1.0, max(0.0, (aw - 0.12) / 0.5)); keep_ = 1.0 - t * t * (3 - 2 * t)
+            rest = sum(w for n, w in ws.items() if n not in arm_); tot = rest + aw * keep_
+            if tot < 1e-4: (o.vertex_groups.get("T") or o.vertex_groups.new(name="T")).add([v.index], 1.0, "REPLACE"); continue
+            for n, w in ws.items():
+                w2 = (w * keep_ if n in arm_ else w) / tot
+                if w2 > 1e-4: o.vertex_groups[n].add([v.index], w2, "REPLACE")
+                else: o.vertex_groups[n].remove([v.index])
     return o
 trunk = lambda c: not (c.z > 1.4 and abs(c.x) < 0.085)
 def band(c, w):   # a strip from the left shoulder down to the right hip, front and back
@@ -623,7 +627,7 @@ for k in range(22):
     a = (k - 10.5) / 10.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.17; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - 0.006, z_), (0.011, 0.011, 0.011), segments=6, ring_count=5)); rigid(parts[-1], "T")
 since(n0, "beads"); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.013, cut=(1.03, 1.45), sides=SHX - 0.022, neck=(0.085, 1.4), stiff=True)
+shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.021, cut=(1.03, 1.45), sides=SHX + 0.01, neck=(0.085, 1.4), stiff=True)
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 for (dx_, z_, sc_, tilt) in ((0.0, 1.425, (0.098, 0.108, 0.046), 0.28), (0.052, 1.39, (0.088, 0.104, 0.04), 0.62), (0.092, 1.342, (0.074, 0.096, 0.036), 0.95)):   # three lapped plates down the shoulder, each tipped further over the arm
@@ -708,7 +712,7 @@ def ribbon(src, suffix, P0=(0.125, 1.455), P1=(-0.16, 1.0), mid="red", half=0.02
         for g in sorted(sv.groups, key=lambda g: -g.weight)[:2]: (s_.vertex_groups.get(gn[g.group]) or s_.vertex_groups.new(name=gn[g.group])).add(range(len(s_.data.vertices)), g.weight, "REPLACE")
         parts.append(s_)
 ribbon(B, "", mid="white", half=0.0045, stud=99, edge=None, off=0.006); since(n0, "thread"); n0 = len(parts)                  # the sacred thread
-ribbon(B, "", mid="red", half=0.03, stud=99, edge="red" if not H.get("rich") else "gold"); since(n0, "baldric"); n0 = len(parts)   # a sash of the side's colour, over the armour
+ribbon(B, "", mid="red", half=0.03, stud=99, edge="red" if not H.get("rich") else "gold", off=0.036); since(n0, "baldric"); n0 = len(parts)   # a sash of the side's colour, over the armour
 ribbon(B, "", mid="leather", half=0.014, stud=99, edge="leather"); since(n0, "strap"); n0 = len(parts)            # a quiver's or a bag's strap
 ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2)
 ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2); since(n0, "harness"); n0 = len(parts)

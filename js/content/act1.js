@@ -327,7 +327,7 @@
         "At the spring fair, old Haridatta keeps a dice-board."
       ],
       choices: [
-        { id: "play", t: "Play him for a copper", game: "pasha", hint: "Dice, best of three",
+        { id: "play", t: "Play him for a copper", game: "pasha", hint: "Dice, best of three", trial: { who: "Haridatta", who3: "haridatta", stage: "scene_pasha" },
           win: { fx: { item: { herbs: 1 }, flag: ["learned_pasha", "beat_haridatta"], journal: "You beat old Haridatta at dice at the spring fair." },
             text: "Haridatta laughs and pays you in healing herbs. \"The dice are honest. Men are not.\"" },
           lose: { fx: { flag: "learned_pasha" },

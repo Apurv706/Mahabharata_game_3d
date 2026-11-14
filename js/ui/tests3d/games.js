@@ -413,12 +413,12 @@
   // =====================================================================================================
   const FACES = [1, 2, 5, 6], throwDie = () => K.pick(FACES), sum = (a) => a.reduce((n, x) => n + x, 0);
   const diceRow = (d, pickable) => '<span class="dice">' + d.map((n, i) => '<button type="button" class="die' + (pickable ? " pick" : "") + '" data-i="' + i + '"' + (pickable ? "" : " disabled") + ">" + n + "</button>").join("") + "</span>";
-  function diceSetup(ctx) { ctx.st = G.setStage("scene_dice_hall", { clear: 8 }); meAt(ctx, -1.1, 0.4, Math.PI / 2, "sitPlay", { item: null }); const f = ctx.figure(ctx.t.who ? U.personByName(ctx.t.who) || "shakuni" : "shakuni", { item: "dice" }); f.place(1.1, 0.4, -Math.PI / 2); f.pose("sitPlay", true); ctx.x = { foe: f }; ctx.cam([0, 2.6, 5.4], [0, 0.8, 0.3], 40, true); }
+  function diceSetup(ctx) { ctx.st = G.setStage(ctx.t.stage || "scene_dice_hall", { clear: 8 });   /* (the spring fair's board is under an awning, with old Haridatta; the dice hall is Shakuni's) */ meAt(ctx, -1.1, 0.4, Math.PI / 2, "sitPlay", { item: null }); const f = ctx.figure(ctx.t.who3 || (ctx.t.who ? U.personByName(ctx.t.who) || "shakuni" : "shakuni"), { item: "dice" }); f.place(1.1, 0.4, -Math.PI / 2); f.pose("sitPlay", true); ctx.x = { foe: f }; ctx.cam([0, 2.6, 5.4], [0, 0.8, 0.3], 40, true); }
   SETUP.pasha = { clear: 8, setup: diceSetup }; SETUP.hands = { clear: 8, setup: diceSetup };
   AUTO.pasha = function () { let me = 0, them = 0; while (me < 2 && them < 2) { const a = [0, 0, 0].map(throwDie), b = [0, 0, 0].map(throwDie); const lo = a.indexOf(Math.min(...a)); if (a[lo] <= 2) a[lo] = throwDie(); const lb = b.indexOf(Math.min(...b)); if (b[lb] <= 2) b[lb] = throwDie(); if (sum(a) > sum(b)) me++; else if (sum(b) > sum(a)) them++; } return [me > them ? "win" : "lose", null]; };
   AUTO.hands = function () { return [K.rng() < (K.S.flags.includes("saw_long_dice") ? 0.85 : 0.6) ? "win" : "lose", null]; };
   PLAY.pasha = function (ctx) {
-    const opp = K.tr("Shakuni"); let me = 0, them = 0, round = 1, mine = null, theirs = null, rolled = false; ctx.tapActs = false;
+    const opp = K.tr(ctx.t.who || "Shakuni"); let me = 0, them = 0, round = 1, mine = null, theirs = null, rolled = false; ctx.tapActs = false;
     const box = U.el('<div class="t-board"></div>'); ctx.mid.appendChild(box);
     ctx.prompt(tx("Three long dice each, marked one, two, five and six. The higher total takes the round; two rounds win the game. Once a round you may throw one of your dice again."));
     const draw = (note) => {

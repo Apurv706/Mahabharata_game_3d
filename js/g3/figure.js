@@ -873,6 +873,8 @@
   };
   // People the story names who have no look of their own in the 2D game, and the ordinary folk of every scene.
   const EXTRAS = {
+    // old Haridatta, who keeps a dice-board under a striped awning at the spring fair (act 1)
+    haridatta: { model: "villager_m", face: "gaunt", pronoun: "he", palette: ["#a8693a", "#c9a46a", "#7a2f2a"], stage: "elder", headgear: "turban", beard: true, item: null },
     // (Draupadi: "her complexion was dark, and her locks were blue and curly"; Gandhari bandaged her own eyes; the king is blind.)
     draupadi: { model: "draupadi", face: "heart", pronoun: "she", palette: ["#6e4226", "#b2432a", "#e2b55a"], stage: "adult", headgear: "mukuta", hair: "long", hairCol: "#16182e", size: 1.02 },
     sairindhri: { model: "draupadi", look: "disguise", face: "heart", dyed: true, pronoun: "she", palette: ["#6e4226", "#2a2422", "#6a5a48"], stage: "adult", hairCol: "#16182e", size: 1.02 }, // in Virata's house: "a single piece of a black and dirty though costly cloth", the braid hidden

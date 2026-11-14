@@ -216,6 +216,7 @@
   const STRIKE = /^(slash|slash2|heavy|thrust|smash|sweep|stab|punch|hammer|throw|cheer|roar)$/, HURT = /^(hit|stagger|down|slump|shame|plead)$/, SHUT = /^(sleep|down|slump)$/;
   G.rigDrive = function (f, dt) {
     const R = f.rig; if (!R) return; const j = f.j, k = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
+    if (j.fL && j.fR) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }   // (no foot under the ground: a stance's crouch, and some poses, sank the front foot five centimetres into it. The body rises instead; owner, 14 November)
     if (j.T1) j.T1.quaternion.slerpQuaternions(ID, j.T.quaternion, 0.5);
     if (j.N) j.N.quaternion.slerpQuaternions(ID, j.H.quaternion, 0.5);
     const fists = /Fist|punch|grab|clasp/.test(f.base || "") || (f.action && /punch|grab/.test(f.action.name || ""));

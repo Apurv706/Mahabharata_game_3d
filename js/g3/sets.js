@@ -220,6 +220,9 @@
       if (o.stable) { b.box(14, 0.25, 5, 0, 3, -R - 5, 0x7a5232, 0, 0.12); for (let i = 0; i < 6; i++) { b.rod(-6.5 + i * 2.6, 0, -R - 3, -6.5 + i * 2.6, 3, -R - 3, 0.09, 0x5a3a22); } for (let i = 0; i < 4; i++) { const h = G.horse(); h.position.set(-5 + i * 3.3, 0, -R - 5.2); st.add(h); st.ticks.push((dt, t) => G.gallop(h, t + i * 1.7, 0)); } /* (standing at the rail: a tail swishes, a hind foot rests) */ for (let i = 0; i < 4; i++) b.box(1.2, 0.5, 0.7, -5 + i * 3.3, 0, -R - 2.8, 0xb89a5a); }
       if (o.elephants) for (let i = 0; i < 3; i++) { const el = G.elephant(i % 2 ? 0xa3302a : 0xd79a2b); el.position.set(-9 + i * 9, 0, -R - 6); el.rotation.y = (rnd() - 0.5); st.add(el); st.ticks.push((dt, t) => G.stomp(el, t * 1.4 + i, 0)); }
       if (o.fair) {
+        if (o.awning) { const m = new T.Mesh(new T.PlaneGeometry(3.4, 3.4).rotateX(-PI / 2), new T.MeshLambertMaterial({ map: G.tex("chaupar") })); m.position.set(0, 0.03, 0.4); m.receiveShadow = true; st.add(m);
+          for (const [x, z] of [[-2.6, -1.6], [2.6, -1.6], [-2.6, 2.4], [2.6, 2.4]]) b.rod(x, 0, z, x, 2.9, z, 0.06, 0x6a4628);
+          for (let i = 0; i < 8; i++) b.box(5.4 / 8, 0.04, 4.4, -2.7 + (i + 0.5) * (5.4 / 8), 2.95, 0.4, i % 2 ? 0xe8dcc0 : 0xa3302a); }   // (a cloth of the board on the earth, four poles, a striped awning over them)
         ring(rnd, 12, R + 2, R + 20, (x, z, a) => G.stall(b, x, z, a + PI, [0xa3302a, 0x2d5aa0, 0xd79a2b, 0x2f7d55, 0xe8dcc0][Math.floor(rnd() * 5)], rnd));
         if (o.ringed) { for (let i = 0; i < 22; i++) { const a = (i / 22) * PI * 2, r = R - 1.5; b.rod(Math.sin(a) * r, 0, Math.cos(a) * r, Math.sin(a) * r, 1, Math.cos(a) * r, 0.05, 0x5a3a22); } b.torus(R - 1.5, 0.03, 0, 0.9, 0, 0xd8c49a, PI / 2, 0, 0, 40);
           // The wrestling pit of a village fair, to be seen from above too: a lime ring on the earth, marigold strewn
@@ -353,6 +356,7 @@
     P(/stage_stable_yard|ev_horses/, "yard", "gold", { stable: true }),
     P(/stage_elephant_grounds/, "yard", "day", { elephants: true }),
     P(/fight_fair_ring/, "yard", "gold", { fair: true, ringed: true }),
+    P(/scene_pasha(_wide)?$/, "yard", "gold", { fair: true, awning: true }),   // (old Haridatta's dice-board under a striped awning at the spring fair)
     P(/scene_fair|scene_pasha|ev_bard|ev_lamps|scene_bard|end_teller/, "yard", "gold", { fair: true }),
     P(/scene_cattle|battle_cattle|fight_grazing|battle_field$/, "yard", "day", { pasture: true }),
     P(/stage_city_night/, "city", "night", {}),

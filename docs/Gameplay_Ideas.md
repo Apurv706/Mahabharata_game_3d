@@ -354,3 +354,9 @@ An archer and a mace fighter from birth (24 minutes each, to the age of 17 and 1
 - **A bout lost in a test inside a short scene** (Ugra at the tournament) left the 2D fight screen behind with a script error: the page under it had been taken down. It is put back first.
 - **Through your eyes, an archer saw only his own bow.** Your bow is hidden in that view, as your shield already was.
 - **Swordsmen held spears** (and the regression suite had failed on every push since 12 November because of it). They hold swords.
+
+### After playing Version 54 (14 November, morning)
+
+- **The dice at the spring fair** were played with Shakuni in his dice hall. They are played with old Haridatta, on a dice cloth on the earth among the fair's stalls, under a striped awning (`trial.who`, `who3`, `stage` on the choice; `haridatta` among the extra figures; `awning` on the fair's stage).
+- **Skin through the armour.** When an arm rose, the skin of the back and shoulder came through the cuirass, and on the broad soldiers' look a red baldric showed through it in streaks. The cuirass now follows the body where the arm's hold on it is slight and goes stiff only toward the arm-hole; it covers more of the shoulder and the side; it stands a little further off the body (2.1 cm, was 1.3), as the owner asked, "looser to allow good fitting while fighting"; and the baldric is laid over it. All 79 figures rebuilt.
+- **Feet under the ground.** Standing in a fighting stance, the front foot sank about 5 cm into the ground. No ankle may now go below its standing height: the body rises instead. Measured on the mesh itself: walking, running, standing and in a stance, the lowest point of either foot is within 4 mm of the ground.
