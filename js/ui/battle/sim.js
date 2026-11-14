@@ -34,6 +34,18 @@
     maceSmash: 0.82, maceSweep: 0.72, maceHit: 1.1, maceShove: 0.9,
     parry: 0.24, parryStag: 1.0, parryStagMace: 1.4, parryPart: 0.5, parriedBusy: 0.45, parryFoeCd: 2.5,
     fblock: 0.18, fblockLight: 0.15, fblockHeavy: 0.45, fblockRec: 1.0, fblockCd: 1.8,
+    // What each kind of man can do ("What each kind of man can do", below). A shield-man's shield is up this many times as often
+    // (never more than shieldMost of the time), and each blow it catches wears it shieldWear times as fast, so it is soon broken;
+    // a spearman sets his point at a man closing faster than setRun (m/s) inside his reach and setReach more, strikes in setWind
+    // seconds for setHit times the blow, and needs setCd seconds before he can do it again; a heavy weapon's great blow lets
+    // crush of itself through a raised shield and leaves him open crushOpen seconds longer; a skirmisher's blow from behind
+    // is backHit times as heavy, and he runs below skirmRun of his strength; a captain's men rest ledRest as long, and reel
+    // captainReel seconds when he falls.
+    // Your own plan ("Your own plan", below).
+    karnaSecond: 0.5,   // (Karna's second arrow follows the first by this long)
+    holdBack: 0.7, holdSpirit: 0.8, flankRest: 1.55, centreSpirit: 1.3, centreBack: 1.2, metSpirit: 20, metSecs: 6, scoutSure: 7,
+    captureSecs: 24, captiveHp: 0.8, captiveShare: 0.2, captureSpirit: 65, shaken: 40, shakenRest: 1.25,   // (a man to take: the count, his strength beside the common men of the fight, what his taking costs their spirit)
+    shieldMan: 1.8, shieldMost: 0.42, shieldWear: 2, setRun: 3.4, setReach: 0.9, setWind: 0.34, setHit: 1.15, setCd: 8, crush: 0.6, crushOpen: 0.3, backHit: 1.25, skirmRun: 0.3, ledRest: 0.82, captainReel: 0.9,
     bowSecond: 0.8, bowGap: 0.09, arrowPush: 0.35, arrow: 23, myArrow: 36, shoot: 17, keep: 8.5,
     fan: 0.95, thrust: 0.5, sweep: 1.75, lunge: 0.55, quake: 3.3, wait: 4.4,
     shieldPts: 10, shieldBack: 9, pickup: 1.0, lightStag: 0.18, mantraRest: 10, shieldYou: 0.85, shieldSoldiers: 0.6,
@@ -47,9 +59,11 @@
   // Each fight's own tuning in 3D, on top of the 2D game's (RT.TUNE). Set against the bot on all seven paths, with the line
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
-  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.6 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.53 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
+  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.0 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.53 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
     oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
-    e_wheel: { hp: 1, atk: 1.22 }, e_day16: { hp: 0.9, atk: 0.84 }, e_road: { atk: 1.4 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.15, atk: 1.62 },
+    e_wheel: { hp: 1, atk: 1.12 }, e_day16: { hp: 0.85, atk: 0.7 }, e_road: { atk: 1.2 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.0, atk: 1.25 },
+    // (13 November, night: with a man to take where a banner on a pole had ended a war fight in fifteen seconds, and with the trades, these needed easing)
+    e_night: { hp: 0.85, atk: 0.9 }, e_lake_hold: { atk: 0.85 }, e_lake_hold_deep: { atk: 0.85 },
     hold_duryodhana: { atk: 0.92 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
@@ -187,6 +201,23 @@
   // The engine's roll without the line: what the story reads when the fight is settled.
   function settle(R, out, rounds) { const B = R.B; clearDecoys(B); if (R.line && !R.lineOff) { R.lineOff = B.units.filter((u) => u.line); B.units = B.units.filter((u) => !u.line); } if (!B.over) C.settle(out, rounds); }
 
+  // ---------- What each kind of man can do ----------
+  // (owner, 13 November: "each hero should have their own unique characteristics. Even soldiers should have different
+  // capabilities.") A named champion has traits of his own (engine/realtime.js). A common man has his trade's:
+  //   spear    he sets his point at a man who runs straight at him, and strikes first; from the side he is as slow as any
+  //   heavy    a mace, a club, an axe: his great blow comes through a raised shield and beats it down; he is long open after it
+  //   skirm    a raider, a bandit, a scout: he works round to your back, strikes harder from there, and runs when badly hurt
+  //   captain  while he stands his men rest less between blows and do not hang back; when he falls they reel and lose heart
+  //   shield   a guard, a swordsman: most blows from the front fall on his shield, until it is broken or you get round him
+  //   archer   he keeps his distance, and draws slowly with a man on top of him (as before)
+  const CLASSES = [["captain", /captain|dented helmet/i], ["heavy", /mace champion|club-man|axeman|\bveteran\b/i], ["spear", /spear/i], ["skirm", /raider|bandit|scout|levies|cowherd/i], ["shield", /guard|bodyguard|sentry|swordsman|footsoldier/i]];
+  R3.classOf = (u) => { if (!u || u.side !== "enemy" || u.hero || u.person || u.decoy || u.line) return null; /* (the men of the line fight their own men: plain soldiers) */ const n = String(u.src || u.name || ""); if (/elephant|\bcart$|Narayana weapon/i.test(n)) return null; for (const [k, re] of CLASSES) if (re.test(n)) return k; return null; };
+  R3.CLASS_LINE = { spear: "Spearmen: they strike first at a man who runs straight at them. Come at their side", heavy: "A heavy weapon: his great blow beats down a raised shield. Roll clear, and strike while he recovers", skirm: "Skirmishers: they work round to your back, and run when they are hurt",
+    captain: "A captain: his men do not hang back while he stands. Bring him down first", shield: "Shield-men: blows from the front fall on the shield. Get round them, or break it with a heavy blow", archer: "Archers: they keep their distance, and draw slowly with a man on top of them" };
+  R3.CLASS_TAG = { spear: "Strikes first", heavy: "Breaks a guard", skirm: "Goes for your back", captain: "Rallies his men", shield: "Shield in front", archer: "Keeps away" };
+  const leads = (c) => !!c.g && (c.g.cls === "captain" || who(c) === "kritavarma");   // (Kritavarma, who led the Narayani host, leads as a captain does)
+  const led = (R, e) => living(R.B, "enemy").some((c) => c !== e && leads(c) && !c.g.flee && dist(c, e) < 8);   // a captain within call
+
   // ---------- Who each unit is, on the ground ----------
   function kindOf(u) {
     const n = String(u.src || u.name);
@@ -227,6 +258,9 @@
     // car round the field on his own line. You do not steer: you aim, loose and brace.
     if (u.side === "player" && R.B.enc.ride3) { u.g.car = true; u.g.rad = 1.25; u.g.ride = { th: 0 }; }
     for (const [s, v] of Object.entries(u.status)) if (typeof v === "number") u.g.st[s] = v * ROUND;
+    u.g.cls = R3.classOf(u) || (foe && archer && !u.hero && !u.person && !u.line && (kind === "man" || kind === "squad") ? "archer" : null);
+    if (u.g.cls === "shield" && !archer) u.shield = true;   // (his trade's own)
+    if (u.g.cls === "heavy" && !u.abilities.includes("heavy")) u.abilities = u.abilities.concat("heavy");   // (a club or an axe has a great blow, whoever swings it)
     if (foe && (u.shield || u.shieldDrawn) && u.sp == null) u.sp = P.shieldPts;
     if (u.leave != null) { u.g.leaveAt = R.t + Math.max(1, u.leave - B.round) * P.story; delete u.leave; }
   }
@@ -342,8 +376,70 @@
     if (g.role === "raider") { const A = B.units.find((u) => u.uid === g.on); if (!A || A.hp <= 0 || !R.task) { g.role = null; return false; } g.tgt = A.uid; return false; }
     return false;
   }
+  // Their captain is down: the common men who stood within his call reel, and hang back a while; their host's spirit falls.
+  function captainDown(R, c) { let n = 0; for (const u of living(R.B, "enemy")) if (u.g && common(u) && dist(u, c) < 9) { u.g.stag = Math.max(u.g.stag || 0, P.captainReel); u.g.cool = Math.max(u.g.cool || 0, 1.6); if (u.g.atk) cancel(u); n++; } if (!(R.plan && R.plan.champ === c.uid)) spirit(R, -25); /* (where he was their champion, his fall has already told on their spirit) */ R.fx.push({ k: "captainDown", uid: c.uid, n }); tip(R, "c_captain"); }
+  // ---------- A man to take (owner, 13 November: "change the guard the flag or capture the pole to something like capture
+  // one of the Kaurava brothers or a small king of the other side: that leads to morale lowering") ----------
+  // When their wall is broken it is no longer a banner on a pole that stands open behind it. A man of name is cut off from
+  // his men: one of Duryodhana's brothers or a lesser king of his host if you fight for the Pandavas, a prince or a lesser
+  // king of theirs if you fight for him. Bring him down inside the count and he is taken, alive, and carried to the rear:
+  // their host's spirit falls by captureSpirit (which breaks a host already shaken). Too slow, and his men bring him off,
+  // and they rally as they did round a banner saved. No man is taken twice in a life (a flag keeps the names).
+  R3.CAPTIVES = {
+    pandava: [["vikarna", "Vikarna, a Kaurava prince", "dushasana"], ["susharma", "Susharma, king of Trigarta", "jayadratha"], ["durmukha", "Durmukha, a Kaurava prince", "dushasana"], ["sudakshina", "Sudakshina, king of the Kambojas", "shalya"],
+      ["chitrasena", "Chitrasena, a Kaurava prince", "dushasana"], ["vinda", "Vinda, a king of Avanti", "jayadratha"], ["vivimshati", "Vivimshati, a Kaurava prince", "dushasana"], ["brihadbala", "Brihadbala, king of Kosala", "shalya"],
+      ["durmarshana", "Durmarshana, a Kaurava prince", "dushasana"], ["anuvinda", "Anuvinda, a king of Avanti", "jayadratha"]],
+    kaurava: [["yudhamanyu", "Yudhamanyu, a prince of Panchala", "dhrishtadyumna"], ["dhrishtaketu", "Dhrishtaketu, king of Chedi", "uttara"], ["uttamaujas", "Uttamaujas, a prince of Panchala", "dhrishtadyumna"], ["chekitana", "Chekitana of the Vrishnis", "satyaki"],
+      ["shatanika", "Shatanika, a prince of Matsya", "uttara"], ["kuntibhoja", "Kuntibhoja, the old king", "virata"], ["satyajit", "Satyajit, a prince of Panchala", "dhrishtadyumna"], ["purujit", "Purujit, Kunti's brother", "drupada"]]
+  };
+  R3.captiveFor = (S = K.S) => { const list = S && R3.CAPTIVES[S.side]; if (!list) return null; const f = S.flags || []; const c = list.find((x) => !f.includes("took_" + x[0])); return c ? { id: c[0], name: c[1], look: c[2] } : null; };
+  function captive(R, car) {
+    const B = R.B, who = B.enc.rounds || B.enc.dream || B.enc.noCaptive ? null : R3.captiveFor(K.S); if (!who) return null;
+    const men = B.units.filter((u) => u.side === "enemy" && !u.line && u._tb && !u.hero && !u.person), ref = men.length ? men : B.units.filter((u) => u.side === "enemy" && u._tb && !u.line);
+    const least = (f) => (ref.length ? Math.min(...ref.map(f)) : 0);   // (measured against the least of the men of this fight as they stand on this field: what tests you is the count, not his arm)
+    const u = C.core.makeUnit({ name: who.name, hp: 20, atk: 6, abilities: ["strike"], shield: false }, "enemy", 300 + (R.capN = (R.capN || 0) + 1), B.enc);
+    u.captive = who.id; u.look3 = who.look; u.tier = 0; u.item = "sword"; u.shield = false; u.shieldDrawn = false;   // (a man of rank and a fair fighter, but alone, and there is a count: he carries no shield to hide behind)
+    B.units.push(u); initUnit(R, u);
+    // (…and where their men are few and each is strong, a share of the whole of them instead: on the road to Jayadratha two
+    // men stand, and a third at eight-tenths of the lesser made the fight half as long again and lost the bot one life in three)
+    const whole = (f) => ref.reduce((s, m) => s + f(m), 0) * P.captiveShare;
+    if (ref.length) { u.maxHp = u.hp = Math.max(1, Math.round(Math.min(least((m) => (m.plural && m.g ? m.maxHp / (m.g.bodies || 1) : m.maxHp)) * P.captiveHp, whole((m) => m.maxHp)))); u.atk = Math.round(Math.min(least((m) => m.atk) * 0.9, whole((m) => m.atk)) * 10) / 10; }
+    const g = u.g; g.x = car ? clamp(car.g.x + (car.g.x > 0 ? -2.6 : 2.6), -R.rad + 2, R.rad - 2) : 0; g.z = car ? car.g.z : -R.rad + 2.2; g.a = 0; g.entered = true; g.wave = 0; g.cls = null; g.cool = 1.2;
+    return u;
+  }
   function rout(R) { if (R.routed || R.B.enc.rounds) return; R.routed = true; let n = 0; for (const u of living(R.B, "enemy")) if (u.g && (common(u) || u.line) && !u.g.car && !u.g.flee) { u.g.flee = R.t + 1.6 + n * 0.15; u.g.burnUntil = 0; u.g.role = null; cancel(u); n++; } if (R.morale) R.morale.theirs = 0; R.fx.push({ k: "rout", n }); }
-  function spirit(R, d) { if (!R.morale || R.routed) return; R.morale.theirs = clamp(R.morale.theirs + d, 0, 100); if (R.morale.theirs <= 0) rout(R); }
+  // A host whose spirit is down to two-fifths is shaken: every man of theirs is slower to come on again (shakenRest on the
+  // rest between his blows) until it rises, so that a man taken tells in the fight at once and not only at the rout.
+  function spirit(R, d) { if (!R.morale || R.routed) return; if (d < 0 && R.stance) d *= R.stance === "centre" ? P.centreSpirit : R.stance === "hold" ? P.holdSpirit : 1; R.morale.theirs = clamp(R.morale.theirs + d, 0, 100); if (R.morale.theirs <= 0) return rout(R); const sh = R.morale.theirs <= P.shaken; if (sh !== !!R.shaken) { R.shaken = sh; R.fx.push({ k: sh ? "shaken" : "rallied" }); } }
+  // ---------- Your own plan (owner, 13 November: "allow for more strategic thinking"; "have the strategy of foe side and
+  // friend side be more visible") ----------
+  // Before a war fight that has a plan against you, you choose how your side fights it. Each way has its gain and its
+  // price, and each is the answer to one of their three plans:
+  //   hold    your men keep close about you: blows that come at your back fall lighter (holdBack); but their host's
+  //           spirit falls more slowly (holdSpirit). The answer to the pincer: its wings find your men where your back was.
+  //   flank   your men go wide, for their archers and their rear: their archers rest longer between shots (flankRest);
+  //           but your men begin the fight away from your side. The answer to the wall: it is taken in the side.
+  //   centre  you go straight in with your men at your heels: their spirit falls faster (centreSpirit); but blows at your
+  //           back fall harder (centreBack). The answer to the champion's charge: he is met, not waited for.
+  // Their plan answered: their spirit begins lower by metSpirit, and the turn's task has metSecs more on its count.
+  // What your scouts say of their plan is sure only with the wit for it (wisdom and statecraft together, scoutSure or
+  // more): otherwise they name two plans, one of them the true one. How they stand on the field is always the truth.
+  R3.spirit = spirit;
+  R3.STANCES = ["hold", "flank", "centre"]; R3.ANSWER = { pincer: "hold", wall: "flank", charge: "centre" };
+  R3.scouts = function (R) {
+    const pl = R.plan; if (!pl || !R3.ANSWER[pl.kind]) return null;
+    if (pl.scouts) return pl.scouts;
+    const wit = (K.attr ? K.attr("wisdom") || 0 : 0) + ((K.S && K.S.skills && K.S.skills.statecraft) || 0), sure = wit >= P.scoutSure, others = Object.keys(R3.ANSWER).filter((k) => k !== pl.kind);
+    return (pl.scouts = { sure, kinds: sure ? [pl.kind] : (K.rng() < 0.5 ? [pl.kind, K.pick(others)] : [K.pick(others), pl.kind]) });
+  };
+  R3.stance = function (R, id) {
+    const pl = R.plan; if (!pl || !R3.ANSWER[pl.kind] || !R3.STANCES.includes(id) || R.stance || R.t > 0.5) return false;
+    R.stance = id; R.met = R3.ANSWER[pl.kind] === id;
+    if (R.met && R.morale) R.morale.theirs = Math.max(1, R.morale.theirs - P.metSpirit);
+    if (id === "flank") { const B = R.B, as = B.units.filter((u) => u.side === "ally" && !u.line && u.g && !u.still); as.forEach((a, i) => { a.g.x = (i % 2 ? 1 : -1) * R.rad * 0.72; a.g.z = -R.rad * (0.05 + 0.12 * Math.floor(i / 2)); }); }   // (wide, and level with their line: on their way round it)
+    R.fx.push({ k: "stance", id, met: R.met });
+    return true;
+  };
   function turn(R, kind) {
     const B = R.B, pl = R.plan, p = C.player(); if (!pl || pl.turned || R.routed) return;
     if (R.t < 9) { pl.pending = kind; return; } pl.turned = true; pl.pending = null; // (never in the first breaths of a fight)
@@ -354,20 +450,24 @@
     // With a great car on the field the tasks are the epic's own: cut down the banner that flies over it (any blow or
     // arrow of yours that lands on the car), or get to its charioteer while its wheel-guards are away.
     if (kind === "raid" && car && R.task) { const on = R.task.on, r0 = B.units.find((u) => u.uid === R.task.uid); if (r0 && r0.g) r0.g.role = null; kind = "sarathi"; R.lock = car.uid; R.task = { kind, uid: car.uid, on, until: R.t + 15, held: 0 }; }
-    if (kind === "standard" && car) { kind = "banner"; car.g.struck = false; R.lock = car.uid; R.task = { kind, uid: car.uid, until: R.t + 18 }; }
+    if (kind === "standard") { const c = captive(R, car); if (c) { kind = "capture"; R.lock = c.uid; R.task = { kind, uid: c.uid, who: c.captive, until: R.t + P.captureSecs }; } }
+    if (kind === "standard" && car) { kind = "banner"; car.g.struck = false; R.lock = car.uid; R.task = { kind, uid: car.uid, until: R.t + 18 }; }   // (with no one left to take in this life: the banner over the car, the banner on its pole)
     if (kind === "standard") R.task = { kind, x: 0, z: -R.rad + 1.6, r: 1.9, until: R.t + 18, held: 0 };
     if (kind === "duel") { const c = B.units.find((u) => u.uid === pl.champ); if (!c || c.hp <= 0) return; R.offer = { kind, uid: c.uid, n: 0 }; }
+    if (R.met && R.task && R.task.until) R.task.until += P.metSecs;   // (their plan answered: you have longer)
     R.fx.push({ k: "turn", kind, task: R.task || null, uid: R.task ? R.task.uid : pl.champ, on: R.task ? R.task.on : null });
   }
   function taskOver(R, won) {
     const B = R.B, T_ = R.task, pl = R.plan; R.task = null; if (!T_) return;
     R.fx.push({ k: won ? "taskDone" : "taskFail", kind: T_.kind, big: !!pl.big });
     if (won) { const c = B.units.find((u) => u.uid === T_.uid);
-      if (T_.kind === "standard" || T_.kind === "banner") rout(R);
+      if (T_.kind === "capture") { if (K.S && K.S.flags && !K.S.flags.includes("took_" + T_.who)) K.S.flags.push("took_" + T_.who); for (const u of living(B, "enemy")) if (u.g && common(u)) { u.g.stag = Math.max(u.g.stag || 0, 0.7); u.g.cool = Math.max(u.g.cool || 0, 1.4); } spirit(R, -P.captureSpirit); }
+      else if (T_.kind === "standard" || T_.kind === "banner") rout(R);
       else if (T_.kind === "sarathi" && c && c.g) { c.g.speed *= 0.12; c.g.stag = Math.max(c.g.stag || 0, 3); c.g.noDriver = true; cancel(c); spirit(R, -40); }
       else spirit(R, -30);
       return; }
-    if (T_.kind === "standard" || T_.kind === "banner") { for (const u of living(B, "enemy")) if (u.g && common(u)) u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * 0.25)); }
+    if (T_.kind === "capture") { const c = B.units.find((u) => u.uid === T_.uid); if (c && c.hp > 0 && c.g) { c.g.flee = R.t + 2.6; c.g.role = null; if (c.g.atk) cancel(c); } }   // (his men bring him off)
+    if (T_.kind === "standard" || T_.kind === "banner" || T_.kind === "capture") { for (const u of living(B, "enemy")) if (u.g && common(u)) u.hp = Math.min(u.maxHp, u.hp + Math.round(u.maxHp * 0.25)); }
     else { const A = B.units.find((u) => u.uid === T_.on); if (A && A.hp > 0) { A.hp = 0; R.fx.push({ k: "cutDown", uid: A.uid }); } }
     spirit(R, 25);
     if (pl.big) end(R, "lose"); else if (K.S && K.S.flags && !K.S.flags.includes("war_setback")) K.S.flags.push("war_setback");
@@ -478,7 +578,8 @@
     if (pl.kind === "charge" && !pl.turned && pl.charged != null) { const c = B.units.find((u) => u.uid === pl.champ); if (c && c.hp > 0 && (c.hp <= c.maxHp * 0.65 || R.t > pl.charged + 9) && n > 1) turn(R, "duel"); }
     if (R.duel) { const c = B.units.find((u) => u.uid === R.duel.uid); if (!c || c.hp <= 0) { R.duel = null; R.fx.push({ k: "duelWon" }); rout(R); } }
     const T_ = R.task; if (!T_) return;
-    if (T_.kind === "banner") { const c = B.units.find((u) => u.uid === T_.uid); if (!c || c.hp <= 0 || c.g.struck) { if (c && c.g) c.g.struck = false; taskOver(R, true); } else if (R.t >= T_.until) taskOver(R, false); }
+    if (T_.kind === "capture") { const c = B.units.find((u) => u.uid === T_.uid); if (!c || c.hp <= 0) { if (c) c.taken = true; taskOver(R, true); } else if (R.t >= T_.until) taskOver(R, false); }
+    else if (T_.kind === "banner") { const c = B.units.find((u) => u.uid === T_.uid); if (!c || c.hp <= 0 || c.g.struck) { if (c && c.g) c.g.struck = false; taskOver(R, true); } else if (R.t >= T_.until) taskOver(R, false); }
     else if (T_.kind === "sarathi") { const c = B.units.find((u) => u.uid === T_.uid);
       if (!c || c.hp <= 0) taskOver(R, true); else if (dist(p, c) <= c.g.rad + 1.25) { T_.held += STEP; if (T_.held >= 1) taskOver(R, true); } else { T_.held = Math.max(0, T_.held - STEP); if (R.t >= T_.until) taskOver(R, false); } }
     else if (T_.kind === "standard") { if (Math.hypot(p.g.x - T_.x, p.g.z - T_.z) <= T_.r) { T_.held += STEP; if (T_.held >= 1.5) taskOver(R, true); } else { T_.held = Math.max(0, T_.held - STEP); if (R.t >= T_.until) taskOver(R, false); } } // (stand at it a breath and a half to pull it down)
@@ -492,13 +593,14 @@
       orders: { friend: "balanced", soldiers: "defend" }, breath: P.breathMax, combo: 0, comboT: -9, buffer: false, roll: 0, rollT: -9, rdx: 0, rdz: -1, block: false, blockT: -9, winded: false,
       kneel: 0, skillCd: 0, herbCd: 0, salve: null, unseen: 0, double: false, haste: 0, frozen: 0, assist: !!opts.assist, lock: null, kind,
       stats: { blows: 0, hits: 0, rolls: 0, dodged: 0, perfect: 0, blocks: 0, blocked: 0, perfectBlocks: 0, parries: 0, parried: 0, fblocks: 0, taken: 0, maxAtk: 0 },
-      skill: null, D: RT.level(K.S), noStrike: kind === "weather", escort: kind === "escort", through: kind === "breakthrough", sp: P.shieldPts, broken: false, spOff: 0, ground: [], gid: 0 };
+      skill: null, D: RT.level(K.S, null, true), noStrike: kind === "weather", escort: kind === "escort", through: kind === "breakthrough", sp: P.shieldPts, broken: false, spOff: 0, ground: [], gid: 0 };
     B.rt = R;
     const L = opts.noLine ? null : R3.lineFor(B);
     if (L) { R.line = Object.assign({ n: 0, next: L.every, sent: [0, 0] }, R3.LINE, L); if (L.dream) { R.line.hpTheirs = 22; R.line.atkTheirs = 4; R.line.hpMine = 7; R.line.atkMine = 3; } for (let i = 0; i < L.mine; i++) addLine(R, "ally"); for (let i = 0; i < L.theirs; i++) addLine(R, "enemy"); }
     B.units.forEach((u) => initUnit(R, u));
     place(R);
     planFor(R, opts);
+    if (opts.stance) R3.stance(R, opts.stance);
     wheelSetup(R);
     const p = C.player();
     if (K.S && K.S.flags && K.S.flags.includes("war_setback") && K.S.act >= 6) { K.S.flags.splice(K.S.flags.indexOf("war_setback"), 1); p.hp = Math.max(1, Math.round(p.hp * 0.88)); R.fx.push({ k: "setback" }); } // (what the last fight's failed task cost)
@@ -737,7 +839,9 @@
     if (!(t.shield || t.shieldDrawn) || t.hp <= 0 || t.g.atk || t.g.stag > 0 || t.g.down > 0 || t.g.beaten || t.still) return 1;
     if (R.t < (t.g.openUntil || 0) || R.t - (t.g.fblockAt == null ? -99 : t.g.fblockAt) < P.fblockCd) return 1;
     if (Math.abs(adiff(angTo(t, p), t.g.a)) > 1.1) return 1; // only from the front: go round him
-    if (K.rng() >= P.fblock * (R.D.glance || 1) * (heavy ? 0.7 : 1) * (arrow ? 0.7 : 1)) return 1;
+    const sm = t.g.cls === "shield" || who(t) === "bhadra";   // (Bhadra, an old soldier: his shield is a soldier's trade too)
+    if (K.rng() >= Math.min(sm ? P.shieldMost : 1, P.fblock * (sm ? P.shieldMan : 1) * (R.D.glance || 1)) * (heavy ? 0.7 : 1) * (arrow ? 0.7 : 1)) return 1;
+    if (sm) { tip(R, who(t) === "bhadra" ? "bhadra" : "c_shield"); pts *= P.shieldWear; }
     t.g.fblockAt = R.t; R.stats.fblocks++;
     t.g.rec = Math.max(t.g.rec || 0, P.fblockRec * (R.D.rest || 1)); t.g.cool = Math.max(t.g.cool || 0, 0.25);
     R.fx.push({ k: "fblock", uid: t.uid, heavy: !!heavy, arrow: !!arrow });
@@ -1010,6 +1114,7 @@
     return ab.includes("strike") ? "strike" : ab.find((id) => MELEE.has(id)) || "strike";
   }
   const hitReach = (e) => e.g.reach + P.lunge + e.g.rad - 0.42;
+  const ab0 = (e) => (e.abilities.includes("strike") ? "strike" : e.abilities.find((id) => MELEE.has(id)) || "strike");
   function startAttack(R, e, t) {
     const id = chooseMove(R, e, t), ab = K.ABILITIES[id], g = e.g;
     if (!ab) return;
@@ -1040,6 +1145,9 @@
   function loose(R, e, a) {
     const g = e.g, on = R.B.units.find((u) => u.uid === a.on), s = { by: e.uid, side: e.side, id: a.id, on: a.on, x: g.x, z: g.z, y: FLY.y0 + (g.car ? 0.85 : 0), a: a.dir, vy: flat(P.arrow, on && on.g ? Math.max(3, dist(e, on)) : 10) - (g.car ? 0.85 / Math.max(0.1, (on && on.g ? Math.max(3, dist(e, on)) : 10) / P.arrow) : 0), t0: R.t, v: P.arrow, heavy: a.heavy, n: ++R.shotN, at0: a.t0, life: 1.6 };
     R.shots.push(s); R.fx.push({ k: "shot", uid: e.uid, shot: s });
+    // Karna with the bow Vijaya: a second arrow is on the string before the first has landed. It comes down the same lane
+    // a breath later, lighter than the first (so one sidestep or one raised shield does not answer both).
+    if (who(e) === "karna" && K.S && K.S.act >= 6 && !a.second && !a.area && e.hp > 0) { g.second = { at: R.t + P.karnaSecond, a: Object.assign({}, a, { second: true, part: 0.6 }) }; tip(R, "karnaBow"); }
   }
   // Arrows fly: each rises and falls as its speed and its range make it (s.y, s.vy). Yours is loosed at where your man will
   // be and strikes the first of theirs it meets; a foe's flies down its lane and strikes the first of your side it meets.
@@ -1082,8 +1190,8 @@
     g.atk = null;
     if (ab.cd && a.id !== "arrows") g.cd[a.id] = ab.cd * ROUND;
     const tr = traitRest(R, e); if (tr < 1) tip(R, who(e));
-    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 : 1) * (g.kind === "light" ? 0.7 : 1) * tr;
-    const open = ((RT.OPEN[g.weapon] != null ? RT.OPEN[g.weapon] : 0.35) + (a.heavy && g.weapon !== "mace" ? 0.15 : 0)) * (who(e) === "duryodhana" && g.weapon === "mace" ? 0.85 : 1);
+    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 * (R.stance === "flank" ? P.flankRest : 1) : 1) * (g.kind === "light" ? 0.7 : 1) * tr * (common(e) && led(R, e) ? P.ledRest : 1) * (R.shaken && !R.routed ? P.shakenRest : 1);
+    const open = ((RT.OPEN[g.weapon] != null ? RT.OPEN[g.weapon] : 0.35) + (a.heavy && g.weapon !== "mace" ? 0.15 : 0)) * (who(e) === "duryodhana" && g.weapon === "mace" ? 0.85 : 1) + (g.cls === "heavy" && a.heavy ? P.crushOpen : 0);
     g.rec = open; g.openUntil = R.t + open;
     R.fx.push({ k: "swing", uid: e.uid, id: a.id, arc: a.arc, area: a.area, x: m.x, z: m.z, r: m.r });
     if (a.ranged) return loose(R, e, a);
@@ -1119,16 +1227,21 @@
     if (t === p && R.block && frontal) {
       blocked = true; R.stats.blocked++;
       perfectBlock = R.t - R.blockT <= P.blockPerfect * R.D.perfect + STEP;
-      const breaker = a.id === "breaker";
-      sh = perfectBlock ? 0 : (breaker ? P.blockBreaker : a.heavy ? P.blockHeavy : P.blockThrough) * STR.through[tier];
+      const breaker = a.id === "breaker", crush = e.g.cls === "heavy" && a.heavy && !a.ranged;
+      sh = perfectBlock ? 0 : (crush ? P.crush : (breaker ? P.blockBreaker : a.heavy ? P.blockHeavy : P.blockThrough) * STR.through[tier]);
+      if (crush && !perfectBlock) { R.fx.push({ k: "guardbreak", uid: e.uid }); tip(R, "c_heavy"); a.crushed = true; }
       R.breath -= (perfectBlock ? 0.5 : 1) * (a.heavy || breaker ? P.blockHitHeavy : P.blockHit) * (breaker ? 1.5 : 1) * (a.ranged ? 0.35 : 1) * STR.breath[tier];
       if (perfectBlock) { R.stats.perfectBlocks++; if (indra()) R.breath = Math.min(P.breathMax, R.breath + P.blockMin * tireCost() * 0.25); if (!a.ranged && !steady(e)) { e.g.stag = Math.max(e.g.stag, P.blockStag); e.g.rec = 0; } R.fx.push({ k: "perfectblock", uid: e.uid }); }
       if (!a.ranged) { const pts = RT.shieldHit(e, e.g.weapon, a.heavy && !a.arc) * (perfectBlock ? 0.5 : 1); if (pts > 0) shieldTakes(R, p, pts); }
       if (R.breath <= 0 && R.block) { R.breath = 0; lowerShield(R, true); }
+      if (a.crushed && R.block) lowerShield(R, false);   // (beaten down: it must be raised again)
     } else if (t !== p && isSoldiers(t) && R.orders.soldiers === "defend" && a.on === t.uid) sh = P.shieldSoldiers;
     else if (t === p && R.shield && !R.broken && frontal) sh = P.shieldYou;
     if (a.arc) sh *= P.maceHit;
     if (a.part && t === p) sh *= a.part;
+    if (t === p && !frontal && R.stance && sh > 0) sh *= R.stance === "hold" ? P.holdBack : R.stance === "centre" ? P.centreBack : 1;   // your own plan: who is at your back
+    if (a.set && sh > 0) sh *= P.setHit;                                                     // a set spear: the weight of your own run is in it
+    if (e.g.cls === "skirm" && t === p && !frontal && !a.ranged && sh > 0) { sh *= P.backHit; tip(R, "c_skirm"); }   // a skirmisher at your back
     if (blocked || sh < (a.arc ? P.maceHit : 1)) R.fx.push({ k: "spark", uid: t.uid, block: blocked, arrow: !!a.ranged });
     if (t === p && sh > 0) sh *= (P.vsPath[K.S.path] || 1);
     const doHit = () => { if (a.id === "arrows") B.hit(e, t, 1, { verb: "Arrows rain on {t} for {n}." }); else ab.use(B, e, ab.target === "enemies" ? [t] : t); };
@@ -1136,8 +1249,9 @@
     hitFx(R, t, before - t.hp, a.heavy, e, !a.ranged, blocked);
     if (!a.area) nudge(R, t, from + Math.PI, blocked ? (a.heavy ? 0.3 : 0.12) : before > t.hp ? (a.ranged ? 0.14 : a.heavy ? 0.42 : 0.24) : 0); // (you give ground to every blow, a little on your shield)
     { const w = who(e); // after a champion's blow: Bhurishravas's heavy blow knocks you down; Abhimanyu's sweeps the next one too
-      if (w === "bhurishravas" && a.heavy && t === p && before > t.hp && !blocked && !perfectBlock) { p.g.busy = Math.max(p.g.busy, 0.6); p.g.blow = null; R.fx.push({ k: "knocked", uid: p.uid }); tip(R, "bhurishravas"); }
+      if ((w === "bhurishravas" || w === "ugra") && a.heavy && t === p && before > t.hp && !blocked && !perfectBlock) { p.g.busy = Math.max(p.g.busy, 0.6); p.g.blow = null; R.fx.push({ k: "knocked", uid: p.uid }); tip(R, w); }   // (Ugra, the wrestler: his great blow is a throw)
       if (w === "abhimanyu" && !a.ranged && t.hp >= 0) sweepNext(R, e, t); }
+    if (a.set && t === p && before > t.hp && !blocked) { p.g.busy = Math.max(p.g.busy, 0.35); p.g.blow = null; R.combo = 0; }   // (run onto a point, you are stopped)
     if (t === p && before > t.hp) { R.stats.taken += before - t.hp; R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked && (!RT.P.strength || tier >= RT.tierOf(p))) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } } // (only one of your tier or above staggers you)
     // A mace's sweep, an elephant, a heavy blow from a champion: thrown back.
     if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged))) { const d = (e.g.kind === "elephant" ? 2.6 : P.maceShove) * (blocked ? 0.5 : 1) * STR.knock[tier]; t.g.vx += Math.sin(from + Math.PI) * d * PHYS.knock; t.g.vz += Math.cos(from + Math.PI) * d * PHYS.knock; }
@@ -1150,6 +1264,8 @@
       if (R.t >= g.flee) { e.hp = 0; e.fled = true; R.fx.push({ k: "fled", uid: e.uid }); }
       return; }
     traitStep(R, e);
+    if (g.second && R.t >= g.second.at) { const a2 = g.second.a; g.second = null; if (!g.flee && !(g.down > 0) && !(g.stag > 0)) { const on = B.units.find((x) => x.uid === a2.on); if (on && on.hp > 0 && on.g) a2.dir = angTo(e, on); loose(R, e, a2); } }   // (Karna's second arrow)
+    if (g.cls === "skirm" && !e.line && !g.role && e.hp > 0 && e.hp <= e.maxHp * P.skirmRun && !B.enc.spare && !B.enc.rounds && !B.enc.hold && living(B, "enemy").filter((x) => !x.line && !x.g.flee).length > 1) { g.flee = R.t + 1.7; if (g.atk) cancel(e); R.fx.push({ k: "runs", uid: e.uid }); tip(R, "c_skirm"); return; }   // (hurt, he has had enough: he is out of the fight; the last man standing has nowhere to run)
     if (g.wheelUntil > R.t) return; // Karna frees his sunken wheel
     if (g.boundUntil > R.t && !g.atk) { g.moving = 0; if (g.cool > 0) g.cool -= dt; return; } // the serpent's coil: his feet are held
     for (const k of Object.keys(g.cd)) if (g.cd[k] > 0) g.cd[k] -= dt;
@@ -1186,7 +1302,13 @@
       return;
     }
     if (g.role && R.plan && roleStep(R, e, dt)) return;
-    if (R.morale && !R.routed && R.morale.theirs < 35 && common(e) && g.cool <= 0 && K.rng() < dt * 0.6) g.cool = 1.3; // (a host losing heart: its common men hang back)
+    if (g.cls === "spear" && !(g.cd.set > 0) && p.hp > 0 && R.unseen <= 0 && R.roll <= 0 && onField(R, e) && !g.role) {   // his point is set at a man who runs straight onto it
+      const d0 = dist(e, p), vx = p.g.lx || 0, vz = p.g.lz || 0, sp = Math.hypot(vx, vz), to = angTo(p, e);
+      if (sp >= P.setRun && d0 <= hitReach(e) + P.setReach && d0 > 1.0 && (vx * Math.sin(to) + vz * Math.cos(to)) / sp > 0.8 && Math.abs(adiff(angTo(e, p), g.a)) < 0.75) {
+        g.cd.set = P.setCd; g.a = angTo(e, p);
+        g.atk = { id: ab0(e), on: p.uid, t0: R.t, land: R.t + P.setWind, ranged: false, area: false, dir: g.a, locked: true, heavy: false, arc: null, set: true };
+        R.fx.push({ k: "windup", uid: e.uid, id: g.atk.id, heavy: false, ranged: false, arc: null, wind: P.setWind }); R.fx.push({ k: "setspear", uid: e.uid }); tip(R, "c_spear"); return; } }
+    if (R.morale && !R.routed && R.morale.theirs < 35 && common(e) && !led(R, e) && g.cool <= 0 && K.rng() < dt * 0.6) g.cool = 1.3; // (a host losing heart: its common men hang back, unless a captain stands by them)
     let t = B.units.find((x) => x.uid === g.tgt);
     if (!t || !targetable(R, t) || (g.cool <= 0 && K.rng() < 0.02 && g.role !== "raider")) { t = pickTarget(R, e); g.tgt = t ? t.uid : null; }
     if (!t) return;
@@ -1201,7 +1323,7 @@
     const mayAttack = g.cool <= 0 && free && spaced && onField(R, e);
     if (mayAttack && inRange && (g.kind !== "elephant" || g.ca == null || Math.abs(adiff(ang, g.ca)) < 0.7)) { startAttack(R, e, t); return; } // (an elephant strikes at what is in front of it)
     // Where to stand: an archer keeps his distance; a man with a turn to strike closes; the rest circle and wait.
-    const engaged = g.cool <= 0.9 && free && !g.archer;
+    const engaged = (g.cool <= 0.9 && free && !g.archer) || (!!e.captive && !!R.task && R.task.uid === e.uid);   // (a man cut off from his own does not circle and wait his turn: he stands and fights where he is)
     let want = g.archer ? g.keep : engaged ? (g.reach * 0.9 + t.g.rad - 0.42) : Math.max(g.reach + 1.4, P.wait);
     let mx = 0, mz = 0;
     if (g.archer) {
@@ -1213,13 +1335,17 @@
     } else {
       if (d > want + 0.15) { mx += Math.sin(ang); mz += Math.cos(ang); }
       else if (d < want - 0.5 && g.kind !== "elephant") { mx -= Math.sin(ang) * 0.7; mz -= Math.cos(ang) * 0.7; } // (an elephant does not back off a man)
-      if (!engaged) { mx += Math.cos(ang) * g.orbit * 0.55; mz -= Math.sin(ang) * g.orbit * 0.55; if (K.rng() < dt * 0.25) g.orbit = -g.orbit; }
+      if (!engaged && g.cls === "skirm" && t === p && !e.line) {   // waiting his turn, a skirmisher does not circle in front of you: he goes for the ground at your back
+        const bx = p.g.x - Math.sin(p.g.a) * 2.6, bz = p.g.z - Math.cos(p.g.a) * 2.6, behind = Math.abs(adiff(angTo(p, e), p.g.a)) > 2.1;
+        if (!behind) { const side = adiff(angTo(p, e), p.g.a) >= 0 ? 1 : -1, wx = p.g.x + Math.sin(p.g.a + side * 1.9) * 3.4, wz = p.g.z + Math.cos(p.g.a + side * 1.9) * 3.4, wl = Math.hypot(wx - g.x, wz - g.z) || 1; mx = (wx - g.x) / wl; mz = (wz - g.z) / wl; }   // (round by the side he is already on, out of your weapon's reach)
+        else { const bl = Math.hypot(bx - g.x, bz - g.z) || 1; mx = (bx - g.x) / bl * Math.min(1, bl); mz = (bz - g.z) / bl * Math.min(1, bl); }
+      } else if (!engaged) { mx += Math.cos(ang) * g.orbit * 0.55; mz -= Math.sin(ang) * g.orbit * 0.55; if (K.rng() < dt * 0.25) g.orbit = -g.orbit; }
     }
     // Keep off each other, so each stands clear on the ground.
     for (const o of living(B, "enemy")) { if (o === e || !o.g.entered) continue; const od = dist(o, e); if (od < 1.7 + o.g.rad) { mx += (g.x - o.g.x) / (od + 0.01) * 0.9; mz += (g.z - o.g.z) / (od + 0.01) * 0.9; } }
     if (g.role === "wall" && g.sx != null) { mx = g.sx - g.x; mz = g.sz - g.z; g.a = turnTo(g.a, g.sa, 6 * dt); const wl = Math.hypot(mx, mz); if (wl > 1) { mx /= wl; mz /= wl; } } // (the wall keeps its line and comes on at a walk)
     const l = Math.hypot(mx, mz);
-    if (l > 0.05) { const sp = g.speed * (g.role === "wall" ? 0.6 : g.role === "raider" ? 1.25 : engaged ? 1 : g.car ? 0.62 : 0.55) * Math.min(1, l); g.dmx = mx; g.dmz = mz; g.dsp = sp; goTo(R, e, mx, mz, sp, dt); g.moving = Math.min(1, l) * (engaged ? 1 : 0.55); }
+    if (l > 0.05) { const sp = g.speed * (g.role === "wall" ? 0.6 : g.role === "raider" ? 1.25 : engaged ? 1 : g.car ? 0.62 : g.cls === "skirm" && t === p ? 0.95 : 0.55) * Math.min(1, l); g.dmx = mx; g.dmz = mz; g.dsp = sp; goTo(R, e, mx, mz, sp, dt); g.moving = Math.min(1, l) * (engaged ? 1 : 0.55); }
     else if (g.kind === "elephant") drive(R, e, Math.sin(ang), Math.cos(ang), 0, dt); // (standing, it still comes round to face its man)
   }
 
@@ -1420,7 +1546,7 @@
     shotsStep(R);
     clocks(R);
     lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R); rideStep(R, STEP);
-    for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; R.fx.push({ k: "fall", uid: u.uid }); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
+    for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; if (u.captive && !u.fled && R.task && R.task.kind === "capture" && R.task.uid === u.uid) u.taken = true; /* (brought down inside the count: he is taken, not killed) */ R.fx.push({ k: u.taken ? "taken" : "fall", uid: u.uid }); if (u.side === "enemy" && leads(u)) captainDown(R, u); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
     return R;
@@ -1456,6 +1582,7 @@
     Object.assign(B.used, R.B.used);
     const R2 = R3.begin(B, { tries: R.tries + 1, hp: P.retryHp, assist: R.assist, rad: R.rad });
     R2.orders = Object.assign({}, R.orders);
+    if (R.stance && !R2.stance) R3.stance(R2, R.stance);   // (the same plan of your own on the second try)
     return R2;
   };
   // Health back to the turn engine's scale when a fight is settled (what the story reads afterwards).
@@ -1537,7 +1664,9 @@
     }
     const len = R3.nextBlow(R).len, inSwing = th.some((x) => bs.read[x.uid + "@" + x.t0] && x.land - R.t > -0.05 && x.land - R.t < len + 0.12);
     if (d <= g.reach * 0.92 + t.g.rad - 0.42) { if (!inSwing) a.strike = true; }
-    else { a.mx = t.g.x - g.x; a.mz = t.g.z - g.z; }
+    else { a.mx = t.g.x - g.x; a.mz = t.g.z - g.z;
+      // (a person learns it from the first point he runs onto: after that he walks up to a spearman whose point is free)
+      if (R.told && R.told.c_spear && foes.some((e) => e.g.cls === "spear" && !(e.g.cd.set > 0) && dist(e, p) <= hitReach(e) + P.setReach + 1.2 && Math.abs(adiff(angTo(e, p), e.g.a)) < 0.9)) { const l = Math.hypot(a.mx, a.mz) || 1; a.mx = (a.mx / l) * 0.6; a.mz = (a.mz / l) * 0.6; } }
     return a;
   }
   // A whole fight played by the bot: the tests, and any fight without a screen. Returns the outcome.

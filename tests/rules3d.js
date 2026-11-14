@@ -184,13 +184,22 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     for (let i = 0; i < 60 * 120 && !R.over; i++) { R3.step(R, bot ? R3.bot(R) : (C.player().hp = C.player().maxHp, {})); for (const e of R.fx) if (/^(turn|taskDone|taskFail|rout|duel|duelWon|duelNo)$/.test(e.k)) ev.push(e.k + (e.kind ? ":" + e.kind : "")); R.fx.length = 0; if (!bot && ev.some((x) => /^task|duelNo/.test(x))) break; }
     const out = { R, ev, flags: K.S.flags.slice() }; try { C.settle("flee"); C.end(); } catch (e) {} return out; };
   const wall = run("wall", true), pin = run("pincer", true), ch = run("charge", true);
-  ok(wall.R.plan && wall.ev.includes("turn:banner") && wall.ev.includes("taskDone:banner") && wall.ev.includes("rout"), "The wall, broken, leaves his car open: cut down his banner and they run");
+  ok(wall.R.plan && wall.ev.includes("turn:capture") && wall.ev.includes("taskDone:capture") && wall.flags.includes("took_vikarna"), "The wall, broken, leaves a man of name cut off from his men: bring him down inside the count and he is taken (" + wall.flags.filter((f) => /^took_/.test(f)).join(",") + ")");
   ok(pin.ev.includes("turn:sarathi") && pin.ev.includes("taskDone:sarathi"), "The pincer shut, his wheel-guards are away: reach his charioteer and the car stands still");
   ok(ch.ev.includes("turn:duel") && ch.ev.includes("duel"), "The champion charges and calls you out: taken, it is single combat");
   const idle = run("wall", false), idle2 = run("pincer", false), idle3 = run("charge", false);
-  ok(idle.ev.includes("taskFail:banner") && idle.flags.includes("war_setback") && !idle.R.over, "The banner left flying: they rally, and it costs you the next fight's start");
+  ok(idle.ev.includes("taskFail:capture") && idle.flags.includes("war_setback") && !idle.flags.some((f) => /^took_/.test(f)) && !idle.R.over, "The man not taken: his men bring him off, they rally, and it costs you the next fight's start");
   ok(idle2.ev.includes("taskFail:sarathi"), "The charioteer not reached: his car rides your man down");
   ok(idle3.ev.includes("duelNo"), "The challenge left unanswered is a refusal");
+  { // A host down to two-fifths of its spirit is shaken: said once, undone if they rally, and their men come on slower
+    const swings = (low) => { const K = fresh(17); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { plan: "wall" }), p = C.player(); p.maxHp = p.hp = 99999; let n = 0, said = 0, back = 0, first = null;
+      const fx = () => { for (const e of R.fx) { if (e.k === "shaken") said++; if (e.k === "rallied") back++; } R.fx.length = 0; };
+      if (low) { R3.spirit(R, -50); const early = !!R.shaken; R3.spirit(R, -15); fx(); const was = !!R.shaken; R3.spirit(R, 25); fx(); first = { early, was, now: !!R.shaken, said, back }; R3.spirit(R, -25); }
+      for (let i = 0; i < 60 * 40 && !R.over; i++) { p.hp = p.maxHp; for (const u of B.units) if (u.side !== "enemy" && u.hp > 0) u.hp = u.maxHp; if (low && R.morale.theirs > 35) R3.spirit(R, 35 - R.morale.theirs);
+        R3.step(R, {}); for (const e of R.fx) if (e.k === "swing" && B.units.some((u) => u.uid === e.uid && u.side === "enemy")) n++; R.fx.length = 0; }
+      const out = { n, first }; try { C.settle("flee"); C.end(); } catch (e) {} return out; };
+    const a = swings(false), b = swings(true), f = b.first;
+    ok(!f.early && f.was && !f.now && f.said === 1 && f.back === 1 && b.n < a.n * 0.92, "A host at two-fifths of its spirit is shaken: said once, undone when they rally, and their men strike less often (" + b.n + " blows in forty seconds against " + a.n + ")"); }
   const bh = (bot, id, seed) => { const K = fresh(seed || 11); life(K); const C = K.Combat, R3 = K.RT3, B = C.start(id || "bh_line9", null), R = R3.begin(B, {}), ev = [], p = C.player();
     for (let i = 0; i < 60 * 150 && !R.over; i++) { if (!bot) p.hp = p.maxHp; R3.step(R, bot ? R3.bot(R) : {}); for (const e of R.fx) if (/^(lineFalls|turn|defended|checked|barred|crossed)$/.test(e.k)) ev.push(e.k); R.fx.length = 0; }
     const out = { over: R.over, ev, t: R.t, plan: R.plan, bh: B.units.find((u) => u.person === "bhishma") }; try { C.end(); } catch (e) {} return out; };
@@ -354,6 +363,63 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   let won = 0, lost = 0, secs = 0; for (let i = 0; i < 6; i++) { const w = bout([ugra, kripa, bala][i % 3], i % 3 === 1 ? { act: 2, age: 14, path: null } : { act: 3, age: 25, path: "mace" }, "fight", 50 + i); if (w.over === "win") won++; secs += w.t; const l = bout([ugra, kripa, bala][i % 3], { act: 3, age: 25, path: "mace" }, "still", 60 + i); if (l.over === "lose") lost++; }
   ok(won >= 5 && secs / 6 < 45, "a bout can be won by fighting, and is short (" + won + " of 6 won, " + Math.round(secs / 6) + " s each)");
   ok(lost === 6, "a bout is lost by standing still (" + lost + " of 6)");
+}
+
+// 16. What each kind of common man can do (owner, 13 November).
+{
+  const K = fresh(41), C = K.Combat, R3 = K.RT3, P3 = R3.P || {};
+  const open = (id, o, lifeO) => { life(K, lifeO); const B = C.start(id, null), R = R3.begin(B, Object.assign({ noLine: true, noPlan: true }, o || {})); return { B, R }; };
+  const shut = () => { try { C.settle("flee"); C.end(); } catch (e) {} };
+  const only = (B, keep) => { for (const u of B.units) if (u.side !== "player" && u !== keep) { u.hp = 0; if (u.g) u.g.fell = 0; } };
+  const ang = (a, b) => Math.atan2(b.g.x - a.g.x, b.g.z - a.g.z);
+  // a spearman: run straight at him and his point is set; walk in, or come at his side, and it is not
+  const spear = (how) => { const { B, R } = open("e_day1"), p = C.player(), e = B.units.find((u) => u.side === "enemy" && u.g && u.g.cls === "spear" && !u.plural); only(B, e); e.g.entered = true; e.g.wave = 0; e.g.x = 0; e.g.z = -3; e.g.cool = 9; p.g.x = how === "side" ? 7 : 0; p.g.z = how === "side" ? -3 : 5; e.g.a = how === "side" ? 0 : ang(e, p); let set = false, hurt = 0; const hp0 = p.hp;
+    for (let i = 0; i < 60 * 3 && !set; i++) { if (how === "side") e.g.a = 0; /* (he looks down the field; you come from his right) */ const dx = e.g.x - p.g.x, dz = e.g.z - p.g.z, l = Math.hypot(dx, dz) || 1, k = how === "walk" ? 0.5 : 1; R3.step(R, { mx: (dx / l) * k, mz: (dz / l) * k }); if (R.fx.some((f) => f.k === "setspear")) set = true; R.fx.length = 0; e.g.cool = 9; }
+    if (set) for (let i = 0; i < 30; i++) { const dx = e.g.x - p.g.x, dz = e.g.z - p.g.z, l = Math.hypot(dx, dz) || 1; R3.step(R, { mx: dx / l, mz: dz / l }); R.fx.length = 0; } /* (you are running: you do not stop for his point) */ hurt = hp0 - p.hp; shut(); return { set, hurt, cls: e.g.cls }; };
+  const run = spear("run"), walk = spear("walk"), side = spear("side");
+  ok(run.set && run.hurt > 0 && !walk.set && !side.set, "A spearman sets his point at a man who runs straight at him and strikes first (" + Math.round(run.hurt) + " taken); walked up to, or come at from the side, he does not");
+  // a heavy weapon: its great blow comes through a raised shield and beats it down
+  { const { B, R } = open("e_sudatta", null, { act: 3, age: 25, side: null }), p = C.player(); let broke = 0, lowered = 0;
+    for (let i = 0; i < 60 * 60 && !R.over && !broke; i++) { p.hp = p.maxHp; R.breath = 100; R3.step(R, { block: true }); if (R.fx.some((f) => f.k === "guardbreak")) { broke++; if (!R.block) lowered++; } R.fx.length = 0; }
+    const cl = B.units.filter((u) => u.side === "enemy" && u.g).map((u) => u.g.cls); shut();
+    ok(cl.includes("heavy") && broke > 0 && lowered > 0, "A club-man's great blow comes through a raised shield and beats it down (his trade: " + cl.join(",") + ")"); }
+  // a skirmisher runs when he is badly hurt, unless he is the last of them
+  { const { B, R } = open("e_bandits", null, { act: 2, age: 18, side: null }), fs = B.units.filter((u) => u.side === "enemy" && u.g); fs[0].hp = Math.round(fs[0].maxHp * 0.2); let ran = false;
+    for (let i = 0; i < 60 * 6 && !R.over; i++) { C.player().hp = C.player().maxHp; R3.step(R, {}); if (R.fx.some((f) => f.k === "runs" && f.uid === fs[0].uid)) ran = true; R.fx.length = 0; }
+    const gone = fs[0].hp <= 0 && !!fs[0].fled; shut();
+    const { B: B2, R: R2 } = open("e_bandits", null, { act: 2, age: 18, side: null }), f2 = B2.units.filter((u) => u.side === "enemy" && u.g); only(B2, f2[0]); f2[0].hp = Math.round(f2[0].maxHp * 0.2); let ran2 = false;
+    for (let i = 0; i < 60 * 3 && !R2.over; i++) { C.player().hp = C.player().maxHp; R3.step(R2, {}); if (R2.fx.some((f) => f.k === "runs")) ran2 = true; R2.fx.length = 0; } shut();
+    ok(fs[0].g.cls === "skirm" && ran && gone && !ran2, "A bandit badly hurt runs, and is out of the fight; the last of them has nowhere to run"); }
+  // a captain: when he falls his men reel and their spirit drops
+  { const { B, R } = open("new_over_bhima", { noPlan: false, plan: "wall" }), cap = B.units.find((u) => u.side === "enemy" && u.g && u.g.cls === "captain"), m0 = R.morale ? R.morale.theirs : null; let down = null;
+    if (cap) { for (const u of B.units) if (u.side === "enemy" && u.g && u !== cap) { u.g.x = cap.g.x + 2; u.g.z = cap.g.z; u.g.entered = true; } cap.hp = 0; for (let i = 0; i < 5; i++) { R3.step(R, {}); const f = R.fx.find((x) => x.k === "captainDown"); if (f) down = f; R.fx.length = 0; } }
+    const m1 = R.morale ? R.morale.theirs : null; shut();
+    ok(!!cap && !!down && down.n > 0 && m0 != null && m1 < m0, "Their captain down: the men within his call reel (" + (down && down.n) + "), and their host's spirit falls (" + m0 + " to " + Math.round(m1) + ")"); }
+  // a shield-man carries his trade's shield
+  { const { B } = open("e_kings", null, { act: 3, age: 25, side: null }), g = B.units.filter((u) => u.side === "enemy" && u.g && u.g.cls === "shield"); const all = g.length > 0 && g.every((u) => u.shield && u.sp > 0); shut();
+    ok(all, "A bodyguard is a shield-man: he carries a shield that takes blows from the front (" + g.length + " of them)"); }
+}
+
+// 17. Your own plan, and what your scouts say of theirs.
+{
+  const K = fresh(43), C = K.Combat, R3 = K.RT3;
+  const open = (st, o) => { const S = life(K, o); if (o && o.statecraft != null) S.skills.statecraft = o.statecraft; const B = C.start("e_day1", null), R = R3.begin(B, { plan: "wall" }); return { B, R }; };
+  const shut = () => { try { C.settle("flee"); C.end(); } catch (e) {} };
+  { const { R } = open(); const sc = R3.scouts(R), m0 = R.morale.theirs, okSt = R3.stance(R, "flank"), m1 = R.morale.theirs, again = R3.stance(R, "hold"); shut();
+    ok(sc && !sc.sure && sc.kinds.length === 2 && sc.kinds.includes("wall") && okSt && R.met && m1 === m0 - 20 && !again, "Scouts without the wit for it name two plans, one of them true; the plan that answers theirs shakes their host (" + m0 + " to " + m1 + "), and is chosen once"); }
+  { const { R } = open(null, { statecraft: 5 }); const sc = R3.scouts(R), m0 = R.morale.theirs; R3.stance(R, "centre"); const m1 = R.morale.theirs; shut();
+    ok(sc && sc.sure && sc.kinds.length === 1 && sc.kinds[0] === "wall" && !R.met && m1 === m0, "With the wit for it your scouts are sure; a plan that does not answer theirs costs them nothing at the start"); }
+  { const { R } = open(); for (let i = 0; i < 60; i++) R3.step(R, {}); const late = R3.stance(R, "flank"); shut(); ok(!late, "Your plan is chosen before the fight, not in it"); }
+}
+
+// 18. Each battle of an act is a step harder than the last.
+{
+  const K = fresh(45), RT = K.RT, C = K.Combat, R3 = K.RT3; const S = life(K);
+  const at = (k) => { S.fought = { 6: k }; return RT.heat(S); };
+  const h0 = at(0), h4 = at(4), h10 = at(10), h30 = at(30);
+  ok(h0 < h4 && Math.abs(h4 - RT.HEAT[6]) < 1e-9 && h10 > h4 && h30 === h10, "The first fight of an act is under the act's old level, the fourth is at it, the tenth over it, and it stops there (" + [h0, h4, h10].map((v) => v.toFixed(2)).join(", ") + ")");
+  S.fought = {}; const B = C.start("e_day1", null), R = R3.begin(B, {}); let g = 0; while (!R.over && g++ < 60 * 200) R3.step(R, R3.bot(R, {})); C.end();
+  ok(S.fought[6] === 1, "A battle fought is counted in the life (" + JSON.stringify(S.fought) + ")");
 }
 
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));

@@ -164,7 +164,10 @@
       case "bhima": return "Shield-breaker; his war cry draws every blow";
       case "duryodhana": return "Balarama's pupil: master of the mace";
       case "arjuna": return "Savyasachi: he draws with either hand";
-      case "karna": return S && S.act < 6 ? "His armour and earrings: blows fall lighter on him" : day === 17 ? "His chariot wheel will sink" : null;
+      case "karna": return S && S.act < 6 ? "His armour and earrings: blows fall lighter on him" : day === 17 ? "His chariot wheel will sink" : "The bow Vijaya: a second arrow follows the first";
+      case "kritavarma": return "He led the Narayani host: his men press harder while he stands";
+      case "ugra": return "A wrestler: his great blow is a throw";
+      case "bhadra": return "An old soldier: his shield is always in front of him";
       case "bhishma": return "He will not strike Shikhandi, and he chooses the day of his death";
       case "drona": return "The teacher reads you: vary your blows";
       case "kripa": return "The undying teacher: he reads you, and will not reel";
@@ -197,8 +200,20 @@
     abhimanyu: "Abhimanyu's blows sweep two at once.",
     satyaki: "Satyaki is quick: his blows come faster, and he meets blades often.",
     bhurishravas: "Bhurishravas's heavy blow knocks you down. Block it, or roll clear.",
-    supratika: "The elephant's charge cannot be parried: roll out of its way."
+    supratika: "The elephant's charge cannot be parried: roll out of its way.",
+    karnaBow: "Karna's bow Vijaya: a second arrow follows the first down the same lane. Keep your shield up a breath longer, or step well clear.",
+    ugra: "Ugra is a wrestler: his great blow throws you down. Block it, or roll clear.",
+    bhadra: "Bhadra is an old soldier: most blows from the front fall on his shield. Get round him, or break it.",
+    // What each kind of common man can do (ui/battle/sim.js): said the first time it tells.
+    c_spear: "A spearman sets his point at a man who runs straight at him, and strikes first. Come at his side, walk in behind your shield, or roll past.",
+    c_heavy: "A heavy weapon's great blow beats a raised shield down. Roll clear of it, then strike: he is slow to recover.",
+    c_skirm: "Skirmishers work round to your back, where their blows fall harder, and run when they are badly hurt. Keep them in front of you.",
+    c_captain: "While a captain stands his men press harder and do not lose heart. Bring him down and they reel.",
+    c_shield: "A shield-man takes most blows from the front on his shield. Get round him, or break the shield with heavy blows."
   };
+  // A champion's mark in two or three words, for the bar over his head (the line under his title says it in full).
+  RT.TRAIT_TAG = { kritavarma: "Rallies his men", ugra: "Throws you", bhadra: "Shield in front", bhima: "Shield-breaker", duryodhana: "Master of the mace", arjuna: "Either hand", karna: "Two arrows", bhishma: "Chooses his death", drona: "Reads you", kripa: "Reads you", ashwatthama: "Never tires", ghatotkacha: "Illusions",
+    jayadratha: "Shiva's boon", abhimanyu: "Sweeping blows", satyaki: "A quick blade", bhurishravas: "Knocks you down", supratika: "Cannot be parried" };
   // Said once a fight (the screen keeps it to once on the device).
   function traitTip(R, key) { if (!R || (R.told = R.told || {})[key]) return; R.told[key] = true; R.fx.push({ k: "trait", who: key }); }
   RT.traitTip = traitTip;
@@ -316,8 +331,15 @@
     const d = K.prefs ? K.prefs().difficulty : null;
     return RT.LEVELS[d] ? d : "normal";
   };
-  RT.level = function (S = K.S, name) {
-    const n = name || RT.difficulty(S), L = RT.LEVELS[n] || RT.LEVELS.normal, h = RT.HEAT[(S && S.act) || 1] != null ? RT.HEAT[(S && S.act) || 1] : 1;
+  // Within an act it is not one level for every fight (owner, 13 November: "make them harder with each battle"). The first
+  // fight of an act is a little under the act's own heat, each one after it a step hotter, up to a little over: so the
+  // fourth is where every fight of the act used to be, and the war's later days are harder than its first. Counted in
+  // the life (S.fought, by act; combat.js C.end), so a save keeps it; a fight begun from a test or on the practice
+  // ground does not count.
+  RT.RAMP = { first: -0.12, step: 0.03, most: 0.18 };
+  RT.heat = (S = K.S) => { const a = (S && S.act) || 1, base = RT.HEAT[a] != null ? RT.HEAT[a] : 1, k = S && S.fought ? S.fought[a] || 0 : 0; return Math.max(0, base + Math.min(RT.RAMP.most, RT.RAMP.first + RT.RAMP.step * k)); };
+  RT.level = function (S = K.S, name, ramp) {   // ramp: the 3D game's fights (the 2D game's own keep one level to an act, as its recorded lives and bands were measured)
+    const n = name || RT.difficulty(S), L = RT.LEVELS[n] || RT.LEVELS.normal, h = ramp ? RT.heat(S) : RT.HEAT[(S && S.act) || 1] != null ? RT.HEAT[(S && S.act) || 1] : 1;
     const out = { name: n, heat: h };
     for (const [k, [a, b]] of Object.entries(L)) out[k] = a + (b - a) * h;
     return out;

@@ -233,3 +233,96 @@ Measured, 40 drives each, with no page: a herder who knows the work brings them 
 The other "herd" test is not cattle: at the burning of Khandava you lead trapped families out in a line. That stays a line, each family falling in behind you as you reach them, but it now draws people where it drew cows, with the fire's light turned up and a pale ring under each one still to be reached; a guide bot brought six out with none cut off.
 
 **Not yet judged by a person's hands (items 2 to 4):** how the steering feels under a thumb; whether a bout is the right length; and the herd's pace, since a person will be slower than the bot that takes 36 of the 64 to 76 seconds.
+
+## Part 12. The owner's six points after playing (13 November, night)
+
+Sent while the shoulder was being mended (Version 50):
+
+1. Fights seem similar in nature: allow for more strategic thinking, and make them harder with each battle.
+2. The opening sequence seems repeated. Have the strategy of the foe's side and of the friend's side be more visible.
+3. Running and moving is not realistic: allow for movement in the knee and the feet.
+4. Animal movements are not realistic: allow for trotting and galloping.
+5. Change "guard the flag" and "capture the pole" to something like capturing one of the Kaurava brothers or a small king of the other side, which lowers morale.
+6. Build different battle capabilities for foes: each hero his own characteristics, and soldiers too.
+
+Points 1, 2, 5 and 6 are one piece of work on the fights and were built together (Version 51). Points 3 and 4 are the next.
+
+### What was found first
+
+A survey of all 79 fights: 95 kinds of foe by name, and six things any of them could do (strike, a heavy blow, arrows, an aimed shot, a volley, a guard). A spearman, an axeman and a raider differed in name, strength and reach, and in nothing else. Fourteen named champions had a trait of their own from the 2D game's last build, said once in a tip; four named men had none.
+
+And one thing nobody had asked about: when their wall was broken, "take their banner" meant walking to a pole and standing there a breath and a half, and the whole host then broke. In three war fights measured (32 lives with a wall in them) the banner was taken in every one, 12 to 17 seconds into the fight, and their host broke in the same moment every time. The rest of the fight was the chase.
+
+### Point 6. What each kind of man can do (`js/ui/battle/sim.js`, "What each kind of man can do")
+
+A common man now has his trade's way of fighting, read from his name:
+
+| Trade | Who | What he does | What answers it |
+|---|---|---|---|
+| Spearman | any "spearman" | Sets his point at a man who runs straight at him, and strikes first, in a third of a second, a little harder. | Come at his side, walk in behind your shield, or roll past. |
+| Heavy weapon | club-man, axeman, mace champion, veteran | His great blow comes through a raised shield and beats it down. He is long open after it. | Roll clear, then strike. |
+| Skirmisher | raider, bandit, scout, cowherd, levies | Waiting his turn, he works round to your back, where his blow is a quarter heavier. Badly hurt, he runs and is out of the fight. | Keep him in front of you. |
+| Captain | captain, "the dented helmet" | While he stands his men rest less between blows and do not hang back when their side is losing. When he falls they reel, and their spirit drops. | Bring him down first. |
+| Shield-man | guard, bodyguard, sentry, swordsman, footsoldier | Takes blows from the front on his shield nearly twice as often as before (never more than two times in five), but the shield is worn down twice as fast. | Get round him, or break it. |
+| Archer | as before | Keeps his distance; slow to draw with a man on top of him. | Close on him. |
+
+The men of the line, who fight your own line and not you, stay plain soldiers.
+
+The four named men without a trait have one: **Karna** in the war looses a second arrow half a second behind the first, down the same lane (the bow Vijaya); **Kritavarma** leads as a captain does; **Ugra**'s great blow is a wrestler's throw; **Bhadra**'s shield is an old soldier's.
+
+All of it is shown, not only applied: each trade is said over the man's head as it happens ("Spear set!", "Guard broken!", "He runs!", "Their captain is down!"); a tag of two or three words stands under the name of the foe you face ("Strikes first", "Reads you"); the card before the fight lists what the men against you can do; and the first time each tells there is a tip.
+
+### Point 5. A man to take, in place of the banner
+
+When their wall is broken, a man of name is cut off from his men: one of Duryodhana's brothers or a lesser king of his host if you fight for the Pandavas (Vikarna, Susharma of Trigarta, Durmukha, Sudakshina of the Kambojas, Chitrasena, Vinda and Anuvinda of Avanti, Vivimshati, Brihadbala of Kosala, Durmarshana); a prince or a lesser king of theirs if you fight for Duryodhana (Yudhamanyu, Dhrishtaketu of Chedi, Uttamaujas, Chekitana, Shatanika, Kuntibhoja, Satyajit, Purujit). He stands and fights; bring him down inside 24 seconds and he is taken, alive, and carried to your rear. Their host's spirit falls by about two thirds (65 of 100), which breaks a host that has already lost men and leaves any other shaken. Too slow, and his men bring him off, they rally, and it costs you as a lost task did before. No man is taken twice in one life. He wears the war dress of a man of his house (a Kaurava brother looks like Dushasana's brother), since there are no models of these men.
+
+He is as strong as the least common man of that fight, less a fifth; where their men are few and each is strong (two men hold the road to Jayadratha), he is a fifth of the whole of them instead, or he would be a third champion.
+
+**A shaken host.** Spirit was a bar that did nothing until it was empty. Now at two-fifths (where the bar turns yellow) their host is shaken: every man of theirs waits a quarter longer between his blows, and the fight says so. If they rally above it, it is undone. So a man taken tells at once, and not only at the rout.
+
+A banner over a great car, or on its pole, is now only what is left when there is no one left to take.
+
+### Point 2. Both plans shown, and an opening that is not the same each time
+
+- **Their plan is said as well as shown.** The last view before the fight, the whole field from behind your line, now carries your scouts' word. With wit enough for it (wisdom and statecraft together, seven or more) they are sure. Without it they name two plans, one of them the true one, and you read the rest from how the men stand, which is always the truth.
+- **Your side has a plan too, and you choose it** on the card before the fight: hold the line, turn their flank, or break their centre. Each has a gain and a price (below), and each answers one of theirs.
+- **The opening comes in three orders**, by how many battles are behind you: you first, as before; from behind their leader, looking across at you; or the whole field first, coming down between the lines.
+
+### Point 1. More to decide, and harder with each battle
+
+- **Your own plan.** *Hold the line*: blows at your back fall lighter, but their spirit falls more slowly; it answers a pincer. *Turn their flank*: their archers shoot less often, but your men begin away from your side; it answers a wall. *Break their centre*: their spirit falls faster, but blows at your back fall harder; it answers a champion's charge. Answer their plan and their host begins with its spirit a fifth down, and you have six seconds more for the turn's task.
+- **Who to strike first** is now a real question: the captain, so his men stop pressing; the archers; not the spearman head on.
+- **Each battle of an act is a step harder than the last.** The first is a little under the act's old level, the fourth is at it, the tenth is over it, and it stops there. The count is kept in the life. A bout begun from a test, or on the practice ground, does not count.
+
+### What was measured
+
+The game's own fighter played every fight 28 times (79 fights, 2,212 lives), before and after, with four battles of the act behind each life:
+
+| | Before (Version 50) | After (Version 51) |
+|---|---|---|
+| Fights won, mean | 93% | 93% |
+| Length of a fight, mean | 39 s | 41 s |
+| A war fight with a wall in it (the first, fourteenth and eighteenth days, 32 lives) | banner taken in 32 of 32, 12 to 17 s in; their host broke at once; fight over at 31 to 39 s | the man taken in 27 of 32, 18 to 26 s in; their host is shaken from then and breaks at 41 to 47 s; fight over at 54 to 63 s |
+
+The mean is the same because eight fights were eased by hand after the change (the crossing's escape, the wheel, the sixteenth day, the road to Jayadratha, the hunt, the night raid, and the two fights at the lake). Without the banner the road to Jayadratha fell from 71% to 46%: all of the fall was in the lives with a wall, which had been five wins in six and were none in six. Each of the eight had its foes' blows or lives brought down until it stood near where it had. (The road and the wheel had been made *harder* a week ago for the same reason turned round: the banner was ending a third of their lives early.) A war fight is now about ten seconds longer on the whole, and about twenty where there is a wall.
+
+And the same lives at the two ends of the ramp (14 lives a fight):
+
+| Battles of the act already fought | 0 | 4 | 10 or more |
+|---|---|---|---|
+| Fights won, all 79 | 94% | 93% | 89% |
+| War fights only (66) | 95% | 93% | 88% |
+| The road to Jayadratha | 71% | 71% | 43% |
+| Out of the supply camp | 79% | 64% | 50% |
+| The heart of the wheel | 50% | 50% | 29% |
+
+So the ramp is gentle over most of the war and steep on the fights that were already the hard ones. The fighter in these runs takes no plan of his own, so a player who reads the card and answers their plan has a little in hand over these figures.
+
+### Not done, and what only a phone will tell
+
+- **Horsemen still fight on foot.** A mounted man who rides through and wheels is the one trade left out; it needs a rider on a moving horse in a fight, which nothing has yet.
+- **The men taken wear a relative's dress.** There are no models of Vikarna, Susharma and the rest. They are told apart by the name over the head.
+- **The card before a war fight is longer** (what their men can do, their plan, your three plans). It scrolls on a short phone. Whether it is too much to read before every battle is a question for whoever plays it.
+- **Whether the trades can be read in the thick of it.** Each is said over the man's head and has a tip the first time, but a spearman's set point lasts a third of a second.
+- **Whether "harder with each battle" is felt.** By the figures it is six points over ten battles for a fighter who makes no mistakes of judgment; a person may feel it more, or not at all.
+- **Points 3 and 4** (knees and feet in a walk and a run; a true trot and gallop) are the next piece of work.

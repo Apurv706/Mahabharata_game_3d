@@ -30,6 +30,7 @@
     if (u.side === "player") { const s = Object.assign({}, K.puppetSpec(S)); if (B.enc.dream) s.stage = "adult"; return s; }
     if (u.person === "bhima" && B.enc.id === "e_kings") return D.lookOf("bhima_brahmin"); /* (at the swayamvara the brothers are still brahmins in deer-skins) */
     if (u.person && (K.PUPPETS[u.person] || G.EXTRAS[u.person])) return D.lookOf(u.person);
+    if (u.look3 && (K.PUPPETS[u.look3] || G.EXTRAS[u.look3])) return Object.assign({}, D.lookOf(u.look3));   // (a man to take: js/ui/battle/sim.js, "A man to take")
     const n = String(u.src || u.name);
     let look = null, plain = false;
     if (/charioteer/i.test(n)) look = G.EXTRAS.rider;
@@ -400,6 +401,8 @@
       if (u.side !== "player") {
         v.bar = U.el('<div class="ubar ' + (u.side === "enemy" ? "foe" : "ally") + (u.hero || u.person ? " hero" : "") + (u.line ? " line" : "") + '"><span></span><i></i></div>');
         v.bar.querySelector("span").textContent = K.text(u.name);
+        { const tag = u.side === "enemy" ? (u.g && u.g.cls && R3.CLASS_TAG[u.g.cls]) || (u.captive ? "A man of name" : RT.who && RT.TRAIT_TAG && RT.TRAIT_TAG[RT.who(u)]) : null;   // (what he can do: his trade's, or his own)
+          if (tag) { v.bar.insertAdjacentHTML("beforeend", "<em></em>"); v.bar.querySelector("em").textContent = U.tr(tag); v.bar.classList.add("tagged"); } }
         hud.appendChild(v.bar);
       }
       views.set(u.uid, v);
@@ -507,7 +510,8 @@
       hud.appendChild(el); setTimeout(() => el.remove(), 900);
     }
     function toast(text, cls) { const box = hud.querySelector(".b-toasts"); if (!box) return; const el = U.el('<div class="t-toast ' + (cls || "") + '">' + text + "</div>"); box.appendChild(el); while (box.children.length > 2) box.firstChild.remove(); setTimeout(() => el.remove(), 1300); }
-    function banner(text) { const el = hud.querySelector(".b-line"); if (!el) return; el.textContent = text; el.classList.remove("in"); void el.offsetWidth; el.classList.add("in"); }
+    const unesc = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");   // (the line is shown as text: a name with an apostrophe in it came out as code)
+    function banner(text) { const el = hud.querySelector(".b-line"); if (!el) return; el.textContent = unesc(text); el.classList.remove("in"); void el.offsetWidth; el.classList.add("in"); }
     const ASTRA_FX = { agneya: [0xff7a2a, "fire"], varuna: [0x7ad0ff, "water"], vayavya: [0xe8e0c8, "wind"], sammohana: [0xc8a0ff, "sleep"], nagapasha: [0x8aff9a, "bind"], astra: [0xfff0a0, "bolt"] };
     function events() {
       const p = C.player(), pv = p && views.get(p.uid), pf = pv && pv.figs[0];
@@ -534,6 +538,12 @@
           case "parried": if (pf) pf.act("hit", 0.3); sfx("clang"); toast(U.tr("Parried")); break;
           case "fblock": { const at = posOf(e.uid, 1.2); if (at) G.fx.burst("spark", at, { n: 8 }); sfx("clang"); float(at, U.tr("Blocked"), "note"); if (!tips.fblock) tip("fblock", "He took it on his shield. While he lowers it he cannot strike: hit him again."); break; }
           case "perfect": toast(U.tr("Perfect roll"), "good"); break;
+          // What each kind of man can do (sim.js): said over his head each time, so it is learned by seeing it.
+          case "setspear": { const at = posOf(e.uid, 2.0); if (at) float(at, U.tr("Spear set!"), "foe"); sfx("tap"); break; }
+          case "guardbreak": { const at = pf ? pf.root.position.clone().setY(1.5) : null; if (at) { float(at, U.tr("Guard broken!"), "bad"); G.fx.burst("spark", at, { n: 14, s: 1.5 }); } G.shake(0.25, 0.25); sfx("clang"); break; }
+          case "runs": { const at = posOf(e.uid, 2.0); if (at) float(at, U.tr("He runs!"), "note"); break; }
+          case "captainDown": { const at = posOf(e.uid, 2.1); if (at) float(at, U.tr("Their captain is down!"), "good big"); sfx("gong"); toast(U.tr("Their captain is down: his men reel."), "good"); break; }
+          case "taken": { const tv = views.get(e.uid); if (tv) { tv.over = "plead"; if (tv.mark) { tv.mark.userData.free(); tv.mark = null; } if (tv.bar) tv.bar.classList.add("gone"); for (const f of tv.figs) { try { f.pose("plead"); } catch (err) {} } } sfx("gong"); break; }
           case "perfectblock": toast(U.tr("Perfect block"), "good"); sfx("clang"); break;
           case "miss": { const at = posOf(e.uid, 1.6); if (at && e.uid !== p.uid) float(at, U.tr("Missed"), "note"); break; }
           case "roll": if (pf) G.fx.burst("dust", pf.root.position, { n: 5 }); sfx("step"); break;
@@ -575,6 +585,7 @@
           case "lock": break;
           case "astra": if (e.out && e.out.clash) clashFx(e); else { astraFx(e); if (e.fled && e.fled.length) { toast(U.tr("They break and run"), "good"); e.fled.forEach((uid) => { const at = posOf(uid, 1.9); if (at) float(at, "!", "foe big"); }); } } break;
           case "turn": planTurn(e); break;
+          case "stance": if (R.plan && PLAN_NAME[R.plan.kind]) { if (e.met) { banner(K.tr("They come in {plan}: your plan answers it. Their spirit sinks.", { plan: K.tr(PLAN_NAME[R.plan.kind]) })); sfx("gong"); } else toast(U.tr("They come in {plan}.", { plan: K.tr(PLAN_NAME[R.plan.kind]) }), "tip"); } break;
           case "item": { const iv = views.get(e.uid), fi = iv && iv.figs[0]; if (fi) { try { fi.setItem(itemOf(e.item)); if (e.shield != null) fi.setShield(!!e.shield); fi.act("draw", 0.5, 0.4); } catch (err) {} G.fx.burst("hit", fi.chest(), { n: 8 }); } break; }
           // His car is lost under him: the charioteer is down at the rail, the team lies in its traces, and he is on the ground beside the wreck.
           case "dismount": { const dv = views.get(e.uid), c = dv && dv.car, f0 = dv && dv.figs[0]; if (c && f0) {
@@ -604,6 +615,8 @@
           case "crossed": sfx("drum"); G.shake(0.5, 0.5); banner(U.tr("His car goes through the place where the line was.")); break;
           case "taskDone": case "taskFail": planTask(e); break;
           case "rout": toast(U.tr("They break and run"), "good"); sfx("gong"); G.shake(0.3, 0.4); break;
+          case "shaken": toast(U.tr("Their host is shaken: their men are slower to come on"), "good"); break;
+          case "rallied": toast(U.tr("Their host takes heart again")); break;
           case "duel": banner(U.tr("The hosts stand off. It is you and him.")); sfx("drumCall"); break;
           case "duelNo": banner(U.tr("You refuse. Your men look at one another.")); break;
           case "duelWon": banner(U.tr("He falls, and his men run.")); break;
@@ -691,6 +704,7 @@
     // ---------- Their plan turns: a horn, and something to do against a count (js/ui/battle/sim.js, "Their plan") ----------
     let stdMark = null, spiritEl = null;
     const nameOf = (uid) => { const u = B.units.find((x) => x.uid === uid); return u ? K.text(u.name) : ""; };
+    const shortOf = (uid) => nameOf(uid).split(",")[0].trim();   // ("Vikarna, a Kaurava prince" is "Vikarna" in the middle of a sentence)
     function planTurn(e) {
       sfx("drumCall"); G.fx.flash("rgba(255,240,200,.25)", 400);
       if (e.kind === "standard" && e.task) { banner(U.tr("A horn. Their wall is broken and their banner stands open behind it. Take it!"));
@@ -704,13 +718,16 @@
         banner(U.tr(e.kind === "banner" ? "A horn. Their wall is broken and his car stands open. Cut down his banner!" : "A horn. His wheel-guards have left his car to come round you. Reach his charioteer!"));
         const kind = e.kind, uid = e.uid; let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== kind) return true; const at = posOf(uid, 0.1);
           if (at && Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(at, 0xf2d27a, 0.5, 3.2, 0.7); G.fx.beam(at.clone().setY(kind === "banner" ? 3 : 0.3), at.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
+      else if (e.kind === "capture") { banner(U.tr("A horn. Their wall is broken, and {who} is cut off from his men. Take him!", { who: shortOf(e.uid) }));
+        const uid = e.uid; let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "capture") return true; const at = posOf(uid, 0.1);
+          if (at && Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(at, 0xf2d27a, 0.5, 2.8, 0.7); G.fx.beam(at.clone().setY(2.6), at.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
       else if (e.kind === "raid") { banner(U.tr("A horn. One of them breaks for {who}. Strike him down before he gets there!", { who: nameOf(e.on) })); const at = posOf(e.uid, 2.1); if (at) float(at, "!", "foe big"); }
       else if (e.kind === "duel") duelCard(e.uid);
     }
     function planTask(e) {
       const won = e.k === "taskDone";
-      const WON = { standard: "You pull their banner down. Their host breaks.", banner: "His banner falls. Their host breaks.", sarathi: "His charioteer is down, and the car stands still.", raid: "You cut him off. Your man lives." };
-      const LOST = { standard: "Too slow: their banner is carried off and they rally.", banner: "Too slow: his guards close round the car again, and they rally.", sarathi: "Too slow: his car rides your man down.", raid: "Your man is cut down." };
+      const WON = { capture: "He is taken, and carried to your rear. Their host loses heart.", standard: "You pull their banner down. Their host breaks.", banner: "His banner falls. Their host breaks.", sarathi: "His charioteer is down, and the car stands still.", raid: "You cut him off. Your man lives." };
+      const LOST = { capture: "Too slow: his men bring him off, and they rally.", standard: "Too slow: their banner is carried off and they rally.", banner: "Too slow: his guards close round the car again, and they rally.", sarathi: "Too slow: his car rides your man down.", raid: "Your man is cut down." };
       if (won) { sfx("gong"); banner(U.tr(WON[e.kind] || WON.raid));
         if (e.kind === "banner" && R.plan) { const v = views.get(R.plan.car), fl = v && v.car && v.car.userData.banner; if (fl) { let t = 0, th = 0.1, w = 0.5, lay = 0; G.fx.run((dt, cut) => { t += dt; const h = Math.min(dt, 1 / 30); // (a staff cut through topples as a staff does: slowly at first, then all at once; it strikes, jumps once, and lies)
               if (!lay) { w += 4.2 * Math.sin(th) * h; th += w * h; if (th >= 1.5) { th = 1.5; if (w > 1.2) { w = -w * 0.22; G.fx.burst("dust", at || fl.getWorldPosition(new T.Vector3()).setY(0.1), { n: 6 }); } else lay = t; } }
@@ -801,7 +818,7 @@
     function spiritHud() {
       oursHud(); storyProps(R.t); if (B.enc.wheel3) wheelProps(R.t, 0);
       if (!R.morale) return; if (!spiritEl) { spiritEl = U.el('<div class="b-spirit"><span>' + U.tr("Their spirit") + '</span><div><i></i></div></div>'); hud.appendChild(spiritEl); }
-      spiritEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.morale.theirs)) + "%"; spiritEl.classList.toggle("low", R.morale.theirs < 35);
+      spiritEl.querySelector("i").style.width = Math.max(0, Math.min(100, R.morale.theirs)) + "%"; spiritEl.classList.toggle("low", R.morale.theirs <= R3.P.shaken);
     }
     // ---------- Speaking a mantra: a figure to join ----------
     // A divine weapon is not fired by a button. The fight slows, the sky darkens, and the weapon's own figure stands
@@ -1086,7 +1103,7 @@
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
       if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
-      if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
+      if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "capture" ? K.tr("Take {who}", { who: shortOf(R.task.uid) }) : R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
       if (B.enc.mahout3 && B.units.some((x) => x.side === "enemy" && x.hp > 0 && x.g && x.g.kind === "elephant")) return K.tr("Come at the mahout from its flank: {n} of 3", { n: (R.mahout && R.mahout.n) || 0 }) + (left != null ? " · " + n + " s" : "");
       if (R.step3) return K.tr("Get to {t}", { t: nameOf(R.step3.uid) }) + " · " + Math.max(0, Math.ceil(R.step3.until - R.t)) + " s";
       if (R.order && R.order.state === "doing") { const a = asks3()[R.order.i], s2 = Math.max(0, Math.ceil(R.order.until - R.t)); return (a.task === "heave" ? K.tr(a.goal) + ": " + Math.min(100, Math.round(100 * R.order.held / (a.need || 6))) + "%" : K.tr(a.goal)) + " · " + s2 + " s"; }
@@ -1159,6 +1176,15 @@
     // field and waits for your word. A tap or a key moves it on; Skip goes straight to the field.
     const HOW_TOUCH = "Left thumb: move. Right thumb: Strike, Roll, Guard and your skill. Tap a foe to face them.", HOW_KEYS = "Move: WASD or arrows. Strike: J or left click. Roll: Space. Guard: K or Shift. Skill: L. Face the next foe: Q. Herbs: H. Help: C. Divine weapon: 1–3. Spare: F. Withdraw: X.";
     const tally = (list) => { const n = new Map(); for (const u of list) { const k = K.text(u.name); n.set(k, (n.get(k) || 0) + (u.plural && u.g ? u.g.bodies || 1 : 1)); } return [...n].map(([k, c]) => (c > 1 && !/s$|ें$|ों$/.test(k) ? c + " × " + k : k)); };
+    // The two sides' plans, said and shown (owner, 13 November: "have the strategy of foe side and friend side be more visible").
+    const PLAN_SAYS = { wall: "A wall of shields: their foot come on abreast. A blow at its front does half; it is weak in the side.", pincer: "A pincer: one holds you in front while two go wide, to come in behind you.", charge: "Their champion's charge: he comes straight for you while his men hold back." };
+    const PLAN_NAME = { wall: "a wall of shields", pincer: "a pincer", charge: "their champion's charge" };
+    const STANCE = { hold: ["Hold the line", "Your men keep close about you. Blows at your back fall lighter; their spirit falls more slowly. It answers a pincer."],
+      flank: ["Turn their flank", "Your men go wide, for their archers and their rear. Their archers shoot less often; your men begin away from your side. It answers a wall."],
+      centre: ["Break their centre", "Straight in, with your men at your heels. Their spirit falls faster; blows at your back fall harder. It answers a champion's charge."] };
+    // (plain text, not yet made safe for the page: whoever shows it does that once)
+    const scoutLine = () => { const sc = R3.scouts(R); return !sc ? "" : sc.sure ? K.tr("Your scouts are sure.") + " " + K.tr(PLAN_SAYS[sc.kinds[0]]) : K.tr("Your scouts cannot tell: {a}, or {b}. Look how they stand.", { a: K.tr(PLAN_NAME[sc.kinds[0]]), b: K.tr(PLAN_NAME[sc.kinds[1]]) }); };
+    const tradeLines = (list) => [...new Set(list.map((u) => u.g && u.g.cls).filter(Boolean))].slice(0, 3).map((k) => K.tr(R3.CLASS_LINE[k]) + (K.lang === "hi" ? "।" : "."));   // what the kinds of men against you can do
     function brief() {
       const p = C.player(), every = B.units.filter((u) => u.side === "enemy" && u.g && !u.line), foes = every.filter((u) => u.g.entered !== false && u.g.kind !== "light");
       const allies = B.units.filter((u) => u.side === "ally" && u.g && !u.line), title = K.text(K.val(enc.title) || "A fight"), cap = K.val(enc.caption) ? K.text(K.val(enc.caption)) : "";
@@ -1166,6 +1192,10 @@
       if (U.battleBot || U.calm() || !foes.length || !p.g) return ready(true);
       hud.classList.add("pre");
       const px = p.g.x, pz = p.g.z, kind = U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight"), shots = [];
+      // The opening is not the same every time (owner, 13 November: "opening sequence also seems repeated"). The same
+      // views in one of three orders, by how many battles are behind you: you first; from behind their leader, looking
+      // across at you; or the whole field first, coming down between the lines.
+      const style = enc.dream ? 0 : ((K.S && K.S.fought ? Object.values(K.S.fought).reduce((n, v) => n + v, 0) : 0) + String(enc.id).length) % 3, first = shots.length;
       // 1. You, close.
       shots.push({ secs: 2.4, a: [[px + 1.9, 1.62, pz - 3.1], [px, 1.34, pz], 32], b: [[px + 1.05, 1.52, pz - 2.05], [px, 1.42, pz], 30], kind, head: title, text: cap, who: p.uid, act: "taunt", sfx: enc.lethal ? "drumCall" : "tap" });
       // (what the story says as the fight opens: read over the same close view, a caption or two at most)
@@ -1182,8 +1212,15 @@
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
         shots.push({ secs: 2.0, a: [[ax + sx * 3.2 * ak, 1.75 + 0.5 * (ak - 1), az - 3.6 * ak], [ax, 1.25, az], 40], b: [[ax + sx * 2.3 * ak, 1.62 + 0.5 * (ak - 1), az - 3.0 * ak], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }
-      // (their plan is not told: it is shown. The last thing before the fight is the whole field from behind your own line.)
-      if (R.plan) shots.push({ secs: 3.4, a: [[0, 15, pz + 13], [0, 0, -R.rad * 0.2], 50], b: [[0, 20, pz + 9], [0, 0, -R.rad * 0.28], 50], kind: U.tr("Across the field"), head: U.tr("How they stand"), text: "" });
+      // (their plan is shown, and what your scouts make of it is said. The last thing before the fight is the whole field from behind your own line.)
+      if (R.plan) shots.push({ secs: 3.4, plan: true, a: [[0, 15, pz + 13], [0, 0, -R.rad * 0.2], 50], b: [[0, 20, pz + 9], [0, 0, -R.rad * 0.28], 50], kind: U.tr("Across the field"), head: U.tr("How they stand"), text: scoutLine() });   // (the line is plain text; the frame shows it as text)
+      if (style === 1) {   // from behind their leader, across the field to you; then the rest as it was
+        shots.splice(first, 0, { secs: 2.6, a: [[bx + 1.3, bh + 1.0, bz - 3.6], [px, 1.3, pz], 44], b: [[bx + 0.7, bh + 0.7, bz - 2.4], [px, 1.3, pz], 38], kind, head: title, text: cap, sfx: enc.lethal ? "drumCall" : "tap" });
+        const you = shots[first + 1]; you.head = (K.S && K.S.name) || title; you.text = ""; you.kind = U.tr("You"); you.sfx = "tap"; you.secs = 1.8;
+      } else if (style === 2) {   // the whole field first, coming down between the two lines
+        shots.splice(first, 0, { secs: 3.0, a: [[R.rad * 0.9, 13, 2], [0, 0.6, -1], 52], b: [[R.rad * 0.55, 4.2, 1.2], [0, 1.0, -1.2], 46], kind, head: title, text: cap, sfx: enc.lethal ? "drumCall" : "tap" });
+        const you = shots[first + 1]; you.head = (K.S && K.S.name) || title; you.text = ""; you.kind = U.tr("You"); you.sfx = "tap"; you.secs = 1.8;
+      }
       intro = { shots, i: -1, t: 0 };
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
       hud.appendChild(intro.box); hud.appendChild(intro.skip);
@@ -1233,12 +1270,20 @@
         : R.through ? K.tr("Break through to the far side") + " (" + Math.round(left) + " s)" : R.escort ? K.tr("Keep {who} whole", { who: K.text((B.units.find((u) => u.still) || {}).name || "") }) + " (" + Math.round(left) + " s)"
         : left != null ? K.tr("Hold your ground") + " (" + Math.round(left) + " s). " + K.tr("You need not win, only not fall.") : one ? K.tr("Bring {foe} down. If you fall first, you lose.", { foe: one }) : K.tr("Bring them all down. If you fall first, you lose.");
       const lines = whole ? B.log.filter((r) => r && r.raw).map((r) => "<p>" + U.esc(C.line(r)) + "</p>").join("") : "";
+      const bossU = B.units.filter((u) => u.side === "enemy" && !u.line && u.g).find((u) => u.person || u.hero), bossLine = bossU && RT.traitLine && RT.traitLine(bossU) ? K.text(bossU.name) + ": " + K.tr(RT.traitLine(bossU)) + (K.lang === "hi" ? "।" : ".") : "";
+      const trades = (bossLine ? [bossLine] : []).concat(tradeLines(B.units.filter((u) => u.side === "enemy" && u.g))).slice(0, 3), plans = !!R3.scouts(R) && !R.stance && !enc.quick;
+      let stance = "hold";
       const el = U.el('<div class="b-card b-brief' + (whole ? "" : " low") + '"><span class="kind war">' + U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight") + "</span><h2>" + U.esc(K.text(K.val(enc.title) || "A fight")) + "</h2>" + (whole && K.val(enc.caption) ? '<p class="cap">' + U.esc(K.text(K.val(enc.caption))) + "</p>" : "") + lines +
         '<p class="b-foes"><b>' + U.esc(foes.join(", ")) + "</b>" + (allies.length ? ' <span class="muted">· ' + U.tr("With you: {who}", { who: U.esc(allies.join(", ")) }) + "</span>" : "") + "</p>" +
+        (trades.length ? '<ul class="b-trades">' + trades.map((t) => "<li>" + U.esc(t) + "</li>").join("") + "</ul>" : "") +
+        (plans ? '<div class="b-plans"><p class="b-theirs"><b>' + U.tr("Their plan") + "</b> " + U.esc(scoutLine()) + '</p><p class="b-yours"><b>' + U.tr("Your plan") + '</b></p><div class="b-stances" role="radiogroup"></div><p class="b-stsay small"></p></div>' : "") +
         '<p class="b-goalline">' + U.esc(goal) + '</p><p class="small muted">' + U.tr(touch ? HOW_TOUCH : HOW_KEYS) + '</p><div class="b-views"><span class="muted">' + U.tr("View") + '</span></div><div class="btnrow"></div></div>');
       const vr = el.querySelector(".b-views");
       for (const m of VIEWS) { const b = U.button("b-view" + (m === viewMode ? " on" : ""), U.tr(VIEW_NAME[m]), () => setView(m, true)); b.dataset.view = m; vr.appendChild(b); }
-      const go = () => { if (started) return; started = true; el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 0.8; if (enc.dream && !tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
+      if (plans) { const row = el.querySelector(".b-stances"), say = el.querySelector(".b-stsay"), pick = (id) => { stance = id; for (const b of row.children) { b.classList.toggle("on", b.dataset.st === id); b.setAttribute("aria-checked", b.dataset.st === id ? "true" : "false"); } say.textContent = K.tr(STANCE[id][1]); };
+        for (const id of R3.STANCES) { const b = U.button("b-stance", U.tr(STANCE[id][0]), () => pick(id)); b.dataset.st = id; b.setAttribute("role", "radio"); row.appendChild(b); }
+        pick(U.battleBot ? R3.ANSWER[R.plan.kind] : "hold"); }
+      const go = () => { if (started) return; started = true; if (plans) R3.stance(R, stance); el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 0.8; if (enc.dream && !tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
       if (enc.quick) return go();   // (a bout begun from a test's own card: it has said what is at stake, and Begin was the word)
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Fight"), go, "battle-go"));
       hud.appendChild(el);

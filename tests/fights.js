@@ -22,6 +22,7 @@ function life(id, path, i) {
   const P = K.PATHS[S.path] || {};
   S.skills = { archery: 0, mace: 1, chariot: 0, statecraft: 0, healing: 0, stealth: 0, lore: 0 }; if (P.skill) S.skills[P.skill] = g[4];
   S.items = { herbs: 2 }; if (act >= 6) S.flags.push("role_front");
+  S.fought = { [act]: process.env.FOUGHT != null ? +process.env.FOUGHT : 4 };   // (each battle of an act is a step harder than the last: the bands are measured at the fourth, where every fight of the act used to be. FOUGHT=0 or 10 measures the ends)
   return S;
 }
 const seedOf = (id, i) => { let h = 2166136261 ^ seed; for (let k = 0; k < id.length; k++) { h ^= id.charCodeAt(k); h = Math.imul(h, 16777619); } return ((h >>> 0) % 1000003) * 31 + i * 7919 + 1; };

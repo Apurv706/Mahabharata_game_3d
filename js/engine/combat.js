@@ -720,6 +720,8 @@
     if (!B || !B.over) return null;
     const done = B;
     B = null;
+    // (one more battle behind you: the next of this act is a step harder; engine/realtime.js RT.heat)
+    if (K.S && done.enc && !done.enc.dream && !/^x_/.test(String(done.enc.id))) { const f = (K.S.fought = K.S.fought || {}); f[K.S.act] = (f[K.S.act] || 0) + 1; }
     return done;
   };
 })(window.K = window.K || {});
