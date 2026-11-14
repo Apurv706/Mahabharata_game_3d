@@ -595,6 +595,7 @@
     // where video cannot play, the painting and its fire drawn in code stay.
     if (sc.afterClip && U.hasVideo(sc.afterClip) && U.living()) { if (U.stageFx) U.stageFx.stop(); U.setBackdrop(sc.afterClip); U.livePlay(true); }
     // What you chose and what came of it are written into the story; Continue waits below.
+    if (!U.$("story") || !U.$("choices")) U.renderScene(sc);   // (a bout fought in 3D from a test can end after the page beneath it was taken down: put it back first. An archer's life, 13 November)
     const story = U.$("story"), box = U.$("choices");
     const pimg = K.val(c.img);
     const picked = U.el('<div class="choice picked' + (pimg ? " has-img" : "") + '"><span class="k">·</span>' + (pimg ? U.thumb(pimg) : "") + '<span class="t">' + U.t(K.val(c.t)) + '</span><span class="fx">' + U.tr("Your choice") + "</span></div>");

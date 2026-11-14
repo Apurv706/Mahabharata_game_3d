@@ -107,6 +107,7 @@
     if (/champion|dented helmet/i.test(n)) return SPECIAL.champion;
     if (/archer|chariot/i.test(n)) return SPECIAL.archer;
     if (/horseman|rider|veteran/i.test(n)) return SPECIAL.rider;
+    if (/swordsman/i.test(n)) return Object.assign({}, U.puppetFor("guard"), { item: "sword" }); // (a swordsman holds a sword: tests/weapons.js)
     if (/club|raider|bandit/i.test(n)) return SPECIAL.bandit;
     if (/cowherd|villager/i.test(n)) return SPECIAL.common;
     if (/guard|bodyguard|captain|sentry/i.test(n)) return U.puppetFor("guard");

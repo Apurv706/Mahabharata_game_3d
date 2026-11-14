@@ -434,7 +434,7 @@
     if (/Gandharva/.test(n)) return "spear";
     if (/champion|dented helmet|\bmace\b/i.test(n)) return "mace"; // a mace champion
     if (/archer|chariot/i.test(n)) return "bow";
-    if (/horseman|rider|veteran/i.test(n)) return "sword";
+    if (/horseman|rider|veteran|swordsman/i.test(n)) return "sword";
     if (/miller's son/.test(n)) return "fist"; // Ugra in the wrestling ring at the fair, empty-handed as he is drawn
     if (/Ketan/.test(n)) return "woodsword"; // the sparring bout: a blunted (wooden) sword, as long as a sword
     if (/^Ugra(?!'s)/.test(n) || /club|raider|bandit/i.test(n)) return "club"; // (Ugra's levies are soldiers)

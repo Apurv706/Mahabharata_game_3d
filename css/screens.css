@@ -2451,3 +2451,5 @@ html[lang="hi"] .ord h3, html[lang="hi"] .ord-who small { letter-spacing: 0; tex
 @keyframes cr-in-after { from { opacity: 0; } }
 html.calm .cr-intro, html.calm .cr-intro .cr-kick, html.calm .cr-intro .cr-title { transition: none; }
 html.calm .cr.intro-out .cr-home, html.calm .cr.intro-out .cr-dots, html.calm .cr.intro-out .cr-mid { animation: none; }
+/* Shakuni's hands on a small phone: the five answers share one row (in three rows "Throw 5" fell off the foot of an iPhone SE). */
+@media (max-width: 560px) { .dicegame.hands .btnrow { flex-wrap: nowrap; gap: 6px; } .dicegame.hands .btnrow > button { flex: 1 1 0 !important; width: auto !important; min-width: 0 !important; max-width: none !important; padding-left: 2px !important; padding-right: 2px !important; font-size: 0.9rem !important; min-height: 46px; } .dicegame.hands ol.throws { gap: 4px; } .dicegame.hands ol.throws li { flex-wrap: nowrap; gap: 8px; } .dicegame.hands ol.throws li span { min-width: 58px; font-size: 14px; } .dicegame.hands ol.throws .die { width: 54px; height: 22px; } }   /* (each throw on one line: three long dice and its name wrapped to two lines a throw, ten lines in all) */

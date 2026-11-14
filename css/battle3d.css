@@ -269,3 +269,10 @@ body.in3d #b3d { display: block; }
 #b3d .b-me .b-gifts { display: inline-flex; vertical-align: middle; margin-top: 2px; }
 #b3d .b-me .b-gifts[hidden] { display: none; }
 .bhud .b-line, .bhud .b-spirit { margin-top: var(--hud-push, 0px); }
+/* No text selection, no callout and no zoom from a held or repeated thumb anywhere in the 3D view (owner, 13 November). */
+body.in3d, body.in3d #b3d, body.in3d #b3d * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+body.in3d { overscroll-behavior: none; }
+body.in3d #b3d button, body.in3d #b3d .b-btn, body.in3d #b3d .b-acts, body.in3d #b3d .b-acts *, body.in3d #b3d .b-side, body.in3d #b3d .b-side * { touch-action: none; }
+body.in3d #b3d .b-card, body.in3d #b3d .b-ask, body.in3d #b3d .b-card * { touch-action: pan-y; }
+/* Four or more short answers (the dice game's "Throw 1" to "Throw 5") share one row on a phone instead of three rows that ran off the foot of an iPhone SE. */
+@media (max-width: 560px) { .t-btns:has(> .t-btn:nth-child(4)) { flex-wrap: nowrap; gap: 6px; padding: 0 8px; } .t-btns:has(> .t-btn:nth-child(4)) > .t-btn { flex: 1 1 0; min-width: 0; min-height: 46px; padding: 4px 2px; font-size: 0.9rem; } }

@@ -921,7 +921,7 @@
       // (When it is over you see your fighter again, whichever view you fought in.)
       const mode = viewMode === "eyes" && (!started || (R.over && R.over !== "retry")) ? "behind" : viewMode;
       if (pf) { const hide = mode === "eyes" && !intro, H_ = pf.j.H; H_.visible = !hide; // (a modelled figure's head is skin on a bone, not a child of this joint: shrink the joint to nothing, or you look out through the inside of your own face)
-        if (H_.userData.s0 == null) H_.userData.s0 = H_.scale.x; H_.scale.setScalar(hide ? 0.0001 : H_.userData.s0); if (pf.shield) pf.shield.visible = !hide; } // (and your own shield, held across your front, would be a wall across the screen)
+        if (H_.userData.s0 == null) H_.userData.s0 = H_.scale.x; H_.scale.setScalar(hide ? 0.0001 : H_.userData.s0); if (pf.shield) pf.shield.visible = !hide; if (pf.bow) pf.bow.visible = !hide; } // (and a bow, held up before the eyes fills the screen: an archer's life on a phone, 13 November) // (and your own shield, held across your front, would be a wall across the screen)
       if (intro) return; // the opening shots hold the camera
       if (askView && !started) { G.camSet(askView[0], askView[1], askView[2], true); return; }   // (the field from behind your line, while you choose how to fight it)
       if (viewEase > 0) viewEase -= G.real || dt;
@@ -960,7 +960,7 @@
         G.cam.rate = viewEase > 0 ? 4 : 9;
         G.camSet([cx, up, cz], camLook, 58 + (1 - k) * 16, snap);
       } else {
-        const ey = pf ? Math.max(0.62, pf.headPos(tmp).y) : 1.6, ex = p.g.x + sx * 0.17, ez = p.g.z + sz * 0.17;
+        const ey = pf ? Math.max(0.62, pf.headPos(tmp).y) : 1.6, ek = 0.17 + 0.2 * Math.max(0, (pf ? pf.size || 1 : 1) - 0.9) + (pf && (pf.spec.armour || (pf.spec.gear || []).includes("cuirass") || (pf.spec.gear || []).includes("scale")) ? 0.16 : 0.06), ex = p.g.x + sx * ek, ez = p.g.z + sz * ek;   // (a big man, or one in armour, looks out past his own shoulders: a mace life on a phone saw only its shoulder plates)
         camLook.set(ex + sx * 6, ey - 0.8, ez + sz * 6); // a little down, so the marks on the ground can be read
         G.cam.rate = viewEase > 0 ? 5 : 20;
         G.camSet([ex, ey, ez], camLook, 76 + (1 - k) * 24, snap);
@@ -1217,7 +1217,7 @@
       const rest = tally(every.filter((u) => u !== boss)), more = every.some((u) => u.g.entered === false) || (enc.rounds && !enc.hold && every.length > foes.length);
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
         face: boss.g.kind === "man" || boss.g.car ? boss.uid : null, pic: K.val(enc.face3) || (boss.person && U.portraitKey(boss.person)) || null, /* (his painted face, where he has one: the same man as on the story's pages) */
-        text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? " " : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
+        text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? (K.lang === "hi" ? "। " : ". ") : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
@@ -1236,6 +1236,19 @@
       } else if (style === 2) {   // the whole field first, coming down between the two lines
         shots.splice(first, 0, { secs: 3.0, a: [[R.rad * 0.9, 13, 2], [0, 0.6, -1], 52], b: [[R.rad * 0.55, 4.2, 1.2], [0, 1.0, -1.2], 46], kind, head: title, text: cap, sfx: enc.lethal ? "drumCall" : "tap" });
         const you = shots[first + 1]; you.head = (K.S && K.S.name) || title; you.text = ""; you.kind = U.tr("You"); you.sfx = "tap"; you.secs = 1.8;
+      }
+      // After the first battles the opening changes (owner, 13 November: "don't show the player's face and characters after
+      // the first few times; show the whole friend side and then the enemy side together; zoom into the important people
+      // on both sides"). One long shot from behind your line, over your whole side and on across the field to theirs; then
+      // close on the great ones of your side, then on theirs; then what their men can do, and their plan.
+      const seasoned = !enc.dream && !enc.quick && (K.S && K.S.fought ? Object.values(K.S.fought).reduce((n, v) => n + v, 0) : 0) >= 2;
+      if (seasoned && foes.length) {
+        const keep = shots.filter((x) => x.kind === U.tr("Against you") || x.kind === U.tr("Their men") || x.plan), out = [];
+        out.push({ secs: 4.2, a: [[px + 3.5, 4.2, pz + 7.5], [px, 0.9, pz - 1], 50], b: [[-R.rad * 0.15, 11, pz + 6], [0, 0.4, -R.rad * 0.45], 50], kind, head: title, text: cap || (caps[0] || ""), sfx: enc.lethal ? "drumCall" : "tap" });
+        const great = B.units.filter((u) => u.side === "ally" && u.g && !u.line && (u.hero || u.person)).slice(0, 2);
+        for (const u of great) { const x = u.g.x, z = u.g.z; out.push({ secs: 2.4, a: [[x + 1.6, 1.9, z - 3.2], [x, 1.3, z], 38], b: [[x + 0.9, 1.6, z - 2.2], [x, 1.4, z], 32], kind: U.tr("With you"), head: K.text(u.name), face: u.g.kind === "man" || u.g.car ? u.uid : null, pic: (u.person && U.portraitKey(u.person)) || null, text: RT.traitLine && RT.traitLine(u) ? K.tr(RT.traitLine(u)) + "." : "", who: u.uid, act: "taunt", sfx: "tap" }); }
+        for (const x of keep) if (x.kind === U.tr("Against you")) x.a = [[bx + bd * 0.9, bh + 2.2, bz + bd * 1.7], [bx, bh, bz], 40];   // (from out on the field, not over your shoulder)
+        shots.length = 0; for (const x of out.concat(keep)) shots.push(x);
       }
       intro = { shots, i: -1, t: 0 };
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));

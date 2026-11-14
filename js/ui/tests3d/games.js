@@ -150,7 +150,8 @@
       if (busy) return; busy = true; n++;
       const from = ctx.me.tip(), secs = Math.hypot(ax - from.x, ay - from.y, Z - from.z) / VEL, to = V(ax + 0.5 * wind * secs * secs, ay, Z);
       ctx.me.act("loose", 0.35, 0.45); sfx("tap");
-      G.fx.arrow(from, to, secs, null, (shaft) => {
+      let landed = false;
+      const onLand = (shaft) => { if (landed) return; landed = true;
         const m = mark(), dx = to.x - m[0], dy = to.y - m[1], hit = x.runner ? Math.abs(dx) <= RAD && Math.abs(dy) <= (big ? 1.2 : 0.8) : Math.hypot(dx, dy) <= RAD;
         if (shaft) { if (hit) x.tg.attach(shaft); else shaft.visible = false; } /* (an arrow that struck stays in its mark, and goes with it) */
         if (hit) { hits++; G.fx.burst("hit", to, { n: 12 }); sfx("clang"); ctx.toast(tx("Hit!"), "good"); flew = 0.6; }
@@ -159,7 +160,9 @@
         if (hits >= need) { draw(); return ctx.after(500, () => ctx.finish("win", null)); }
         if (hits + left < need) { draw(); return ctx.after(500, () => ctx.finish(hits === need - 1 ? "close" : "lose", null)); }
         gust(); draw(); ctx.after(450, () => { busy = false; });
-      }, 0.9);
+      };
+      G.fx.arrow(from, to, secs, null, onLand, 0.9);
+      ctx.after(Math.round(secs * 1000) + 1200, () => onLand(null));   // (if the flight is cut short, by the view being cleared or the page hidden, the arrow still lands: the test once waited for it for ever. A mace life on a phone, 13 November)
     };
     ctx.button(t.verb || "Release", () => fire());
     ctx.pointer = (kind, e) => {
@@ -803,7 +806,7 @@
   // The army's day: the array (place your companies), and the orders (hold the line).
   // =====================================================================================================
   const VYUHA = { crane: [[0, -4], [-3, -2], [3, -2], [-5, 1], [5, 1]], wheel: [[0, -4], [-4, -1], [4, -1], [-2.5, 3], [2.5, 3]], crocodile: [[0, -5], [-2, -2], [2, -2], [0, 1], [0, 4]], needle: [[0, -5], [0, -2.5], [0, 0], [0, 2.5], [0, 5]], crescent: [[-5, -3], [-2.5, -1], [0, 0], [2.5, -1], [5, -3]] };
-  SETUP.formation = { clear: 14, setup(ctx) { ctx.cam([0, 15, 12], [0, 0, 0], 46, true); } };
+  SETUP.formation = { clear: 14, setup(ctx) { const up = G.W / G.H < 0.8; ctx.cam(up ? [0, 21, 8] : [0, 15, 12], [0, 0, 0.3], up ? 70 : 46, true); } };   // (on an upright phone the wings of the array, five metres out each side, were off the screen: higher, and wider)
   PLAY.formation = function (ctx) {
     const t = ctx.t, key = VYUHA[t.array] ? t.array : K.pick(Object.keys(VYUHA)), pts = VYUHA[key], L = labels(ctx); ctx.tapActs = false;
     const want = shuffle([0, 1, 2, 3, 4]).slice(0, 3), names = ["Spears", "Archers", "Chariots"], show = clamp(3 + ctx.power * 0.25, 3, 5.5);

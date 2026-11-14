@@ -16,6 +16,16 @@
   B.on = function () {
     if (B.failed || U.headless() || !window.THREE || U.no3d()) return false;
     document.body.classList.add("in3d");
+    // (owner, 13 November: "game controls automatically start text selection and then the game window zooms in". A held
+    // or quickly repeated thumb on a button must never select text, show the iPhone's magnifier, or zoom the page: pinch and
+    // double-tap zoom are stopped while the 3D view is up. A card that scrolls still scrolls.)
+    if (!B.guarded) { B.guarded = true; let last = 0;
+      const in3 = () => document.body.classList.contains("in3d");
+      document.addEventListener("gesturestart", (e) => { if (in3()) e.preventDefault(); }, { passive: false });
+      document.addEventListener("touchmove", (e) => { if (in3() && e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+      document.addEventListener("touchend", (e) => { if (!in3()) return; const now = Date.now(), t = e.target; if (now - last < 350 && !(t && t.closest && t.closest("input, textarea, select"))) e.preventDefault(); last = now; }, { passive: false });
+      document.addEventListener("selectstart", (e) => { if (in3() && !(e.target && e.target.closest && e.target.closest("input, textarea"))) e.preventDefault(); });
+      document.addEventListener("contextmenu", (e) => { if (in3() && e.pointerType !== "mouse" && !(e.target && e.target.closest && e.target.closest("input, textarea"))) e.preventDefault(); }); }
     if (!B.ready) {
       try { G.init(); } catch (e) { if (window.console) console.error(e); }
       if (!G.ok) { // 3D would not start. Not for good: the next fight asks again (three times in all), and the player is told, once, why this one is flat.

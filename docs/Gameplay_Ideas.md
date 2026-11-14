@@ -338,3 +338,19 @@ So the ramp is gentle over most of the war and steep on the fights that were alr
 **Animals.** The same for horses, cattle and deer: each hoof is put down ahead, stays down while the body passes over it, and is picked up and carried forward folded. The walk goes one foot at a time, the trot in diagonal pairs, the gallop hind feet then fore feet with all four off the ground between. Hoof slide went from 0.8 m to under 8 cm, and the forelegs, which never quite reached the ground in a trot, now do.
 
 **Turn left and walk left are two things** (owner, 13 November). In a fight a step to the side is now a side-step: with a foe within six metres your face stays to him while you move, from above as well as in the close views, and a side-step is a little slower than going ahead (a step back slower still). Turning is its own control: the left and right arrow keys, or a finger drawn across the right half of the screen (a tap there still chooses a foe). Once you turn yourself, your facing is yours for two and a half seconds, or until you choose a foe, and the close views turn with you. W and S move; A and D step aside.
+
+### After playing Version 53 (13 November, late)
+
+- **Held or repeated thumbs no longer select text or zoom the page.** While the 3D view is up, nothing in it can be selected, the iPhone's callout and magnifier are off, and pinch and double-tap zoom are stopped. A card that scrolls still scrolls.
+- **Turning and running.** The left thumb moves you: forward, back, or to the side, where with a foe near a step aside is a side-step with your face still to him. Turning is a finger drawn left or right across the right half of the screen (a tap there still chooses a foe); on a keyboard, the arrow keys. Running is simply the left thumb pushed in the way you face.
+- **The opening after the first two battles.** It no longer shows you close, or your own soldiers. One long shot goes from behind your line over your whole side and on across the field to theirs; then the camera closes on the great ones beside you (Abhimanyu, a Pandava, a king), then on their leader, then on what their men can do and their plan. The first two battles keep the fuller opening that introduces you.
+- Two bugs from play: a name shown as "riders&#39;" on the single-combat card, and your gift marks drawn over the fight's name when you carried a curse and gifts at once.
+
+### Two lives played on a phone screen, a picture every 30 seconds (13 November, night)
+
+An archer and a mace fighter from birth (24 minutes each, to the age of 17 and 14), then a mace fighter and a Kaurava archer in the war. Found and fixed:
+
+- **The archery test could wait for ever.** "Ask Drona to test you" froze with the first arrow in the air for twelve minutes: when an arrow's flight is cut short (the view cleared, the page hidden), its landing was never told. The shot now lands regardless.
+- **A bout lost in a test inside a short scene** (Ugra at the tournament) left the 2D fight screen behind with a script error: the page under it had been taken down. It is put back first.
+- **Through your eyes, an archer saw only his own bow.** Your bow is hidden in that view, as your shield already was.
+- **Swordsmen held spears** (and the regression suite had failed on every push since 12 November because of it). They hold swords.
