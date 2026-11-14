@@ -292,7 +292,7 @@
     "Your scouts are sure.": "तुम्हारे गुप्तचर निश्चित हैं।", "Your scouts cannot tell: {a}, or {b}. Look how they stand.": "तुम्हारे गुप्तचर तय नहीं कर पा रहे: {a}, या {b}। देखो वे कैसे खड़े हैं।",
     "Their plan": "उनकी योजना", "Your plan": "तुम्हारी योजना", "You": "तुम",
     "They come in {plan}: your plan answers it. Their spirit sinks.": "वे {plan} बनाकर आ रहे हैं: तुम्हारी योजना इसका जवाब है। उनका मनोबल गिरा।",
-    "Their host is shaken: their men are slower to come on": "उनकी सेना डगमगा गई: उनके सैनिक अब धीमे बढ़ते हैं", "Their host takes heart again": "उनकी सेना का हौसला लौट आया", "They come in {plan}.": "वे {plan} बनाकर आ रहे हैं।",
+    "Their host is shaken: their men are slower to come on": "उनकी सेना डगमगा गई: उनके सैनिक अब धीमे बढ़ते हैं", "Their host takes heart again": "उनकी सेना का हौसला लौट आया", "Their men": "उनके सैनिक", "How will you fight them?": "तुम उनसे कैसे लड़ोगे?", "They come in {plan}.": "वे {plan} बनाकर आ रहे हैं।",
     "Vikarna, a Kaurava prince": "विकर्ण, एक कौरव राजकुमार", "Susharma, king of Trigarta": "सुशर्मा, त्रिगर्त का राजा", "Durmukha, a Kaurava prince": "दुर्मुख, एक कौरव राजकुमार", "Sudakshina, king of the Kambojas": "सुदक्षिण, कम्बोजों का राजा",
     "Chitrasena, a Kaurava prince": "चित्रसेन, एक कौरव राजकुमार", "Vinda, a king of Avanti": "विन्द, अवन्ति का एक राजा", "Vivimshati, a Kaurava prince": "विविंशति, एक कौरव राजकुमार", "Brihadbala, king of Kosala": "बृहद्बल, कोसल का राजा",
     "Durmarshana, a Kaurava prince": "दुर्मर्षण, एक कौरव राजकुमार", "Anuvinda, a king of Avanti": "अनुविन्द, अवन्ति का एक राजा",

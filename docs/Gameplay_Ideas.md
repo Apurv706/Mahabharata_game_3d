@@ -294,6 +294,10 @@ A banner over a great car, or on its pole, is now only what is left when there i
 - **Who to strike first** is now a real question: the captain, so his men stop pressing; the archers; not the spearman head on.
 - **Each battle of an act is a step harder than the last.** The first is a little under the act's old level, the fourth is at it, the tenth is over it, and it stops there. The count is kept in the life. A bout begun from a test, or on the practice ground, does not count.
 
+### No card before the fight (owner, 13 November, later: "Don't put a card on the screen, show them in 3D scenes, put a 1-2 line below the scene and then ask for your strategy")
+
+The card is gone. What it listed is now shown on the field: after their leader and your own men, the camera goes to one man of each kind against you (up to three), with his trade under his name and one line under the scene ("Kaurava spearman · Strikes first / Spearmen: they strike first at a man who runs straight at them. Come at their side."). Then the whole field from behind your line with your scouts' word, and the camera stays there while a short band at the foot of the screen asks: what wins this fight, what your scouts say, "How will you fight them?", the three plans, and Fight. The fight's own buttons stay hidden until you begin. How to move is said once, as a tip, at the start of your first fight.
+
 ### What was measured
 
 The game's own fighter played every fight 28 times (79 fights, 2,212 lives), before and after, with four battles of the act behind each life:

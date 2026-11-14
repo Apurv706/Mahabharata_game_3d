@@ -250,3 +250,17 @@ body.in3d #b3d { display: block; }
 .b-brief .b-stsay { min-height: 2.6em; color: #f0e3c4; margin: 0 !important; }
 /* On an upright screen the announcement line sat on top of their host's spirit bar: where that bar is shown, the line goes under it. */
 @media (max-aspect-ratio: 21/20) { .bhud:has(.b-spirit) .b-line { top: calc(196px + var(--safe-t)); } }
+/* Before a fight: no card over the field. A short band at the foot of the screen: what wins it, what your scouts say, and the question. */
+.b-ask { position: absolute; left: 50%; bottom: calc(10px + var(--safe-b, 0px)); transform: translateX(-50%); width: min(560px, calc(100% - 20px)); padding: 10px 12px 10px; border-radius: 14px; background: linear-gradient(rgba(24, 14, 9, 0.86), rgba(16, 9, 6, 0.92)); border: 1px solid var(--line2); color: var(--ink); text-align: center; z-index: 3; pointer-events: auto; font-family: var(--sans); }
+.b-ask p { margin: 0 0 6px; font-size: 0.86rem; line-height: 1.32; }
+.b-ask .b-goalline { font-size: 0.9rem !important; }
+.b-ask .b-theirs { color: #f0e3c4; font-family: var(--serif); font-size: 0.95rem; }
+.b-ask .b-q { color: var(--gold); font-weight: 700; margin-top: 2px; }
+.b-ask .b-stances { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 6px; }
+.b-ask .b-stance { min-height: 42px; padding: 4px; font: 600 0.8rem/1.15 var(--sans); border-radius: 10px; border: 1px solid rgba(226, 181, 90, 0.45); background: rgba(40, 22, 12, 0.75); color: #f6ead0; }
+.b-ask .b-stance.on { background: #e9a23b; color: #2a1408; border-color: #ffd98a; }
+.b-ask .b-stsay { color: #e8dcc0; font-size: 0.78rem !important; min-height: 2.5em; }
+.b-ask .b-askrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.b-ask .b-views { margin: 0; justify-content: flex-start; }
+.b-ask .btnrow { display: flex; margin-left: auto; }
+.b-ask .b-view { padding: 4px 8px; font-size: 0.72rem; } .b-ask .b-views { gap: 4px; flex: 1 1 0; min-width: 0; }

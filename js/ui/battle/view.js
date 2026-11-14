@@ -139,7 +139,7 @@
     }
     let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, backMesh = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
-    let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null;
+    let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null, askView = null;
     const threatEls = [];
     const input = { up: 0, right: 0, block: false, taps: {}, keys: new Set(), stick: null, mouseBlock: false, padBlock: false };
     const touch = !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
@@ -923,6 +923,7 @@
       if (pf) { const hide = mode === "eyes" && !intro, H_ = pf.j.H; H_.visible = !hide; // (a modelled figure's head is skin on a bone, not a child of this joint: shrink the joint to nothing, or you look out through the inside of your own face)
         if (H_.userData.s0 == null) H_.userData.s0 = H_.scale.x; H_.scale.setScalar(hide ? 0.0001 : H_.userData.s0); if (pf.shield) pf.shield.visible = !hide; } // (and your own shield, held across your front, would be a wall across the screen)
       if (intro) return; // the opening shots hold the camera
+      if (askView && !started) { G.camSet(askView[0], askView[1], askView[2], true); return; }   // (the field from behind your line, while you choose how to fight it)
       if (viewEase > 0) viewEase -= G.real || dt;
       const asp = G.W / G.H, k = clamp((asp - 0.75) / 0.6, 0, 1);         // 0 upright phone … 1 wide screen
       if (mode === "top") {
@@ -1212,6 +1213,12 @@
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
         shots.push({ secs: 2.0, a: [[ax + sx * 3.2 * ak, 1.75 + 0.5 * (ak - 1), az - 3.6 * ak], [ax, 1.25, az], 40], b: [[ax + sx * 2.3 * ak, 1.62 + 0.5 * (ak - 1), az - 3.0 * ak], [(ax + px) / 2, 1.25, az], 38], kind: U.tr("With you"), head: tally(allies).join(", "), text: "", sfx: "tap" }); }
+      // 4. What their men can do: each kind shown on the field, the man himself, with a line under him (owner, 13 November:
+      // "don't put a card on the screen, show them in 3D scenes, a line or two below the scene").
+      { const seen = new Set(), stop = K.lang === "hi" ? "।" : ".";
+        for (const u of every) { const c = u.g.cls; if (!c || seen.has(c) || seen.size >= 3 || u === boss || !R3.CLASS_LINE[c]) continue; seen.add(c);
+          const x = u.g.x, z = u.g.z, dz = Math.sign(pz - z) || 1, dx = x >= px ? 1 : -1;
+          shots.push({ secs: 2.2, a: [[x + dx * 2.4, 1.75, z + dz * 3.6], [x, 1.2, z], 38], b: [[x + dx * 1.3, 1.55, z + dz * 2.5], [x, 1.25, z], 34], kind: U.tr("Their men"), head: K.text(u.name) + " · " + K.tr(R3.CLASS_TAG[c]), text: K.tr(R3.CLASS_LINE[c]) + stop, who: u.uid, act: "taunt", sfx: "tap" }); } }
       // (their plan is shown, and what your scouts make of it is said. The last thing before the fight is the whole field from behind your own line.)
       if (R.plan) shots.push({ secs: 3.4, plan: true, a: [[0, 15, pz + 13], [0, 0, -R.rad * 0.2], 50], b: [[0, 20, pz + 9], [0, 0, -R.rad * 0.28], 50], kind: U.tr("Across the field"), head: U.tr("How they stand"), text: scoutLine() });   // (the line is plain text; the frame shows it as text)
       if (style === 1) {   // from behind their leader, across the field to you; then the rest as it was
@@ -1261,7 +1268,6 @@
     // The field, and your word to begin.
     function ready(whole) {
       if (intro) { intro.box.remove(); intro.skip.remove(); intro = null; }
-      hud.classList.remove("pre");
       viewEase = 1.6; camera(0, !!whole);
       const foes = tally(B.units.filter((u) => u.side === "enemy" && !u.line)), allies = tally(B.units.filter((u) => u.side === "ally" && !u.line));
       const one = foes.length === 1 && !/×/.test(foes[0]) ? foes[0] : null, left = R3.timeLeft(R);
@@ -1269,21 +1275,20 @@
         : R.noStrike ? K.tr("You cannot strike back. Guard, take cover, and live through {n} rounds.", { n: enc.hold || enc.rounds || 4 }).replace(/\d+ rounds|\d+ दौर/, Math.round(left) + " s")
         : R.through ? K.tr("Break through to the far side") + " (" + Math.round(left) + " s)" : R.escort ? K.tr("Keep {who} whole", { who: K.text((B.units.find((u) => u.still) || {}).name || "") }) + " (" + Math.round(left) + " s)"
         : left != null ? K.tr("Hold your ground") + " (" + Math.round(left) + " s). " + K.tr("You need not win, only not fall.") : one ? K.tr("Bring {foe} down. If you fall first, you lose.", { foe: one }) : K.tr("Bring them all down. If you fall first, you lose.");
-      const lines = whole ? B.log.filter((r) => r && r.raw).map((r) => "<p>" + U.esc(C.line(r)) + "</p>").join("") : "";
-      const bossU = B.units.filter((u) => u.side === "enemy" && !u.line && u.g).find((u) => u.person || u.hero), bossLine = bossU && RT.traitLine && RT.traitLine(bossU) ? K.text(bossU.name) + ": " + K.tr(RT.traitLine(bossU)) + (K.lang === "hi" ? "।" : ".") : "";
-      const trades = (bossLine ? [bossLine] : []).concat(tradeLines(B.units.filter((u) => u.side === "enemy" && u.g))).slice(0, 3), plans = !!R3.scouts(R) && !R.stance && !enc.quick;
+      const plans = !!R3.scouts(R) && !R.stance && !enc.quick;
       let stance = "hold";
-      const el = U.el('<div class="b-card b-brief' + (whole ? "" : " low") + '"><span class="kind war">' + U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight") + "</span><h2>" + U.esc(K.text(K.val(enc.title) || "A fight")) + "</h2>" + (whole && K.val(enc.caption) ? '<p class="cap">' + U.esc(K.text(K.val(enc.caption))) + "</p>" : "") + lines +
-        '<p class="b-foes"><b>' + U.esc(foes.join(", ")) + "</b>" + (allies.length ? ' <span class="muted">· ' + U.tr("With you: {who}", { who: U.esc(allies.join(", ")) }) + "</span>" : "") + "</p>" +
-        (trades.length ? '<ul class="b-trades">' + trades.map((t) => "<li>" + U.esc(t) + "</li>").join("") + "</ul>" : "") +
-        (plans ? '<div class="b-plans"><p class="b-theirs"><b>' + U.tr("Their plan") + "</b> " + U.esc(scoutLine()) + '</p><p class="b-yours"><b>' + U.tr("Your plan") + '</b></p><div class="b-stances" role="radiogroup"></div><p class="b-stsay small"></p></div>' : "") +
-        '<p class="b-goalline">' + U.esc(goal) + '</p><p class="small muted">' + U.tr(touch ? HOW_TOUCH : HOW_KEYS) + '</p><div class="b-views"><span class="muted">' + U.tr("View") + '</span></div><div class="btnrow"></div></div>');
+      // No card over the field (owner, 13 November): the field itself, from behind your line, and a line or two under it,
+      // then the question: how will you fight them?
+      if (plans) { askView = [[0, 20, (C.player().g.z || 0) + 9], [0, 0, -R.rad * 0.28], 50]; G.camSet(askView[0], askView[1], askView[2], true); }
+      const el = U.el('<div class="b-ask b-brief"><p class="b-goalline">' + U.esc(goal) + "</p>" +
+        (plans ? '<p class="b-theirs">' + U.esc(scoutLine()) + '</p><p class="b-q">' + U.tr("How will you fight them?") + '</p><div class="b-stances" role="radiogroup"></div><p class="b-stsay small"></p>' : "") +
+        '<div class="b-askrow"><div class="b-views"></div><span class="btnrow"></span></div></div>');
       const vr = el.querySelector(".b-views");
       for (const m of VIEWS) { const b = U.button("b-view" + (m === viewMode ? " on" : ""), U.tr(VIEW_NAME[m]), () => setView(m, true)); b.dataset.view = m; vr.appendChild(b); }
       if (plans) { const row = el.querySelector(".b-stances"), say = el.querySelector(".b-stsay"), pick = (id) => { stance = id; for (const b of row.children) { b.classList.toggle("on", b.dataset.st === id); b.setAttribute("aria-checked", b.dataset.st === id ? "true" : "false"); } say.textContent = K.tr(STANCE[id][1]); };
         for (const id of R3.STANCES) { const b = U.button("b-stance", U.tr(STANCE[id][0]), () => pick(id)); b.dataset.st = id; b.setAttribute("role", "radio"); row.appendChild(b); }
         pick(U.battleBot ? R3.ANSWER[R.plan.kind] : "hold"); }
-      const go = () => { if (started) return; started = true; if (plans) R3.stance(R, stance); el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 0.8; if (enc.dream && !tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
+      const go = () => { if (started) return; started = true; askView = null; hud.classList.remove("pre"); if (plans) R3.stance(R, stance); el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 1.6; if (!tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
       if (enc.quick) return go();   // (a bout begun from a test's own card: it has said what is at stake, and Begin was the word)
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Fight"), go, "battle-go"));
       hud.appendChild(el);
