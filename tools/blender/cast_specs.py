@@ -3,7 +3,7 @@
 BLACK, GREY, WHITE = 0x15120f, 0x8f8b85, 0xe4e0d8
 CREAM, MADDER, BARK, BARKD, HIDE = 0xf2e6cc, 0xb2533b, 0x8c633f, 0x6c482b, 0xcfa678
 SC = {"child": 0.62, "youth": 0.9, "adult": 1.0, "elder": 0.97}   # js/g3/figure.js STAGE
-HEADK = {"child": 1.2, "youth": 0.98, "adult": 0.88, "elder": 0.88}   # and the head's scale on a modelled figure (same file)
+HEADK = {"child": 1.42, "youth": 0.98, "adult": 0.88, "elder": 0.88}   # and the head's scale on a modelled figure (same file)
 BUILD = {
   "heavy":   dict(mu=1.0, wide=1.2,  girth=1.0,  arm=1.0,  leg=1.0,  soft=True,  abs=False, shape=dict(chest=1.0,  trap=1.0,  neck=1.0,  waist=1.0,  lat=1.0)),
   "strong":  dict(mu=1.0, wide=1.1,  girth=1.0,  arm=1.0,  leg=1.0,  soft=False, abs=True,  shape=dict(chest=1.05, trap=1.0,  neck=1.0,  waist=0.94, lat=1.06)),
@@ -119,6 +119,11 @@ def resolve(key):
     c = CAST[key]; H = dict(sex="m", stache=False, stubble=False, crown=None, locks=4, rich=False, belly=0); H.update({k: (dict(v) if isinstance(v, dict) else v) for k, v in BUILD[c["build"]].items()})
     for k, v in c.items():
         if k not in ("build", "face", "facefix"): H[k] = v
+    # Bodies nearer life (15 November, the figure review): every frame was a strongman's. Against 4,082 measured soldiers the
+    # shoulders were 1.29 times the mean and the neck 1.33, the waist 0.77. Each build keeps its place among the others.
+    H["wide"] = round(H["wide"] * 0.92, 4); sh = H["shape"]; sh["waist"] = sh["waist"] * (1.2 if H["sex"] != "f" else 1.26)
+    if sh["neck"] >= 0.9: sh["neck"] = sh["neck"] * 0.86; sh["trap"] = sh["trap"] * 0.9
+    if H["sex"] == "f": H.setdefault("upper", 1.0); H.setdefault("delt", 1.0)   # (a woman's arms were slight already; thinned further they came away from the shoulder)
     H["face"] = face_of(key, H["sex"], c.get("facefix")); return H
 
 # ---- The player: plain enough to belong anywhere. Undyed cotton with a madder border; bark-dyed in the forest; leather and iron at war.

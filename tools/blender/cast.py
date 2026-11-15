@@ -239,10 +239,10 @@ def frame(balls):   # Bhima's own lists, refitted to this hero's frame and build
     for b in balls:
         (x, y, z), (sx, sy, sz) = b[0], b[1]; ax = abs(x); sg = 1 if x >= 0 else -1
         if z < 0.88 and ax > 0.03: k = H["leg"]; nb = ((x, y, z), (sx * k, sy * k, sz))                                 # legs: placed by the hip joint already
-        elif ax >= SHX - 0.02: k = H["arm"]; nb = ((x, y, z), (sx * k, sy * k, sz))                                      # shoulders: placed by the shoulder joint
+        elif ax >= SHX - 0.02: k = H["arm"] * H.get("delt", 0.86); nb = ((x, y, z), (sx * k, sy * k, sz))                                      # shoulders: placed by the shoulder joint
         else:
             SH = H["shape"]; st = b[2] if len(b) > 2 else 2.0
-            m = SH["waist"] if (0.95 < z < 1.16 and ax < 0.01) else SH["chest"] if (y < -0.055 and 1.25 < z < 1.4 and st == 1.5) else SH["neck"] if (ax < 0.05 and z > 1.49) else SH["trap"] if (z > 1.41 and y > 0.02 and ax > 0.05) else SH["lat"] if (y > 0.02 and 1.15 < z < 1.3 and ax > 0.12) else 1.0
+            m = SH["waist"] if (0.95 < z < 1.19 and ax < 0.15 and y < 0.04) else SH["chest"] if (y < -0.055 and 1.25 < z < 1.4 and st == 1.5) else SH["neck"] if (ax < 0.05 and z > 1.49) else SH["trap"] if (z > 1.41 and y > 0.02 and ax > 0.05) else SH["lat"] if (y > 0.02 and 1.15 < z < 1.3 and ax > 0.12) else 1.0
             w = GI * m; nb = ((x * FX, y * (0.5 + 0.5 * w), z), (sx * FX * w, sy * w, sz))
             if st == 1.45 and 1.42 < z < 1.44: nb = ((x * FX, y * (0.5 + 0.5 * w) * (0.74 + 0.26 * min(1.0, H["mu"])), z), nb[1])   # the collar bone: no prouder than the chest under it
         out.append(nb + tuple(b[2:]))
@@ -266,13 +266,15 @@ if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["bel
 # child, an old man) it shrank until the chest and the back no longer reached the shoulder, which then hung in the air
 # beside the body. So a slight frame is given the bone: a shelf from the root of the neck to the joint, and the two
 # folds that close the armpit in front and behind. A heavy frame has all this inside its muscle already, and gets none.
+FAK = H["arm"] ** 0.5   # (the forearm thins less than the upper arm on a slight frame: it was half a soldier's on women and children)
+UPK = H.get("upper", 0.74)   # (the upper arm against the forearm: it was a strongman's on everyone, 1.6 times a soldier's girth)
 QG = 1 - sm(0.70, 0.90, H["arm"]); GK = 0.55 + 0.45 * QG
 girdle = [] if QG < 0.05 else sym([
   ((0.60 * SHX, 0.012, 1.412), (0.45 * SHX, (0.030 + 0.022 * GI) * GK, (0.024 + 0.010 * GI) * GK)),    # the shelf: collar bone in front, the blade's ridge behind, the shoulder's point at its end
   ((0.76 * SHX, -0.030, 1.345), (0.26 * SHX, 0.026 * GK, 0.050 * GK)),                                 # the armpit's front fold: the breast muscle's cord to the arm
   ((0.76 * SHX, 0.040, 1.335), (0.26 * SHX, 0.028 * GK, 0.060 * GK)),                                  # and its back fold
 ])
-B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])) + girdle, [(b[0], (b[1][0] * H["arm"], b[1][1] * H["arm"], b[1][2])) + tuple(b[2:]) for b in arms])
+B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])) + girdle, [(b[0], (b[1][0] * (H["arm"] * UPK if b[0][2] > 1.12 else FAK), b[1][1] * (H["arm"] * UPK if b[0][2] > 1.12 else FAK), b[1][2])) + tuple(b[2:]) for b in arms])
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
 for o_ in HANDS:   # (a closed hand is all creases: every face is turned outward again, so none is lit from the wrong side; found by the mesh check)
     bm_ = bmesh.new(); bm_.from_mesh(o_.data); bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.to_mesh(o_.data); bm_.free()
@@ -480,9 +482,16 @@ def clothw(o, top="P", side=None, sway=None, z_top=1.0, ln=0.3):   # the wrap's 
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
 def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red", gather=0.82, deep=1.0, sway=None):   # a hanging length of cloth, a little waved, with a gold edge at its foot
-    me = bpy.data.meshes.new(name); rows = 7; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1
+    me = bpy.data.meshes.new(name); rows = 7 if wd < 0.02 else 10; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1; y_plane = y
+    # A length hung from the shoulder lies on the body as far as its most forward point and hangs plumb from there. (It
+    # was a flat sheet set at that point from the top down, and stood off the shoulder like a board.)
+    lie = top == "T" and C_ > 3 and name != "apron" and name != "veilfall"; yrun = None; ylie = []
+    for r in range(rows + 1):
+        zr = z_top - ln * r / rows; yb = (front(zr, x) - 0.013) if fwd > 0 else (backy(zr, x) + 0.013)
+        yrun = yb if yrun is None else (min(yrun, yb) if fwd > 0 else max(yrun, yb)); ylie.append(yrun)
     for r in range(rows + 1):
         t = r / rows
+        if lie: y = ylie[r] if (fwd > 0 and ylie[r] > y_plane) or (fwd < 0 and ylie[r] < y_plane) else y_plane
         for c in range(C_):
             u = c / (C_ - 1) - 0.5; fold = (1 if c % 2 else -1) * (0.0015 + 0.009 * t) * deep * (0 if C_ == 3 else 1)       # gathered above, opening into pleats below
             z = z_top - ln * t - (0.012 * (c % 2) * t if C_ > 3 else 0)                                               # and the foot of each pleat a little lower than the next
@@ -751,8 +760,8 @@ ribbon(B, "", mid="gold", half=0.011, names=("harness", "harness", "harness"), s
 ribbon(B, "", P0=(-0.125, 1.455), P1=(0.16, 1.0), mid="gold", half=0.011, names=("harness", "harness", "harness"), stud=2); since(n0, "harness"); n0 = len(parts)
 # the upper cloth: over the left shoulder, an end falling in front and one behind
 ribbon(B, "", P0=(0.15, 1.455), P1=(-0.12, 1.02), mid="cloth2", half=0.085, names=("shawl", "shawledge", "shawledge"), stud=99, edge="red", off=0.015)
-fall("shawlend", "cloth2", 0.17 * FX, hang(0.6, 1.36, 0.17 * FX), 1.36, 0.9, 0.08, top="T", side=0.85, edge=False, border=True, sway="sC")
-fall("shawlend", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.85, 0.08, top="T", side=0.85, edge=False, border=True, sway="sB"); since(n0, "shawl"); n0 = len(parts)
+fall("shawlend", "cloth2", 0.17 * FX, hang(0.6, 1.36, 0.17 * FX), 1.36, 0.9, 0.08, top="T", side=0.85, edge=False, border=True, gather=0.6, deep=1.8, sway="sC")
+fall("shawlend", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.85, 0.08, top="T", side=0.85, edge=False, border=True, gather=0.6, deep=1.8, sway="sB"); since(n0, "shawl"); n0 = len(parts)
 # a plain man's upper cloth: a folded length over the left shoulder and across the chest to the right hip, its end hanging behind
 ribbon(B, "", P0=(0.15, 1.455), P1=(-0.13, 1.03), mid="cloth2", half=0.06, names=("drape", "drapeedge", "drapeedge"), stud=99, edge="red", off=0.017)
 fall("drape", "cloth2", 0.16 * FX, hang(0.6, 1.4, 0.16 * FX, 1), 1.4, 0.62, 0.065, top="T", side=0.85, edge=False, gather=0.6, deep=1.6, sway="sB"); since(n0, "drape"); n0 = len(parts)
