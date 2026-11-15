@@ -54,6 +54,8 @@
         case "armour":
           if (part === "tasset") s = { p: LAMELLAR.test(id) ? "lamellar" : "scale", c2: LAMELLAR.test(id) ? THONG : rim, cell: 0.05, b: "rim", c3: rim, bw: 0.02 }; /* (the skirt of scales below the belt, its hem edged in gold) */
           else if (part === "pauldron" && !QUILT.test(id) && !LAMELLAR.test(id)) s = { p: "scale", c2: rim, cell: 0.045, b: "rim", c3: rim, bw: 0.016 }; /* (a shoulder-piece of the same scales as the coat, edged in gold) */
+          else if (/^(arjuna|krishna)$/.test(id)) s = { p: "leather", c2: GOLD, cell: 0.06 }; /* (their sheets: a coat of dark leather, studded with gold) */
+          else if (/^(ashwatthama|duryodhana|dushasana)$/.test(id) && part === "cuirass") s = { p: "plate", b: "rim", c3: GOLD, bw: 0.018 }; /* (dark plate edged in gold) */
           else if (QUILT.test(id)) s = { p: "quilt", c2: BRONZE, cell: 0.075 };
           else if (LAMELLAR.test(id)) s = { p: "lamellar", c2: THONG, cell: 0.06 };
           else s = { p: "scale", c2: rim, cell: 0.052 };

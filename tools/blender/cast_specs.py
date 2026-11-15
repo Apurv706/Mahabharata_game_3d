@@ -339,6 +339,14 @@ for k_, ck_ in dict(karna=dict(kind="sun", h=0.17), duryodhana=dict(h=0.185, gem
                     dhrishtadyumna=dict(kind="flame", h=0.1), jayadratha=dict(h=0.175), shalya=dict(kind="points", h=0.17), krishna=dict(h=0.16), dushasana=dict(h=0.12)).items(): CAST[k_ + "_adult"]["crownk"] = ck_
 for k_, ck_ in dict(drupada=dict(h=0.14), virata=dict(h=0.12), dhritarashtra=dict(h=0.13)).items(): CAST[k_ + "_elder"]["crownk"] = ck_
 CAST["arjuna_adult"]["wings"] = True; wears("arjuna_adult", "knot", looks=("home", "court", "war")); wears("dhrishtadyumna_adult", "knot")
+# ---- War coats from the sheets: the sign on the chest, the coat's own make and colour, helmets where the sheet has one.
+for k_, sg_ in dict(karna="sun", yudhishthira="sun", bhima="lion", dushasana="lion", ashwatthama="lion", nakula="horse", sahadeva="bull", arjuna="burst", dhrishtadyumna="flame", duryodhana="jewel", krishna="sun").items():
+    CAST[k_ + "_adult"]["sign"] = sg_; wears(k_ + "_adult", "sign", drop="boss", looks=("war",))
+CAST["karna_adult"]["signk"] = 1.5; CAST["krishna_adult"]["signk"] = 0.75; CAST["karna_adult"]["earsun"] = True
+CAST["arjuna_adult"]["looks"]["war"]["cols"].update(armour=0x4a3020, leather=0x3a2618)        # a coat of dark leather
+for k_ in ("satyaki_adult", "dushasana_adult"): CAST[k_]["nonasal"] = True; wears(k_, "helmet", drop="crown", looks=("war",))
+CAST["abhimanyu_youth"]["nonasal"] = True; CAST["dushasana_adult"]["looks"]["war"]["cols"].update(iron=0x8a8a88)
+CAST["balarama_adult"]["crown"] = None; wears("balarama_adult", drop="crown")                 # his sheet: a top-knot, no crown
 # ---- The rank and file wear their army's crest (it is dyed with the sash).
 for k_ in ("soldier_foot_adult", "soldier_archer_adult", "soldier_charioteer_adult", "soldier_cw_adult"): wears(k_, "crest")
 

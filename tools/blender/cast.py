@@ -614,7 +614,7 @@ parts.append(prim("uv_sphere", "pendant", "gold", (0, front(1.375) - 0.006, 1.37
 parts.append(prim("uv_sphere", "pendantgem", "gem", (0, front(1.375) - 0.016, 1.375), (0.011, 0.006, 0.013), segments=8, ring_count=6))
 for o in parts[n0:]: rigid(o, "T")
 since(n0, "gold"); n0 = len(parts)
-both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * (LOBE[0] + 0.002), LOBE[1], HZ + LOBE[2] - 0.016), (0.012, 0.012, 0.016), segments=8, ring_count=6))   # (hung from the ear's lobe)
+both(lambda sx: prim("uv_sphere", "earring", "gold", (sx * (LOBE[0] + 0.002), LOBE[1], HZ + LOBE[2] - (0.03 if H.get("earsun") else 0.016)), (0.008, 0.026, 0.026) if H.get("earsun") else (0.012, 0.012, 0.016), segments=8, ring_count=6))   # (hung from the ear's lobe)
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "ear"); n0 = len(parts)
 for sx, sd in ((1, "L"), (-1, "R")):
@@ -651,6 +651,37 @@ since(n0, "lames"); n0 = len(parts)
 dhoti("tasset", 0.79, 1.13, role="armour", plain=True); n0 = len(parts)   # the skirt of scales that hangs from the belt, over the cloth
 parts.append(prim("uv_sphere", "boss", "gold", (0, front(1.3) - 0.016, 1.3), (0.05, 0.016, 0.05), segments=12, ring_count=6)); rigid(parts[-1], "T")
 parts.append(prim("uv_sphere", "bossgem", "gem", (0, front(1.3) - 0.03, 1.3), (0.02, 0.008, 0.02), segments=8, ring_count=6)); rigid(parts[-1], "T"); since(n0, "boss"); n0 = len(parts)
+# The sign a hero wears on the chest of his war coat, from his sheet: a rayed sun, a lion's face, a horse's head, a bull's,
+# a fan of golden rays, a jewel in flames. (H["sign"]; gold, standing a little off the coat.)
+SG = H.get("sign")
+if SG:
+    sk = H.get("signk", 1.3); SZ_ = 1.3; SY_ = front(SZ_) - 0.05   # (clear of the coat, which stands off the body)
+    def sp_(nm, role, x, dy, z, sc, rv=(0, 0, 0), kind="uv_sphere", **kw):
+        if kind == "uv_sphere": kw.setdefault("segments", 10); kw.setdefault("ring_count", 6)
+        parts.append(prim(kind, nm, role, (x * sk, SY_ - dy, SZ_ + z * sk), tuple(c * sk for c in sc), rv, **kw))
+    if SG == "sun":
+        sp_("sign", "gold", 0, 0, 0, (0.042, 0.012, 0.042)); sp_("signgem", "gem", 0, 0.01, 0, (0.02, 0.007, 0.02))
+        for k in range(12): a = k / 12 * math.tau; sp_("sign", "gold", math.sin(a) * 0.06, -0.002, math.cos(a) * 0.06, (0.011, 0.006, 0.024), (0, a, 0), kind="cone", vertices=5)
+    elif SG == "lion":
+        for k in range(12): a = k / 12 * math.tau; sp_("sign", "gold", math.sin(a) * 0.05, -0.004, 0.004 + math.cos(a) * 0.05, (0.02, 0.009, 0.02))   # the mane
+        sp_("sign", "gold", 0, 0.004, 0.002, (0.04, 0.016, 0.043)); sp_("sign", "gold", 0, 0.016, -0.018, (0.02, 0.012, 0.016))               # the face, the muzzle
+        for sx in (1, -1): sp_("sign", "gold", sx * 0.03, 0.006, 0.04, (0.012, 0.007, 0.012)); sp_("signgem", "gem", sx * 0.016, 0.017, 0.012, (0.005, 0.003, 0.004))   # ears, eyes
+    elif SG == "horse":
+        sp_("sign", "gold", 0.004, 0.004, 0.012, (0.022, 0.015, 0.04), (0, 0.3, 0)); sp_("sign", "gold", -0.012, 0.01, -0.036, (0.015, 0.012, 0.024), (0, 0.3, 0))   # the head and the long muzzle
+        for sx in (1, -1): sp_("sign", "gold", 0.018 + sx * 0.012, 0.002, 0.058, (0.006, 0.005, 0.016), kind="cone", vertices=5)                    # ears
+        for k in range(5): sp_("sign", "gold", 0.03 + 0.004 * k, -0.002, 0.04 - 0.02 * k, (0.012, 0.007, 0.014))                                   # the mane down the neck
+    elif SG == "bull":
+        sp_("sign", "gold", 0, 0.004, 0.006, (0.034, 0.015, 0.036)); sp_("sign", "gold", 0, 0.012, -0.03, (0.022, 0.012, 0.016))
+        for sx in (1, -1): sp_("sign", "gold", sx * 0.05, 0, 0.04, (0.009, 0.008, 0.03), (0, sx * 0.9, 0), kind="cone", vertices=6); sp_("sign", "gold", sx * 0.07, 0, 0.066, (0.006, 0.006, 0.02), (0, sx * 0.2, 0), kind="cone", vertices=6)   # horns, out and up
+    elif SG == "burst":
+        sp_("sign", "gold", 0, 0.004, -0.03, (0.018, 0.01, 0.018))
+        for k in range(-4, 5): a = k * 0.36; sp_("sign", "gold", math.sin(a) * 0.05, 0, -0.03 + math.cos(a) * 0.05, (0.011, 0.006, 0.042), (0, a, 0))
+    else:   # a jewel, in flames if he is the fire-born
+        sp_("sign", "gold", 0, 0, 0, (0.034, 0.012, 0.044)); sp_("signgem", "gem", 0, 0.01, 0, (0.018, 0.008, 0.026))
+        if SG == "flame":
+            for k in range(10): a = k / 10 * math.tau; sp_("sign", "gold", math.sin(a) * 0.045, -0.002, math.cos(a) * 0.055, (0.01, 0.006, 0.022 + 0.01 * (k % 2)), (0, a + 0.3, 0), kind="cone", vertices=5)
+    for o in parts[n0:]: rigid(o, "T")
+since(n0, "sign"); n0 = len(parts)
 # the lower cloth's own rolled top, knotted in front (plain people: no sash over it)
 ring("tuck", "cloth", 0.995, 0.019, 1.8, 0.013); ring("tuckline", "red", 0.978, 0.0055, 1.0, 0.03)
 parts.append(prim("uv_sphere", "tuckknot", "cloth", (0.0, WY - 0.01, 0.99), (0.04, 0.028, 0.036), segments=10, ring_count=6)); since(n0, "tuck"); n0 = len(parts)
@@ -763,7 +794,7 @@ if CR:
             lp("uv_sphere", "crowntier", "gold", (0, FY * 0.97, ch * 0.36), (0.03, 0.012, 0.03), segments=12, ring_count=6)
             lp("uv_sphere", "crowngem", "gem", (0, FY * 0.97 - 0.01, ch * 0.36), (0.017, 0.007, 0.017), segments=8, ring_count=6)
             for k in range(12):
-                a = k / 12 * math.tau; lp("cone", "crownpeak", "gold", (math.sin(a) * 0.043, FY * 0.955, ch * 0.36 + math.cos(a) * 0.043), (0.0075, 0.005, 0.016), (0, -a, 0), vertices=5)
+                a = k / 12 * math.tau; lp("cone", "crownpeak", "gold", (math.sin(a) * 0.043, FY * 0.955, ch * 0.36 + math.cos(a) * 0.043), (0.0075, 0.005, 0.016), (0, a, 0), vertices=5)
         elif CK["kind"] == "flame":   # a band, and flames standing all round it, the tallest over the brow
             for k in range(14):
                 a = k / 14 * math.tau; f_ = 0.5 + 0.5 * math.cos(a); hh_ = 0.03 + 0.03 * (k % 2) + 0.05 * f_ ** 3
@@ -807,7 +838,8 @@ hm.select_set(False); parts.append(hm)
 parts.append(prim("torus", "helmetrim", "gold", (0, HY, RIMZ + 0.002), (1, HB / HA, 1.8), major_radius=HA + 0.001, minor_radius=0.008, major_segments=28, minor_segments=6))
 parts.append(prim("cone", "helmetknob", "gold", (0, HY, HCZ + HC_ + 0.014), (0.022, 0.022, 0.035), vertices=10))
 _ny = min([v.co.y for v in Hd.data.vertices if abs(v.co.x) < 0.014 and HZ - 0.03 < v.co.z < RIMZ] or [HY - HB])   # (the bar stands in front of the brow and the bridge of the nose, not in them)
-parts.append(prim("cube", "helmetnose", "iron", (0, min(_ny - 0.009, HY - HB + 0.004), HZ - 0.004), (0.009, 0.005, 0.03), size=2))
+if not H.get("nonasal"): parts.append(prim("cube", "helmetnose", "iron", (0, min(_ny - 0.009, HY - HB + 0.004), HZ - 0.004), (0.009, 0.005, 0.03), size=2))
+else: parts.append(prim("uv_sphere", "helmetrim", "gold", (0, HY - HB - 0.004, RIMZ + 0.034), (0.022, 0.008, 0.022), segments=10, ring_count=6))   # (a hero's cap: no bar over the nose, a gold disc at the brow)
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "helmet"); n0 = len(parts)
 # an army's mark, to be read from above: a crest of dyed horsehair along the top of the head, in the host's colour
