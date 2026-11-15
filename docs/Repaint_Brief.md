@@ -2,9 +2,11 @@
 
 *15 November 2026. Written after the decision that the artist's sheets are the true look. The same list with every painting beside its sheet is on the page [Kurukshetra Repaint List](https://claude.ai/artifact/FDy7wCE4exGo6UwDK93qp7).*
 
+**State, 15 November (Version 57):** the owner chose to make do without a painter. All 18 portraits were replaced by cuts from the sheets themselves (`tools/portraits/cut_portrait.py`) and are in the game. The story paintings stay as they are. The rest of this brief is kept as what a painter would need, should painted ones be wanted later.
+
 ## In short
 
-Eighteen portraits and nine story paintings show a hero who contradicts his own sheet. Those are the ones to repaint.
+Eighteen portraits and nine story paintings showed a hero who contradicts his own sheet. Those were the ones to repaint.
 
 | What | How many |
 |---|---|
@@ -154,15 +156,18 @@ Here the hero is small, or seen from behind, and the fault is mostly a colour. T
 
 New painting, not repainting, and nothing waits on it. These people have a sheet and a bond with the player in the story, but no portrait at all: Krishna, Draupadi, Dushasana, Shakuni, Balarama and Prince Uttara. Shalya, Jayadratha, Shikhandi, Nakula and Sahadeva have sheets too and stand in the war. A portrait for each, painted from the sheet in the same lamp-lit style, would give every named person a face. (Each new portrait also needs its name added to `PORTRAITS` in `js/ui/dom.js`.)
 
-## Making do without a painter
+## Done without a painter
 
-Asked the same day: can the game do without the repaintings? It can. Nothing breaks; what is lost is the match between a painted hero and the 3D hero built from his sheet.
+Asked the same day: can the game do without the repaintings? It can, and the owner chose that. Nothing breaks; what would have been lost is the match between a painted hero and the 3D hero built from his sheet.
 
-- **Portraits, with no painter:** the 18 can be cut from the sheets themselves. The head and shoulders are lifted off the paper, the sheet's title is painted out, and the figure is set on a dark, lamp-lit ground and graded warm. A test of eight (Arjuna, Bhima, Yudhishthira, Karna, Kripa, Bhishma, Satyaki, Abhimanyu) was made and shown to the owner. It holds up at the size the game shows a face (a circle of 22 to 74 points).
-- **What that costs:** the cut portraits are drawn, not painted, so they differ in style from the 13 painted portraits that stay, most of all where a memory shows a portrait large in a gold frame. Every court sheet is bare-chested. And it puts cuts of the sheets into `art/`, which the owner has so far kept out of the repo.
-- **Story paintings:** left as they are. They read as illustration, and the hero's dress in nine of them will differ from his 3D self.
+- **Portraits (done, Version 57):** all 18 are cut from the sheets themselves by `tools/portraits/cut_portrait.py`. The head and shoulders are lifted off the paper, the sheet's lettering is painted out, the white glow the sheets draw round a figure is peeled away, and the figure is set on a dark, lamp-lit ground and graded warm. The frame is head and shoulders (340 sheet pixels wide), which makes the face as large in the game's round frame as on the painted portraits.
+- **Tuned by hand, per sheet:** Duryodhana's title stands on the tip of his crown and Arjuna's runs into the wing of his diadem (wiped by a box); the red height line runs into Charu's and Ugra's hair (its red is wiped); bare paper is shut in between arm and body on Yudhishthira, Karna and Ghatotkacha and beside Ugra's ear (each named by a point). The list is `JOBS` in the tool.
+- **What it cost:** the cut portraits are drawn, not painted, so they differ in style from the 13 painted portraits that stay, most of all where a memory shows a portrait large in a gold frame. The bows, maces and lamps of the old paintings are gone. Every court sheet is bare-chested. Young Ugra shows the grown man, since there is no sheet of him young. And cuts of the sheets are now in `art/`, with the owner's yes; the sheets themselves are still not in the repo.
+- **The fighters do not follow yet.** The 3D heads were matched to the old paintings on 12 November. Each new portrait was set above its 3D head: seven differ in hair or beard (Karna and Duryodhana are bearded in their portraits and clean-shaven as figures; Yudhishthira has a moustache alone in his portrait and a full beard as a figure; Kripa a white top-knot and beard against short hair and a bare chin; Mauni old and white-haired against dark; Ugra a full head of hair against a shaved head; Vidura bald on top against a full head of hair), and the crowned heroes share one tall crown as figures where each portrait shows his own. Satyaki and Abhimanyu wear helmets in their portraits and bands as figures. This is put right when each hero is built from his own sheet (the next step in `docs/Human_Asset_Review.md`).
+- **Story paintings:** left as they are. They read as illustration, and the hero's dress in nine of them differs from his sheet.
+- **Faces still missing** can be had the same way: add a line to `JOBS` and the name to `PORTRAITS` in `js/ui/dom.js`.
 - **Later, another way:** portraits photographed from the 3D heroes once they wear their sheet dress.
-- **State:** a test only. Nothing is in the game. The reference pictures for a real repaint were also handed over as a zip, one folder per job.
+- The reference pictures for a real repaint were handed over as a zip, one folder per job.
 
 ## How this was checked
 

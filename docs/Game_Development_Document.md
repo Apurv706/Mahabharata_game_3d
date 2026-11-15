@@ -110,7 +110,7 @@ fights and tests in a real browser with software WebGL). CI runs the quick tier 
 |---|---|
 | 1 | Play every fight by hand (the two private play pages are the place to do it) on real phones and desktops in all three views; tune feel and frame rate |
 | 1 | Run the full test tier (playthroughs, layout, visual baselines) on this build and accept the puppets' new colours |
-| 2 | Repaint the four portraits that differ from the text (Arjuna's diadem and skin, Karna in the war, Dhrishtadyumna's crown, Ghatotkacha's hair) |
+| 2 | The portraits: 18 were replaced on 15 November by cuts from the artist's sheets, which are now the true look (`docs/Repaint_Brief.md`). Still to follow the sheets: the 3D heads' hair and beards (Karna, Duryodhana, Kripa, Yudhishthira, Ugra, Mauni, Vidura), and nine story paintings, left as they are by choice |
 | 2 | The five board and dice tests and the five button-answered tests are a 3D scene with flat controls: make them fully 3D |
 | 2 | Chariot combat for the player on the charioteer path; mounted elephant riders |
 | 2 | A free look in the close views (drag to turn), and a setting for 3D on or off in the menu |

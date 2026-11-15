@@ -69,7 +69,7 @@ The 2D game's 452 paintings set the look: warm, late-afternoon light, earth and 
 | 4 Upper cloth like a board | Fixed: it crosses the chest. |
 | 5 Flat colour on cloth, metal, skin | Fixed: surfaces. |
 | 6 Player ignored the story | Fixed: skin, home colours, gender, age, and the amulet, manuscript, purse and eye patch. |
-| 7 Portraits and models disagree | Open: needs new portraits or a decision on which is right. |
+| 7 Portraits and models disagree | Decided 15 November: the artist's sheets are right. The 18 portraits that contradicted them are now cut from the sheets (`docs/Repaint_Brief.md`). The models do not yet wear each hero's own dress from his sheet (`docs/Human_Asset_Review.md`). |
 | 8 Hands, squad followers | Hands fixed (the fist closes on the haft; see the end of Conversion Notes). Squad followers still the plain figures. |
 | 9 Crowd pegs | Fixed. |
 | 10 Heavy beasts | Fixed: halved. |

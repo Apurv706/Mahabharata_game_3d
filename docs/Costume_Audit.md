@@ -124,6 +124,14 @@ need repainting rather than code:
 - **Dhrishtadyumna's portrait** has no crown.
 - **Ghatotkacha's portrait** has long hair where the text has it standing stiff. (His diadem, ear-rings and bear-skin are right.)
 
+**15 November: 18 portraits now come from the artist's sheets.** The sheets were made the true look, and the portraits
+that contradicted them were replaced by cuts from the sheets themselves (`docs/Repaint_Brief.md`). Against the text, the
+four above now stand like this: Arjuna wears his diadem (his skin is still lighter than "black-skinned");
+Dhrishtadyumna is crowned; Karna's portrait shows no mail but keeps his ear-rings, in the war as well; Ghatotkacha is
+bald with hoop ear-rings, and has lost the diadem and the bear-skin the text gives him (the sheet's choice). The hair
+and beards in these portraits follow the sheets, so the list under Faces above now describes the 3D heads only: Karna,
+Duryodhana and Kripa are bearded in their portraits, and Yudhishthira has a moustache alone.
+
 The 2D puppets take every change of colour, headgear, crown and weapon above. The sacred thread, garlands,
 deer-skin, bangles and blindfold are drawn on the 3D figures only.
 
