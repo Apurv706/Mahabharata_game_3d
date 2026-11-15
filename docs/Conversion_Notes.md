@@ -458,3 +458,21 @@ The owner's points 1, 2, 5 and 6 after playing (the account for a reader is `doc
 - `js/g3/figure.js`: `gaitOf(v, back)` gives a stride for a speed (in body lengths a second): length, the share on the ground, where the heel lands, the swing's lift, the hips' heights. `footAt(u, g)` is where an ankle is at phase u (and the sole's pitch); `hipAt(u, g)` the hips' height; `legIK(x, dy)` the thigh and knee that reach it. In `compute`, a figure moving forward or back takes its legs from these (weighted by how much of its motion is forward, `wf`), and the side-step is laid on top as before. `f.legExact` makes `update` set the legs without easing (easing them is what made feet slide); `f.footTh`/`f.footW` give `G.rigDrive` (`js/g3/model.js`) the foot's roll. A scratch copy of the arithmetic, for tuning without a page, lives with the session's notes (`gaitmath.js`).
 - `js/g3/kit.js`: `hoofRig(U_)` reads each leg's two links from where its joints stand; `hoofIK` finds the leg and shin angles that put the hoof joint at a point. `G.gallop` uses them whenever the caller gives the beast's real speed (`mps`) and it has four hooves: stance span `mps × duty / rate`, capped by what a leg can reach (`ikr.cap`), and the stride sped up rather than the hoof let slide. The body rides `ikr.drop` lower on the move. Without `mps`, or without hooves, the old swung legs remain.
 - `js/ui/battle/sim.js`: `a.turn` (+1 left) turns the player at `P.turnRate` and sets `R.faceHold` for `P.turnHold` seconds; `a.lock`/`a.lockOn` clear it. Moving with a foe within `P.faceNear` keeps the face to him (from above too). `P.sideWalk`, `P.backWalk` slow steps aside and back. `view.js`: arrows turn, A/D step; on a phone `input.look` is a drag on the right half (a tap still picks a foe); the close views follow `p.g.a` while `R.faceHold` holds. Check: `tests/rules3d.js`, "Turn and step are two things".
+
+## After the figure review: the sheets are the true look (15 November)
+
+Asked for: a review of every human figure (`docs/Human_Asset_Review.md`), then one decision: which look is true, the story's paintings or the artist's sheets. The owner chose **the artist's sheets**.
+
+What that means, and was found by setting models beside sheets:
+- The models keep the sheets' colours, who is crowned and who is in armour, and the order of heights. They do not yet keep each hero's own war coat, crown and sign (a lion on Bhima, a horse's head on Nakula, a bull's on Sahadeva, the sun on Karna, flames on Dhrishtadyumna), the wound and draped cloth, a body for each person (a child of about 5 heads, a woman's hips, a lean Yudhishthira), hair in locks, or sandals and quivers.
+- Some beards and hair were set to the *paintings* on 12 November and so now disagree with the sheets (Yudhishthira: the sheet has a moustache, the model a full beard; Duryodhana: the sheet has a moustache and chin beard, the model none).
+- The 31 portraits are to be repainted from the sheets.
+- The order of work is in the review. The sheets themselves are not in the repo (parked by the owner).
+
+First small steps, code only (no model was rebuilt):
+- `js/g3/model.js`: `MOODS.set` rests the upper lid on the iris (0.2), so no face stares; `shout` and `glad` moved to suit. `knee()` and a second clamp in `G.rigDrive` keep a knee above the ground as the ankle clamp does a foot (off while a figure falls).
+- `js/g3/surf.js`: skin is matte (`spS` .15 to .06, the edge light .45 to .28); scales and gold take a smaller, tighter light so a gold coat no longer burns out to white.
+- `js/g3/figure.js`: `f.act(name)` without a length used to leave every joint without a number for good; it now takes half a second.
+- `tools/review/`: the tools that photographed, measured and scanned the figures, kept so any fix can be checked the same way (see its README).
+
+Still to do from the review's quick list: a pleading figure's feet dig 6 cm into the ground; the chest shows through a sash on 66 costumes; knees through the lower cloth in a squat; age, turban and beard on borrowed bodies (old Haridatta comes out young); ways to stand.

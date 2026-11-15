@@ -672,7 +672,7 @@
     // A one-shot: name, how long it lasts (s), and optionally how far through it starts.
     f.act = function (name, dur, from) {
       const A = ACTS[name]; if (!A) return f;
-      const a = (f.action = { A, name, t: (from || 0) * dur, dur: Math.max(0.05, dur) });
+      dur = dur > 0 ? dur : 0.5; /* (a move started without a length left every joint without a number, for good) */ const a = (f.action = { A, name, t: (from || 0) * dur, dur: Math.max(0.05, dur) });
       if (A.coil) { // a blow: the coil is reached early and held; the strike is a short snap that ends on the landing
         const base = POSES[f.base] || POSES.stand;
         a.tL = A.land * a.dur; a.tS = a.tL - Math.min(A.strike || 0.13, a.tL * 0.62); a.tC = Math.min(a.tS * 0.72, 0.3); a.tF = Math.min(a.dur, a.tL + Math.min(0.15, (a.dur - a.tL) * 0.55));

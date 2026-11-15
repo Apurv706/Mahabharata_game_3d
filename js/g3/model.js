@@ -213,10 +213,12 @@
   // How high an ankle stands, in the frame the hips move in.
   function ankle(j, sd) { const l = j["l" + sd], k = j["k" + sd], ft = j["f" + sd];
     V1.copy(ft.position).applyQuaternion(k.quaternion).add(k.position).applyQuaternion(l.quaternion).add(l.position).applyQuaternion(j.P.quaternion); return V1.y + j.P.position.y; }
+  function knee(j, sd) { const l = j["l" + sd], k = j["k" + sd]; V1.copy(k.position).applyQuaternion(l.quaternion).add(l.position).applyQuaternion(j.P.quaternion); return V1.y + j.P.position.y; }
   const STRIKE = /^(slash|slash2|heavy|thrust|smash|sweep|stab|punch|hammer|throw|cheer|roar)$/, HURT = /^(hit|stagger|down|slump|shame|plead)$/, SHUT = /^(sleep|down|slump)$/;
   G.rigDrive = function (f, dt) {
     const R = f.rig; if (!R) return; const j = f.j, k = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
-    if (j.fL && j.fR) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }   // (no foot under the ground: a stance's crouch, and some poses, sank the front foot five centimetres into it. The body rises instead; owner, 14 November)
+    if (j.fL && j.fR) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }
+    if (j.kL && j.kR && (f.fall || 0) < 0.5) { const lo = Math.min(knee(j, "L"), knee(j, "R")) - R.ankle * 0.66; if (lo < 0) j.P.position.y -= lo * (1 - 2 * (f.fall || 0)); }   // (nor a knee: kneeling sank it 4.5 cm into the ground and pleading 7.4, on every figure; review of 15 November)   // (no foot under the ground: a stance's crouch, and some poses, sank the front foot five centimetres into it. The body rises instead; owner, 14 November)
     if (j.T1) j.T1.quaternion.slerpQuaternions(ID, j.T.quaternion, 0.5);
     if (j.N) j.N.quaternion.slerpQuaternions(ID, j.H.quaternion, 0.5);
     const fists = /Fist|punch|grab|clasp/.test(f.base || "") || (f.action && /punch|grab/.test(f.action.name || ""));
@@ -253,7 +255,7 @@
     }
   };
   // jaw (radians open), mouth (0 a line … 1 open), lids (0 open … 1 shut), brows (+ drawn down at the middle, - lifted there)
-  const MOODS = { set: [0, 0, 0, 0.06], shout: [0.24, 1, 0.12, 0.3], pain: [0.1, 0.5, 0.8, -0.34], shut: [0, 0, 1, 0], glad: [0.05, 0.25, 0.1, -0.1] };
+  const MOODS = { set: [0, 0, 0.2, 0.06], shout: [0.24, 1, 0.06, 0.3], pain: [0.1, 0.5, 0.8, -0.34], shut: [0, 0, 1, 0], glad: [0.05, 0.25, 0.16, -0.1] }; // (at rest the upper lid lies on the iris, as on the artist's sheets: fully open, every face stared; review of 15 November)
   G.MOODS = MOODS;
   // What the story put on you, as the 2D puppet shows it: the family amulet on your breast (cracked once it has turned
   // a blow), the palm-leaf manuscript or the purse of the family's debt at your waist, a patch over a lost eye.

@@ -57,11 +57,11 @@
       vec2 pa = vec2(fract(q.x) - .5, fract(q.y) - 1.), qb = q + .5, pb = vec2(fract(qb.x) - .5, fract(qb.y) - 1.);
       float da = length(pa), db = length(pb), r = .68, d = (da < r && (db >= r || pa.y < pb.y)) ? da : db, t = clamp(d / r, 0., 1.);
       dk = mix(.86, mix(.46, 1.1, smoothstep(.1, .86, t)) * (1. - .5 * smoothstep(.93, 1., t)), aa); m = smoothstep(.76, .84, t) * (1. - smoothstep(.93, .98, t)) * .85; mavg = .16;
-      spS = .62; surfShn = 42.; spC = mix(vec3(1.), base * 2.2 + .15, .55); surfRim = .3;
+      spS = .44; surfShn = 52.; spC = mix(vec3(1.), base * 2.2 + .15, .55); surfRim = .3; /* (a smaller, tighter light on scales: gold coats burnt out to white on the chest) */
     }
     else if (sid < 12.5) { vec2 g = q * vec2(2., 1.); g.x += mod(floor(g.y), 2.) * .5; vec2 f = fract(g); dk = mix(1., mix(.66, 1.12, f.y) * (1. - .4 * smoothstep(.36, .5, abs(f.x - .5))), aa); m = (1. - smoothstep(.07, .11, length(vec2((abs(f.x - .5) - .2) * .5, f.y - .78)))) * .9; mavg = .06; spS = .5; surfShn = 36.; spC = mix(vec3(1.), base * 2.2 + .15, .55); }
     else if (sid < 13.5) { vec2 f = abs(fract(q) - .5); float dl = abs(f.x + f.y - .5); dk = mix(1., (1. - .4 * (1. - smoothstep(0., .09, dl))) * mix(.92, 1.1, smoothstep(0., .3, dl)), aa); m = 1. - smoothstep(.085, .12, min(length(f), length(f - .5))); mavg = .08; spS = .14 + m * .5; surfShn = 20.; }
-    else if (sid < 14.5) { vec2 f = abs(fract(qm * 36.) - .5); dk = (.66 + .3 * sN(qm * 60.) * nr + .15 * (1. - nr)) * (1. - .22 * nr * (1. - smoothstep(.02, .12, min(f.x, f.y)))); spS = 1.25; surfShn = 30.; spC = mix(vec3(1.), base * 2.6 + .1, .85); surfRim = .5; }
+    else if (sid < 14.5) { vec2 f = abs(fract(qm * 36.) - .5); dk = (.66 + .3 * sN(qm * 60.) * nr + .15 * (1. - nr)) * (1. - .22 * nr * (1. - smoothstep(.02, .12, min(f.x, f.y)))); spS = .9; surfShn = 44.; spC = mix(vec3(1.), base * 2.6 + .1, .85); surfRim = .5; }
     else if (sid < 15.5) { dk = .84 + .3 * mix(.5, sN(qm * 30.), mid); spS = .55; surfShn = 36.; spC = vec3(.9, .95, 1.05); surfRim = .25; }
     else if (sid < 16.5) { dk = .84 + .2 * mix(.5, sN(qm * 80.), nr) + .12 * (sN(qm * vec2(12., 34.)) - .5); if (vSb.x > .004) { vec2 f = fract(q) - .5; m = 1. - smoothstep(.13, .19, length(f)); mavg = .07; } spS = .16 + m * .6; surfShn = 16. + m * 30.; }
     else if (sid < 17.5) { float g = sN(vec2(qm.x * 70., qm.y * 6.)), g2 = sN(vec2(qm.x * 22., qm.y * 2.)); dk = .82 + .3 * mix(.5, g, mid); m = smoothstep(.58, .9, fract(g2 * 4. + qm.x * 9.)) * .55 * mid; mavg = .0; spS = .1; surfShn = 14.; }
@@ -75,7 +75,7 @@
       #endif
       dk = .74 + .5 * mix(.5, s, mid); spS = .3; surfShn = 22.; spC = base * 2.5 + .25; surfRim = .3;
     }
-    else if (sid < 21.5) { dk = 1. + .05 * mid * (sN(qm * 24.) - .5); spS = .15; surfShn = 11.; spC = vec3(1., .86, .7); surfRim = .45; surfSss = .3; }
+    else if (sid < 21.5) { dk = 1. + .05 * mid * (sN(qm * 24.) - .5); spS = .06; surfShn = 16.; spC = vec3(1., .86, .7); surfRim = .28; surfSss = .3; } /* (skin is matte, as the artist's sheets paint it: a broad sheen read as wax; review of 15 November) */
     else if (sid < 22.5) { vec2 g = q + .5 * vec2(sN(q * .6), sN(q * .6 + 5.)); vec2 i = floor(g), f = fract(g) - .5; f += (vec2(sH(i), sH(i + 3.7)) - .5) * .5; m = (1. - smoothstep(.15, .23, length(f))) * step(.3, sH(i + 1.3)); mavg = .1; dk = .86 + .26 * mix(.5, sN(qm * vec2(90., 22.)), nr); spS = .08; }
     else if (sid < 23.5) { dk = .74 + .5 * mix(.5, sN(qm * 130.), nr); spS = .35; surfShn = 24.; }
     else if (sid < 24.5) { float r = length(q), a = atan(q.y, q.x), pet = pow(abs(cos(a * 4.)), .7); m = max(1. - smoothstep(.16, .18, r), smoothstep(.22, .24, r) * (1. - smoothstep(-.02, .02, r - (.4 + .42 * pet)))); m = max(m, sB(r, .94, 1.02, .012)); spS = .15 + m * .4; surfShn = 30.; }
