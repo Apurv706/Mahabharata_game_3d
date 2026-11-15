@@ -478,3 +478,14 @@ First small steps, code only (no model was rebuilt):
 - `tools/review/`: the tools that photographed, measured and scanned the figures, kept so any fix can be checked the same way (see its README).
 
 Still to do from the review's quick list: a pleading figure's feet dig 6 cm into the ground; the chest shows through a sash on 66 costumes; knees through the lower cloth in a squat; age, turban and beard on borrowed bodies (old Haridatta comes out young); ways to stand.
+
+## Heads and crowns from the sheets (15 November, Version 58)
+
+The portraits follow the sheets since Version 57; now the 3D heads do too (`tools/blender/cast_specs.py`, the blocks at the end; `cast.py`; `face.py`).
+
+- **Hair and beards.** The settings of 12 November that followed the old paintings are undone. Karna has his short beard and moustache; Duryodhana a moustache and chin tuft; Yudhishthira a moustache alone; Dhrishtadyumna a moustache and chin tuft with a top-knot; Kripa his white top-knot and beard; Mauni is white-haired with a knot (no longer the dark matted pile); Ugra has a full head of hair with a knot and short side locks; Vidura is bald on top with a grey fringe (`build_fringe` in `face.py`, the part `fringe`, worn in place of `hair`). Arjuna's stubble is lighter (`stubblek`).
+- **Marks on the brow.** `ash`: three white lines and a red dot (Drona, Kripa, Mauni). `urdhva`: the upright red line between two white ones that every prince wears on his sheet. New colour role `mark`.
+- **Crowns.** The one tall stack of rings is gone. A crown is now a smooth tiered dome with ear plates and a finial, of the height on the wearer's sheet (`crownk`), with what stands on its front: a jewelled leaf (Bhima short, Nakula, Sahadeva, Jayadratha tall, Krishna, the old kings), Karna's rayed sun, Yudhishthira's and Shalya's ring of leaves, a ring of gems on Duryodhana's tall one, and Dhrishtadyumna's band of flames. Arjuna's diadem has wings at the temples, with his top-knot above.
+- 23 models were rebuilt; nothing else in the game changed. Checked by setting each head beside its portrait (`tools/review/closeup.js`).
+- **Still to do from the sheets:** each hero's war coat and the sign on it (lion, horse, bull, sun, sunburst, flames); helmets for Satyaki and Dushasana at war; Karna's large sun ear-rings; Balarama wears a crown where his sheet has none; then the wound cloth and a body for each.
+

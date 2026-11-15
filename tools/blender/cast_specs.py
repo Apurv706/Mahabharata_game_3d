@@ -317,21 +317,28 @@ CAST["krishna_adult"].update(girth=0.9, arm=0.86, mu=0.8)
 CAST["balarama_adult"].update(girth=1.08, belly=0.3)
 CAST["jayadratha_adult"].update(belly=0.3, soft=True, abs=False)
 
-# ---- Heads set against the painted portraits (art/p_*.webp): who is bearded, who is shaven, how the hair is worn.
+# ---- Heads follow the artist's sheets. (On 12 November they had been set to the painted portraits instead: Karna and
+# Duryodhana shaven, Yudhishthira bearded, Kripa shaven with short hair, Ugra's head shaved, Mauni dark. On 15 November
+# the sheets became the true look and the portraits were cut from them, so that is undone, and each head was read again
+# beside its own sheet.)
 def wears(key, add_="", drop="", looks=None):
     for lk, v in CAST[key]["looks"].items():
         if looks and lk not in looks: continue
         v["parts"] = [p for p in v["parts"] if p not in drop.split()] + [p for p in add_.split() if p not in v["parts"]]
-wears("arjuna_adult", "stache", looks=("home", "court", "war", "mourning"))
-wears("yudhishthira_adult", "beardS", looks=("home", "court", "war", "mourning", "disguise"))
-wears("karna_adult", drop="stache beardS")
-wears("duryodhana_adult", drop="stache goatee")
-wears("dhrishtadyumna_adult", "knot")
-wears("kripa_elder", drop="knot beardS stache")
-wears("vidura_elder", "bun"); CAST["vidura_elder"]["skin"] = 0x9c6c4a
-wears("abhimanyu_youth", drop="locks")
-wears("mauni_elder", "longhair"); CAST["mauni_elder"]["hair"] = 0x4a4038
-wears("ugra_adult", drop="hair")
+wears("arjuna_adult", "stache", looks=("home", "court", "war", "mourning")); CAST["arjuna_adult"]["stubblek"] = 0.2   # light stubble under a thin moustache
+wears("dhrishtadyumna_adult", "goatee", drop="beardS")          # a moustache and a tuft on the chin
+wears("vidura_elder", "fringe", drop="hair")                    # bald on top, a cropped grey fringe
+wears("mauni_elder", "knot ash", drop="jata")                   # his white hair in a knot, as the other teachers wear it
+wears("kripa_elder", "ash"); wears("drona_elder", "ash", drop="tilak")
+CAST["ugra_adult"]["locks"] = 2; wears("ugra_adult", "locks")   # a full head of hair: a knot, and short locks by the ears
+# The upright mark of red between white, on every prince's brow on the sheets.
+for k_ in ("yudhishthira", "bhima", "arjuna", "nakula", "sahadeva", "karna", "duryodhana", "dushasana", "dhrishtadyumna", "jayadratha"): wears(k_ + "_adult", "urdhva", looks=("home", "court", "war", "student"))
+wears("bhishma_elder", "urdhva"); wears("abhimanyu_youth", "urdhva"); wears("krishna_adult", "urdhva")
+# ---- Crowns from the sheets: each crowned head his own (cast.py builds them).
+for k_, ck_ in dict(karna=dict(kind="sun", h=0.17), duryodhana=dict(h=0.185, gems=True), yudhishthira=dict(kind="points", h=0.15), bhima=dict(h=0.135), nakula=dict(h=0.15), sahadeva=dict(h=0.15),
+                    dhrishtadyumna=dict(kind="flame", h=0.1), jayadratha=dict(h=0.175), shalya=dict(kind="points", h=0.17), krishna=dict(h=0.16), dushasana=dict(h=0.12)).items(): CAST[k_ + "_adult"]["crownk"] = ck_
+for k_, ck_ in dict(drupada=dict(h=0.14), virata=dict(h=0.12), dhritarashtra=dict(h=0.13)).items(): CAST[k_ + "_elder"]["crownk"] = ck_
+CAST["arjuna_adult"]["wings"] = True; wears("arjuna_adult", "knot", looks=("home", "court", "war")); wears("dhrishtadyumna_adult", "knot")
 # ---- The rank and file wear their army's crest (it is dyed with the sash).
 for k_ in ("soldier_foot_adult", "soldier_archer_adult", "soldier_charioteer_adult", "soldier_cw_adult"): wears(k_, "crest")
 

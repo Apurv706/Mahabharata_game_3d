@@ -25,9 +25,10 @@ def hexc(h): return tuple(((h >> s) & 255) / 255 for s in (16, 8, 0))
 def lin(c): return tuple(x ** 2.2 for x in c)
 def mixc(a, b, k): return sum(round(((a >> s_) & 255) * (1 - k) + ((b >> s_) & 255) * k) << s_ for s_ in (16, 8, 0))
 ROLE0 = { "mouth": 0x2a0c08, "skin": H["skin"], "cloth": 0xf2ecdc, "red": 0xb0402a, "cloth2": 0xf2ecdc, "band": 0xa8452f, "hem": 0xb0402a, "gold": 0xd9a53a, "hair": H["hair"], "white": 0xe8e4d8, "iris": 0x4a2c14, "hide": 0xc79a5a,
-          "armour": 0x6a6258, "iron": 0x77736c, "leather": 0x5a3a22, "lip": mixc(mixc(H["skin"], 0x000000, 0.22), 0x8c332b, 0.42 if not SHE else 0.56), "pupil": 0x0b0807, "lash": 0x17110d, "sclera": 0xd8d2c6, "gem": 0xb0202a, "beads": 0x5a2e1a, "stubble": 0 }
+          "armour": 0x6a6258, "iron": 0x77736c, "leather": 0x5a3a22, "lip": mixc(mixc(H["skin"], 0x000000, 0.22), 0x8c332b, 0.42 if not SHE else 0.56), "pupil": 0x0b0807, "lash": 0x17110d, "sclera": 0xd8d2c6, "gem": 0xb0202a, "beads": 0x5a2e1a, "stubble": 0, "mark": 0xb3241c }
 M = { k: mat(k, lin(hexc(v)), 0.35 if k in ("gold", "armour", "iron") else 0.7, 1.0 if k == "gold" else 0.0) for k, v in ROLE0.items() }
-M["stubble"] = mat("stubble", tuple(a * 0.62 + b * 0.38 for a, b in zip(lin(hexc(H["skin"])), lin(hexc(H["hair"])))), 0.7)
+_sk = H.get("stubblek", 0.38)   # (how dark a day's growth is: the sheets draw Arjuna's light)
+M["stubble"] = mat("stubble", tuple(a * (1 - _sk) + b * _sk for a, b in zip(lin(hexc(H["skin"])), lin(hexc(H["hair"])))), 0.7)
 def metaballs(name, balls, res=0.035, thr=0.6):
     mb = bpy.data.metaballs.new(name); mb.resolution = res; mb.render_resolution = res; mb.threshold = thr
     ob = bpy.data.objects.new(name, mb); S.collection.objects.link(ob)
@@ -455,6 +456,7 @@ else:
     both(lambda sx: prim("uv_sphere", "stache2", "hair", (sx * (FC.mw + 0.042), _sy + 0.036, HZ + _sz + 0.034), (0.0095, 0.008, 0.012), segments=8, ring_count=6))
 # Hair: a cap over the skull, cut away from the face; a knot on the crown; the rest falling to the shoulders behind
 hc = mesh_obj("haircap", FACEM.build_hair(FC, cover_ears=bool(H.get("earhair", SHE))), "hair"); parts.append(hc); HAIRCAP = hc
+parts.append(mesh_obj("fringe", FACEM.build_fringe(FC), "hair"))   # a bald man's: worn in place of "hair"
 parts.append(prim("uv_sphere", "knot", "hair", (0, 0.03, HZ + 0.155), (0.05, 0.052, 0.042), segments=14, ring_count=8))
 parts.append(prim("torus", "knotband", "gold", (0, 0.03, HZ + 0.128), (1, 1, 1), major_radius=0.04, minor_radius=0.008, major_segments=16, minor_segments=6))
 parts.append(prim("uv_sphere", "backhair", "hair", (0, 0.085, HZ - 0.1), (0.085, 0.045, 0.1), segments=14, ring_count=8))
@@ -730,16 +732,61 @@ if CR:
     parts.append(prim("torus", "crown", "gold", (0, 0.012, HZ + 0.072), (1, 1.14, 2.4), (0.12, 0, 0), major_radius=0.103, minor_radius=0.009, major_segments=28, minor_segments=8))
     parts.append(prim("uv_sphere", "crowngem", "gem", (0, -0.112, HZ + 0.08), (0.014, 0.008, 0.018), segments=8, ring_count=6))
     if CR == "mukuta":
-        for r_, z_, h_ in ((0.108, 0.13, 0.05), (0.094, 0.19, 0.045), (0.075, 0.245, 0.04), (0.052, 0.29, 0.035)):
-            parts.append(prim("uv_sphere", "crowntier", "gold", (0, 0.015, HZ + z_), (r_, r_ * 1.1, h_), segments=14, ring_count=8))
-        parts.append(prim("cone", "crownspire", "gold", (0, 0.015, HZ + 0.36), (0.028, 0.028, 0.05), vertices=10))
-        for k in range(8):
-            a = k / 8 * math.tau; parts.append(prim("uv_sphere", "crowngem", "gem", (math.sin(a) * 0.106, 0.015 - math.cos(a) * 0.117, HZ + 0.135), (0.01, 0.01, 0.013), segments=6, ring_count=6))
+        # Each crowned head wears the crown on his own sheet: a smooth tiered dome (not a stack of rings), its height,
+        # and what stands on its front: a jewelled leaf, Karna's rayed sun, Yudhishthira's ring of leaves,
+        # Dhrishtadyumna's flames. (H["crownk"]: kind and height above the brim.)
+        CK = dict(kind="dome", h=0.15); CK.update(H.get("crownk") or {}); ch = CK["h"]; R0 = 0.106; CB = (0, 0.012, HZ + 0.078)
+        def put(o):   # from the crown's own space (brim at z 0) onto the head, tilted as the brim is
+            bpy.context.view_layer.objects.active = o; o.select_set(True); bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)   # (where it was made, in the crown's space)
+            o.rotation_euler = (0.12, 0, 0); o.location = CB; bpy.ops.object.transform_apply(location=True, rotation=True, scale=True); o.select_set(False); parts.append(o); return o
+        def lathe(name, role, prof, seg=18):
+            vs, fs = [], []
+            for r_, z_ in prof:
+                for k in range(seg): a = k / seg * math.tau; vs.append((math.sin(a) * r_, -math.cos(a) * r_ * 1.12, z_))
+            for i_ in range(len(prof) - 1):
+                for k in range(seg): fs.append((i_ * seg + k, i_ * seg + (k + 1) % seg, (i_ + 1) * seg + (k + 1) % seg, (i_ + 1) * seg + k))
+            vs.append((0, 0, prof[-1][1] + 0.004)); t_ = len(vs) - 1; b_ = (len(prof) - 1) * seg
+            for k in range(seg): fs.append((b_ + k, b_ + (k + 1) % seg, t_))
+            me = bpy.data.meshes.new(name); me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
+            for p_ in me.polygons: p_.use_smooth = True
+            return put(o)
+        def lp(kind, name, role, loc, scale, rotv=(0, 0, 0), **kw):
+            o = prim(kind, name, role, loc, scale, rotv, **kw); return put(o)
+        if CK["kind"] != "flame":
+            tiers = [(0.0, 1.0), (0.1, 1.03), (0.2, 0.97), (0.34, 0.93), (0.4, 0.95), (0.56, 0.74), (0.62, 0.76), (0.78, 0.48), (0.83, 0.5), (0.94, 0.2), (1.0, 0.1)]
+            lathe("crowntier", "gold", [(R0 * r_, ch * t_) for t_, r_ in tiers])
+            lp("uv_sphere", "crowntier", "gold", (0, 0, ch + 0.012), (0.016, 0.016, 0.014), segments=8, ring_count=6)
+            lp("cone", "crownspire", "gold", (0, 0, ch + 0.04), (0.011, 0.011, 0.022), vertices=8)
+            for sx in (1, -1): lp("uv_sphere", "crowntier", "gold", (sx * (R0 + 0.004), 0.01, 0.03), (0.012, 0.03, 0.036), segments=8, ring_count=6)   # the plates over the ears
+        FY = -R0 * 1.12
+        if CK["kind"] == "sun":       # a sun on the brow: a disc and its rays
+            lp("uv_sphere", "crowntier", "gold", (0, FY * 0.97, ch * 0.36), (0.03, 0.012, 0.03), segments=12, ring_count=6)
+            lp("uv_sphere", "crowngem", "gem", (0, FY * 0.97 - 0.01, ch * 0.36), (0.017, 0.007, 0.017), segments=8, ring_count=6)
+            for k in range(12):
+                a = k / 12 * math.tau; lp("cone", "crownpeak", "gold", (math.sin(a) * 0.043, FY * 0.955, ch * 0.36 + math.cos(a) * 0.043), (0.0075, 0.005, 0.016), (0, -a, 0), vertices=5)
+        elif CK["kind"] == "flame":   # a band, and flames standing all round it, the tallest over the brow
+            for k in range(14):
+                a = k / 14 * math.tau; f_ = 0.5 + 0.5 * math.cos(a); hh_ = 0.03 + 0.03 * (k % 2) + 0.05 * f_ ** 3
+                lp("cone", "crownpeak", "gold", (math.sin(a) * (R0 + 0.004), -math.cos(a) * (R0 + 0.004) * 1.12, 0.02 + hh_), (0.02, 0.008, hh_), (0.12 * math.cos(a), 0.12 * math.sin(a) + (0.25 if k % 2 else -0.2) * 0.4, -a), vertices=6)
+            lp("cone", "crownpeak", "gold", (0.006, FY - 0.006, 0.12), (0.014, 0.007, 0.05), (0.1, 0.3, 0), vertices=6)
+            lp("uv_sphere", "crowngem", "gem", (0, FY - 0.012, 0.03), (0.013, 0.007, 0.018), segments=8, ring_count=6)
+        else:
+            if CK["kind"] == "points":   # a ring of upright leaves round the brim
+                for k in (-3, -2, -1, 1, 2, 3):
+                    a = k * 0.42; lp("cone", "crownpeak", "gold", (math.sin(a) * (R0 + 0.006), -math.cos(a) * (R0 + 0.006) * 1.12, 0.062 - 0.004 * abs(k)), (0.017, 0.006, 0.04 - 0.004 * abs(k)), (0.1, 0, -a), vertices=6)
+            lh = 0.06 if CK["kind"] != "points" else 0.075   # the jewelled leaf over the brow
+            lp("cone", "crownpeak", "gold", (0, FY - 0.004, 0.012 + lh), (0.03, 0.009, lh), (0.1, 0, 0), vertices=8)
+            lp("uv_sphere", "crowngem", "gem", (0, FY - 0.013, 0.052), (0.014, 0.007, 0.022), segments=8, ring_count=6)
+        if CK.get("gems"):
+            for k in range(1, 8):
+                a = k / 8 * math.tau; lp("uv_sphere", "crowngem", "gem", (math.sin(a) * R0 * 1.0, -math.cos(a) * R0 * 1.12, ch * 0.1 + 0.004), (0.009, 0.009, 0.011), segments=6, ring_count=5)
     elif CR == "kirita":
         parts.append(prim("cone", "crownpeak", "gold", (0, -0.085, HZ + 0.16), (0.05, 0.016, 0.075), vertices=8))
         both(lambda sx: prim("cone", "crownpeak", "gold", (sx * 0.06, -0.085, HZ + 0.125), (0.026, 0.012, 0.045), vertices=6))
     else:   # a diadem: a band with a leaf over the brow
         parts.append(prim("cone", "crownpeak", "gold", (0, -0.1, HZ + 0.115), (0.03, 0.012, 0.045), vertices=8))
+        if H.get("wings"):   # wings at the temples (Arjuna's diadem)
+            for k in range(3): both(lambda sx: prim("uv_sphere", "crownpeak", "gold", (sx * (0.112 + 0.012 * k), -0.03 + 0.012 * k, HZ + 0.105 + 0.02 * k), (0.008, 0.02, 0.034 + 0.008 * k), (0.35, sx * (0.2 + 0.16 * k), 0), segments=8, ring_count=6))
 for o in parts[n0:]: rigid(o, "H")
 since(n0, "crown"); n0 = len(parts)
 # The helmet is fitted to the head it sits on. (Owner, 13 November: "helmets ... protude through the skin". One size of
@@ -812,7 +859,26 @@ for p in vl.data.polygons: p.use_smooth = True
 vl.select_set(False); rigid(vl, "H"); parts.append(vl)
 fall("veilfall", "cloth2", 0.0, 0.15, HZ - 0.08, 0.75, 0.15, top="T", edge=False, sway="sB"); since(n0, "veil"); n0 = len(parts)
 parts.append(prim("torus", "blindfold", "white", (0, 0.012, HZ + FC.ze + 0.004), (1, 1.13, 3.4), major_radius=0.109 * FC.P["hw"], minor_radius=0.008, major_segments=24, minor_segments=6)); rigid(parts[-1], "H"); since(n0, "blindfold"); n0 = len(parts)
-# a mark on the brow
+# marks on the brow
+def brow_strip(name, role, zc, half, x1, lift=0.002, nx=10):   # a painted band lying on the forehead, from -x1 to x1 at height zc
+    vs, fs = [], []
+    for i in range(nx + 1):
+        x = -x1 + 2 * x1 * i / nx
+        for z in (zc - half, zc + half): vs.append((x, FC.surf(x, z)[1] - lift, HZ + z))
+    for i in range(nx): a_ = 2 * i; fs.append((a_, a_ + 2, a_ + 3, a_ + 1))
+    me = bpy.data.meshes.new(name); me.from_pydata(vs, [], fs); me.update(); o = bpy.data.objects.new(name, me); S.collection.objects.link(o); o.data.materials.append(M[role])
+    for p_ in me.polygons: p_.use_smooth = True
+    rigid(o, "H"); parts.append(o); return o
+# the three lines of ash a teacher or a hermit wears across the brow, and the red dot in their middle (Drona, Kripa, Mauni on their sheets)
+for i_ in range(3): brow_strip("ash", "white", FC.zbr + 0.017 + 0.0105 * i_, 0.0027, 0.031)
+parts.append(prim("uv_sphere", "ash", "mark", (0, FC.surf(0, FC.zbr + 0.0275)[1] - 0.0015, HZ + FC.zbr + 0.0275), (0.0048, 0.003, 0.0048), segments=8, ring_count=6)); rigid(parts[-1], "H"); since(n0, "ash"); n0 = len(parts)
+# the upright mark the princes wear on every sheet: a red line between two white ones, from the bridge of the nose up
+for sx_ in (-1, 1):
+    vs_ = []
+    for z_ in (FC.zbr + 0.006, FC.zbr + 0.034):
+        for x_ in (sx_ * 0.0032, sx_ * 0.0078): vs_.append((x_, FC.surf(x_, z_)[1] - 0.002, HZ + z_))
+    me_ = bpy.data.meshes.new("urdhva"); me_.from_pydata(vs_, [], [(0, 1, 3, 2) if sx_ > 0 else (1, 0, 2, 3)]); me_.update(); o_ = bpy.data.objects.new("urdhva", me_); S.collection.objects.link(o_); o_.data.materials.append(M["white"]); rigid(o_, "H"); parts.append(o_)
+parts.append(prim("uv_sphere", "urdhva", "mark", (0, FC.surf(0, FC.zbr + 0.019)[1] - 0.0012, HZ + FC.zbr + 0.019), (0.0026, 0.0026, 0.0135), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "urdhva"); n0 = len(parts)
 parts.append(prim("uv_sphere", "tilak", "gem", (0, FC.surf(0, FC.zbr + 0.024)[1] - 0.001, HZ + FC.zbr + 0.024), (0.006, 0.004, 0.014), segments=6, ring_count=5)); rigid(parts[-1], "H"); since(n0, "tilak"); n0 = len(parts)
 
 PART = { "eye": "face", "iris": "face", "pupil": "face", "glint": "face", "lash": "face", "lipU": "face", "lipL": "face", "nostril": "face", "browhair": "face", "mouth": "face", "stache": "stache", "stache2": "stache", "haircap": "hair", "backhair": "hair", "knot": "knot", "knotband": "knot", "locks": "locks" }

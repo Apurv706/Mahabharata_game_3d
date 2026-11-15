@@ -441,6 +441,39 @@ def build_hair(F, cover_ears=False, NC=24, K=8):   # the hair on the skull: a ca
     return M
 
 
+def build_fringe(F, NC=24, K=6):   # a bald man's hair: what is left round the sides and the back of the head, below a bare crown
+    P = F.P; th = 0.0062 * P["hairth"]; sb = P["sideburn"]
+    Zl = Curve([(56, 0.058), (64, 0.045), (69, 0.018), (74, 0.002 - 0.03 * sb), (80, 0.0 - 0.03 * sb), (87, 0.02), (100, 0.034), (115, 0.030), (125, 0.012), (135, -0.025), (150, -0.058), (180, -0.066)])   # the lower edge: the hair cap's own, from the temple back
+    Zu = Curve([(56, 0.06), (66, 0.068), (80, 0.079), (100, 0.088), (130, 0.092), (180, 0.089)])                                                                                                     # the upper edge: where the bare crown begins
+    cols = []
+    for k in range(NC + 1):
+        t = math.pi * k / NC; p = F.base(0.05, t); a = math.degrees(math.atan2(p[0], -p[1]))
+        if a < 57: cols.append(None); continue
+        z = 0.03
+        for _ in range(8):
+            p = F.base(z, t); z = Zl(max(56.0, math.degrees(math.atan2(p[0], -p[1]))))
+        a = max(56.0, math.degrees(math.atan2(p[0], -p[1]))); zu = min(Zu(a), F.ztop - 0.03)
+        if zu - z < 0.014: cols.append(None); continue
+        thin = max(0.0, min(1.0, (a - 57) / 12.0)); col = []                 # (it grows out of the skin at the temple, where it begins)
+        for r in range(K + 1):
+            if r == 0: zz, off = z, -0.002
+            elif r == 1: zz, off = z + 0.0015, 0.003 * thin
+            elif r == K: zz, off = zu, -0.0015
+            elif r == K - 1: zz, off = zu - 0.004, th * 0.7 * thin
+            else: zz, off = z + 0.008 + (zu - 0.004 - z - 0.008) * (r - 2) / max(1, K - 3), th * thin
+            b = F.base(zz, t); n = F.normal(zz, t); q = vadd(b, vmul(n, F.disp(*b) + off)); col.append((0.0, q[1], q[2]) if k == NC else q)
+        cols.append(col)
+    M = Mesh()
+    for side in (1, -1):
+        for k in range(NC):
+            if cols[k] is None or cols[k + 1] is None: continue
+            for r in range(K):
+                q4 = [cols[k][r], cols[k + 1][r], cols[k + 1][r + 1], cols[k][r + 1]]
+                if side < 0: q4 = [mirror(q) for q in q4]
+                M.quad(M.add(q4[0]), M.add(q4[1]), M.add(q4[2]), M.add(q4[3]), flip=side < 0)
+    return M
+
+
 def build_beard(F, kind="short", off=0.0045):   # hair on the jaw, taken from the face's own mesh so its edge is clean: the chin, the jaw and the cheek below a line from the mouth's corner to the ear
     RI = F.RI; nr = len(F.ROWS); M = Mesh(); cells = []
     def lim(j): return RI["um"] + max(0.0, j - 5) * 1.25          # the cheek line: higher towards the ear
