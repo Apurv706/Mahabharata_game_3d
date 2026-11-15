@@ -56,6 +56,15 @@ Hero by hero, at war:
 | Bhishma | White and silver scales, white cloth, long white beard, prayer beads | White and silver scales; white beard. Close. |
 | Drona | Steel scales over a brahmin's white cloth with a red stripe; the thread; white knot and beard | Close: scales, knot, beard |
 
+## Done since the review
+
+Version 56 of the game, published the same day, takes the first small steps. Each was checked with the same pictures and counts as the review.
+
+- **Eyes at rest.** The upper lid now lies on the iris, as on the sheets. The stare is gone from every face.
+- **Skin is matte**, and the light on gold coats is smaller and tighter, so chests no longer burn out to white.
+- **Knees stay above the ground.** A pleading figure now goes 6 cm under where it went 7.4: its feet still dig in, which is left to do.
+- A move started without a length no longer breaks the figure.
+
 ## Findings, the most seen first
 
 ### 1. The fights show different people from the story
@@ -169,7 +178,7 @@ Each costume was put through 47 poses and looked at from six sides, in flat colo
 - The woman player at home shows a patch of belly through her white upper cloth.
 - **Knees through the lower cloth** in a squat on 102 of 154 costumes, 120 to 220 cm² on the worst.
 - **Raised arms.** When an arm goes up (aiming a bow, cheering, winding up a heavy blow) the armour's arm-hole shows its hollow inside on 34 costumes, and on bare bodies the shoulder folds in and the inside of the body shows at the armpit on 45.
-- **The ground.** A kneeling figure sinks 4.5 cm, a pleading one 7.4 cm, on every costume. Standing, on guard, walking and running are all within 1 cm of the ground.
+- **The ground.** On every costume a kneeling figure's lower cloth goes 4.5 cm under the ground (the knee itself does not), and a pleading figure's feet and knees went 7.4 cm under. Standing, on guard, walking and running are all within 1 cm of the ground.
 - Clean: the guards on forearm and shin, and the chest armour standing (the fix of Version 55 holds).
 - One trap in the code: a move started without a length (`f.act("slash")`) fills every joint with an invalid number and the figure is gone for good. The game always gives a length; a default would make it safe.
 
@@ -245,7 +254,7 @@ Nothing in the game has been changed yet.
 |---|---|---|
 | Decided | The artist's sheets are the true look (15 November). | Done |
 | Who is who, from the sheets | Each hero's head and war dress from his own sheet: crown, beard, coat, sign, shawl. A mark on the back. Variants for the eight borrowed warriors; near and far soldiers dressed alike. | Medium |
-| Quick wins | Eyes at rest, skin less waxy, beard edges; the chest through the sash, the belly patch, the kneeling height; age, turban and beard on borrowed bodies; four ways to stand; the safe default for a move. | Small |
+| Quick wins | Done in Version 56: eyes at rest, skin less waxy, the safe default for a move. Still to do: beard edges; the chest through the sash, the belly patch, feet of a pleading figure; age, turban and beard on borrowed bodies; four ways to stand. | Small, begun |
 | Cloth as the sheets wind it | A wound lower cloth with pleats, a true wrap for women, an upper cloth in folds that swings. | Large |
 | A body for each, from the sheets | A heavy man, a lean man, an old man, a woman, a child, a youth; garments fitted again. Faces and hair toward the sheets. | Large |
 | The missing five, and your own arms | Vasu and the four beings modelled; forearms and weapon in the view through the eyes. | Medium |
