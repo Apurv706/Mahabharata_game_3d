@@ -12,6 +12,8 @@ One strongman body, one stance, one crown and one outline are shared by nearly e
 
 The faults of fit that a program could count (skin through cloth, hollow armpits, knees in the ground) are real, and smaller.
 
+Since the review, one thing has been decided: the artist's sheets are the true look. Set beside those sheets, the models keep their colours and little else.
+
 ## What was looked at
 
 - **154 costumes** on 79 modelled people, each photographed from the front, the side and behind
@@ -20,6 +22,39 @@ The faults of fit that a program could count (skin through cloth, hollow armpits
 - **79 bodies** measured as with a tape, beside a survey of 6,068 real people
 - **43,428 views** checked by program: each costume in 47 poses from six sides
 - **3 fights** played on a phone-size screen in each of the three views
+
+## Decided: the artist's sheets are the true look
+
+On 15 November the owner chose: the artist's sheets are the true look. So the test of a model is its sheet. Six people were set beside their sheets, and the sixteen heroes' war dress beside theirs. The models keep the sheets' colours, who is crowned and who is in armour, and the order of heights. They do not yet keep the rest.
+
+What the sheets have that the models lack:
+
+- **Each hero's own war dress.** The sheets give every hero a coat, a crown and a sign of his own. The models give all of them one coat of scales in a tint.
+- **Cloth.** The sheets wind the lower cloth in pleats and lay the upper cloth in folds; each sheet has a diagram of the winding. The models have breeches and planks.
+- **A body for each.** Arjuna and Bhima are drawn with a hero's bulk at about 7½ heads, Yudhishthira lean, Bhima as a child about 5 heads tall and soft, the women with a woman's hips and waist.
+- **Heads.** Hair in wavy locks, lids resting on the eyes, moustaches and beards with form. Some beards differ outright: the sheet gives Yudhishthira a moustache and Duryodhana a moustache and chin beard; the models give the first a full beard and the second none.
+- **Small things.** Sandals on several at war, Arjuna's two quivers, far more jewellery.
+
+Hero by hero, at war:
+
+| | His sheet | His model today |
+|---|---|---|
+| Arjuna | Dark leather coat with a golden sunburst on the chest; blue sash; winged diadem; strapped sandals | Gold coat of scales; spiked diadem; barefoot |
+| Bhima | Gold scales with a lion on chest, shoulders, belt and greaves; red sash; a short cone crown; sandals | Plain gold scales; the tall stacked crown; barefoot |
+| Yudhishthira | Gold scales with a sun disc; purple cloth, magenta sash; a rounded crown; moustache | Plain gold scales; the stacked crown; full black beard |
+| Nakula | Gold scales with a horse's head on the chest and shoulders; green cloth, orange sash | Plain gold scales; the stacked crown |
+| Sahadeva | Gold scales with a bull's head on the chest; orange cloth, purple sash | Plain gold scales; the stacked crown |
+| Dhrishtadyumna | Silver scales, flame-shaped gold shoulder plates, a red tabard and cape, a pointed crown | Silver scales with a strap; the stacked crown |
+| Satyaki | Silver scales with gold discs, an orange shawl across the chest, a steel helmet; dark skin | Silver scales with a strap; a diadem; dark skin |
+| Krishna | A dark coat with a small sun, yellow cloth, red sash, the peacock feather | Dark scales; the stacked crown with the feather |
+| Duryodhana | Black coat with gold scrollwork and a sapphire, lion shoulders, a lion buckle, a tall jewelled crown; moustache and chin beard | Black and gold scales; the stacked crown; clean-shaven |
+| Dushasana | Studded steel and bronze plate with a lion on the chest, lion shoulders, a steel helmet | Dark scales; the stacked crown |
+| Karna | Gold scales with a rayed sun on chest, shoulders and belt; green sash; a sun crown | Plain gold scales; green belt; the stacked crown |
+| Jayadratha | Silver-brown scales under a brown shawl; a crown with a red stone | Brown scales; the stacked crown |
+| Shalya | Silver scales under a silver shawl bordered in purple; a silver helmet-crown; grey beard | Silver scales with a strap; a silver stacked crown; grey beard |
+| Ashwatthama | Dark steel plate with a lion on chest and belt; red cloth; a band with the red stone; top-knot | Black scales; a diadem with the stone |
+| Bhishma | White and silver scales, white cloth, long white beard, prayer beads | White and silver scales; white beard. Close. |
+| Drona | Steel scales over a brahmin's white cloth with a red stripe; the thread; white knot and beard | Close: scales, knot, beard |
 
 ## Findings, the most seen first
 
@@ -30,15 +65,15 @@ The story screens show the painted portraits. The fights show the 3D cast. Laid 
 - Twelve people have both a painted portrait and a 3D head. Only Drona, Bhishma and Mauni are plainly the same man in both.
 - In paint: lean bodies of real proportion, matte skin, cloth in folds, bare heads or a low band. In 3D: a strongman's build, glossy skin, hair in beads, a tall tiered crown.
 - Arjuna, Bhima and Karna are bare-headed in paint and crowned in 3D. Yudhishthira wears a thin gold band in paint and the tall crown in 3D. Bhima has stubble in paint and a handlebar moustache in 3D. Duryodhana has a moustache in paint and none in 3D. Ghatotkacha has hair and a horned crown in paint and is bald in 3D. Satyaki is mid-brown in paint and near-black in 3D.
-- The 3D cast follows the artist's sheets. The portraits were painted earlier, for the 2D game. Nobody has yet chosen between them.
+- The 3D cast was built from the artist's sheets; the portraits were painted earlier, for the 2D game. **Decided on 15 November: the artist's sheets are the true look.**
 
 Others: Hades is also a painted story with 3D fighters. Its makers sculpt each 3D head against the 2D portrait, laid over it until the two agree ([Supergiant on Hades' characters](https://gamedeveloper.com/art/learn-how-supergiant-brought-i-hades-i-hand-painted-characters-to-life)).
 
-A fix (decide, then medium): Choose one look. My advice: take the paintings as the target for build, skin and cloth, since they are the stronger art and findings 2, 4 and 6 lead the same way, and settle headgear person by person. The other way is to repaint the 31 portraits to match the 3D cast. Headgear, hair, beard and skin tone are small jobs each; bodies and cloth are the large ones below.
+A fix (decided: the sheets): With the sheets as the true look, the 31 portraits are the ones to repaint, each from its own sheet. But the models are not yet the sheets either: see [the sheets beside the models](#sheets). Some of the gap was made on 12 November, when beards and hair were set to the paintings: Yudhishthira's sheet gives him a moustache, his painting and his model a full beard.
 
 ### 2. One strongman body is worn by everyone
 
-Villager, priest, prince, grandfather and child stand on the same frame: very wide shoulders, thick upper arms and neck, a small waist. Only the bulk changes.
+Villager, priest, prince, grandfather and child stand on the same frame: very wide shoulders, thick upper arms and neck, a small waist. Only the bulk changes. The artist's sheets give each person a body: Arjuna and Bhima a hero's bulk, Yudhishthira a lean one, a child a child's, a woman a woman's.
 
 - **Shoulders.** Our middle grown man is 0.374 of his height across the shoulders. In the US Army's survey of 4,082 men the average is 0.291 and the widest man is 0.364. Our slimmest grown man, Sahadeva, is broader than 99.5% of them.
 - **Upper arms.** 60 cm round on a 1.86 m man. A soldier of that height averages 38 cm, and the thickest arm in the survey would be 52 cm. Bhima's is 89 cm. The villager, the brahmin and the bard have the thinnest arms among our grown men: 46 to 47 cm, thicker than 99.8% of the soldiers.
@@ -47,11 +82,11 @@ Villager, priest, prince, grandfather and child stand on the same frame: very wi
 - **Old men** have the same body with white hair. Blind old Dhritarashtra is 73 cm across the shoulders with 58 cm arms. Nobody stoops; nobody is thin, soft or fat.
 - **Women** share one body: the nine female models past childhood all measure the same. Its shoulders are 1.57 times its hips; women in the survey average 1.28, men 1.48. Its waist is 51 cm at 1.69 m, when the smallest waist among 1,986 women would be 65 cm at that height. Its forearm is 15 cm round against 27 cm in life.
 - **One skeleton.** Thigh to shin, upper arm to forearm and hip height are the same to three decimal places on all 79 models. No one is long-legged, short-armed or high-shouldered.
-- Heads are large on purpose: 6.4 heads tall against 7.5 in life. That is an ordinary choice for a stylised game and is not the fault here.
+- Heads are large on purpose, to read small from above: 6.4 heads tall. The sheets draw about 7½, as in life.
 
 Others: 0 A.D., an open game set in the same India, gives its Mauryan soldiers lean bodies of ordinary build and tells them apart by turban, shield and dress (pictures further down). Hades starts most characters from one of two base bodies and reshapes each ([Supergiant on Hades' characters](https://gamedeveloper.com/art/learn-how-supergiant-brought-i-hades-i-hand-painted-characters-to-life)). Team Fortress 2 and Overwatch give each role its own body before anything else ([Character readability in Team Fortress 2 and Overwatch](https://medium.com/@xavierck/character-readability-in-team-fortress-2-and-overwatch-68c41d454465)).
 
-A fix (large): Five or six base bodies in place of one: a slight youth, an ordinary man, a heavy man (Bhima, Duryodhana, Ghatotkacha), an old man who stoops, a woman with her own hips, waist and forearms, and a child. The survey gives the target numbers. Every garment is then fitted again by the builder, which already fits them by program.
+A fix (large): Five or six base bodies in place of one: a slight youth, an ordinary man, a heavy man (Bhima, Duryodhana, Ghatotkacha), an old man who stoops, a woman with her own hips, waist and forearms, and a child. Each is taken from its sheet, with the survey as a check on the numbers. Every garment is then fitted again by the builder, which already fits them by program.
 
 ### 3. The heroes share one outline, one crown and one coat
 
@@ -60,12 +95,12 @@ In war dress the side reads at once: Pandava gold and silver, Kaurava black and 
 - Of the 22 named heroes with a war costume, 13 wear the same tall tiered crown. 20 wear the same coat of scales with the same shoulder plates and bracers, and 17 of those the same greaves; all wear the same puffed breeches. Only Ghatotkacha goes bare-chested.
 - As black shapes, scaled to one height: Dhrishtadyumna and Shalya overlap by 96%, Nakula and Yudhishthira by 93%, Karna and Jayadratha by 92%, Bhima and Duryodhana by 90%. Those last two must be told apart in the mace duel that ends the war. Every one of the 22 has another hero within 86%.
 - From behind they are one man: bead hair, crown, the back of the coat, breeches with a centre seam.
-- No hero carries his sign. The epic gives Arjuna an ape on his banner, Bhima a lion, Duryodhana a serpent, Karna an elephant's girth-rope. None of it is on the body, and no one has a quiver, a shield or a sword at rest on back or hip.
+- No model carries a sign, though the sheets give one to nearly every hero: a lion on Bhima's chest, shoulders, belt and greaves, a horse's head on Nakula, a bull's on Sahadeva, the sun on Karna, flames on Dhrishtadyumna's shoulders. The [table of sheets and models](#sheets) lists all sixteen. No one has a quiver, a shield or a sword at rest on back or hip either.
 - Bhima at home and Krishna at home wear the same yellow breeches and red belt. Yellow silk is Krishna's own mark.
 
 Others: Valve's guide for Dota 2 heroes begins with a clear silhouette, then value, then colour ([Valve's character art guide for Dota 2, as reported](https://www.cgchannel.com/2012/06/valve-releases-useful-character-design-guide)). The same test, the black shape, is how Team Fortress 2's nine classes are told apart ([Character readability in Team Fortress 2 and Overwatch](https://medium.com/@xavierck/character-readability-in-team-fortress-2-and-overwatch-68c41d454465)). Shadow Fight 3 wanted each faction to read at first glance ([The making of Shadow Fight 3](https://www.pocketgamer.biz/the-making-of-shadow-fight-3/)).
 
-A fix (medium): One headgear to a hero (Arjuna already has his diadem), two or three cuts of war coat on each side, and a mark on the back for the view from behind: a quiver for the archers, a slung shield, a sash in the banner's colour. All of this sits on the present bodies.
+A fix (medium): Build each hero's war dress from his own sheet: his crown, his coat (scales, plate, black and gold), his sign on the chest and shoulders, his shawl or sash. Add a mark on the back for the view from behind: a quiver for the archers, a slung shield. All of this sits on the present bodies.
 
 ### 4. Cloth hangs as boards, and everyone wears breeches
 
@@ -78,7 +113,7 @@ Patterns and woven borders are the best thing on these figures. The cloth they a
 - The planks stay rigid in movement. When Draupadi squats or kneels, hers stands upright through her lap.
 - The forest costume's deer hide is a patch close to skin colour with pale spots. On fair Nakula and Sahadeva it reads as a rash.
 
-Others: 0 A.D. wraps the lower cloth with pleats and a striped waist-cloth and lays one upper cloth over a shoulder. The game's own paintings show cloth in folds. Raji's makers took dress and line from Pahari miniature painting ([Raji: An Ancient Epic, its makers on the art](https://www.adobe.com/products/substance3d/magazine/raji-an-ancient-epic-enter-the-realm-of-indian-mythology.html)).
+Others: Every artist's sheet carries a diagram of how the lower cloth is wound, and draws the upper cloth in folds. 0 A.D. wraps the lower cloth with pleats and a striped waist-cloth and lays one upper cloth over a shoulder. Raji's makers took dress and line from Pahari miniature painting ([Raji: An Ancient Epic, its makers on the art](https://www.adobe.com/products/substance3d/magazine/raji-an-ancient-epic-enter-the-realm-of-indian-mythology.html)).
 
 A fix (large): Model the lower cloth as a wrapped garment with a pleated fall in front and the tucked tail behind, and a true skirt wrap for women. Model the upper cloth lying on the shoulder and chest with some thickness and two or three folds, its free end on the swinging joints the figures already have. This goes with the new bodies of finding 2: do them together.
 
@@ -94,7 +129,7 @@ A child here is the grown skeleton at two-thirds size.
 
 Others: Drawing manuals put a child of eight at about 6¼ heads and a twelve-year-old at 7 ([Measuring the child figure with the head (US Navy illustrator's manual)](https://draftingmanuals.tpub.com/14262/css/Measuring-The-Child-Figure-With-The-Head-149.htm); [Drawing different ages: heads tall by age](https://design.tutsplus.com/tutorials/human-anatomy-fundamentals-drawing-different-ages--cms-21905)). A child's shoulders are narrow and level because the muscles that slope an adult's are not grown yet.
 
-A fix (medium to large): A child's body (larger head, narrow level shoulders, no drawn muscle, shorter legs) and a child's skull and face (large cranium, eyes set low, small jaw, round cheek). A lighter body for youths.
+A fix (medium to large): A child's body and face as the sheets draw them: Bhima's child sheet is about 5 heads tall, round-faced and soft, where his model is 6.7 heads and muscled. A lighter body for youths.
 
 ### 6. One stare, painted beards, bead hair, waxy skin
 
@@ -107,7 +142,7 @@ The named grown-ups do have faces of their own: jaw, nose and brow differ, and B
 - **Hands and feet.** A hand on a weapon is good: the fist closes round the haft. An empty hand hangs as a curled paw with no fingers. Feet have no toes; they are smooth socks, 12% shorter than in life.
 - The brahmin is bald with no tuft of hair at the crown.
 
-Others: In the paintings the lids sit on the iris and beards have depth. Hades paints brows, lids and lips onto its heads over baked shading ([Supergiant on Hades' characters](https://gamedeveloper.com/art/learn-how-supergiant-brought-i-hades-i-hand-painted-characters-to-life)).
+Others: On the sheets the lids rest on the iris, hair falls in wavy locks, and beards and moustaches have form. Hades paints brows, lids and lips onto its heads over baked shading ([Supergiant on Hades' characters](https://gamedeveloper.com/art/learn-how-supergiant-brought-i-hades-i-hand-painted-characters-to-life)).
 
 A fix (small to medium): Lower the lids and enlarge the iris (the joints for lids and brows exist). Soften the beard's edge or model it like the elders'. Hair as a few sculpted locks. Turn the skin's sheen down and narrow the highlight on gold. Cut four fingers and the toes into the present mesh.
 
@@ -204,16 +239,17 @@ Not everything there is to copy. 0 A.D. dresses its women for a strategy game's 
 
 ## An order of work
 
-None of this has been started.
+Nothing in the game has been changed yet.
 
 | Step | What | Size |
 |---|---|---|
-| First, a decision | Which look is the true one: the paintings or the 3D sheets (finding 1). Everything after depends on it. | — |
-| Quick wins | Eyes, skin sheen, beard edges; the chest through the sash, the belly patch, the kneeling height; headgear, beard and age on borrowed bodies; four ways to stand; the safe default for a move. | Small |
-| Who is who | A headgear and a back mark for each hero, two or three cuts of war coat a side, variants for the eight warriors, near and far soldiers dressed alike. | Medium |
-| The missing five | Vasu at his ages and the four beings, modelled. | Medium |
-| Your own arms | Forearms and weapon in the view through the eyes. | Medium |
-| Bodies and cloth | Five or six base bodies to the survey's numbers, with wrapped lower cloth and draped upper cloth made for them. Children and youths come with this. | Large |
+| Decided | The artist's sheets are the true look (15 November). | Done |
+| Who is who, from the sheets | Each hero's head and war dress from his own sheet: crown, beard, coat, sign, shawl. A mark on the back. Variants for the eight borrowed warriors; near and far soldiers dressed alike. | Medium |
+| Quick wins | Eyes at rest, skin less waxy, beard edges; the chest through the sash, the belly patch, the kneeling height; age, turban and beard on borrowed bodies; four ways to stand; the safe default for a move. | Small |
+| Cloth as the sheets wind it | A wound lower cloth with pleats, a true wrap for women, an upper cloth in folds that swings. | Large |
+| A body for each, from the sheets | A heavy man, a lean man, an old man, a woman, a child, a youth; garments fitted again. Faces and hair toward the sheets. | Large |
+| The missing five, and your own arms | Vasu and the four beings modelled; forearms and weapon in the view through the eyes. | Medium |
+| The paintings | The 31 portraits repainted from the sheets, so that story and fight show the same people. | Yours, or mine with a picture tool if you ask |
 
 ## The numbers
 
@@ -260,6 +296,7 @@ Each measure is a share of the figure's own height. Heads tall: grown men 6.4, w
 - Head height in life (7.5 heads) is the artists' rule ([Body proportions: 7.5 heads for an adult](https://www.wikiwand.com/en/articles/Body_proportion)); the survey does not measure it.
 - The scan: each costume in 47 poses, from front, back, both sides, above and behind-above, drawn once in flat part colours with depth and once with the skin left out. Skin counts as "through" when cloth meant to cover that part of the body lies within 5 cm behind it. Areas are as seen in one view. The twelve worst cases were then drawn normally and looked at.
 - Outlines: each hero in war dress drawn as a black shape from the front and the side, scaled to one height; overlap is the shared area over the combined area.
+- The sheets: after the decision, the artist's sheets (181 pictures) were opened again. Six people were set beside their models in full, and the sixteen heroes' war dress beside theirs. The other sheets have not yet been gone through one by one.
 - Play views: three fights (a war day, the sparring trial, the chariot fight) played by the game's own fighter on a 390 by 844 screen, slowed, and captured in each view at the same moment.
 
 Limits:
