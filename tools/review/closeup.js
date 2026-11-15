@@ -1,0 +1,30 @@
+// Close-ups for a review: one figure at a time, the camera on a named spot (head, hand, feet, bust...), the figure turned for each view.
+//   node tools/review/closeup.js <job.json> <outdir>
+// job: { tile:[w,h], fov, groups:[ { name, title, focus:"head|hand|feet|bust|legs|full", views:[...], cols, items:[ { key, look, pose, item, label, act, frames, speed } ] } ] }
+const ROOT = process.env.ROOT || require("path").resolve(__dirname, "../..");
+const serve = require(ROOT + "/tools/serve.js"); let pw; try { pw = require("playwright"); } catch (e) { try { pw = require("/opt/npm-tools/node_modules/playwright"); } catch (e2) { console.error("Playwright is not installed"); process.exit(2); } } const { chromium } = pw; const cp = require("child_process"); const fs = require("fs"); const path = require("path");
+(async () => { const job = JSON.parse(fs.readFileSync(process.argv[2], "utf8")), outdir = process.argv[3]; fs.mkdirSync(outdir, { recursive: true });
+  const { srv, url } = await serve(0); const browser = await chromium.launch({ args: ["--no-sandbox", "--use-angle=swiftshader", "--use-gl=angle", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist", "--mute-audio"] });
+  const [tw0, th0] = job.tile || [220, 260]; const page = await browser.newPage({ viewport: { width: tw0, height: th0 }, deviceScaleFactor: 1 }); const logs = []; page.on("pageerror", (e) => logs.push(String(e.stack || e).slice(0, 500)));
+  await page.goto(url + "/index.html?3d=1", { waitUntil: "load" }); await page.waitForFunction(() => window.K_MODELS_READY, null, { timeout: 180000 }); await page.waitForTimeout(400);
+  await page.evaluate(([bg]) => { const K = window.K, U = K.UI, G = K.G3, T = window.THREE; try { K.prefs({ gfx: "high" }); } catch (e) {} const S = (K.S = K.newLife()); S.name = "Ira"; S.age = 30; S.act = 3; G.lookHint = null; U.b3d.on();
+    G.setStage("stage_training_ground", { clear: 14, sky: "day" }); G.world.visible = false; G.sky.visible = false; G.scene.fog = null; G.renderer.setClearColor(bg);
+    const gm = new T.Mesh(new T.CircleGeometry(60, 48).rotateX(-Math.PI / 2), new T.MeshLambertMaterial({ color: bg })); gm.receiveShadow = true; gm.position.y = -0.001; G.scene.add(gm); window.__f = null; }, [job.bg == null ? 0x9a9da2 : job.bg]);
+  const ANG = { front: 0, q: -Math.PI / 4, side: -Math.PI / 2, bq: -Math.PI * 0.75, back: Math.PI, side2: Math.PI / 2, q2: Math.PI / 4, top: 0, low: 0 };
+  for (const g of job.groups) { const [tw, th] = g.tile || job.tile || [220, 260]; await page.setViewportSize({ width: tw, height: th }); const files = [], labels = [], views = g.views || ["front", "q", "side"];
+    for (const it of g.items) for (const v of views) {
+      const ok = await page.evaluate(([it, v, ry, focus, fov, asp, newFig]) => { const K = window.K, G = K.G3, T = window.THREE; const M = G.MODELS[it.key]; if (!M) return "NO MODEL";
+        if (newFig) { if (window.__f) G.actors.remove(window.__f.root); const c = it.key.lastIndexOf("_"), model = it.key.slice(0, c), stage = it.key.slice(c + 1); const names = Object.keys(M.looks), look = it.look && M.looks[it.look] ? it.look : M.looks.court ? "court" : M.looks.home ? "home" : names[0];
+          const f = G.figure(Object.assign({ model, stage, look, pronoun: /^(draupadi|kunti|gandhari|healer|villager_f|player_f)/.test(model) ? "she" : "he" }, it.spec || {}), { item: it.item || null }); f.place(0, 0, 0); f.exact = true; f.pose(it.pose || "stand", true); if (it.speed) f.speed = it.speed;
+          for (let n = 0; n < (it.settle == null ? 50 : it.settle); n++) f.update(1 / 30, n / 30); if (it.act) { const dur = it.dur || 0.5; f.act(it.act, dur, 0); let el = 0, T0 = 3; while (el < (it.at == null ? 0.55 : it.at) * dur) { f.update(1 / 60, (T0 += 1 / 60)); el += 1 / 60; } } G.actors.add(f.root); window.__f = f; }
+        const f = window.__f, s = M.size || 1; f.place(0, 0, ry); f.root.updateMatrixWorld(true); const wp = (j) => f.j[j].getWorldPosition(new T.Vector3()); let p, frame, up = 0, pitch = 0;
+        if (focus === "head") { p = wp("H"); p.y += 0.187 * s; frame = 0.5 * s; } else if (focus === "hand") { p = wp(it.hand === "L" ? "gL" : "gR"); frame = 0.34 * s; } else if (focus === "feet") { p = wp("fL").add(wp("fR")).multiplyScalar(0.5); p.y = 0.08 * s; frame = 0.42 * s; }
+        else if (focus === "bust") { p = wp("H"); p.y -= 0.1 * s; frame = 1.0 * s; } else if (focus === "legs") { p = wp("kL").add(wp("kR")).multiplyScalar(0.5); p.y = 0.52 * s; frame = 1.15 * s; } else { p = wp("P"); p.y = f.headPos().y * 0.52; frame = (it.frame || 2.25) * s; }
+        const d = frame / 2 / Math.tan((fov * Math.PI) / 360); if (v === "top") pitch = 0.9; if (v === "low") pitch = -0.35; const cy = Math.sin(pitch) * d, cz = Math.cos(pitch) * d; G.camSet([p.x, p.y + cy, p.z + cz], [p.x, p.y, p.z], fov, true); return "ok"; }, [it, v, ANG[v] || 0, g.focus || "head", g.fov || job.fov || 14, tw / th, v === views[0]]);
+      if (ok !== "ok") { console.log(ok, it.key); continue; }
+      await page.evaluate(() => new Promise((res) => { let n = 0; const f = () => { if (++n >= 3) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); })); await page.waitForTimeout(120);
+      const fn = path.join(outdir, g.name + "_" + files.length + ".png"); await page.screenshot({ path: fn, timeout: 200000 }); files.push(fn); labels.push(v === views[0] ? (it.label || it.key.replace(/_adult$/, "") + (it.look ? " · " + it.look : "")) : v); }
+    const meta = path.join(outdir, g.name + "_labels.json"); fs.writeFileSync(meta, JSON.stringify({ labels, title: g.title || "" }));
+    // one figure per column when a group is laid out by views, else rows of views per figure
+    cp.spawnSync("python3", ["-I", path.join(__dirname, "sheet_grid.py"), path.join(outdir, g.name + ".jpg"), String(g.cols || views.length), String(tw), meta, g.byColumn ? String(views.length) : "0"].concat(files), { stdio: "inherit" }); console.log(g.name, files.length); }
+  console.log(logs.slice(0, 6).join("\n") || "no errors"); await browser.close(); srv.close(); })();
