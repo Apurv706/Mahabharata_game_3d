@@ -78,7 +78,7 @@ The story screens show the painted portraits. The fights show the 3D cast. Laid 
 
 Others: Hades is also a painted story with 3D fighters. Its makers sculpt each 3D head against the 2D portrait, laid over it until the two agree ([Supergiant on Hades' characters](https://gamedeveloper.com/art/learn-how-supergiant-brought-i-hades-i-hand-painted-characters-to-life)).
 
-A fix (decided: the sheets): With the sheets as the true look, the 31 portraits are the ones to repaint, each from its own sheet. But the models are not yet the sheets either: see [the sheets beside the models](#sheets). Some of the gap was made on 12 November, when beards and hair were set to the paintings: Yudhishthira's sheet gives him a moustache, his painting and his model a full beard.
+A fix (decided: the sheets): With the sheets as the true look, the paintings are the ones to repaint: 18 of the 31 portraits and nine story paintings, each from its own sheet (the [repaint brief](Repaint_Brief.md) names them). But the models are not yet the sheets either: see [the sheets beside the models](#sheets). Some of the gap was made on 12 November, when beards and hair were set to the paintings: Yudhishthira's sheet gives him a moustache, his painting and his model a full beard.
 
 ### 2. One strongman body is worn by everyone
 
@@ -258,7 +258,7 @@ Nothing in the game has been changed yet.
 | Cloth as the sheets wind it | A wound lower cloth with pleats, a true wrap for women, an upper cloth in folds that swings. | Large |
 | A body for each, from the sheets | A heavy man, a lean man, an old man, a woman, a child, a youth; garments fitted again. Faces and hair toward the sheets. | Large |
 | The missing five, and your own arms | Vasu and the four beings modelled; forearms and weapon in the view through the eyes. | Medium |
-| The paintings | The 31 portraits repainted from the sheets, so that story and fight show the same people. | Yours, or mine with a picture tool if you ask |
+| The paintings | Eighteen portraits and nine story paintings repainted from the sheets, so that story and fight show the same people. The [repaint brief](Repaint_Brief.md) names each one. | Yours, or mine with a picture tool if you ask |
 
 ## The numbers
 

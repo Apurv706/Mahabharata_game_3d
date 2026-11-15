@@ -466,7 +466,7 @@ Asked for: a review of every human figure (`docs/Human_Asset_Review.md`), then o
 What that means, and was found by setting models beside sheets:
 - The models keep the sheets' colours, who is crowned and who is in armour, and the order of heights. They do not yet keep each hero's own war coat, crown and sign (a lion on Bhima, a horse's head on Nakula, a bull's on Sahadeva, the sun on Karna, flames on Dhrishtadyumna), the wound and draped cloth, a body for each person (a child of about 5 heads, a woman's hips, a lean Yudhishthira), hair in locks, or sandals and quivers.
 - Some beards and hair were set to the *paintings* on 12 November and so now disagree with the sheets (Yudhishthira: the sheet has a moustache, the model a full beard; Duryodhana: the sheet has a moustache and chin beard, the model none).
-- The 31 portraits are to be repainted from the sheets.
+- The paintings are to be repainted from the sheets: 18 of the 31 portraits (13 repainted, 5 touched up; Drupada and Virata already match; 11 have no sheet) and nine story paintings where a hero fills the frame. Every picture file was checked; the list, with what to change in each, is `docs/Repaint_Brief.md`.
 - The order of work is in the review. The sheets themselves are not in the repo (parked by the owner).
 
 First small steps, code only (no model was rebuilt):
