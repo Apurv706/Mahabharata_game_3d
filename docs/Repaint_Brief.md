@@ -154,6 +154,16 @@ Here the hero is small, or seen from behind, and the fault is mostly a colour. T
 
 New painting, not repainting, and nothing waits on it. These people have a sheet and a bond with the player in the story, but no portrait at all: Krishna, Draupadi, Dushasana, Shakuni, Balarama and Prince Uttara. Shalya, Jayadratha, Shikhandi, Nakula and Sahadeva have sheets too and stand in the war. A portrait for each, painted from the sheet in the same lamp-lit style, would give every named person a face. (Each new portrait also needs its name added to `PORTRAITS` in `js/ui/dom.js`.)
 
+## Making do without a painter
+
+Asked the same day: can the game do without the repaintings? It can. Nothing breaks; what is lost is the match between a painted hero and the 3D hero built from his sheet.
+
+- **Portraits, with no painter:** the 18 can be cut from the sheets themselves. The head and shoulders are lifted off the paper, the sheet's title is painted out, and the figure is set on a dark, lamp-lit ground and graded warm. A test of eight (Arjuna, Bhima, Yudhishthira, Karna, Kripa, Bhishma, Satyaki, Abhimanyu) was made and shown to the owner. It holds up at the size the game shows a face (a circle of 22 to 74 points).
+- **What that costs:** the cut portraits are drawn, not painted, so they differ in style from the 13 painted portraits that stay, most of all where a memory shows a portrait large in a gold frame. Every court sheet is bare-chested. And it puts cuts of the sheets into `art/`, which the owner has so far kept out of the repo.
+- **Story paintings:** left as they are. They read as illustration, and the hero's dress in nine of them will differ from his 3D self.
+- **Later, another way:** portraits photographed from the 3D heroes once they wear their sheet dress.
+- **State:** a test only. Nothing is in the game. The reference pictures for a real repaint were also handed over as a zip, one folder per job.
+
 ## How this was checked
 
 Every one of the 484 picture files in `art/` was looked at, at least as a thumbnail, the banner, wide and tall versions separately, because the banner and the wide painting of one scene are often different pictures (Shikhandi wears bronze in one and silver in the other). One frame of each of the 26 film clips was looked at as well. Each picture that shows a named person at a size where dress and face can be read was then set beside that person's sheet.
