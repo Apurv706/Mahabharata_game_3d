@@ -716,7 +716,10 @@ else:
 if H.get("sign") and PK_ != "none":   # his sign again on each shoulder, as a gold boss
     both(lambda sx: prim("uv_sphere", "pauldron", "gold", (sx * (SHX + (0.105 if PK_ == "dome" else 0.085) * H["arm"]), -0.012, 1.375 if PK_ == "dome" else 1.36), (0.02, 0.034, 0.034), (0, sx * 0.45, 0), segments=10, ring_count=6))
     both(lambda sx: prim("uv_sphere", "pauldron", "gem", (sx * (SHX + (0.12 if PK_ == "dome" else 0.1) * H["arm"]), -0.012, 1.37 if PK_ == "dome" else 1.355), (0.012, 0.014, 0.014), segments=8, ring_count=5))
-for o in parts[n0:]: rigid(o, "aL" if min(v.co.x for v in o.data.vertices) + max(v.co.x for v in o.data.vertices) > 0 else "aR")
+# Each plate goes with the arm of its own side: told by where the plate stands (o.location; its points are kept about its own
+# middle, so their x says nothing of the side). Version 66 asked the points, got the same answer for both, and put the
+# left plate on the right arm: it stood in the air whenever that arm moved (owner, 16 November).
+for o in parts[n0:]: rigid(o, "aL" if o.location.x > 0 else "aR")
 since(n0, "pauldron"); n0 = len(parts)
 def limbshell(name, role, z0, z1, bones, off):
     o = B.copy(); o.data = B.data.copy(); S.collection.objects.link(o); o.name = name; bm = bmesh.new(); bm.from_mesh(o.data)
@@ -1130,6 +1133,12 @@ if STAGE == "export":
     if _fix: print("thigh points taken back from the hand:", _fix)
     B["part"] = "body"; Hd["part"] = "head"
     for o in HANDS: o["part"] = "hands"
+    # Nothing that is one side's alone may be carried by the other side's limb (tests/models.js checks the same on what is written).
+    for o in parts:
+        gs_ = [g.name for g in o.vertex_groups]
+        if len(gs_) == 1 and gs_[0][-1] in "LR" and gs_[0][0] in "aewghlkf":
+            xs_ = [(o.matrix_world @ v.co).x for v in o.data.vertices]; mid_ = (min(xs_) + max(xs_)) / 2
+            if mid_ * (1 if gs_[0][-1] == "L" else -1) < -0.035: raise SystemExit("WRONG SIDE: " + o.name + " (" + part_of(o) + ") stands at x %.3f and is carried by " % mid_ + gs_[0])
     used = set(BASE); [used.update(L["parts"]) for L in LOOKS.values()]
     objs = sorted([o for o in [B, Hd] + HANDS + parts if part_of(o) in used], key=lambda o: part_of(o)); P_, N_, C_, J_, W_, I_ = [], [], [], [], [], []; roles = []; cols = []; base = 0; ranges = {}; HIDDEN = []
     for o in objs:

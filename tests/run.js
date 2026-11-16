@@ -98,6 +98,7 @@ add("smoke", null, ["tests/smoke.js", "--json", J("smoke")], { browser: true, re
 // The review of 4 November (tests/review_*.js): the owner's checklist as checks, and whole lives played through the built parts.
 // The 3D layer (this repository's own): the rules of the 3D fights, every fight played by the bot against its recorded
 // band, and the fights and tests in a real browser with software WebGL.
+add("models", ["tests/models.js"], ["tests/models.js"]);   // (the built figures as data: nothing worn on one side is carried by the other side's limb)
 add("rules3d", ["tests/rules3d.js"], ["tests/rules3d.js"]);
 add("tests3d", ["tests/tests3d_rules.js"], ["tests/tests3d_rules.js"]); // the steered race and the herd: their rules, with no page
 add("fights3d", ["tests/fights.js", "3", "21", "--check", "--json", J("fights3d")], ["tests/fights.js", "28", "21", "--check", "--json", J("fights3d")], { timeout: 30, heavy: "full" });

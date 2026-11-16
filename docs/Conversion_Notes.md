@@ -560,3 +560,14 @@ Asked for, in order: "Lets begin with the fights. Make them more interesting. Ma
 - `tests/rules3d.js`: 107 checks from 100. `tests/baselines/fights3d.json` recorded again after the change.
 
 Not done: an end card saying how you fought; the other nine areas of the play review.
+
+## Version 68 (16 November): the shoulder plates go with their own arms
+
+Owner, from a phone: "parts of armor is a few feet away from the body... in both the player and the foes". A fault of Version 66. `tools/blender/cast.py` bound each shoulder plate to the left or right arm by asking where its points lay; a plate's points are kept about its own middle, so the answer was the same for both, and the left plate was bound to the right arm. Standing still it sat where it should, which is how the figures were looked at. In a fight it went wherever the other arm went.
+
+- The plate's side is told by where the plate stands (`o.location.x`), as it was before Version 66. The 30 figures that wear plates were built again.
+- The builder now stops with "WRONG SIDE" if anything bound whole to one side's limb stands on the other side.
+- `tests/models.js` (new, in the quick tests): every built figure as data, 1,007,235 points; nothing held three parts in four by one side's limbs may lie on the other side. It failed on exactly the 30 figures before the fix and passes after.
+- Looked at after the fix in the poses that showed it: guard, both arms raised, the bow drawn, a mace mid-blow, from behind and in front, on the player, Bhima, Duryodhana, Karna, a guard and Bhishma.
+
+What to keep from it: a figure is not checked until it has been seen moving.
