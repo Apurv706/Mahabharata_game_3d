@@ -3,7 +3,7 @@
 BLACK, GREY, WHITE = 0x15120f, 0x8f8b85, 0xe4e0d8
 CREAM, MADDER, BARK, BARKD, HIDE = 0xf2e6cc, 0xb2533b, 0x8c633f, 0x6c482b, 0xcfa678
 SC = {"child": 0.62, "youth": 0.9, "adult": 1.0, "elder": 0.97}   # js/g3/figure.js STAGE
-HEADK = {"child": 1.42, "youth": 0.98, "adult": 0.88, "elder": 0.88}   # and the head's scale on a modelled figure (same file)
+HEADK = {"child": 1.42, "youth": 0.94, "adult": 0.8, "elder": 0.8}   # and the head's scale on a modelled figure (same file)
 BUILD = {
   "heavy":   dict(mu=1.0, wide=1.2,  girth=1.0,  arm=1.0,  leg=1.0,  soft=True,  abs=False, shape=dict(chest=1.0,  trap=1.0,  neck=1.0,  waist=1.0,  lat=1.0)),
   "strong":  dict(mu=1.0, wide=1.1,  girth=1.0,  arm=1.0,  leg=1.0,  soft=False, abs=True,  shape=dict(chest=1.05, trap=1.0,  neck=1.0,  waist=0.94, lat=1.06)),
@@ -109,7 +109,13 @@ def face_of(key, sex, fix):
     elif st == "youth" and at != "youth": f = youth_of(f)
     elif st == "elder" and who in ("player_m", "player_f"): f = elder_of(f)
     return {k: round(v, 4) for k, v in f.items()}
+def deep(c):   # the sheets' yellow is a deep saffron gold; drawn by the game a light yellow came out as pale cream
+    r, g, b = (c >> 16) & 255, (c >> 8) & 255, c & 255
+    if r > 225 and 170 < g < 215 and b < 90 and r - b > 150: return (255 << 16) | (int(g * 0.9) << 8) | int(b * 0.3)
+    return c
 def L(parts, **cols):
+    for k_ in ("cloth", "cloth2"):
+        if k_ in cols: cols[k_] = deep(cols[k_])
     if "hem" not in cols and "red" in cols: cols["hem"] = cols["red"]
     return dict(parts=parts.split(), cols=cols)
 CAST = {}
@@ -126,6 +132,7 @@ def resolve(key):
     if key.endswith("_child") and H["mu"] < 0.5: H.setdefault("belly", 0.32); H["abs"] = False   # a child is soft: a round belly, no muscle drawn
     if H["sex"] == "f" and not key.endswith("_child"): sh["hip"] = 1.22   # a woman's hips: the pelvis, the hip and the seat together (enlarging the hip masses alone did not move the measure)
     if H["sex"] == "f": H.setdefault("upper", 1.0); H.setdefault("delt", 1.0)   # (a woman's arms were slight already; thinned further they came away from the shoulder)
+    sk = H["skin"]; H["skin"] = (min(255, int(((sk >> 16) & 255) * 1.07)) << 16) | (min(255, int(((sk >> 8) & 255) * 1.13)) << 8) | min(255, int((sk & 255) * 1.13))   # (16 November: the sheets' skin is a warmer, lighter brown than the game drew from these)
     H["face"] = face_of(key, H["sex"], c.get("facefix")); return H
 
 # ---- The player: plain enough to belong anywhere. Undyed cotton with a madder border; bark-dyed in the forest; leather and iron at war.
@@ -357,3 +364,18 @@ CAST["balarama_adult"]["crown"] = None; wears("balarama_adult", drop="crown")   
 # ---- The rank and file wear their army's crest (it is dyed with the sash).
 for k_ in ("soldier_foot_adult", "soldier_archer_adult", "soldier_charioteer_adult", "soldier_cw_adult"): wears(k_, "crest")
 
+# ---- 16 November: every figure set beside its sheet again (docs/Figure_vs_Sheets.md), and what differed put right.
+for k_ in ("arjuna_adult", "bhima_adult", "karna_adult", "dhrishtadyumna_adult", "satyaki_adult", "bhishma_elder", "yudhishthira_adult", "nakula_adult", "sahadeva_adult"): wears(k_, drop="tasset", looks=("war",))   # no skirt of scales under these coats on the sheets
+for k_ in ("arjuna_adult", "bhima_adult", "duryodhana_adult", "bhishma_elder"): wears(k_, "sandal", looks=("war",))                                          # sandals at war
+wears("arjuna_adult", drop="pauldron", looks=("war",)); CAST["arjuna_adult"]["pauldronk"] = "none"; CAST["arjuna_adult"]["signk"] = 2.0                        # bare shoulders; a wide fan of gold on the chest
+CAST["bhima_adult"].update(wide=1.34, girth=1.1, pauldronk="dome", signk=1.7)                                                                               # the broadest of all; great round shoulder domes
+CAST["duryodhana_adult"].update(pauldronk="dome", goateek=1.5); CAST["dushasana_adult"]["goateek"] = 1.3
+wears("draupadi_adult", "tikka", drop="crown", looks=("court",))                                                                                           # a brow jewel, not a crown
+wears("krishna_adult", "garland flute", looks=("court", "home"))
+CAST["dhrishtadyumna_adult"]["crown"] = "circlet"; CAST["dhrishtadyumna_adult"].pop("crownk", None)                                                          # a low diadem and a hair knot
+wears("dhrishtadyumna_adult", "cape", drop="baldric", looks=("war",))
+wears("satyaki_adult", "crown", drop="helmet", looks=("war",))                                                                                              # his sheet: a knot and a diadem, no helmet
+for lk_ in ("court", "war"): CAST["satyaki_adult"]["looks"][lk_]["cols"].update(red=0xe85d10, hem=0xe85d10, **({"cloth2": 0xe85d10} if lk_ == "court" else {}))   # orange, not gold
+CAST["bhishma_elder"]["beardk"] = 1.75; wears("bhishma_elder", "beadsA", drop="beads", looks=("war",))                                                      # a beard to the chest; his beads over the coat
+wears("drona_elder", "beadsA", drop="beads", looks=("war",)); CAST["drona_elder"]["looks"]["war"]["cols"].update(armour=0x8e8c88, leather=0x8a8884, gold=0xa8a6a0)   # grey steel, as his sheet has it
+for k_ in ("kunti_elder", "gandhari_elder", "healer_elder", "villager_f_adult", "player_f_elder"): wears(k_, "pallu")                                         # an elder woman's cloth is drawn across her as well

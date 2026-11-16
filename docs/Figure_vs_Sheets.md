@@ -68,3 +68,37 @@ Dress colours other than yellow, each person's hair and beard style, crown type,
 1. Lay the shawl over the left shoulder as the sheets have it, in the sheet's colour, so the chest and necklaces show.
 2. Lengthen the legs and shrink the head toward seven and a half heads.
 3. Give the court dhoti its folds and separate legs.
+
+## What was done about it (Version 66, 16 November)
+
+Asked for: "Lets fix all of the findings". Every figure was rebuilt and the sixteen were photographed beside their sheets again.
+
+Two findings above were wrong and are withdrawn: **Draupadi's height** and **Drona's height**. The picture scaled every sheet to fill its frame, so heights could not be compared across sheets. The game takes each person's height from the figure printed on the sheet (Draupadi 168 cm, Drona 178 cm, Bhima 195 cm), and those are unchanged.
+
+Done:
+
+1. Shawl: a folded cloth over the left shoulder, hanging straight in front and behind; chest and necklaces open. (The cross band is kept only for elder women: Kunti, Gandhari, the healer, the village woman, the player as an old woman.) This undoes the loose across-the-body tie of Version 65.
+2. Shawl colour: follows from 1; the hanging cloth was always the right colour.
+3. Court lower cloth: rebuilt as cloth on its own grid, full at the thigh, drawn in to each ankle, the legs separate, in narrow slanting folds. To the ankle for crowned men.
+4. War lower cloth: the same, tucked to the knee. The band of scales is gone from Arjuna, Bhima, Karna, Yudhishthira, Nakula, Sahadeva, Dhrishtadyumna, Satyaki and Bhishma.
+5. Proportions: grown heads shrunk from 0.88 to 0.80 (about six and a half heads tall, from six).
+7. Necklaces: three strands and a large pendant on princes, two on queens.
+8. Waist: a broad waist cloth in the person's second colour, a gold chain and a large jewelled clasp.
+9. Crowns: a raised rim and a stone at each tier, a ring of stones at the brim. Larger earrings.
+11. Skin: every skin colour lifted toward the sheets' lighter, warmer brown (Krishna's blue lighter too).
+12. Yellow: now a deep saffron (Bhima, Karna, Krishna and others).
+13. Armour: gold rims on arm and shin guards, a jewelled boss at each knee, the wearer's boss on each shoulder; round shoulder domes for Bhima and Duryodhana.
+14. Sandals at war for Arjuna, Bhima, Duryodhana and Bhishma.
+
+People: Arjuna (smaller crown wings; bare shoulders and a wide gold fan at war), Bhima (broader; lion redrawn with a pointed mane, eyes, nose and mouth), Duryodhana (larger goatee; black coat worked in gold), Draupadi (brow jewel in place of the crown), Krishna (feather set in the crown; flower garland; flute at the waist), Kripa and others (thicker, longer beads), Dhrishtadyumna (low diadem; no cross band; cloak down the back), Satyaki (no helmet; orange sash and border), Bhishma (beard to the chest; beads over the coat), Drona (grey steel coat and guards; beads over the coat).
+
+Also found and fixed on the way: a point of thigh skin that belonged to the wrist drew a fin of skin out of the hip when the hand moved. The old wide cloth had hidden it.
+
+Not done, or only partly:
+
+- 5, legs: not lengthened. The joints and every pose are measured to the present legs.
+- 6, muscle: the chest now shows, but stomach muscle is still not drawn.
+- 10, faces: unchanged. They are still simple and alike.
+- Bhima's lion is clearer but still small; lion clasp at his waist is the common jewelled clasp.
+- Dhrishtadyumna's flame pattern on the front panel; Drona's red stripes; Draupadi's loose hair (she keeps the plait as queen, as the story has her hair unbound only after the dice hall); Duryodhana's lion shoulders (plain domes with a boss).
+- The other 63 models got all the general changes but were looked at only in a sample of sixteen, not one by one beside their sheets.

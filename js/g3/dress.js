@@ -55,6 +55,7 @@
           if (part === "tasset") s = { p: LAMELLAR.test(id) ? "lamellar" : "scale", c2: LAMELLAR.test(id) ? THONG : rim, cell: 0.05, b: "rim", c3: rim, bw: 0.02 }; /* (the skirt of scales below the belt, its hem edged in gold) */
           else if (part === "pauldron" && !QUILT.test(id) && !LAMELLAR.test(id)) s = { p: "scale", c2: rim, cell: 0.045, b: "rim", c3: rim, bw: 0.016 }; /* (a shoulder-piece of the same scales as the coat, edged in gold) */
           else if (/^(arjuna|krishna)$/.test(id)) s = { p: "leather", c2: GOLD, cell: 0.06 }; /* (their sheets: a coat of dark leather, studded with gold) */
+          else if (id === "duryodhana" && part === "cuirass") s = { p: "buti", c2: GOLD, cell: 0.07, b: "zari", c3: GOLD, bw: 0.03 }; /* (his sheet: black, worked all over in gold) */
           else if (/^(ashwatthama|duryodhana|dushasana)$/.test(id) && part === "cuirass") s = { p: "plate", b: "rim", c3: GOLD, bw: 0.018 }; /* (dark plate edged in gold) */
           else if (QUILT.test(id)) s = { p: "quilt", c2: BRONZE, cell: 0.075 };
           else if (LAMELLAR.test(id)) s = { p: "lamellar", c2: THONG, cell: 0.06 };
@@ -71,7 +72,8 @@
         case "cloth": s = cloth(cols.cloth, hem, part === "tuck" ? 0.03 : 0.095); break;
         case "cloth2": s = cloth(cols.cloth2, cols.red, part === "veil" ? 0.05 : 0.075, true); break;
         case "red":
-          if (part === "shawl" || part === "drape") s = royal && goldish(cols.red) && !plain ? { p: "zari", c2: shade(cols.red, 0.6), cell: 0.022 } : rough ? { p: "bark" } : royal ? SILK : COTTON;
+          if (part === "shawl" || part === "drape" || part === "pallu") s = royal && goldish(cols.red) && !plain ? { p: "zari", c2: shade(cols.red, 0.6), cell: 0.022 } : rough ? { p: "bark" } : royal ? SILK : COTTON;
+          else if (part === "baldric") s = royal ? SILK : COTTON; /* (a plain sash of the colour across the coat: bordered in gold it read as a gold strap) */
           else if (part === "turban") s = { p: "bands", c2: shade(cols.red, 0.7), cell: 0.045 };
           else if (rough) s = { p: "bark" };
           else if (plain) s = COTTON;

@@ -28,7 +28,7 @@
   // everything of the hips and legs above the hem), or does a close-fitting piece (a coat, a breast-band, a sash, the
   // band of an upper cloth, a guard on a limb) lie just outside it along its own normal? A triangle of the body whose
   // three points are all covered by pieces of the look being worn is left out (G.modelSkin).
-  const SKIRT = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1 }, SHELL = { cuirass: 1, vambrace: 1, greave: 1, bandeau: 1, shawl: 1, drape: 1, sash: 1, girdle: 1, tuck: 1, hide: 1, baldric: 1, strap: 1, apron: 1 };
+  const SKIRT = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1 }, SHELL = { cuirass: 1, vambrace: 1, greave: 1, bandeau: 1, shawl: 1, pallu: 1, drape: 1, sash: 1, girdle: 1, tuck: 1, hide: 1, baldric: 1, strap: 1, apron: 1 };
   function covers(M, D) {
     const n = M.n, pos = D.pos, nor = D.nor, idx = D.idx, names = D.partNames, part = D.part, cov = (D.cov = new Uint32Array(n)), bit = (D.covBit = {}), bi = names.indexOf("body"), body = [];
     if (bi < 0) return; for (let v = 0; v < n; v++) if (part[v] === bi) body.push(v);
@@ -72,7 +72,7 @@
       for (let v = 0; v < n; v++) if (cnt[v]) cav[v] = cav[v] * 0.5 + (sm[v] / cnt[v]) * 0.5; }
     const f = (D.shade = new Float32Array(n)); for (let v = 0; v < n; v++) { const c = cav[w[v]]; f[v] = Math.max(0.56, Math.min(1.1, c > 0 ? 1 - c * 2.1 : 1 - c * 0.55)); }
   }
-  const EDGED = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1, drape: 2, sash: 2, panel: 2, tuck: 2, shawl: 2, drape: 2, veil: 2, bandeau: 2, baldric: 2, pauldron: 2, vambrace: 2, greave: 2, apron: 2, turban: 2 }, REACH = 0.12;
+  const EDGED = { dhoti: 1, dhotiS: 1, dhotiL: 1, tasset: 1, drape: 2, sash: 2, panel: 2, tuck: 2, shawl: 2, pallu: 2, cape: 2, drape: 2, veil: 2, bandeau: 2, baldric: 2, pauldron: 2, vambrace: 2, greave: 2, apron: 2, turban: 2 }, REACH = 0.12;
   function edges(M, D, p16, EDGED) {
     const n = M.n, names = Object.keys(M.parts), part = new Uint8Array(n), edge = new Float32Array(n).fill(1), half = new Float32Array(n).fill(1), idx = D.idx, pos = D.pos, weld = new Int32Array(n), par = new Int32Array(n);
     const find = (a) => { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }, cell = REACH, gk = (x, y, z) => (Math.floor(x / cell) + 512) * 1048576 + (Math.floor(y / cell) + 512) * 1024 + (Math.floor(z / cell) + 512);

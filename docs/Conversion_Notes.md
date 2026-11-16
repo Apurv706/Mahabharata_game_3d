@@ -535,3 +535,15 @@ In `fall()` (`cast.py`), for a length that lies on the body:
 `ribbon(..., loose=True)` for the shawl and the drape (`cast.py`). The band was fitted to the body along the one line under its middle, 15 mm off, so the chest, the breast-band, the beads and the sash's roll came through it wherever they stood out to either side of that line. Now, at each point round the trunk, it takes the furthest reach of the body and of what is worn (breast-band, sash, girdle, tuck, beads, lower cloth) across its whole width, bridges from one high place to the next, is smoothed, and stands 20 mm off that.
 - **Still through it:** a woman's braid passes through the band at the back, and a bead or two of a necklace shows at its upper edge.
 
+
+## Version 66 (16 November): the figures brought to the sheets
+
+Asked for: "Lets fix all of the findings" (the list in `docs/Figure_vs_Sheets.md`). What changed and what did not is listed at the foot of that file. In the builder:
+
+- `dhoti()` in `tools/blender/cast.py` no longer pushes the body's thinned skin outward. It weaves two tubes on an even grid (56 round, a row every 3 cm), one per leg from waist to hem, meeting down the middle as far as the fork. Radius: the body's own reach plus a fullness that peaks over the thigh and is drawn in toward the hem; never out into the hanging hands. Folds: nine narrow slanting ridges plus a slow wave. Weights are by height (hips, thigh, shin). The knee lumps of Versions 60 to 63 went with the old skin-cut cloth.
+- `laid()` builds the upper cloth: two lying falls from the shoulder's crest and a fold over it. The old cross band is the part `pallu`.
+- New parts: `pallu`, `garland`, `flute`, `cape`, `tikka`, `sandal`, `beadsA` (beads over a coat). New per-person keys: `pauldronk` (`dome`, `none`), `beardk`, `goateek`.
+- `cast_specs.py`: `HEADK` 0.88 to 0.80 for grown and old (and `js/g3/figure.js`); `deep()` turns light yellows to saffron; `resolve()` lifts skin.
+- At export, a thigh point whose strongest joint is the wrist or hand, with leg neighbours, takes a neighbour's weights.
+
+Test: all 79 built as one skin; the test suite as listed in the publish steps.
