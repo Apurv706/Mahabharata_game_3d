@@ -502,13 +502,13 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
     # was a flat sheet set at that point from the top down, and stood off the shoulder like a board.)
     lie = top == "T" and C_ > 3 and name != "apron" and name != "veilfall"; yrun = None; ylie = []
     for r in range(rows + 1):
-        zr = z_top - ln * r / rows; yb = (over(zr, x, wd, 1) - 0.013) if fwd > 0 else (over(zr, x, wd, -1) + 0.013)
+        zr = z_top - ln * r / rows; yb = (over(zr, x, wd, 1) - 0.016) if fwd > 0 else (over(zr, x, wd, -1) + 0.016)
         yrun = yb if yrun is None else (min(yrun, yb) if fwd > 0 else max(yrun, yb)); ylie.append(yrun)
     for r in range(rows + 1):
         t = r / rows
-        if lie: y = ylie[r] if (fwd > 0 and ylie[r] > y_plane) or (fwd < 0 and ylie[r] < y_plane) else y_plane
+        if lie: y = ylie[r]   # (it was held back to the flat sheet's place wherever the clothes under it stood further out, and so was cut into strips by them)
         for c in range(C_):
-            u = c / (C_ - 1) - 0.5; fold = (1 if c % 2 else -1) * (0.0015 + 0.009 * t) * deep * (0 if C_ == 3 else 1)       # gathered above, opening into pleats below
+            u = c / (C_ - 1) - 0.5; fold = ((c % 2) if lie else (1 if c % 2 else -1)) * (0.0015 + 0.009 * t) * deep * (0 if C_ == 3 else 1)   # (a length lying on the body folds outward only: a fold inward went into what it lay on)       # gathered above, opening into pleats below
             z = z_top - ln * t - (0.012 * (c % 2) * t if C_ > 3 else 0)                                               # and the foot of each pleat a little lower than the next
             vs.append((x + u * wd * 2 * (gather + (1 - gather) * t ** 0.7) + lean_ * ln * t, y - fwd * (fold + 0.012 * math.sin(t * 3.0)), z))
     for r in range(rows):
@@ -518,7 +518,19 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
     clothw(o, top, side, sway, z_top, ln); parts.append(o)
     if edge:
         e = prim("cube", name + "edge", "gold", (x + lean_ * ln, y - (0.003 if y < 0 else -0.003), z_top - ln + 0.012), (wd * 1.02, 0.004, 0.012), size=2); clothw(e, top, side, sway, z_top, ln); parts.append(e)
-    if border:   # the cloth's own woven border, down both edges and across the foot
+    if border and lie:   # the cloth's own woven border, woven into it: a band along each edge and across the foot, made from the cloth's own points (as separate strips hung straight they stood away from a gathered, lying cloth like a frame)
+        bv, bf = [], []; lift = lambda p_, k_=0.003: (p_[0], p_[1] - fwd * k_, p_[2]); mix = lambda a_, b_, k_: tuple(a_[i_] + (b_[i_] - a_[i_]) * k_ for i_ in range(3))
+        for c0, c1 in ((0, 1), (C_ - 1, C_ - 2)):
+            n_ = len(bv)
+            for r in range(rows + 1): bv += [lift(vs[r * C_ + c0]), lift(mix(vs[r * C_ + c0], vs[r * C_ + c1], 0.45))]
+            for r in range(rows): bf.append((n_ + 2 * r, n_ + 2 * r + 1, n_ + 2 * r + 3, n_ + 2 * r + 2))
+        n_ = len(bv)
+        for c in range(C_): bv += [lift(vs[rows * C_ + c], 0.004), lift(mix(vs[rows * C_ + c], vs[(rows - 1) * C_ + c], 0.28), 0.004)]
+        for c in range(C_ - 1): bf.append((n_ + 2 * c, n_ + 2 * c + 2, n_ + 2 * c + 3, n_ + 2 * c + 1))
+        bm_ = bpy.data.meshes.new(name + "b"); bm_.from_pydata(bv, [], bf); bm_.update(); bo = bpy.data.objects.new(name + "b", bm_); S.collection.objects.link(bo); bo.data.materials.append(M[brole])
+        for p_ in bo.data.polygons: p_.use_smooth = True
+        clothw(bo, top, side, sway, z_top, ln); parts.append(bo)
+    elif border:
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side, sway=sway)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side, sway, z_top, ln); parts.append(e)
     return o

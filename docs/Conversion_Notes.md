@@ -522,3 +522,11 @@ The portraits follow the sheets since Version 57; now the 3D heads do too (`tool
 - **Lower cloth, tidied:** its long edges are halved before shaping (the thinned skin it is cut from has a few large faces where the body is plain); it hangs clear of the whole leg by the furthest the leg reaches in each direction; three broad folds in place of the finer ones; its normals are recomputed after shaping; an ankle-length cloth's inner hem is no longer lifted.
 - **NOT fixed: the pillows behind each knee** (seen from behind on every lower cloth, clearest on women's ankle-length one). Ruled out, each by a rebuild and a photograph: the folds, the taper, the leg poking through, the cloth's weights (held rigidly to the hips it still shows), stale normals, large faces, loose pieces of mesh, the lifted hem. The built model file itself measures as a clean tube there (radius 0.09 to 0.14 at every height). So the fault is added when the game draws the figure, at heights 0.36 to 0.50, and is still to be found. Start in `js/g3/model.js` and `figure.js`, not in the builder.
 
+## The shawl's ends, tidied front and back (15 November, Version 64)
+
+In `fall()` (`cast.py`), for a length that lies on the body:
+- It follows the body and the clothes under it all the way down. (It was held back to the old flat sheet's place wherever the clothes stood further out, so the lower cloth cut it into strips.)
+- Its folds go outward only; a fold inward went into what it lay on.
+- Its border is made from the cloth's own points: a band along each edge and across the foot. (As separate strips hung straight, the border stood away from the gathered cloth like a frame.)
+- It stands 16 mm off what it lies on, was 13.
+
