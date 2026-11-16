@@ -78,6 +78,8 @@ What to do:
 
 Size: medium. It is tuning plus the pattern already built, and the fight bands will show what moved.
 
+**Begun in Version 67** (16 November): every named opponent is stronger than the men about him and has a great blow of his own; a great blow that lands throws you down; an unguarded heavy blow costs breath and your chain; standing idle turns every foe on you. Against the named, a player who never guards or rolls and uses no aid went from winning 60 fights in 100 to 27; one who uses them, from 79 to 62. The careful player still wins 90 in 100 (91 before), with less health left. What each man does and the figures are in `Named_Opponents.md`. Not done from this list: the count fights with no named man in them, and "hard" fights for the careful player.
+
 ### 2. The meters the player watches most are read least
 
 The Standing sheet says of the four duties: "Choices pull these against each other." What the data says:

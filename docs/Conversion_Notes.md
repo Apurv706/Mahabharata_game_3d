@@ -547,3 +547,16 @@ Asked for: "Lets fix all of the findings" (the list in `docs/Figure_vs_Sheets.md
 - At export, a thigh point whose strongest joint is the wrist or hand, with leg neighbours, takes a neighbour's weights.
 
 Test: all 79 built as one skin; the test suite as listed in the publish steps.
+
+## Version 67 (16 November): the named opponents, and how a fight opens
+
+Asked for, in order: "Lets begin with the fights. Make them more interesting. Make the opponent name hero's stronger and unique"; "the fights open with a card with no engagement and urgency from 3D characters... Especially for critical battle fights"; "Add a 3 sec counter to decide otherwise game opens in default mode". What each named man does, what ignoring a blow costs, and the figures before and after are in `docs/Named_Opponents.md`. In the code:
+
+- `js/ui/battle/sim.js`, "The named: each man's own fight": `SIG` (the great blows: chains of steps of four kinds, ring, fan, dash, shots), `HERO` (who has which, how often, and how far above the common men his plain blow is kept), `hkOf` (who a man is: his person, or his name where the story gives him none), `heroFloor`, `sigTry` / `sigBegin` / `sigLand` / `dashStep` / `sigNext`, `throwDown`, `countered` (Kripa's waiting guard), `idleNow`.
+- An attack may now carry its own shape (`fanOf` reads `a.step`), a time its mark stops following you (`lockAt`), a weight (`mult`), `noblock`, `down`, `stun`, `thr`, `sky`. `resolve` reads them. `R3.threats` reports a chain from its first blow (`c0`), and says when a blow cannot be blocked.
+- Two old faults found on the way. Karna's second arrow was meant to be lighter than his first (0.6) and was not: the share was never carried onto the arrow. A tip shown as a toast stayed 1.3 seconds whatever its length: a sentence now stays 4.2.
+- The bot (`R3.bot`) reads a called blow more often than a plain one, does not raise a shield against a blow no shield holds, waits out a chain it has got clear of, goes round Kripa while he waits, and runs under arrows out of the sky when it has no shield to spare.
+- `js/ui/battle/view.js`: a mark is made again when the blow changes (a chain's blows have different shapes), violet when no shield holds it; a second mark for Drona's second flight; `callout()` for a blow's name; a leap is drawn as a leap; `marchOf()` and `place()` bring both sides on during the opening (only what is drawn moves); `showSig()` plays the named man's great blow once in its own shot; the card before the fight counts three seconds.
+- `tests/rules3d.js`: 107 checks from 100. `tests/baselines/fights3d.json` recorded again after the change.
+
+Not done: an end card saying how you fought; the other nine areas of the play review.

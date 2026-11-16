@@ -276,3 +276,11 @@ body.in3d #b3d button, body.in3d #b3d .b-btn, body.in3d #b3d .b-acts, body.in3d 
 body.in3d #b3d .b-card, body.in3d #b3d .b-ask, body.in3d #b3d .b-card * { touch-action: pan-y; }
 /* Four or more short answers (the dice game's "Throw 1" to "Throw 5") share one row on a phone instead of three rows that ran off the foot of an iPhone SE. */
 @media (max-width: 560px) { .t-btns:has(> .t-btn:nth-child(4)) { flex-wrap: nowrap; gap: 6px; padding: 0 8px; } .t-btns:has(> .t-btn:nth-child(4)) > .t-btn { flex: 1 1 0; min-width: 0; min-height: 46px; padding: 4px 2px; font-size: 0.9rem; } }
+
+/* The named's great blows (16 November): the name called over his head; a tip that stays to be read; the count before a fight. */
+.dmg.sig { font-family: var(--serif); font-size: clamp(1.3rem, 5vw, 2rem); color: #ffe7a8; letter-spacing: 0.02em; white-space: nowrap; text-shadow: 0 2px 0 #000, 0 0 10px #000, 0 0 18px rgba(255, 150, 60, 0.55); animation: sigcall 1.9s ease-out both; z-index: 4; }
+.dmg.sig.nb { color: #e6c2ff; text-shadow: 0 2px 0 #000, 0 0 10px #000, 0 0 18px rgba(190, 110, 255, 0.6); }
+.dmg.good { color: #b9f0a0; }
+@keyframes sigcall { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 78% { opacity: 1; margin-top: -8px; } 100% { opacity: 0; margin-top: -30px; } }
+#b3d .t-toast.tip { animation-duration: 4.2s; }
+.b-count { display: inline-block; min-width: 1.5em; margin-left: 0.35em; padding: 0 0.3em; border-radius: 999px; background: rgba(42, 20, 8, 0.28); font-variant-numeric: tabular-nums; }

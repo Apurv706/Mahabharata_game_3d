@@ -139,7 +139,7 @@
     }
     let st = null, acc = 0, started = false, closed = false, hitStop = 0, giftKey = null, backMesh = null, lockRing = null, edgeGlow = null, goalMark = null, paused = false, lastLog = 0, zoom = 1, camLook = new T.Vector3(), tipT = 0;
     // Three ways to see a fight: from above (the field laid out), from just behind your fighter, and through their eyes.
-    let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null, askView = null;
+    let viewMode = VIEWS.includes(K.prefs().fightView) ? K.prefs().fightView : "top", lookYaw = Math.PI, viewEase = 0, intro = null, askView = null, marching = false, march = 0;   // (marching: both sides are coming onto the field as the opening plays)
     const threatEls = [];
     const input = { up: 0, right: 0, block: false, taps: {}, keys: new Set(), stick: null, mouseBlock: false, padBlock: false };
     const touch = !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
@@ -411,6 +411,7 @@
     }
     function dropView(v, how) {
       if (v.mark) { v.mark.userData.free(); v.mark = null; }
+      if (v.mark2) { v.mark2.userData.free(); v.mark2 = null; }
       if (v.bar) v.bar.remove();
       const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.parked) { if (v.parked.parent) v.parked.parent.remove(v.parked); G.dispose(v.parked); } if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
       if (how === "now") gone(); else setTimeout(gone, 1400);
@@ -419,7 +420,22 @@
     function sync() {
       for (const u of B.units) if (u.g && !views.has(u.uid)) makeView(u);
     }
+    // While the opening plays, both sides come onto the field (owner, 16 November: "no engagement and urgency from 3D
+    // characters"): each man and each car begins some way behind his place and comes up to it the way he faces. Only what
+    // is drawn moves; the fight's own places are untouched.
+    const MARCH = 6;
+    function marchOf(v) {
+      if (!marching || started) return null; const u = v.u, g = u.g, k = clamp(march / MARCH, 0, 1);
+      if (k >= 1 || u.side === "player" || u.still || v.kind === "light" || g.entered === false || u.hp <= 0) return null;
+      const D = u.side === "enemy" ? (v.car || v.kind === "elephant" ? 12 : 8.5) : 5, a = g.ca != null ? g.ca : g.a, rem = D * (1 - k) * (1 - k), sp = (2 * D * (1 - k)) / MARCH;
+      return [-Math.sin(a) * rem, -Math.cos(a) * rem, Math.sin(a) * sp, Math.cos(a) * sp];
+    }
     function place(v, dt, t, snap) {
+      const mo = marchOf(v); if (!mo) return place0(v, dt, t, snap);
+      const g = v.u.g, x = g.x, z = g.z, lx = g.lx, lz = g.lz; g.x += mo[0]; g.z += mo[1]; g.lx = mo[2]; g.lz = mo[3];
+      try { place0(v, dt, t, snap || !v.marched); v.marched = true; } finally { g.x = x; g.z = z; g.lx = lx; g.lz = lz; }
+    }
+    function place0(v, dt, t, snap) {
       const u = v.u, g = u.g;
       if (v.obj) {
         if (v.kind === "light") { v.obj.position.set(g.x * 0.5, 15, g.z * 0.5 - 6); v.obj.material.opacity = 0.75 + Math.sin(t * 3) * 0.2; return; }
@@ -450,6 +466,9 @@
         else if (!f.fellAt || t - f.fellAt < 1.1) { // (a body thrown by the blow that killed it slides as it goes down)
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
           if (!f.fellAt) f.face = g.a;
+          { const lp = !f.fellAt && g.atk && g.atk.step && g.atk.step.leap ? g.atk : null;   // (Ghatotkacha in the air: up from where he stood, down where the ring is)
+            if (lp) { const k = clamp((R.t - lp.t0) / Math.max(0.01, lp.land - lp.t0), 0, 1), up = clamp((k - 0.3) / 0.7, 0, 1); f.root.position.x = x + ((lp.px != null ? lp.px : x) - x) * up * up; f.root.position.z = z + ((lp.pz != null ? lp.pz : z) - z) * up * up; f.root.position.y = Math.sin(up * Math.PI) * 3.4; v.leapt = true; }
+            else if (v.leapt) { f.root.position.y = 0; v.leapt = false; } }
         }
         if (down && !f.fellAt) { f.fellAt = t || 0.001; f.vf = 0; f.vs = 0;
           // he goes down the way he was struck: onto his back from a blow in front, onto his face from one behind, over
@@ -468,8 +487,9 @@
           if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
           if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.heave) pose = "push"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
+          f.drop(R.downUntil > R.t && u.hp > 0);   // (thrown down)
         } else {
-          if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
+          if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (g.counterUntil > R.t) pose = "block"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
           f.drop(g.down > 0);
           // (a close camera does not look through the back of someone's head)
           if (!v.car) f.root.visible = viewMode === "top" || !!intro || Math.hypot(f.root.position.x - G.cam.pos.x, f.root.position.z - G.cam.pos.z) > (viewMode === "eyes" && started ? (u.side === "enemy" ? 0.9 : 1.7) : 2.2); // (from your own eyes a comrade at your shoulder would fill the screen with his helmet; a foe is hidden only when he is nose to nose)
@@ -480,7 +500,8 @@
     }
     // The blow a foe is winding up, shown by its body: the act is timed so the weapon comes down when the blow lands.
     // (A shot is the whole cycle: quiver, nock, draw to the ear, loose; a hurried one starts with the arrow on the string.)
-    function actFor(u, a) { const w = u.g.weapon; return a.ranged ? (w === "bow" || u.g.archer ? (a.land - a.t0 < 0.75 ? "loose" : "shoot") : "throw") : a.arc === "smash" ? "smash" : a.arc === "sweep" ? "sweep" : a.area ? "smash" : w === "spear" || w === "staff" ? "thrust" : w === "fist" ? "punch" : w === "dagger" ? "stab" : a.heavy ? "heavy" : "slash"; }
+    function actFor(u, a) { const w = u.g.weapon; if (a.step && a.step.act && G.ACTS[a.step.act]) return a.step.act; /* (a great blow's own) */ return a.ranged ? (w === "bow" || u.g.archer ? (a.land - a.t0 < 0.75 ? "loose" : "shoot") : "throw") : a.arc === "smash" ? "smash" : a.arc === "sweep" ? "sweep" : a.area ? "smash" : w === "spear" || w === "staff" ? "thrust" : w === "fist" ? "punch" : w === "dagger" ? "stab" : a.heavy ? "heavy" : "slash"; }
+    const NB_COL = 0xc070ff;
     function windups(t) {
       for (const v of views.values()) {
         const u = v.u, a = u.hp > 0 ? u.g.atk : null;
@@ -488,9 +509,13 @@
           // the mark on the ground
           const pl = C.player(), near = !u.line || !a || !pl || a.on === pl.uid || Math.hypot(u.g.x - pl.g.x, u.g.z - pl.g.z) < 4.2;
           const m = a && near ? R3.markOf(R, u) : null;
-          if (m && !v.mark) v.mark = G.fx.mark(m.kind, { r: m.kind === "lane" ? Math.min(m.r, 26) : m.r, arc: (m.half || 1) * 2, w: m.w });
-          if (!m && v.mark) { v.mark.userData.free(); v.mark = null; }
-          if (m && v.mark) { v.mark.position.set(m.x, 0.05, m.z); v.mark.rotation.y = m.a || 0; v.mark.userData.set(m.fill, m.locked, m.heavy); v.mark.visible = !(m.feint && Math.floor(t * 20) % 2 === 0 && m.fill > 0.75); }
+          if (v.mark && (!m || v.markA !== m.ref)) { v.mark.userData.free(); v.mark = null; }   // (each blow of a chain has its own shape)
+          if (m && !v.mark) { v.markA = m.ref; v.mark = G.fx.mark(m.kind, { r: m.kind === "lane" ? Math.min(m.r, 26) : m.r, arc: (m.half || 1) * 2, w: m.w, col: m.nb ? NB_COL : 0 }); }   // (violet: no shield holds it)
+          if (v.mark2 && !(m && m.also)) { v.mark2.userData.free(); v.mark2 = null; }
+          if (m && m.also) { if (!v.mark2) v.mark2 = G.fx.mark("ring", { r: m.also.r }); if (v.mark2) { v.mark2.position.set(m.also.x, 0.05, m.also.z); v.mark2.userData.set(m.also.fill, m.locked, false); } }   // (Drona's second flight)
+          if (m && a.sky && (a.locked || a.land - R.t <= 0.45) && v.skyRef !== a) { v.skyRef = a; const left = Math.max(0.12, a.land - R.t);   // (arrows out of the sky: they are seen coming down once the ring is fixed)
+            for (let i = 0; i < 7; i++) { const an = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * m.r * 0.85, to = new T.Vector3(m.x + Math.sin(an) * rr, 0.05, m.z + Math.cos(an) * rr); G.fx.arrow(new T.Vector3(to.x + (u.g.x - to.x) * 0.3, 10 + Math.random() * 3, to.z + (u.g.z - to.z) * 0.3), to, left + Math.random() * 0.08, 0, null, 1.4); } }
+          if (m && v.mark) { v.mark.position.set(m.x, 0.05, m.z); v.mark.rotation.y = m.a || 0; v.mark.userData.set(m.fill, m.locked, m.heavy && !m.nb); v.mark.visible = !(m.feint && Math.floor(t * 20) % 2 === 0 && m.fill > 0.75); }
         }
         if (!a) { v.atkRef = null; continue; }
         const name = actFor(u, a);
@@ -509,7 +534,8 @@
       const el = U.el('<span class="dmg ' + (cls || "") + '">' + text + "</span>"); el.style.left = Math.round(scr.x + (Math.random() - 0.5) * 24) + "px"; el.style.top = Math.round(scr.y) + "px";
       hud.appendChild(el); setTimeout(() => el.remove(), 900);
     }
-    function toast(text, cls) { const box = hud.querySelector(".b-toasts"); if (!box) return; const el = U.el('<div class="t-toast ' + (cls || "") + '">' + text + "</div>"); box.appendChild(el); while (box.children.length > 2) box.firstChild.remove(); setTimeout(() => el.remove(), 1300); }
+    function toast(text, cls) { const box = hud.querySelector(".b-toasts"); if (!box) return; const el = U.el('<div class="t-toast ' + (cls || "") + '">' + text + "</div>"); box.appendChild(el); while (box.children.length > 2) box.firstChild.remove(); setTimeout(() => el.remove(), /\btip\b/.test(cls || "") ? 4200 : 1300); }   // (a sentence is given the time it takes to read)
+    function callout(at, text, cls) { if (!at || !text) return; G.toScreen(at, scr); if (scr.behind) return; const el = U.el('<span class="dmg sig ' + (cls || "") + '"></span>'); el.textContent = text; el.style.left = Math.round(Math.max(90, Math.min(G.W - 90, scr.x))) + "px"; el.style.top = Math.round(Math.max(70, scr.y)) + "px"; hud.appendChild(el); setTimeout(() => el.remove(), 1900); }   // (a great blow's name, over the head of the man who begins it)
     const unesc = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");   // (the line is shown as text: a name with an apostrophe in it came out as code)
     function banner(text) { const el = hud.querySelector(".b-line"); if (!el) return; el.textContent = unesc(text); el.classList.remove("in"); void el.offsetWidth; el.classList.add("in"); }
     const ASTRA_FX = { agneya: [0xff7a2a, "fire"], varuna: [0x7ad0ff, "water"], vayavya: [0xe8e0c8, "wind"], sammohana: [0xc8a0ff, "sleep"], nagapasha: [0x8aff9a, "bind"], astra: [0xfff0a0, "bolt"] };
@@ -531,7 +557,7 @@
             else if (e.by === p.uid && e.melee) { hitStop = e.heavy ? 0.07 : 0.035; if (e.heavy) G.shake(0.14, 0.2); }
             break; }
           case "windup": if (!tips.mark && v && v.u.side === "enemy" && C.player() && (R3.threats(R).length)) tip("mark", "A mark on the ground shows where a blow will land. Step or roll out of it before it fills."); break;
-          case "swing": if (e.area && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); if (v && v.kind === "light") { G.fx.beam(at, new T.Vector3(e.x, 28, e.z), 0xfff0b0, 0.9, 0.7); G.fx.flash("rgba(255,240,200,.35)", 300); } G.fx.ring(at, 0xffb060, 0.4, e.r || 3, 0.5); G.fx.burst("dust", at, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } break;
+          case "swing": if (e.dash) { sfx("drum"); G.shake(0.15, 0.25); } else if (e.sky && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); G.fx.ring(at, 0xffd9a0, 0.3, e.r || 2, 0.35); G.fx.burst("dust", at, { n: 10, s: 1.4 }); sfx("tap"); } else if (e.area && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); if (v && v.kind === "light") { G.fx.beam(at, new T.Vector3(e.x, 28, e.z), 0xfff0b0, 0.9, 0.7); G.fx.flash("rgba(255,240,200,.35)", 300); } G.fx.ring(at, 0xffb060, 0.4, e.r || 3, 0.5); G.fx.burst("dust", at, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } break;
           case "shot": sfx("tap"); if (f && e.uid !== p.uid) for (const x of v.figs) if (!x.action || !G.ACTS[x.action.name].bow) x.act("loose", 0.4, 0.55); break;
           case "arrive": { const s = shots.get(e.shot.n); if (s) { if (e.uid != null) G.fx.burst("spark", s.position, { n: 4 }); shots.delete(e.shot.n); stick(s, e.uid, e.shot.a); } break; }
           case "parry": { const at = posOf(e.uid, 1.3); if (at && pf) { at.lerp(pf.root.position.clone().setY(1.3), 0.5); G.fx.burst("spark", at, { n: 16, s: 1.4 }); } if (pf) pf.act("parry", 0.3); sfx("clang"); if (!e.part) { toast(U.tr("Parried!"), "good"); G.fx.flash("rgba(255,255,255,.25)", 260); } break; }
@@ -575,6 +601,14 @@
           case "wheel": { const at = posOf(e.uid, 2.2); if (at) { float(at, U.tr("The wheel sinks!"), "foe big"); G.fx.burst("dust", at.clone().setY(0.2), { n: 18, s: 1.6 }); G.shake(0.25, 0.3); sfx("drum"); } break; }
           case "cry": { const at = posOf(e.uid, 2.1); if (at) { float(at, U.tr("War cry!"), "mine"); for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xffe2a0, 0.4, 7 + i * 2, 0.7); }, i * 140); G.shake(0.2, 0.25); sfx("drumCall"); } break; }
           case "knocked": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Knocked down"), "me"); G.shake(0.3, 0.3); break; }
+          // The named's own great blows (sim.js, "The named: each man's own fight"): called over his head as he begins, explained once.
+          case "sig": { const S = R3.SIG[e.id], at = posOf(e.uid, v && v.car ? 3.2 : v && v.kind === "elephant" ? 4.4 : 2.45); if (S && S.name) callout(at, U.tr(S.name), S.steps && S.steps.some((x) => x.nb) ? "nb" : ""); sfx("drumCall");
+            if (e.id === "rally" && at) for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xff9a70, 0.4, 7 + i * 2, 0.7); }, i * 140);
+            if (S && S.tip) tip("sig_" + e.id, S.tip); break; }
+          case "sigEnd": { const at = posOf(e.uid, 2.3); if (at) float(at, U.tr("Open!"), "good big"); break; }
+          case "wind2": { const at = posOf(e.uid, 2.3); if (at) { callout(at, U.tr("He fights harder")); G.fx.ring(at.clone().setY(0.08), 0xff7050, 0.4, 5, 0.6); } sfx("gong"); break; }
+          case "stunned": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Stunned"), "me"); G.shake(0.2, 0.2); break; }
+          case "idle": toast(U.tr("You stand idle: every foe turns on you."), "bad tip"); break;
           case "maya": { const at = posOf(e.uid, 1); if (at) { G.fx.burst("smoke", at, { n: 8 }); G.fx.burst("light", at, { n: 10, col: 0xb090ff }); } sfx("gong"); break; }
           case "vanish": { const v = views.get(e.uid); if (v) { const at = v.figs[0] ? v.figs[0].root.position.clone().setY(1) : null; if (at) { G.fx.burst("smoke", at, { n: 10 }); G.fx.burst("light", at, { n: 8, col: 0xb090ff }); } dropView(v, "now"); } break; }
           case "unseen": { toast(U.tr("Antardhana! Unseen"), "good"); const at = posOf(C.player().uid, 1); if (at) { G.fx.burst("smoke", at, { n: 10 }); G.fx.ring(at.clone().setY(0.06), 0xcfe0ff, 0.3, 2.4, 0.6); } sfx("tap"); break; }
@@ -1218,6 +1252,9 @@
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
         face: boss.g.kind === "man" || boss.g.car ? boss.uid : null, pic: K.val(enc.face3) || (boss.person && U.portraitKey(boss.person)) || null, /* (his painted face, where he has one: the same man as on the story's pages) */
         text: (RT.traitLine && RT.traitLine(boss) ? U.tr(RT.traitLine(boss)) + ". " : "") + (rest.length ? U.tr("And with them: {who}", { who: rest.join(", ") }) : "") + (more ? (rest.length ? (K.lang === "hi" ? "। " : ". ") : "") + U.tr("More will come.") : ""), who: boss.uid, act: "taunt", sfx: "tap" });
+      { const S = !enc.dream && R3.sigOf ? R3.sigOf(boss) : null;   // (one of the named: his own great blow is shown once, with its name, before it is met)
+        if (S && S.name) { const fa = boss.g.ca != null ? boss.g.ca : boss.g.a, ah = S.steps && S.steps[0].at === "you" ? 2.7 : S.steps && (S.steps[0].k === "dash" || S.steps[0].k === "shots") ? 2.2 : 0.4, lx = bx + Math.sin(fa) * ah, lz = bz + Math.cos(fa) * ah, sx_ = Math.cos(fa), sz_ = -Math.sin(fa);   // (from above his front and a little to one side, so the mark on the ground is seen whole and no one stands in the way)
+          shots.push({ secs: 2.7, a: [[lx + Math.sin(fa) * bd * 2.0 + sx_ * bd * 1.1, bh + 3.1, lz + Math.cos(fa) * bd * 2.0 + sz_ * bd * 1.1], [lx, 0.8, lz], 46], b: [[lx + Math.sin(fa) * bd * 1.6 + sx_ * bd * 0.9, bh + 2.4, lz + Math.cos(fa) * bd * 1.6 + sz_ * bd * 0.9], [lx, 0.9, lz], 44], kind: U.tr(boss.g.kind === "elephant" ? "Its great blow" : "His great blow"), head: U.tr(S.name), text: U.tr(S.say || ""), who: boss.uid, show: S, sig: true, sfx: "drumCall" }); } }
       // 3. Those who stand with you.
       if (allies.length) { let ax = 0, az = 0; for (const u of allies) { ax += u.g.x; az += u.g.z; } ax /= allies.length; az /= allies.length;
         let ar = 0; for (const u of allies) ar = Math.max(ar, Math.hypot(u.g.x - ax, u.g.z - az) + (u.g.kind === "squad" ? 2.2 : 0)); const ak = 1 + ar / 2.6, sx = ax >= px ? 1 : -1; /* (stand clear of a spread company, or a soldier's back fills the frame) */
@@ -1243,14 +1280,14 @@
       // close on the great ones of your side, then on theirs; then what their men can do, and their plan.
       const seasoned = !enc.dream && !enc.quick && (K.S && K.S.fought ? Object.values(K.S.fought).reduce((n, v) => n + v, 0) : 0) >= 2;
       if (seasoned && foes.length) {
-        const keep = shots.filter((x) => x.kind === U.tr("Against you") || x.kind === U.tr("Their men") || x.plan), out = [];
+        const keep = shots.filter((x) => x.kind === U.tr("Against you") || x.sig || x.kind === U.tr("Their men") || x.plan), out = [];
         out.push({ secs: 4.2, a: [[px + 3.5, 4.2, pz + 7.5], [px, 0.9, pz - 1], 50], b: [[-R.rad * 0.15, 11, pz + 6], [0, 0.4, -R.rad * 0.45], 50], kind, head: title, text: cap || (caps[0] || ""), sfx: enc.lethal ? "drumCall" : "tap" });
         const great = B.units.filter((u) => u.side === "ally" && u.g && !u.line && (u.hero || u.person)).slice(0, 2);
         for (const u of great) { const x = u.g.x, z = u.g.z; out.push({ secs: 2.4, a: [[x + 1.6, 1.9, z - 3.2], [x, 1.3, z], 38], b: [[x + 0.9, 1.6, z - 2.2], [x, 1.4, z], 32], kind: U.tr("With you"), head: K.text(u.name), face: u.g.kind === "man" || u.g.car ? u.uid : null, pic: (u.person && U.portraitKey(u.person)) || null, text: RT.traitLine && RT.traitLine(u) ? K.tr(RT.traitLine(u)) + "." : "", who: u.uid, act: "taunt", sfx: "tap" }); }
         for (const x of keep) if (x.kind === U.tr("Against you")) x.a = [[bx + bd * 0.9, bh + 2.2, bz + bd * 1.7], [bx, bh, bz], 40];   // (from out on the field, not over your shoulder)
         shots.length = 0; for (const x of out.concat(keep)) shots.push(x);
       }
-      intro = { shots, i: -1, t: 0 };
+      intro = { shots, i: -1, t: 0 }; marching = true; march = 0;
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
       hud.appendChild(intro.box); hud.appendChild(intro.skip);
       U.keys([introNext]);
@@ -1265,11 +1302,30 @@
       b.classList.remove("in"); void b.offsetWidth; b.classList.add("in");
       s.hold = (s.secs + 0.5 + Math.min(5, ((s.text || "").length + s.head.length) * 0.036)) * (enc.id === "x_practice" || enc.quick ? 0.6 : 1);
       const v = s.who != null ? views.get(s.who) : null; if (v && s.act) for (const f of v.figs) f.act(s.act, 1.7);
+      if (v && s.show) showSig(v, s.show);
       // (On an upright screen the close shots stand a little further back, so a head is not cut off at the brow.)
       const up = G.W / G.H < 0.85 ? 1.34 : 1, off = (c) => [[c[1][0] + (c[0][0] - c[1][0]) * up, c[1][1] + (c[0][1] - c[1][1]) * up + (up - 1) * 0.25, c[1][2] + (c[0][2] - c[1][2]) * up], [c[1][0], c[1][1] + (up - 1) * 0.12, c[1][2]], c[2]];
       if (!s.far) { s.a = off(s.a); s.b = off(s.b); s.far = true; }
       G.camSet(s.a[0], s.a[1], s.a[2], true);
       if (s.sfx) sfx(s.sfx);
+    }
+    // His great blow, shown in the opening: the same wind-up, the same mark on the ground, the same end, and no one struck.
+    function showSig(v, S) {
+      const u = v.u, g = u.g, s = S.steps ? S.steps[0] : null, bow = s && s.k === "shots", name = s ? (s.act && G.ACTS[s.act] ? s.act : bow ? "shoot" : g.weapon === "mace" ? "smash" : g.weapon === "spear" ? "thrust" : "heavy") : "taunt", dur = 1.5, landT = ((G.ACTS[name] && G.ACTS[name].land) || 0.5) * dur;
+      for (const f of v.figs) f.act(name, dur, 0);
+      if (S.does === "stance") { v.over = "block"; setTimeout(() => { if (!closed && v.over === "block") v.over = null; }, 2200); return; }
+      const fx_ = Math.sin(g.a), fz_ = Math.cos(g.a), ahead = s && s.at === "you" ? 5.5 : 0, cx = g.x + fx_ * ahead, cz = g.z + fz_ * ahead, at = new T.Vector3(cx, 0.1, cz);
+      if (S.does === "rally") { for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(new T.Vector3(g.x, 0.08, g.z), 0xff9a70, 0.4, 7 + i * 2, 0.7); }, 300 + i * 140); for (const o of views.values()) if (o !== v && o.u.side === "enemy" && o.u.hp > 0) for (const f of o.figs) f.act("taunt", 1.3); return; }
+      if (!s) return;
+      const kind = s.k === "ring" ? "ring" : s.k === "dash" ? "lane" : "fan", r = s.k === "ring" ? s.r : s.k === "dash" ? s.len : bow ? 13 : s.r || g.reach + 0.9 + (s.rx || 0);
+      const mark = G.fx.mark(kind, { r, arc: (s.half || (s.spread ? s.spread + 0.06 : s.arc === "sweep" ? 1.75 : 0.95)) * 2, w: s.wd || 1.1, col: s.nb ? NB_COL : 0 }); if (mark) { mark.position.set(cx, 0.05, cz); mark.rotation.y = g.a; }
+      let tt = 0, done = false;
+      G.fx.run((dt, cut) => { tt += dt; if (mark) mark.userData.set(Math.min(1, tt / landT), tt > landT * 0.8, !s.nb);
+        if (!done && tt >= landT && !cut && !closed) { done = true;
+          if (bow) { const n_ = s.n || 1; for (let i = 0; i < n_; i++) { const an = g.a + (n_ > 1 ? (i - (n_ - 1) / 2) * ((2 * s.spread) / (n_ - 1)) : 0); G.fx.arrow(new T.Vector3(g.x, v.car ? 2.3 : 1.5, g.z), new T.Vector3(g.x + Math.sin(an) * 15, 0.6, g.z + Math.cos(an) * 15), 0.6, 0.5, null, 1.2); } sfx("tap"); }
+          else if (s.sky) { for (let i = 0; i < 9; i++) { const an = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * r * 0.85, to = new T.Vector3(cx + Math.sin(an) * rr, 0.05, cz + Math.cos(an) * rr); G.fx.arrow(new T.Vector3(to.x - fx_ * 3, 11, to.z - fz_ * 3), to, 0.22 + Math.random() * 0.1, 0, null, 1.4); } G.fx.burst("dust", at, { n: 10, s: 1.4 }); sfx("tap"); }
+          else { const hit = s.k === "dash" ? new T.Vector3(g.x + fx_ * 2.5, 0.1, g.z + fz_ * 2.5) : s.k === "fan" ? new T.Vector3(g.x + fx_ * 1.4, 0.1, g.z + fz_ * 1.4) : at; G.fx.ring(hit, s.nb ? 0xd9a0ff : 0xffb060, 0.4, Math.min(6, s.k === "ring" ? r : 3), 0.5); G.fx.burst("dust", hit, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } }
+        if (tt >= landT + 0.3 || cut) { if (mark) mark.userData.free(); return true; } return false; });
     }
     function introFrame(dt) {
       const s = intro.shots[intro.i]; if (!s) return;
@@ -1309,13 +1365,23 @@
       for (const m of VIEWS) { const b = U.button("b-view" + (m === viewMode ? " on" : ""), U.tr(VIEW_NAME[m]), () => setView(m, true)); b.dataset.view = m; vr.appendChild(b); }
       if (plans) { const row = el.querySelector(".b-stances"), say = el.querySelector(".b-stsay"), pick = (id) => { stance = id; for (const b of row.children) { b.classList.toggle("on", b.dataset.st === id); b.setAttribute("aria-checked", b.dataset.st === id ? "true" : "false"); } say.textContent = K.tr(STANCE[id][1]); };
         for (const id of R3.STANCES) { const b = U.button("b-stance", U.tr(STANCE[id][0]), () => pick(id)); b.dataset.st = id; b.setAttribute("role", "radio"); row.appendChild(b); }
-        pick(U.battleBot ? R3.ANSWER[R.plan.kind] : "hold"); }
-      const go = () => { if (started) return; started = true; askView = null; hud.classList.remove("pre"); if (plans) R3.stance(R, stance); el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall"); lastLog = B.log.length; viewEase = 1.6; if (!tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
+        pick(U.battleBot ? R3.ANSWER[R.plan.kind] : "hold");
+        if (!U.battleBot) for (const b of row.children) b.addEventListener("click", () => go()); }   // (to choose is to begin: there are three seconds for it)
+      let count = null;
+      const go = () => { if (started) return; started = true; if (count) clearInterval(count); askView = null; hud.classList.remove("pre"); if (plans) R3.stance(R, stance); el.remove(); U.keys([]); sfx(enc.lethal ? "conch" : "drumCall");
+        if (marching) { G.shake(0.2, 0.35); for (const v of views.values()) if (v.u.hp > 0 && v.u.side !== "player" && !v.u.still) for (const f of v.figs) f.act(v.u.g.archer ? "wave" : "taunt", 0.9); }   // (the war cry: every man on the field, as the two sides close)
+ lastLog = B.log.length; viewEase = 1.6; if (!tips.move) tip("move", touch ? HOW_TOUCH : HOW_KEYS); };
       if (enc.quick) return go();   // (a bout begun from a test's own card: it has said what is at stake, and Begin was the word)
-      el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Fight"), go, "battle-go"));
+      const goBtn = U.button("cta", U.tr("Fight"), go, "battle-go"); el.querySelector(".btnrow").appendChild(goBtn);
       hud.appendChild(el);
       U.keys([go]);
       if (U.battleBot) setTimeout(go, 500);
+      // Three seconds to decide (owner, 16 November: "add a 3 sec counter to decide otherwise game opens in default mode"):
+      // a drum to each, the men of both sides shouting; with no word from you the fight opens as it stands (the plan shown lit).
+      else { let left = U.battleCount || 3; /* (U.battleCount: a test's own, when it has things to look at on the card) */ const lab = U.tr("Fight"), show = () => { goBtn.innerHTML = lab + ' <span class="b-count">' + left + "</span>"; }; show();
+        const shout = () => { for (const v of views.values()) if (v.u.hp > 0 && v.u.side !== "player" && !v.u.still && !v.u.person && !v.u.hero) for (const f of v.figs) if (Math.random() < 0.6) f.act(Math.random() < 0.5 ? "taunt" : "wave", 0.8 + Math.random() * 0.3); };
+        shout(); sfx("drum");
+        count = setInterval(() => { if (closed || started) { clearInterval(count); return; } left--; if (left <= 0) { clearInterval(count); go(); return; } show(); sfx("drum"); shout(); }, 1000); }
     }
     function retryCard() {
       const el = U.el('<div class="b-card b-retry"><h2>' + U.tr("You are beaten") + "</h2><p>" + U.tr("One more try: you start a little hurt, and what you used stays used.") + '</p><div class="btnrow"></div></div>');
@@ -1377,6 +1443,7 @@
         if (n >= 5 * sp) acc = Math.min(acc, R3.STEP * 2);
       }
       sync();
+      if (marching && !started) march += real;
       if (intro) introFrame(real);
       for (const v of [...views.values()]) { if (!B.units.includes(v.u) && !v.gone && !(v.u.line && R.over)) { v.gone = true; dropView(v, "now"); continue; } place(v, dt, t); }
       windups(t);

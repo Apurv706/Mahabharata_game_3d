@@ -130,3 +130,22 @@ numbers, because three men round you in a field are harder than three in a line:
 | The crossing (`cross_e_escape`) | health ×0.6, blows ×1.62 | health ×0.6, blows ×1.38 | 64% (69%) |
 | The border road (`e_bhadra_road`) | ×1.3, ×1.5 | ×1.25, ×1.3 | 86% (about 89%) |
 | Bhadra's bout (`e_bhadra`) | ×1.5, ×2.4 | ×1.3, ×1.5 | 79% |
+
+## 16 November: the named's own blows (Version 67)
+
+Each named opponent now has a great blow of his own, a plain blow kept above the common men's, and comes for you more often (`docs/Named_Opponents.md`). Where that made a fight harder than it had been, its plain blows were eased, so that the danger moved from the blows you cannot answer to the one you can:
+
+| Fight | Before | Now | Bot wins, 28 runs (before) |
+|---|---|---|---|
+| The night raid (`e_raid`) | health ×1.05, blows ×1.03 | ×1.05, ×0.9 | 93% (96%) |
+| The ash field (`e_ash`) | health ×1.05 | ×1.05, blows ×0.9 | 93% (93%) |
+| Bhadra's bout (`e_bhadra`) | ×1.3, ×1.5 | ×1.3, ×1.25 | 93% (93%) |
+| The last stand (`e_last_stand`) | ×0.85, ×0.53 | ×0.85, ×0.44 | 54% (46%) |
+| Bhishma's ninth day (`bh_line9`) | blows ×0.82 | ×0.66, his floor at the common men's | 79% (96%) |
+| The storm of the third day (`fs_d3_storm`) | none | blows ×0.9, no floor for Bhishma | 79% (96%) |
+
+Three fights are harder than they were and were left so: Bhishma twice (he is the hardest man on the field until the tenth day) and Ghatotkacha by night (79% from 100%).
+
+All 79 fights, 28 runs: 93% won (93% before), 42 seconds (41), none failing, none running out the clock. The bands were recorded again.
+
+What the five kinds of player make of it (`node tools/review/fight_depth.js 7 11`) is in `Named_Opponents.md`.

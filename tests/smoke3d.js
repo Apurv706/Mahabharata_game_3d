@@ -45,7 +45,7 @@ const CASES = {
   async fight(browser, url, check) {
     const { ctx, page, errs } = await open(browser, { url });
     await page.evaluate(LIFE, { age: 44, act: 6, side: "pandava", path: "mace" });
-    await page.evaluate(() => { window.K.UI.startBattle("e_day1", (o) => { window.__out = o; }); });
+    await page.evaluate(() => { window.K.UI.battleCount = 900; window.K.UI.startBattle("e_day1", (o) => { window.__out = o; }); });   // (the card's count of three is held, so the card can be looked over; the phone case lets it run)
     check(await until(() => page.evaluate(() => document.body.classList.contains("in3d")), 6000), "the fight opens in 3D");
     check(await until(() => page.evaluate(() => !!document.querySelector(".b-intro.in")), 6000), "it opens on the opening shots");
     let colours = 0; for (let i = 0; i < 16 && colours <= 40; i++) { colours = await drawn(page); if (colours <= 40) await page.waitForTimeout(500); } // (the first frame of a war field takes a moment on a software renderer)
@@ -88,8 +88,8 @@ const CASES = {
     const head1 = await words();
     check(head1 !== head0 || (await page.evaluate(() => !!document.getElementById("battle-go"))), "a touch moves the opening on");
     if (await page.evaluate(() => !!document.querySelector(".b-skip"))) await page.tap(".b-skip");
-    check(await until(() => page.evaluate(() => !!document.getElementById("battle-go")), 4000), "Skip goes straight to the field");
-    await page.tap("#battle-go"); await until(async () => /^t=/.test(await state(page)), 4000);
+    check(await until(() => page.evaluate(() => !!document.getElementById("battle-go") || window.K.Combat.state().rt.t > 0), 4000), "Skip goes straight to the field");
+    check(await until(async () => /^t=/.test(await state(page)), 12000) && !(await page.evaluate(() => !!document.getElementById("battle-go"))), "left alone, the count of three runs out and the fight opens by itself");   // (owner, 16 November: "a 3 sec counter to decide otherwise game opens in default mode")
     const pos = () => page.evaluate(() => { const p = window.K.Combat.player(); return [p.g.x, p.g.z]; });
     const a = await pos(); await touch("touchStart", [[90, Hh * 0.6]]); await touch("touchMove", [[90, Hh * 0.6 - 60]]); await sleep(1000); const b = await pos(); await touch("touchEnd", []);
     check(Math.hypot(b[0] - a[0], b[1] - a[1]) > 0.5, "the thumb stick moves your fighter (" + Math.hypot(b[0] - a[0], b[1] - a[1]).toFixed(1) + " m)");

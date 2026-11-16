@@ -50,6 +50,11 @@
     fan: 0.95, thrust: 0.5, sweep: 1.75, lunge: 0.55, quake: 3.3, wait: 4.4,
     shieldPts: 10, shieldBack: 9, pickup: 1.0, lightStag: 0.18, mantraRest: 10, shieldYou: 0.85, shieldSoldiers: 0.6,
     wornAfter: 100, wornFloor: 0.03, cap: 240,
+    // The named ("The named: each man's own fight", below): how often one of them picks you for his mark; the least time between two
+    // great blows on the field; how much of one comes through a raised shield no shield holds (and through one raised at the
+    // very moment); how long before you can be thrown down again; the breath an unguarded heavy blow knocks out of you;
+    // and how long you may stand and do nothing before every foe turns on you.
+    heroAim: 0.85, sigGap: 3.5, sigThrough: 0.9, sigPerfect: 0.5, downFree: 2.5, heavyBreath: 12, idle: 5,
     botReact: [0.3, 0.52], botMiss: [0.3, 0.55], botLead: [0, 0.24], botRollLead: [0.07, 0.3], botGap: [0.12, 0.22],
     vsPath: { mace: 0.74, strategist: 0.76, charioteer: 0.84, archer: 0.9, spy: 0.95, bard: 0.92, healer: 1 }
   });
@@ -59,12 +64,14 @@
   // Each fight's own tuning in 3D, on top of the 2D game's (RT.TUNE). Set against the bot on all seven paths, with the line
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
-  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.5 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.0 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.53 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 1.03 }, e_ash: { hp: 1.05 },
-    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.82 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
+  R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.25 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.0 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.44 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 0.9 }, e_ash: { hp: 1.05, atk: 0.9 },
+    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.66, over: 1 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
     e_wheel: { hp: 1, atk: 1.12 }, e_day16: { hp: 0.85, atk: 0.7 }, e_road: { atk: 1.2 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.0, atk: 1.25 },
     // (13 November, night: with a man to take where a banner on a pole had ended a war fight in fifteen seconds, and with the trades, these needed easing)
     e_night: { hp: 0.85, atk: 0.9 }, e_lake_hold: { atk: 0.85 }, e_lake_hold_deep: { atk: 0.85 },
-    hold_duryodhana: { atk: 0.92 } };
+    hold_duryodhana: { atk: 0.92 },
+    // (16 November, the named's own blows: where a great blow now does what the plain ones did; over: his plain blow's floor above the common men's, 0 for none)
+    fs_d3_storm: { atk: 0.9, over: 0 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
   const held = (u) => !!(u.status.stun || u.status.asleep || u.status.bound);
@@ -263,6 +270,7 @@
     if (u.g.cls === "heavy" && !u.abilities.includes("heavy")) u.abilities = u.abilities.concat("heavy");   // (a club or an axe has a great blow, whoever swings it)
     if (foe && (u.shield || u.shieldDrawn) && u.sp == null) u.sp = P.shieldPts;
     if (u.leave != null) { u.g.leaveAt = R.t + Math.max(1, u.leave - B.round) * P.story; delete u.leave; }
+    { const hk = hkOf(u); if (hk) { u.g.hk = hk; u.g.sigAt = R.t + rr(3, 5); } }   // (one of the named: his own great blow, first seen early)
   }
   function place(R) {
     const B = R.B, p = C.player(), rad = R.rad;
@@ -361,6 +369,7 @@
     if (g.role === "file") { if ((pl.charged != null && R.t > pl.charged + 3) || R.t > 11 || e.hp < e.maxHp * 0.7) { g.role = null; return false; } const a = angTo(p, e); go(p.g.x + Math.sin(a) * 7.5, p.g.z + Math.cos(a) * 7.5, 0.5); return true; }
     if (g.role === "ring") { if (!R.duel) { g.role = null; return false; } const c = B.units.find((u) => u.uid === R.duel.uid) || p, a = angTo(c, e); go(c.g.x + Math.sin(a) * 7, c.g.z + Math.cos(a) * 7, 0.7); if (g.atk) cancel(e); return true; }
     if (g.role === "bpass" || g.role === "bcross") {
+      if (g.hk && g.role === "bpass" && g.cool <= 0 && !g.atk && onField(R, e) && p.hp > 0 && targetable(R, p) && sigTry(R, e, p)) return true;   // (his great blow, whenever it is ready: it does not wait its turn in the pass)
       if (g.cool <= 0 && !g.atk && onField(R, e) && R.t >= (g.shotAt || 2.5)) { const t = pickTarget(R, e); if (t) { g.shotAt = R.t + (g.role === "bpass" ? 5.5 : 4.5); startAttack(R, e, t); return true; } } // he looses as he drives, and does not stop for long
       if (g.role === "bpass") { const l = go(pl.side * R.rad * 0.72, -R.rad * 0.24, 1.25);
         if (l < 1.6 || R.t - (pl.t0 || 0) > 9) { pl.pass++; pl.side = -pl.side; pl.t0 = R.t; // the end of a pass: the line in front of you gives way
@@ -598,6 +607,7 @@
     const L = opts.noLine ? null : R3.lineFor(B);
     if (L) { R.line = Object.assign({ n: 0, next: L.every, sent: [0, 0] }, R3.LINE, L); if (L.dream) { R.line.hpTheirs = 22; R.line.atkTheirs = 4; R.line.hpMine = 7; R.line.atkMine = 3; } for (let i = 0; i < L.mine; i++) addLine(R, "ally"); for (let i = 0; i < L.theirs; i++) addLine(R, "enemy"); }
     B.units.forEach((u) => initUnit(R, u));
+    heroFloor(R);
     place(R);
     planFor(R, opts);
     if (opts.stance) R3.stance(R, opts.stance);
@@ -633,15 +643,15 @@
   // (the line's soldiers at their own men are no part of the turn-taking against you)
   R3.attacking = (R) => { const me = C.player().uid; return living(R.B, "enemy").filter((e) => e.g.atk && !(e.line && e.g.atk.on !== me)).length; };
   R3.count = (R) => living(R.B, "enemy").reduce((n, e) => n + (e.line || e.still ? 0 : e.plural ? Math.max(1, Math.ceil(e.g.bodies * e.hp / e.maxHp)) : 1), 0);
-  const blowsAtOnce = (R) => (R.line && R.line.dream ? 2 + (R.t > 20 ? 1 : 0) + (R.t > 38 ? 1 : 0) : 2);
+  const blowsAtOnce = (R) => (R.line && R.line.dream ? 2 + (R.t > 20 ? 1 : 0) + (R.t > 38 ? 1 : 0) : 2) + (R.rallyUntil > R.t ? 1 : 0) + (idleNow(R) ? 1 : 0);   // (Kritavarma's call; a man who stands and does nothing)
   const ready = (id) => { const row = C.available().find((a) => a.id === id); return !!row && !row.why; };
   const swinging = (p) => !!(p && p.g && (p.g.busy > 0 || p.g.blow));
   R3.can = function (R, what) {
     const p = C.player();
     if (!p || R.over || p.hp <= 0) return false;
     switch (what) {
-      case "roll": return R.roll <= 0 && R.kneel <= 0 && R.breath >= P.rollMin && !held(p) && R.frozen <= 0;
-      case "block": return R.blocker && !R.broken && (R.block || (R.roll <= 0 && R.kneel <= 0 && !R.winded && R.breath >= P.blockMin && !swinging(p))) && !held(p) && R.frozen <= 0;
+      case "roll": return R.roll <= 0 && R.kneel <= 0 && R.breath >= P.rollMin && !held(p) && R.frozen <= 0 && !(R.downUntil > R.t);
+      case "block": return R.blocker && !R.broken && (R.block || (R.roll <= 0 && R.kneel <= 0 && !R.winded && R.breath >= P.blockMin && !swinging(p))) && !held(p) && R.frozen <= 0 && !(R.downUntil > R.t);
       case "skill": return !R.noStrike && !!R.skill && R.skillCd <= 0 && R.kneel <= 0 && !held(p);
       case "strike": return !R.noStrike;
       case "herbs": return R.kneel <= 0 && (R.herbCd || 0) <= 0 && p.abilities.includes("herbs") && (K.S.items.herbs || 0) > 0 && p.hp < p.maxHp && !swinging(p);
@@ -665,11 +675,15 @@
   function fanOf(e, a) {
     const g = e.g, lun = P.lunge;
     if (a.area) return { kind: "ring", x: a.px != null ? a.px : g.x, z: a.pz != null ? a.pz : g.z, r: a.r };
+    const s = a.step;   // (a great blow's own shape)
+    if (s && s.k === "dash") return { kind: "lane", x: a.x0 != null ? a.x0 : g.x, z: a.z0 != null ? a.z0 : g.z, a: a.dir, r: s.len, w: s.wd };
+    if (s && s.k === "shots" && s.n > 1) return { kind: "fan", x: g.x, z: g.z, a: a.dir, r: 17, half: s.spread + 0.06 };
+    if (s && s.k === "fan" && !a.arc) return { kind: "fan", x: g.x, z: g.z, a: a.dir, r: s.r || g.reach + lun + g.rad - 0.42 + (s.rx || 0), half: s.half || (g.weapon === "spear" || g.weapon === "staff" ? P.thrust : P.fan) };
     if (a.ranged) return { kind: "lane", x: g.x, z: g.z, a: a.dir, r: a.len || 30, w: 1.1 };
     const half = a.arc === "sweep" ? P.sweep : g.weapon === "spear" || g.weapon === "staff" || a.id === "ridedown" ? P.thrust : g.weapon === "tusk" ? 0.7 : P.fan;
     return { kind: "fan", x: g.x, z: g.z, a: a.dir, r: g.reach + lun + g.rad - 0.42, half };
   }
-  R3.markOf = function (R, e) { const a = e.g.atk; if (!a) return null; const m = fanOf(e, a); m.fill = clamp((R.t - a.t0) / Math.max(1e-3, a.land - a.t0), 0, 1); m.heavy = !!a.heavy; m.locked = !!a.locked; m.on = a.on; m.feint = a.feint > 0; return m; };
+  R3.markOf = function (R, e) { const a = e.g.atk; if (!a) return null; const m = fanOf(e, a); m.fill = clamp((R.t - a.t0) / Math.max(1e-3, a.land - a.t0), 0, 1); m.heavy = !!a.heavy; m.locked = !!a.locked; m.on = a.on; m.feint = a.feint > 0; m.sig = a.sig ? a.sig.id : null; m.nb = !!a.noblock; m.ref = a; m.also = a.also ? { x: a.also.x, z: a.also.z, r: a.also.r, fill: clamp((R.t - a.t0) / Math.max(1e-3, a.also.t1 - a.t0), 0, 1) } : null; return m; };
   function inside(m, u, pad) {
     const dx = u.g.x - m.x, dz = u.g.z - m.z, d = Math.hypot(dx, dz), r = u.g.rad * 0.6 + (pad || 0);
     if (m.kind === "ring") return d <= m.r + r;
@@ -733,7 +747,7 @@
     if (a.roll && R3.can(R, "roll")) {
       let dx = a.mx || 0, dz = a.mz || 0; const l = Math.hypot(dx, dz);
       if (l < 0.2) { dx = -Math.sin(g.a); dz = -Math.cos(g.a); } else { dx /= l; dz /= l; } // no direction: straight back
-      R.roll = R.rollDur = P.roll; R.rollT = R.t; R.breath -= P.rollCost * tireCost(); R.stats.rolls++; R.rdx = dx; R.rdz = dz; R.readN = 0;
+      R.roll = R.rollDur = P.roll; R.rollT = R.t; R.breath -= P.rollCost * tireCost(); R.stats.rolls++; R.rdx = dx; R.rdz = dz; R.readN = 0; R.habit = [dx, dz];
       g.busy = 0; g.blow = null; R.buffer = false; R.combo = 0; R.kneel = 0; if (R.block) lowerShield(R);
       R.fx.push({ k: "roll", dx, dz });
     }
@@ -789,8 +803,9 @@
   function traitStep(R, e) {
     const w = who(e), g = e.g;
     if (w === "karna" && !g.wheeled && RT.warDay && RT.warDay() === 17 && e.hp < e.maxHp / 3 && e.hp > 0) { g.wheeled = true; g.wheelUntil = R.t + 3; if (g.atk) cancel(e); R.fx.push({ k: "wheel", uid: e.uid }); tip(R, "karnaWheel"); }
-    if (w === "ghatotkacha" && !g.maya && e.hp < e.maxHp * 0.67 && e.hp > 0 && g.entered !== false) {
-      g.maya = true; tip(R, "ghatotkachaMaya");
+    if (g.hk && HERO[g.hk].wind && !g.wind2 && e.hp > 0 && e.hp <= e.maxHp * 0.5 && !R.B.enc.hold && !R.B.enc.rounds && !R.B.enc.spare) { g.wind2 = true; g.sigAt = Math.min(g.sigAt, R.t + 1.2); R.fx.push({ k: "wind2", uid: e.uid }); }   // (hurt, he fights harder: his great blow comes sooner and oftener)
+    if (w === "ghatotkacha" && e.hp > 0 && g.entered !== false && ((!g.maya && e.hp < e.maxHp * 0.67) || R.t >= (g.mayaAt != null ? g.mayaAt : 9)) && !R.B.units.some((x) => x.decoy && x.real === e.uid)) {   // (and by the clock: in a fight that is only held he is never brought so low)
+      g.maya = true; g.mayaAt = R.t + 17; tip(R, "ghatotkachaMaya");
       for (const sd of [-1, 1]) {
         const d = Object.assign({}, e, { uid: e.uid + (sd < 0 ? "a" : "b"), decoy: R.t + 6, real: e.uid, status: {}, abilities: [], hp: e.hp, cds: {} }); delete d._tb;
         const a = g.a + sd * Math.PI / 2;
@@ -800,6 +815,164 @@
     }
   }
   R3.gifts = () => (RT.gifts ? RT.gifts() : []);
+
+  // ---------- The named: each man's own fight (16 November; owner: "make the opponent named heroes stronger and unique") ----------
+  // A named opponent is stronger than the men around him (his plain blow is never lighter than `over` times the heaviest
+  // of theirs), comes for you more often than a soldier does, and has a great blow of his own that no one else has. It is
+  // called over his head as he begins it, has its own mark on the ground and its own answer, and he stands open after it.
+  // A great blow is a chain of steps. k: ring (all round a point), fan (a weapon's sweep), dash (he runs down a lane),
+  // shots (arrows). w: its wind-up (s). m: times his plain blow; pct: and never less than this share of your full health.
+  // nb: no shield holds it. dn: it throws you down this long (s). stun: it holds you this long. bf: the share of the usual breath it costs a shield. lk: its mark stops following
+  // you this long before it lands. at "you": the ring is where you stand. open: how long he stands open when it is over.
+  // name: what is called over his head. say: one line for the opening. tip: said in full the first time it is seen.
+  const SIG = (R3.SIG = {
+    slam: { name: "Earth-shaker", say: "No shield holds it. Get out of the ring.", tip: "Bhima brings his mace down on the ground. Everyone in the ring is thrown down, and no shield holds it: get out of the ring.",
+      steps: [{ k: "ring", w: 1.3, r: 3.4, m: 1.6, pct: 0.19, nb: 1, dn: 0.9, thr: 2.2, act: "smash" }], open: 1.3, range: [0, 4.6] },
+    charge: { name: "Bhima charges", say: "No shield holds it. Roll aside.", tip: "Bhima's charge runs down everything in its lane, and no shield holds it. Roll aside, then strike him while he recovers.",
+      steps: [{ k: "dash", w: 1.05, len: 9.5, wd: 2.1, sp: 15, lk: 0.3, m: 1.5, pct: 0.17, nb: 1, dn: 0.8, thr: 2.4, act: "heavy" }], open: 1.4, range: [4.6, 12] },
+    hold: { name: "A wrestler's hold", say: "A shield is no use. Step back out of his arms.", tip: "Ugra reaches for a hold. A shield is no use against a wrestler's arms: step back out of his reach, or roll clear.",
+      steps: [{ k: "fan", w: 1.05, r: 2.0, half: 1.2, m: 1.3, pct: 0.12, nb: 1, dn: 0.8, thr: 2.6, act: "grab" }], open: 1.3, range: [0, 2.4] },
+    leap: { name: "From the sky", say: "He comes down where you stand. Move at the last moment.", tip: "Ghatotkacha leaps, and comes down where you stand. The ring follows you until he falls: move out of it at the last moment.",
+      steps: [{ k: "ring", at: "you", w: 1.4, r: 2.6, lk: 0.5, m: 1.6, pct: 0.18, nb: 1, dn: 0.7, thr: 1.6, leap: 1, act: "smash" }], open: 1.2, range: [2.5, 12] },
+    form: { name: "Balarama's form", say: "Three blows. Roll away from the last.", tip: "Duryodhana's form is three blows: a smash, a sweep, and a last blow that beats a shield down. Guard the first two and roll away from the third.",
+      steps: [{ k: "fan", arc: "smash", w: 0.82, m: 1.0 }, { k: "fan", arc: "sweep", w: 0.62, m: 0.9 }, { k: "fan", w: 0.9, rx: 0.3, m: 1.5, pct: 0.17, nb: 1, dn: 0.6, act: "smash" }], open: 1.3, range: [0, 3.0] },
+    bash: { name: "Shield, then point", say: "Guard the shield's blow, or the point finds you.", tip: "Bhadra strikes with his shield and thrusts behind it. Guard the shield's blow: if it lands it holds you where you stand, and the point finds you.",
+      steps: [{ k: "fan", w: 0.62, m: 0.3, hv: 0, stun: 0.75, act: "punch" }, { k: "fan", w: 0.7, half: 0.42, rx: 0.5, m: 1.2, pct: 0.11, act: "thrust" }], open: 1.2, range: [0, 2.6] },
+    feint: { name: "The veteran's feint", say: "Do not move early. Wait for the blow to fall.", tip: "Bhurishravas draws his blow back and waits for you to move. Do not roll early: hold your guard until it really falls.",
+      steps: [{ k: "fan", w: 1.0, feint: 0.6, m: 1.5, pct: 0.16, dn: 0.7 }], open: 1.2, range: [0, 3.0] },
+    flurry: { name: "Without rest", say: "Five blows. One clean guard breaks the chain.", tip: "Ashwatthama strikes five times without a breath between. One clean guard, raised just as a blow lands, breaks the chain; or back out of his reach.",
+      steps: [{ k: "fan", w: 0.65, m: 0.4, hv: 0, bf: 0.5 }, { k: "fan", w: 0.38, m: 0.4, hv: 0, bf: 0.5 }, { k: "fan", w: 0.38, m: 0.4, hv: 0, bf: 0.5 }, { k: "fan", w: 0.38, m: 0.4, hv: 0, bf: 0.5 }, { k: "fan", w: 0.55, m: 1.2, pct: 0.1, bf: 0.6 }], open: 1.3, range: [0, 3.0] },
+    lunge: { name: "The long thrust", say: "He strikes from beyond a sword's reach.", tip: "Kanaka steps in from beyond a sword's reach. Guard it or step aside: he is open at the end of it.",
+      steps: [{ k: "dash", w: 0.8, len: 4.4, wd: 1.2, sp: 16, lk: 0.2, m: 1.4, pct: 0.15, act: "thrust" }], open: 1.2, range: [2.4, 5.5] },
+    onetwo: { name: "One, two", say: "Two blows. Keep your guard up for both.", tip: "Ketan strikes twice, one blow on the heels of the other. Keep your guard up for both.",
+      steps: [{ k: "fan", w: 0.6, m: 0.7, hv: 0 }, { k: "fan", w: 0.42, m: 0.8, hv: 0 }], open: 1.0, range: [0, 2.8] },
+    trample: { name: "The elephant charges", say: "Nothing stops it. Get out of its path.", tip: "The elephant runs down everything in its path. Nothing stops it: get out of the lane.",
+      steps: [{ k: "dash", w: 1.2, len: 11, wd: 3.4, sp: 11, lk: 0.35, m: 1.4, pct: 0.19, nb: 1, dn: 1.0, thr: 3 }], open: 1.5, range: [3.5, 13] },
+    wedge: { bow: 1, name: "Five arrows at once", say: "A step aside does not clear it.", tip: "Arjuna looses five arrows in a spread. A step aside does not clear it: raise your shield, or roll well out of the wedge.",
+      steps: [{ k: "shots", w: 1.15, n: 5, spread: 0.34, m: 0.9, pct: 0.13 }], open: 0.5 },
+    serpent: { bow: 1, name: "The serpent arrow", say: "No shield stops it. Roll across its line.", tip: "Karna's serpent arrow follows you as he draws, and no shield stops it. Roll across its line just as he looses.",
+      steps: [{ k: "shots", w: 1.5, n: 1, lk: 0.2, m: 1.8, pct: 0.22, nb: 1 }], open: 0.6 },
+    storm: { bow: 1, name: "A storm of arrows", say: "Four flights. Keep moving.", tip: "Bhishma's arrows fall where you stand, four flights one after another. Keep moving: each ring stops following you a moment before it lands.",
+      steps: [{ k: "ring", at: "you", w: 1.05, r: 2.0, lk: 0.65, m: 0.8, pct: 0.085, hv: 0, sky: 1, act: "shoot" }, { k: "ring", at: "you", w: 0.8, r: 2.0, lk: 0.62, m: 0.8, pct: 0.085, hv: 0, sky: 1, act: "loose" }, { k: "ring", at: "you", w: 0.8, r: 2.0, lk: 0.62, m: 0.8, pct: 0.085, hv: 0, sky: 1, act: "loose" }, { k: "ring", at: "you", w: 0.8, r: 2.0, lk: 0.62, m: 0.8, pct: 0.085, hv: 0, sky: 1, act: "loose" }], open: 0.6 },
+    lesson: { bow: 1, name: "The teacher's lesson", say: "He aims where you will go. Go another way.", tip: "Drona sends one flight where you stand and a second where your last roll would take you. Go a different way this time.",
+      steps: [{ k: "ring", at: "you", also: 1, w: 1.3, r: 2.0, lk: 0.62, m: 1.1, pct: 0.14, sky: 1, act: "shoot" }, { k: "ring", at: "prev", w: 0.45, r: 2.0, m: 1.1, pct: 0.14, sky: 1, act: "loose" }], open: 0.6 },
+    stream: { bow: 1, name: "Without rest", say: "Four arrows. Keep your shield up to the last.", tip: "Ashwatthama looses four arrows one after another. Keep your shield up until the last, or keep moving across his aim.",
+      steps: [{ k: "shots", w: 0.85, n: 1, m: 0.7 }, { k: "shots", w: 0.36, n: 1, m: 0.7 }, { k: "shots", w: 0.36, n: 1, m: 0.7 }, { k: "shots", w: 0.36, n: 1, m: 0.7 }], open: 0.6 },
+    round: { bow: 1, name: "Arrows all round", say: "Get back out of the ring.", tip: "Abhimanyu turns in his car and looses all round him. Get back out of the ring, or behind your shield.",
+      steps: [{ k: "ring", w: 1.25, r: 6.0, m: 0.7, pct: 0.09, hv: 0, sky: 1, act: "shoot" }], open: 0.5, range: [0, 6.5] },
+    stance: { name: "Kripa waits", say: "Do not strike him from the front while he waits.", tip: "Kripa stands in his guard and waits. Strike him from the front now and he turns the blow and answers it. Step round him, or wait him out.", does: "stance", secs: 2.4, range: [0, 4] },
+    rally: { name: "Together!", say: "More blows come at once. Give ground.", tip: "Kritavarma calls his men in together: for a few moments more blows come at you at once. Give ground, and keep your guard up.", does: "rally", secs: 4.5, range: [0, 14] },
+    riposte: { quiet: 1, name: "", steps: [{ k: "fan", w: 0.42, m: 1.4, pct: 0.14 }], open: 0.9 }
+  });
+  for (const k of Object.keys(SIG)) SIG[k].id = k;
+  // Who has which, how often (s between one great blow's beginning and the next), and how far above the common men of
+  // the fight his plain blow is kept. wind: brought to half his strength in a fight to the end, he fights harder.
+  const HERO = (R3.HERO = {
+    bhima: { sigs: ["slam", "charge"], every: [6.5, 9], over: 1.3 }, duryodhana: { sigs: ["form"], every: [6.5, 9], over: 1.25 }, ghatotkacha: { sigs: ["leap"], every: [6.5, 9], over: 1.2 },
+    bhurishravas: { sigs: ["feint"], every: [6, 8.5], over: 1.2 }, arjuna: { sigs: ["wedge"], every: [5.5, 7.5], over: 1.2 }, karna: { sigs: ["serpent"], every: [5.5, 7.5], over: 1.2 },
+    bhishma: { sigs: ["storm"], every: [7, 9], over: 1.2 }, drona: { sigs: ["lesson"], every: [5.5, 7.5], over: 1.15 }, abhimanyu: { sigs: ["round"], every: [7, 9.5] }, supratika: { sigs: ["trample"], every: [7.5, 10] },
+    kripa: { sigs: ["stance"], every: [7, 10] }, kritavarma: { sigs: ["rally"], every: [9, 12] }, ashwatthama: { sigs: ["flurry", "stream"], every: [7.5, 10], wind: 1 },
+    ugra: { sigs: ["hold"], every: [8, 11], wind: 1 }, bhadra: { sigs: ["bash"], every: [7.5, 10], wind: 1 }, kanaka: { sigs: ["lunge"], every: [6.5, 9], wind: 1 }, ketan: { sigs: ["onetwo"], every: [7.5, 10] }
+  });
+  // Which of the named a man is: by his person, or by his name where the story gives him none.
+  const hkOf = (u) => {
+    if (!u || u.side !== "enemy" || u.decoy || u.line || u.still || u.plural) return null;
+    const w = who(u); if (w && HERO[w]) return w;
+    const n = String(u.src || u.name || "").toLowerCase();
+    return /^ashwatthama\b/.test(n) ? "ashwatthama" : /^kanaka\b/.test(n) ? "kanaka" : /^ugra,/.test(n) ? "ugra" : /^ketan,/.test(n) ? "ketan" : null;
+  };
+  R3.hero = (u) => (u && u.g && u.g.hk) || null;
+  // His great blow, for the opening and the bar over his head: the first he can make with the weapon in his hand.
+  R3.sigOf = (u) => { const H = u && u.g && HERO[u.g.hk]; if (!H) return null; const k = H.sigs.find((id) => !SIG[id].bow === !u.g.archer); return k ? SIG[k] : null; };
+  // His plain blow is never lighter than the common men's about him (a fight may set its own share: R3.TUNE over).
+  function heroFloor(R) {
+    const foes = R.B.units.filter((u) => u.side === "enemy" && u.g && !u.line), tn = R3.TUNE[R.B.enc.id] || {};
+    const top = foes.filter((u) => !u.g.hk && !u.still && u.hp > 0 && (u.g.kind === "man" || u.g.kind === "squad")).reduce((m, u) => Math.max(m, u.atk || 0), 0);
+    for (const u of foes) { const H = HERO[u.g.hk]; if (!H || u.g.floored) continue; u.g.floored = true; const ov = tn.over != null ? tn.over : H.over; if (top > 0 && ov && u.atk > 0) u.atk = Math.max(u.atk, Math.round(top * ov * 10) / 10); }
+  }
+  const idleNow = (R) => (R.idle || 0) > P.idle && !R.escort && !R.B.enc.ride3 && !R.offer && R.B.enc.id !== "x_practice";   // (not on the practice ground, where a man may stand and read)
+  // Thrown down: you lie where you fell, and can neither guard nor roll until you are up. Not twice in a breath.
+  function throwDown(R, secs) {
+    const p = C.player(); if (R.t < (R.downFree || 0)) secs = Math.min(secs, 0.3);
+    p.g.busy = Math.max(p.g.busy, secs); p.g.blow = null; R.combo = 0; R.buffer = false; if (R.block) lowerShield(R, false);
+    if (secs > 0.3) { R.downUntil = R.t + secs; R.downFree = R.t + secs + P.downFree; }
+    R.fx.push({ k: "knocked", uid: p.uid, secs });
+  }
+  // Does he begin his great blow now? (At you only, one of the named at a time, never while you lie thrown.)
+  function sigTry(R, e, t) {
+    const g = e.g, H = HERO[g.hk], p = C.player();
+    if (!H || t !== p || g.role === "bcross" /* (crossing your line, he does not stop for it) */ || R.t < g.sigAt || R.t < (R.sigNext || 0) || R.unseen > 0 || R.downUntil > R.t || !onField(R, e) || e.hp <= 0) return false;
+    const d = dist(e, t), list = H.sigs.map((k) => SIG[k]).filter((S) => !S.bow === !g.archer && (!S.range || (d >= S.range[0] && d <= S.range[1])));
+    if (!list.length) return false;
+    const S = list[(g.sigN = (g.sigN || 0) + 1) % list.length];   // (each in its turn)
+    g.sigAt = R.t + rr(H.every[0], H.every[1]) * (g.wind2 ? 0.7 : 1); R.sigNext = R.t + P.sigGap * (living(R.B, "enemy").filter((u) => u.g && u.g.hk && u.g.entered).length >= 3 ? 1.6 : 1); /* (three of the named at once: their great blows come further apart) */ R.stats.sigs = (R.stats.sigs || 0) + 1;
+    if (S.does === "stance") { g.counterUntil = R.t + S.secs; g.cool = Math.max(g.cool, S.secs + 0.3); R.fx.push({ k: "sig", uid: e.uid, id: S.id, secs: S.secs }); return true; }
+    if (S.does === "rally") { R.rallyUntil = R.t + S.secs; g.cool = Math.max(g.cool, 0.9); for (const o of living(R.B, "enemy")) if (o !== e && o.g && o.g.entered && !o.line && !o.g.atk) o.g.cool = Math.min(o.g.cool, 0.2 + 0.3 * K.rng()); R.fx.push({ k: "sig", uid: e.uid, id: S.id, secs: S.secs }); return true; }
+    sigBegin(R, e, t, S, 0, null); return true;
+  }
+  function alsoAt(R, a, t, e) {   // (Drona's second flight: where your last roll would take you; before you have rolled, straight back from him)
+    let dx = R.habit ? R.habit[0] : t.g.x - e.g.x, dz = R.habit ? R.habit[1] : t.g.z - e.g.z; const l = Math.hypot(dx, dz) || 1, d = P.rollDist * 0.92;
+    let x = t.g.x + (dx / l) * d, z = t.g.z + (dz / l) * d; const r = Math.hypot(x, z), lim = R.rad - 0.6; if (r > lim) { x *= lim / r; z *= lim / r; }
+    a.also.x = x; a.also.z = z;
+  }
+  function sigBegin(R, e, t, S, i, prev) {
+    const g = e.g, s = S.steps[i], p = C.player(), ranged = s.k === "shots", area = s.k === "ring", wind = Math.max(0.3, s.w * R.D.wind);
+    if (!(area && !s.at)) g.a = angTo(e, t);
+    const mult = Math.max(s.m || 1, s.pct ? (p.maxHp * s.pct * R.D.atk) / Math.max(1, e.atk) : 0);
+    const a = (g.atk = { id: ranged ? "arrows" : "strike", on: t.uid, t0: R.t, land: R.t + wind, ranged, area, dir: g.a, locked: false, heavy: s.hv !== 0, arc: s.arc || null, r: s.r || 0, px: null, pz: null,
+      sig: S, i, step: s, c0: prev && prev.c0 != null ? prev.c0 : R.t, mult, noblock: !!s.nb, down: s.dn || 0, stun: s.stun || 0, thr: s.thr || 0, lockAt: s.lk, sky: !!s.sky });
+    if (area && s.at === "you") { a.px = t.g.x; a.pz = t.g.z; }
+    if (area && s.at === "prev" && prev && prev.also) { a.px = prev.also.x; a.pz = prev.also.z; a.locked = true; a.t0 = prev.t0; }
+    if (s.also) { const nx = S.steps[i + 1]; a.also = { kind: "ring", x: t.g.x, z: t.g.z, r: s.r, t1: a.land + Math.max(0.3, (nx ? nx.w : 0.45) * R.D.wind) }; alsoAt(R, a, t, e); }
+    if (s.feint) { a.feint = R.t + wind * 0.8; a.feintW = s.feint; }
+    R.stats.maxAtk = Math.max(R.stats.maxAtk, R3.attacking(R));
+    R.fx.push({ k: "windup", uid: e.uid, id: a.id, heavy: a.heavy, ranged, arc: a.arc, wind, sig: S.id, i });
+    if (!i && !S.quiet) R.fx.push({ k: "sig", uid: e.uid, id: S.id });
+  }
+  function sigLand(R, e) {
+    const g = e.g, a = g.atk, s = a.step, B = R.B, p = C.player(), m = fanOf(e, a);
+    if (s.k === "dash") { if (!a.dash) { a.dash = { left: s.len, hit: {} }; a.x0 = g.x; a.z0 = g.z; a.locked = true; if (g.ca != null) g.ca = a.dir; R.fx.push({ k: "swing", uid: e.uid, id: a.id, sig: a.sig.id, dash: true }); } return; }
+    g.atk = null;
+    R.fx.push({ k: "swing", uid: e.uid, id: a.id, arc: a.arc, area: a.area, x: m.x, z: m.z, r: m.r, sig: a.sig.id, sky: a.sky, leap: !!s.leap });
+    if (s.leap) { g.x = clamp(m.x, -R.rad + 1, R.rad - 1); g.z = clamp(m.z, -R.rad + 1, R.rad - 1); g.vx = 0; g.vz = 0; }
+    if (s.k === "shots") { const grp = (R.shotG = (R.shotG || 0) + 1); for (let j = 0; j < s.n; j++) loose(R, e, a, s.n > 1 ? (j - (s.n - 1) / 2) * ((2 * s.spread) / (s.n - 1)) : 0, grp); }
+    else {
+      const fr = living(B, "friends").filter((f) => f.g && inside(m, f) && (targetable(R, f) || f.side === "player"));
+      if (a.area) { const ts = fr.filter((f) => !(f === p && (R.roll > 0 || R.unseen > 0))); if (fr.includes(p) && !ts.includes(p)) dodged(R, e); ts.forEach((t) => resolve(R, e, a, t)); }
+      else { const t = fr.includes(p) ? p : fr.find((f) => f.uid === a.on) || fr[0] || null;
+        if (!t) { if (a.on === p.uid && R.t - R.rollT >= 0 && R.t - R.rollT <= P.roll + STEP) dodged(R, e); else R.fx.push({ k: "whiff", uid: e.uid }); } else resolve(R, e, a, t); }
+    }
+    sigNext(R, e, a);
+  }
+  // The run itself: he goes down his lane, and whoever of yours is in his way is struck once.
+  function dashStep(R, e, a, dt) {
+    const g = e.g, s = a.step, D = a.dash, p = C.player(), d = Math.min(D.left, s.sp * dt);
+    move(R, e, Math.sin(a.dir) * d, Math.cos(a.dir) * d, true); D.left -= d; g.moving = 1; g.lx = Math.sin(a.dir) * s.sp; g.lz = Math.cos(a.dir) * s.sp; g.a = a.dir;
+    for (const f of living(R.B, "friends")) {
+      if (D.hit[f.uid] || !f.g || !(targetable(R, f) || f.side === "player") || dist(e, f) > g.rad + f.g.rad + 0.6) continue;
+      D.hit[f.uid] = 1;
+      if (f === p && (R.roll > 0 || R.unseen > 0)) { dodged(R, e); continue; }
+      resolve(R, e, a, f);
+    }
+    if (D.left <= 0.01 || Math.hypot(g.x, g.z) >= R.rad - 0.4) { g.atk = null; sigNext(R, e, a); }
+  }
+  function sigNext(R, e, a) {
+    const g = e.g, S = a.sig, i = a.i + 1, t = R.B.units.find((u) => u.uid === a.on), broken = g.stag > 0 || g.down > 0 || held(e) || e.hp <= 0;
+    if (i < S.steps.length && !broken && t && t.hp > 0) { sigBegin(R, e, t, S, i, a); return; }
+    g.cool = Math.max(g.cool, rr(P.gap[0], P.gap[1]) * R.D.rest * 0.8);
+    g.rec = Math.max(g.rec || 0, broken ? 0.2 : S.open || 1); g.openUntil = R.t + g.rec;
+    if (!broken && !S.quiet) R.fx.push({ k: "sigEnd", uid: e.uid, id: S.id, open: g.rec });
+  }
+  // Kripa's waiting guard: a blow at his front while he waits is turned, and answered at once.
+  function countered(R, t) {
+    const g = t.g, p = C.player();
+    if (!(g.counterUntil > R.t) || g.stag > 0 || g.down > 0 || g.atk || Math.abs(adiff(angTo(t, p), g.a)) > 1.3) return false;
+    g.counterUntil = 0; g.parriedAt = R.t; R.stats.parried++;
+    p.g.busy = Math.max(p.g.busy, P.parriedBusy + 0.15); R.combo = 0; R.buffer = false;
+    R.fx.push({ k: "parried", uid: t.uid });
+    g.cool = 0; g.rec = 0; sigBegin(R, t, p, SIG.riposte, 0, null);
+    return true;
+  }
   function parry(R) {
     const p = C.player();
     if (!PARRY_WITH.has(p.g.weapon) || swinging(p)) return false;
@@ -907,6 +1080,7 @@
     const ts = b.c.arc === "sweep" ? cands.slice(0, 3) : [cands[0]];
     ts.forEach((t, i) => {
       if (t.decoy) { vanishDecoy(R, t); return; } // only an illusion
+      if (i === 0 && countered(R, t)) { nudge(R, p, angTo(t, p), 0.2); return; }   // (Kripa, waiting: turned, and answered)
       if (i === 0 && foeParries(R, t, b.c.heavy)) { nudge(R, p, angTo(t, p), 0.2); return; } // (turned aside: it comes back up your own arm)
       if (t.g.wheelUntil > R.t && !R.struckWheel) { // Karna at his sunken wheel: the story remembers it
         R.struckWheel = true; K.apply({ flag: "struck_karna_wheel", duty: { conscience: -2 }, journal: "On the seventeenth day you struck Karna while he bent to free his sunken wheel." }); if (K.breakTags) K.breakTags(["strike_unarmed"]); }
@@ -1108,7 +1282,7 @@
     const taunt = fr.find((f) => f.status.taunt); if (taunt) return taunt;
     const cart = R.escort && fr.find((f) => f.still); if (cart && K.rng() < 0.4) return cart;
     const p = fr.find((f) => f.side === "player");
-    if (p && (K.rng() < 0.65 || fr.length === 1)) return p;
+    if (p && (K.rng() < (e.g.hk ? P.heroAim : 0.65) || fr.length === 1 || (idleNow(R) && !e.line))) return p;   // (one of the named has come for you; a man who stands idle is everyone's mark)
     return fr.filter((f) => f !== p && !f.still).sort((a, b) => dist(a, e) - dist(b, e))[0] || p || null;
   }
   function chooseMove(R, e, t) {
@@ -1127,6 +1301,7 @@
   const hitReach = (e) => e.g.reach + P.lunge + e.g.rad - 0.42;
   const ab0 = (e) => (e.abilities.includes("strike") ? "strike" : e.abilities.find((id) => MELEE.has(id)) || "strike");
   function startAttack(R, e, t) {
+    if (e.g.hk && sigTry(R, e, t)) return;   // (his own great blow)
     const id = chooseMove(R, e, t), ab = K.ABILITIES[id], g = e.g;
     if (!ab) return;
     const ranged = RANGED.has(id), light = g.kind === "light";
@@ -1153,12 +1328,12 @@
     R.stats.maxAtk = Math.max(R.stats.maxAtk, R3.attacking(R));
     R.fx.push({ k: "windup", uid: e.uid, id, heavy: g.atk.heavy, ranged, arc, wind: g.atk.land - R.t });
   }
-  function loose(R, e, a) {
-    const g = e.g, on = R.B.units.find((u) => u.uid === a.on), s = { by: e.uid, side: e.side, id: a.id, on: a.on, x: g.x, z: g.z, y: FLY.y0 + (g.car ? 0.85 : 0), a: a.dir, vy: flat(P.arrow, on && on.g ? Math.max(3, dist(e, on)) : 10) - (g.car ? 0.85 / Math.max(0.1, (on && on.g ? Math.max(3, dist(e, on)) : 10) / P.arrow) : 0), t0: R.t, v: P.arrow, heavy: a.heavy, n: ++R.shotN, at0: a.t0, life: 1.6 };
+  function loose(R, e, a, off, grp) {
+    const g = e.g, on = R.B.units.find((u) => u.uid === a.on), s = { by: e.uid, side: e.side, id: a.id, on: a.on, x: g.x, z: g.z, y: FLY.y0 + (g.car ? 0.85 : 0), a: a.dir + (off || 0), part: a.part, mult: a.mult, noblock: a.noblock, down: a.down, sig: a.sig ? a.sig.id : null, grp: grp || 0, vy: flat(P.arrow, on && on.g ? Math.max(3, dist(e, on)) : 10) - (g.car ? 0.85 / Math.max(0.1, (on && on.g ? Math.max(3, dist(e, on)) : 10) / P.arrow) : 0), t0: R.t, v: P.arrow, heavy: a.heavy, n: ++R.shotN, at0: a.t0, life: 1.6 };
     R.shots.push(s); R.fx.push({ k: "shot", uid: e.uid, shot: s });
     // Karna with the bow Vijaya: a second arrow is on the string before the first has landed. It comes down the same lane
     // a breath later, lighter than the first (so one sidestep or one raised shield does not answer both).
-    if (who(e) === "karna" && K.S && K.S.act >= 6 && !a.second && !a.area && e.hp > 0) { g.second = { at: R.t + P.karnaSecond, a: Object.assign({}, a, { second: true, part: 0.6 }) }; tip(R, "karnaBow"); }
+    if (who(e) === "karna" && K.S && K.S.act >= 6 && !a.second && !a.area && !a.sig && e.hp > 0) { g.second = { at: R.t + P.karnaSecond, a: Object.assign({}, a, { second: true, part: 0.6 }) }; tip(R, "karnaBow"); }
   }
   // Arrows fly: each rises and falls as its speed and its range make it (s.y, s.vy). Yours is loosed at where your man will
   // be and strikes the first of theirs it meets; a foe's flies down its lane and strikes the first of your side it meets.
@@ -1177,7 +1352,8 @@
       }
       s.x += Math.sin(s.a) * s.v * dt; s.z += Math.cos(s.a) * s.v * dt; s.life -= dt;
       const t = living(B, "friends").find((f) => f.g && Math.hypot(f.g.x - s.x, f.g.z - s.z) <= f.g.rad + 0.34 && (targetable(R, f) || f.side === "player"));
-      if (t) { R.shots.splice(R.shots.indexOf(s), 1); if (by) resolve(R, by, { id: s.id, on: s.on, heavy: s.heavy, ranged: true, shot: s }, t); continue; }
+      if (t) { R.shots.splice(R.shots.indexOf(s), 1); if (s.grp && t.g.grp === s.grp) { R.fx.push({ k: "arrive", shot: s, uid: null }); continue; } /* (of five loosed together, one finds a man) */ if (s.grp) t.g.grp = s.grp;
+        if (by) resolve(R, by, { id: s.id, on: s.on, heavy: s.heavy, ranged: true, shot: s, part: s.part, mult: s.mult, noblock: s.noblock, down: s.down, sig: s.sig }, t); continue; }
       if (s.life <= 0 || s.y <= 0 || Math.hypot(s.x, s.z) > R.rad + 6) { R.shots.splice(R.shots.indexOf(s), 1); R.fx.push({ k: "arrive", shot: s, uid: null }); }
     }
   }
@@ -1197,6 +1373,7 @@
     const before = t.hp; K.ABILITIES[s.id].use(B, p, t); hitFx(R, t, before - t.hp, true, p, false);
   }
   function landAttack(R, e) {
+    if (e.g.atk.sig) return sigLand(R, e);
     const a = e.g.atk, ab = K.ABILITIES[a.id], g = e.g, m = fanOf(e, a);
     g.atk = null;
     if (ab.cd && a.id !== "arrows") g.cd[a.id] = ab.cd * ROUND;
@@ -1233,23 +1410,25 @@
     if (a.shot) R.fx.push({ k: "arrive", shot: a.shot, uid: t.uid });
     const before = t.hp, from = a.shot ? Math.atan2(-Math.sin(a.shot.a), -Math.cos(a.shot.a)) : angTo(t, e);
     let sh = 1, blocked = false, perfectBlock = false;
-    const frontal = t === p && Math.abs(adiff(from, p.g.a)) <= P.blockArc / 2 + 0.35;
+    const frontal = t === p && (!!a.sky || Math.abs(adiff(from, p.g.a)) <= P.blockArc / 2 + 0.35);   // (arrows out of the sky: the shield goes up over your head)
     const tier = RT.tierOf(e), STR = RT.STRENGTH;
     if (t === p && R.block && frontal) {
       blocked = true; R.stats.blocked++;
       perfectBlock = R.t - R.blockT <= P.blockPerfect * R.D.perfect + STEP;
-      const breaker = a.id === "breaker", crush = e.g.cls === "heavy" && a.heavy && !a.ranged;
-      sh = perfectBlock ? 0 : (crush ? P.crush : (breaker ? P.blockBreaker : a.heavy ? P.blockHeavy : P.blockThrough) * STR.through[tier]);
-      if (crush && !perfectBlock) { R.fx.push({ k: "guardbreak", uid: e.uid }); tip(R, "c_heavy"); a.crushed = true; }
-      R.breath -= (perfectBlock ? 0.5 : 1) * (a.heavy || breaker ? P.blockHitHeavy : P.blockHit) * (breaker ? 1.5 : 1) * (a.ranged ? 0.35 : 1) * STR.breath[tier];
+      const nb = !!a.noblock, breaker = a.id === "breaker", crush = nb || (e.g.cls === "heavy" && a.heavy && !a.ranged);   // (nb: one of the named's great blows that no shield holds)
+      sh = perfectBlock ? (nb ? P.sigPerfect : 0) : (nb ? P.sigThrough : crush ? P.crush : (breaker ? P.blockBreaker : a.heavy ? P.blockHeavy : P.blockThrough) * STR.through[tier]);
+      if (crush && !perfectBlock) { R.fx.push({ k: "guardbreak", uid: e.uid }); if (!nb) tip(R, "c_heavy"); a.crushed = true; }
+      R.breath -= (perfectBlock ? 0.5 : 1) * (a.heavy || breaker ? P.blockHitHeavy : P.blockHit) * (breaker ? 1.5 : 1) * (a.ranged ? 0.35 : 1) * STR.breath[tier] * (a.step && a.step.bf != null ? a.step.bf : 1);
       if (perfectBlock) { R.stats.perfectBlocks++; if (indra()) R.breath = Math.min(P.breathMax, R.breath + P.blockMin * tireCost() * 0.25); if (!a.ranged && !steady(e)) { e.g.stag = Math.max(e.g.stag, P.blockStag); e.g.rec = 0; } R.fx.push({ k: "perfectblock", uid: e.uid }); }
       if (!a.ranged) { const pts = RT.shieldHit(e, e.g.weapon, a.heavy && !a.arc) * (perfectBlock ? 0.5 : 1); if (pts > 0) shieldTakes(R, p, pts); }
       if (R.breath <= 0 && R.block) { R.breath = 0; lowerShield(R, true); }
       if (a.crushed && R.block) lowerShield(R, false);   // (beaten down: it must be raised again)
+      if (nb && !perfectBlock) blocked = false;   // (it came through: what it does to a man with no shield, it does to you)
     } else if (t !== p && isSoldiers(t) && R.orders.soldiers === "defend" && a.on === t.uid) sh = P.shieldSoldiers;
     else if (t === p && R.shield && !R.broken && frontal) sh = P.shieldYou;
     if (a.arc) sh *= P.maceHit;
     if (a.part && t === p) sh *= a.part;
+    if (a.mult && sh > 0) sh *= a.mult;   // (a great blow's own weight)
     if (t === p && !frontal && R.stance && sh > 0) sh *= R.stance === "hold" ? P.holdBack : R.stance === "centre" ? P.centreBack : 1;   // your own plan: who is at your back
     if (a.set && sh > 0) sh *= P.setHit;                                                     // a set spear: the weight of your own run is in it
     if (e.g.cls === "skirm" && t === p && !frontal && !a.ranged && sh > 0) { sh *= P.backHit; tip(R, "c_skirm"); }   // a skirmisher at your back
@@ -1260,12 +1439,13 @@
     hitFx(R, t, before - t.hp, a.heavy, e, !a.ranged, blocked);
     if (!a.area) nudge(R, t, from + Math.PI, blocked ? (a.heavy ? 0.3 : 0.12) : before > t.hp ? (a.ranged ? 0.14 : a.heavy ? 0.42 : 0.24) : 0); // (you give ground to every blow, a little on your shield)
     { const w = who(e); // after a champion's blow: Bhurishravas's heavy blow knocks you down; Abhimanyu's sweeps the next one too
-      if ((w === "bhurishravas" || w === "ugra") && a.heavy && t === p && before > t.hp && !blocked && !perfectBlock) { p.g.busy = Math.max(p.g.busy, 0.6); p.g.blow = null; R.fx.push({ k: "knocked", uid: p.uid }); tip(R, w); }   // (Ugra, the wrestler: his great blow is a throw)
+      if ((w === "bhurishravas" || w === "ugra") && a.heavy && !a.sig && t === p && before > t.hp && !blocked && !perfectBlock) { throwDown(R, 0.6); tip(R, w); }   // (Ugra, the wrestler: his great blow is a throw)
       if (w === "abhimanyu" && !a.ranged && t.hp >= 0) sweepNext(R, e, t); }
     if (a.set && t === p && before > t.hp && !blocked) { p.g.busy = Math.max(p.g.busy, 0.35); p.g.blow = null; R.combo = 0; }   // (run onto a point, you are stopped)
-    if (t === p && before > t.hp) { R.stats.taken += before - t.hp; R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked && (!RT.P.strength || tier >= RT.tierOf(p))) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } } // (only one of your tier or above staggers you)
+    if (t === p && before > t.hp) { R.stats.taken += before - t.hp; if (a.sig) { R.stats.sigTaken = (R.stats.sigTaken || 0) + before - t.hp; R.stats.sigHits = (R.stats.sigHits || 0) + 1; } R.kneel = 0; R.salveStop = true; if (a.heavy && !blocked) { R.breath = Math.max(0, R.breath - P.heavyBreath); R.combo = 0; R.buffer = false; /* (a heavy blow taken unguarded knocks the wind out of you and breaks your chain, whoever struck it) */ if (!RT.P.strength || tier >= RT.tierOf(p)) { p.g.busy = Math.max(p.g.busy, 0.25 * STR.knock[tier]); p.g.blow = null; } }
+      if (!blocked && a.down) throwDown(R, a.down); else if (!blocked && a.stun) { p.g.busy = Math.max(p.g.busy, a.stun); p.g.blow = null; R.combo = 0; R.buffer = false; R.fx.push({ k: "stunned", uid: p.uid }); } } // (only one of your tier or above staggers you; a great blow throws you down or holds you)
     // A mace's sweep, an elephant, a heavy blow from a champion: thrown back.
-    if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged))) { const d = (e.g.kind === "elephant" ? 2.6 : P.maceShove) * (blocked ? 0.5 : 1) * STR.knock[tier]; t.g.vx += Math.sin(from + Math.PI) * d * PHYS.knock; t.g.vz += Math.cos(from + Math.PI) * d * PHYS.knock; }
+    if (t.hp > 0 && !perfectBlock && (a.arc === "sweep" || e.g.kind === "elephant" || (a.heavy && tier >= 2 && !a.ranged) || (a.thr && before > t.hp))) { const d = (a.thr && !blocked ? a.thr : (e.g.kind === "elephant" ? 2.6 : P.maceShove) * STR.knock[tier]) * (blocked ? 0.5 : 1); t.g.vx += Math.sin(from + Math.PI) * d * PHYS.knock; t.g.vz += Math.cos(from + Math.PI) * d * PHYS.knock; }
   }
   function foeStep(R, e, dt) {
     const B = R.B, p = C.player(), g = e.g;
@@ -1294,17 +1474,18 @@
       return;
     }
     if (B.enc.spare && !e.line && e.hp <= e.maxHp * C.PLEAD) { if (!g.beaten) { g.beaten = true; if (g.atk) cancel(e); R.fx.push({ k: "beaten", uid: e.uid }); } return; }
-    if (g.atk && g.atk.feint && R.t >= g.atk.feint) { const a = g.atk, w = a.land - a.t0; a.feint = 0; a.t0 = R.t + 0.3; a.land = a.t0 + w; a.feinted = true; R.fx.push({ k: "feint", uid: e.uid }); }
+    if (g.atk && g.atk.feint && R.t >= g.atk.feint) { const a = g.atk, w = a.feintW || a.land - a.t0; a.feint = 0; a.t0 = R.t + 0.3; a.land = a.t0 + w; a.feinted = true; R.fx.push({ k: "feint", uid: e.uid }); }
     if (g.atk) {
       const a = g.atk, t = B.units.find((x) => x.uid === a.on);
+      if (a.dash) { dashStep(R, e, a, dt); return; }   // (he is running his lane)
       const left = a.land - R.t;
       if (t && t.hp > 0 && !a.locked) {
-        if (a.area && a.px != null) { if (left > 0.6) { a.px = t.g.x; a.pz = t.g.z; } else a.locked = true; }
+        if (a.area && a.px != null) { if (left > (a.lockAt != null ? a.lockAt : 0.6)) { a.px = t.g.x; a.pz = t.g.z; if (a.also) alsoAt(R, a, t, e); } else a.locked = true; }
         else if (!a.area) {
           // He turns after his mark as he winds up (an arrow's lane follows freely), then commits.
           const want = angTo(e, t), rate = a.ranged ? 9 : P.turn * (e.hero || e.person ? 1.5 : 1) * (a.heavy ? 0.8 : 1);
           a.dir = turnTo(a.dir, want, rate * dt); if (g.kind === "elephant" && g.ca != null) a.dir = g.ca + clamp(adiff(a.dir, g.ca), -0.6, 0.6); /* (its head swings a little way; the rest is the whole beast coming round) */ g.a = a.dir;
-          if (left <= (a.ranged ? P.lock : P.meleeLock)) a.locked = true;
+          if (left <= (a.lockAt != null ? a.lockAt : a.ranged ? P.lock : P.meleeLock)) a.locked = true;
         }
       }
       if (left <= 1e-6) landAttack(R, e);
@@ -1312,6 +1493,7 @@
       else if (g.car && !e.still && !g.role) drive(R, e, g.dmx || 0, g.dmz || 0, (g.dsp || 0) * 0.6, dt); // (a car does not stop for the draw: he looses as it rolls)
       return;
     }
+    if (g.counterUntil > R.t) { if (p && p.g && p.hp > 0) g.a = turnTo(g.a, angTo(e, p), 2.2 * dt); return; }   // (Kripa waits in his guard: he turns slowly, and can be got round)
     if (g.role && R.plan && roleStep(R, e, dt)) return;
     if (g.cls === "spear" && !(g.cd.set > 0) && p.hp > 0 && R.unseen <= 0 && R.roll <= 0 && onField(R, e) && !g.role) {   // his point is set at a man who runs straight onto it
       const d0 = dist(e, p), vx = p.g.lx || 0, vz = p.g.lz || 0, sp = Math.hypot(vx, vz), to = angTo(p, e);
@@ -1321,7 +1503,7 @@
         R.fx.push({ k: "windup", uid: e.uid, id: g.atk.id, heavy: false, ranged: false, arc: null, wind: P.setWind }); R.fx.push({ k: "setspear", uid: e.uid }); tip(R, "c_spear"); return; } }
     if (R.morale && !R.routed && R.morale.theirs < 35 && common(e) && !led(R, e) && g.cool <= 0 && K.rng() < dt * 0.6) g.cool = 1.3; // (a host losing heart: its common men hang back, unless a captain stands by them)
     let t = B.units.find((x) => x.uid === g.tgt);
-    if (!t || !targetable(R, t) || (g.cool <= 0 && K.rng() < 0.02 && g.role !== "raider")) { t = pickTarget(R, e); g.tgt = t ? t.uid : null; }
+    if (!t || !targetable(R, t) || (g.cool <= 0 && K.rng() < 0.02 && g.role !== "raider") || (t !== p && !e.line && g.role !== "raider" && idleNow(R) && targetable(R, p))) { t = pickTarget(R, e); g.tgt = t ? t.uid : null; }
     if (!t) return;
     const d = dist(e, t), ang = angTo(e, t);
     g.a = turnTo(g.a, ang, 6 * dt); if (g.kind === "elephant" && g.ca != null) g.a = g.ca + clamp(adiff(g.a, g.ca), -0.6, 0.6);
@@ -1332,6 +1514,7 @@
     const inRange = g.ranged && (g.archer || d > g.reach * 2.2) ? d <= 19 : d <= hitReach(e) + t.g.rad - 0.42 - 0.12;
     const free = own || R3.attacking(R) < blowsAtOnce(R);
     const mayAttack = g.cool <= 0 && free && spaced && onField(R, e);
+    if (mayAttack && !inRange && g.hk && t === p && sigTry(R, e, t)) return;   // (a great blow begun from further off: a charge, a leap)
     if (mayAttack && inRange && (g.kind !== "elephant" || g.ca == null || Math.abs(adiff(ang, g.ca)) < 0.7)) { startAttack(R, e, t); return; } // (an elephant strikes at what is in front of it)
     // Where to stand: an archer keeps his distance; a man with a turn to strike closes; the rest circle and wait.
     const engaged = (g.cool <= 0.9 && free && !g.archer) || (!!e.captive && !!R.task && R.task.uid === e.uid);   // (a man cut off from his own does not circle and wait his turn: he stands and fights where he is)
@@ -1510,7 +1693,7 @@
       initUnit(R, u); const a = (u.side === "enemy" ? Math.PI : 0) + rr(-1.25, 1.25), r = u.side === "enemy" ? R.rad + 2.5 : R.rad - 0.7;
       u.g.x = Math.sin(a) * r; u.g.z = Math.cos(a) * r; u.g.a = u.side === "enemy" ? 0 : Math.PI; u.g.entered = u.side !== "enemy"; u.g.wave = 0; R.fx.push({ k: "join", uid: u.uid, line: true });
     }
-    for (const u of R.B.units) if (!u.g) { initUnit(R, u); if (u.side === "enemy") { const a = K.rng() * TAU; u.g.x = Math.sin(a) * (R.rad + 3); u.g.z = Math.cos(a) * (R.rad + 3); u.g.entered = false; } else { u.g.x = clamp(p.g.x + rr(-2, 2), -R.rad + 1, R.rad - 1); u.g.z = Math.min(R.rad - 0.6, p.g.z + 5); u.g.a = Math.PI; } R.fx.push({ k: "join", uid: u.uid }); }
+    for (const u of R.B.units) if (!u.g) { initUnit(R, u); if (u.side === "enemy") { const a = K.rng() * TAU; u.g.x = Math.sin(a) * (R.rad + 3); u.g.z = Math.cos(a) * (R.rad + 3); u.g.entered = false; } else { u.g.x = clamp(p.g.x + rr(-2, 2), -R.rad + 1, R.rad - 1); u.g.z = Math.min(R.rad - 0.6, p.g.z + 5); u.g.a = Math.PI; } R.fx.push({ k: "join", uid: u.uid }); heroFloor(R); }
   }
   // The time left of a fight that is won by standing (a hold, a number of rounds), or null.
   R3.timeLeft = (R) => { const e = R.B.enc, n = e.hold || e.rounds; return e.dream && R.line ? Math.max(0, R.line.dreamSecs - R.t) : n ? Math.max(0, n * P.story - R.t) : null; };
@@ -1545,6 +1728,8 @@
     for (const u of B.units) if (u.g) { u.g.lx = 0; u.g.lz = 0; }
     if (R.assist && R.blocker && !R.broken && !act.block && R3.wantBlock(R, 0.14, 0.3)) act = Object.assign({}, act, { block: true });
     playerAct(R, act);
+    { const did = act.mx || act.mz || act.turn || act.strike || act.block || act.roll || act.skill || act.astra || act.herbs || act.call || act.cover || act.layDown || act.spare || act.vanish || act.lock || act.lockOn || act.orders || act.withdraw;
+      if (did || R.kneel > 0) R.idle = 0; else { const was = idleNow(R); R.idle = (R.idle || 0) + STEP; if (!was && idleNow(R) && !R.idleSaid) { R.idleSaid = true; R.fx.push({ k: "idle" }); } } }   // (stand and do nothing, and every foe turns on you)
     joined(R);
     if (B.over) { R.over = B.over; return R; }
     R.t += STEP;
@@ -1568,12 +1753,13 @@
     for (const e of living(R.B, "enemy")) {
       const a = e.g.atk; if (!a || a.feint) continue;
       const m = fanOf(e, a);
-      if (a.ranged) { if (a.on === p.uid || inside(m, p)) out.push({ uid: e.uid, land: a.land + dist(e, p) / P.arrow, t0: a.t0, x: e.g.x, z: e.g.z, lane: true, heavy: a.heavy, wind: true }); }
-      else if (inside(m, p, 0.25)) out.push({ uid: e.uid, land: a.land, t0: a.t0, x: m.kind === "ring" ? m.x : e.g.x, z: m.kind === "ring" ? m.z : e.g.z, heavy: a.heavy, area: !!a.area });
+      if (a.ranged) { if (a.on === p.uid || inside(m, p)) out.push({ uid: e.uid, land: a.land + dist(e, p) / P.arrow, t0: a.c0 != null ? a.c0 : a.t0, x: e.g.x, z: e.g.z, lane: true, heavy: a.heavy, wind: true, nb: !!a.noblock, sig: !!a.sig }); }   // (c0: a chain of blows is read once, from its first)
+      else if (a.step && a.step.k === "dash") { const al = (p.g.x - e.g.x) * Math.sin(a.dir) + (p.g.z - e.g.z) * Math.cos(a.dir); if (inside(m, p, 0.25) && al > -0.6) out.push({ uid: e.uid, land: Math.max(a.land, R.t) + Math.max(0, al - 1) / a.step.sp, t0: a.c0, x: e.g.x, z: e.g.z, lane: true, heavy: a.heavy, nb: !!a.noblock, sig: true }); }
+      else if (inside(m, p, 0.25)) out.push({ uid: e.uid, land: a.land, t0: a.c0 != null ? a.c0 : a.t0, x: m.kind === "ring" ? m.x : e.g.x, z: m.kind === "ring" ? m.z : e.g.z, heavy: a.heavy, area: !!a.area, nb: !!a.noblock, sig: !!a.sig, sky: !!a.sky });
     }
     for (const s of R.shots) if (s.side === "enemy" && R.t >= s.t0) {
       const dx = p.g.x - s.x, dz = p.g.z - s.z, al = dx * Math.sin(s.a) + dz * Math.cos(s.a), off = Math.abs(dx * Math.cos(s.a) - dz * Math.sin(s.a));
-      if (al > 0 && off <= 0.9) out.push({ uid: s.by, land: R.t + al / s.v, t0: s.at0 || s.t0, x: s.x, z: s.z, lane: true, heavy: s.heavy, flying: true });
+      if (al > 0 && off <= 0.9) out.push({ uid: s.by, land: R.t + al / s.v, t0: s.at0 || s.t0, x: s.x, z: s.z, lane: true, heavy: s.heavy, flying: true, nb: !!s.noblock, sig: !!s.sig });
     }
     return out.sort((a, b) => a.land - b.land);
   };
@@ -1612,11 +1798,11 @@
     const h = R.hum || (R.hum = { btn: null, next: 0 });
     const want = TAPS.find((k) => a[k]) || (a.mx || a.mz ? "move" : null);
     const hold = want === "block" || want === "move";
-    if (want === h.btn && hold) return want === "block" ? { block: true } : { mx: a.mx, mz: a.mz };
-    if (R.t < h.next) return h.btn === "block" && R.block ? { block: true } : h.btn === "move" ? { mx: a.mx, mz: a.mz } : {};
+    if (want === h.btn && hold) return want === "block" ? { block: true } : { mx: a.mx, mz: a.mz, run: a.run };
+    if (R.t < h.next) return h.btn === "block" && R.block ? { block: true } : h.btn === "move" ? { mx: a.mx, mz: a.mz, run: a.run } : {};
     h.btn = want; h.next = R.t + P.botGap[0] + K.rng() * (P.botGap[1] - P.botGap[0]);
     if (!want) return {};
-    if (want === "move") return { mx: a.mx, mz: a.mz };
+    if (want === "move") return { mx: a.mx, mz: a.mz, run: a.run };
     const out = { [want]: a[want] };
     if (want === "roll") { out.mx = a.mx; out.mz = a.mz; }
     return out;
@@ -1627,10 +1813,14 @@
     const bs = R.bs, a = {}, th = R3.threats(R);
     for (const t of th) {
       const key = t.uid + "@" + t.t0;
-      if (!(key in bs.read)) bs.read[key] = K.rng() >= bs.miss;
+      if (!(key in bs.read)) bs.read[key] = K.rng() >= bs.miss * (t.sig ? 0.45 : 1);   // (a great blow is called aloud: fewer are missed)
       if (!bs.read[key] || R.t - t.t0 < bs.react) continue;
       const left = t.land - R.t;
-      if (R.blocker && !R.broken && !t.area) {
+      if (t.sky && t.area && !(R.blocker && !R.broken && R.breath > 45) && (left > 0.28 || !R3.can(R, "roll"))) {   // (arrows out of the sky and no shield to spare: he keeps moving, as the tip says)
+        const e = B.units.find((u) => u.uid === t.uid), off = Math.hypot(g.x - t.x, g.z - t.z); let ang = off > 0.6 || !e ? Math.atan2(g.x - t.x, g.z - t.z) : angTo(e, p) + (Math.PI / 2) * (bs.side || (bs.side = K.rng() < 0.5 ? 1 : -1));
+        if (Math.hypot(g.x + Math.sin(ang) * 3, g.z + Math.cos(ang) * 3) > R.rad - 1.2) { if (off > 0.6) ang += Math.PI / 2; else { bs.side = -bs.side; ang += Math.PI; } }
+        a.mx = Math.sin(ang); a.mz = Math.cos(ang); a.run = true; return a; }
+      if (R.blocker && !R.broken && (!t.area || t.sky) && !t.nb) {   // (no shield for a blow no shield holds)
         const lead = bs.lead[key] != null ? bs.lead[key] : (bs.lead[key] = P.botLead[0] + K.rng() * (P.botLead[1] - P.botLead[0]));
         if (left <= (R.block ? 0.45 : lead) && R3.can(R, "block")) { a.block = true; return a; }
         if (R.breath >= P.blockMin || R.block) continue;
@@ -1674,7 +1864,11 @@
       a.mx = t.g.x - g.x; a.mz = t.g.z - g.z; return a;
     }
     const len = R3.nextBlow(R).len, inSwing = th.some((x) => bs.read[x.uid + "@" + x.t0] && x.land - R.t > -0.05 && x.land - R.t < len + 0.12);
+    if (t.g.counterUntil > R.t && !("w" + t.g.counterUntil in bs.read)) bs.read["w" + t.g.counterUntil] = K.rng() >= bs.miss * 0.45;
+    const waits = t.g.counterUntil > R.t && bs.read["w" + t.g.counterUntil] && Math.abs(adiff(angTo(t, p), t.g.a)) <= 1.3;   // (Kripa in his guard: a blow at his front now is answered)
+    if (waits) { const sd = adiff(angTo(t, p), t.g.a) >= 0 ? 1 : -1, ang = angTo(t, p) + sd * 0.9; a.mx = t.g.x + Math.sin(ang) * 2.2 - g.x; a.mz = t.g.z + Math.cos(ang) * 2.2 - g.z; return a; }   // (round him)
     if (d <= g.reach * 0.92 + t.g.rad - 0.42) { if (!inSwing) a.strike = true; }
+    else if (t.g.atk && t.g.atk.sig && !t.g.atk.ranged && !t.g.atk.dash && bs.read[t.uid + "@" + t.g.atk.c0] && d <= hitReach(t) + 1.6) { /* (he waits out a chain of blows he has got clear of) */ }
     else { a.mx = t.g.x - g.x; a.mz = t.g.z - g.z;
       // (a person learns it from the first point he runs onto: after that he walks up to a spearman whose point is free)
       if (R.told && R.told.c_spear && foes.some((e) => e.g.cls === "spear" && !(e.g.cd.set > 0) && dist(e, p) <= hitReach(e) + P.setReach + 1.2 && Math.abs(adiff(angTo(e, p), e.g.a)) < 0.9)) { const l = Math.hypot(a.mx, a.mz) || 1; a.mx = (a.mx / l) * 0.6; a.mz = (a.mz / l) * 0.6; } }

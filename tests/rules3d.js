@@ -435,5 +435,57 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   ok(S.fought[6] === 1, "A battle fought is counted in the life (" + JSON.stringify(S.fought) + ")");
 }
 
+// The named: each man's own fight (16 November).
+{
+  const K = fresh(5), R3 = K.RT3, SIG = R3.SIG, HERO = R3.HERO, used = {};
+  for (const [h, H] of Object.entries(HERO)) for (const id of H.sigs) (used[id] = used[id] || []).push(h);
+  ok(Object.values(HERO).every((H) => H.sigs.length && H.sigs.every((id) => SIG[id] && SIG[id].name && SIG[id].say && SIG[id].tip)) && Object.values(used).every((l) => l.length === 1),
+    "Every named opponent has a great blow of his own, with a name, a line and a tip, and no two of them share one (" + Object.keys(HERO).length + " men, " + Object.keys(used).length + " blows)");
+  // His plain blow is never lighter than the common men's about him.
+  const light = [];
+  for (const id of ["hold_bhima", "hold_duryodhana", "hold_arjuna", "hold_karna", "wc_e_ghost", "e_kb_hold", "oath_king_hold", "bh_line9", "kd_e_son"]) {
+    life(K); K.seed(7); const C = K.Combat, B = C.start(id, null), R = R3.begin(B, {});
+    const foes = B.units.filter((u) => u.side === "enemy" && !u.line && u.g), hero = foes.find((u) => u.g.hk), top = Math.max(0, ...foes.filter((u) => !u.g.hk && !u.still).map((u) => u.atk));
+    if (!hero || hero.atk < top) light.push(id);
+    C.end();
+  }
+  ok(!light.length, "One of the named strikes at least as hard as the common men about him" + (light.length ? " (not in " + light.join(", ") + ")" : ""));
+}
+{ // A great blow is called as it begins, has its own mark, and leaves him open; no shield holds one marked so; thrown down, you can neither guard nor roll
+  const stage = (how) => { const K = fresh(9); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("hold_bhima", null), R = R3.begin(B, { noLine: true, noPlan: true }), p = C.player(), e = B.units.find((u) => u.person === "bhima");
+    for (const u of B.units) if (u.side === "enemy" && u !== e) { u.hp = 0; } for (const u of B.units) if (u.side === "ally") { u.g.x = 30; u.g.z = 30; u.still = true; }
+    p.maxHp = p.hp = 100000; e.g.x = 0; e.g.z = -1.2; e.g.entered = true; e.g.role = null; p.g.x = 0; p.g.z = 1.2; e.g.sigAt = 0; e.g.cool = 0; e.g.sigN = 1; R.breath = 100;
+    const seen = { sig: 0, mark: null, nb: false, down: 0, open: 0, dmg: 0, noRoll: false, noGuard: false, dodged: R.stats.dodged, broke: 0 }; let began = null;
+    for (let i = 0; i < 60 * 12 && seen.open === 0; i++) {
+      const a = e.g.atk && e.g.atk.sig ? e.g.atk : null; if (a && !began) { began = a; seen.mark = R3.markOf(R, e).kind; seen.nb = R3.markOf(R, e).nb; }
+      const left = a ? a.land - R.t : 9, hp0 = p.hp, act = {};
+      if (how === "guard" && a && left < 0.6) act.block = true;
+      if (how === "roll" && a && left < 0.12 && left > 0) { act.roll = true; act.mx = 1; act.mz = 0; }
+      R3.step(R, act); seen.dmg += hp0 - p.hp;
+      for (const x of R.fx) { if (x.k === "sig") seen.sig++; if (x.k === "knocked") { seen.down++; seen.noRoll = !R3.can(R, "roll"); seen.noGuard = !R3.can(R, "block"); } if (x.k === "sigEnd") seen.open = e.g.rec; if (x.k === "guardbreak") seen.broke++; } R.fx.length = 0;
+    }
+    seen.dodged = R.stats.dodged - seen.dodged; seen.id = began && began.sig.id; try { C.settle("flee"); C.end(); } catch (x) {} return seen; };
+  const g = stage("guard"), r = stage("roll");
+  ok(g.id === "slam" && g.sig === 1 && g.mark === "ring" && g.nb && g.open >= 1, "Bhima's great blow is called once as it begins, marks a ring no shield holds, and leaves him open after (" + g.open.toFixed(1) + " s)");
+  ok(g.dmg > 20 && g.broke === 1 && g.down === 1 && g.noRoll && g.noGuard, "A raised shield does not hold it: it comes through (" + Math.round(g.dmg / 1000) + "% of your health), the guard is beaten down, and thrown down you can neither guard nor roll");
+  ok(r.dmg === 0 && r.dodged === 1 && r.down === 0, "Rolled at the moment it lands, it costs nothing");
+}
+{ // Stand idle and every foe turns on you; Kripa, waiting, turns a blow from the front and answers it
+  const K = fresh(21); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 100000;
+  let said = 0; for (let i = 0; i < 60 * 9; i++) { p.hp = p.maxHp; R3.step(R, {}); for (const x of R.fx) if (x.k === "idle") said++; R.fx.length = 0; }
+  const foes = B.units.filter((u) => u.side === "enemy" && !u.line && u.hp > 0 && u.g && u.g.entered && u.g.tgt), onMe = foes.filter((u) => u.g.tgt === p.uid).length;
+  ok(said === 1 && foes.length > 0 && onMe === foes.length, "Stand idle five seconds and every foe on the field turns on you, said once (" + onMe + " of " + foes.length + ")");
+  try { C.settle("flee"); C.end(); } catch (x) {}
+}
+{
+  const K = fresh(23); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_lake_three", null), R = R3.begin(B, { noLine: true }), p = C.player(), e = B.units.find((u) => u.person === "kripa"); p.maxHp = p.hp = 100000;
+  for (const u of B.units) if (u.side === "enemy" && u !== e) u.hp = 0; for (const u of B.units) if (u.side === "ally") { u.g.x = 30; u.g.z = 30; u.still = true; }
+  e.g.x = 0; e.g.z = -0.9; e.g.entered = true; e.g.a = 0; p.g.x = 0; p.g.z = 0.9; p.g.a = Math.PI; e.g.sigAt = 0; e.g.cool = 0; R.lock = e.uid;
+  let waited = false, turned = 0, answer = null, hp0 = e.hp;
+  for (let i = 0; i < 60 * 8 && !answer; i++) { const w = e.g.counterUntil > R.t; waited = waited || w; R3.step(R, w ? { strike: true } : {}); for (const x of R.fx) if (x.k === "parried") turned++; R.fx.length = 0; if (e.g.atk && e.g.atk.sig && e.g.atk.sig.id === "riposte") answer = e.g.atk; }
+  ok(waited && turned === 1 && !!answer && e.hp === hp0, "Kripa waits in his guard: a blow at his front is turned, does him no harm, and is answered at once");
+  try { C.settle("flee"); C.end(); } catch (x) {}
+}
+
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);
