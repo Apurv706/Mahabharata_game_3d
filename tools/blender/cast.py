@@ -481,13 +481,28 @@ def clothw(o, top="P", side=None, sway=None, z_top=1.0, ln=0.3):   # the wrap's 
         w = {"T": tt, "P": hp * (1 - tt), "lL": (1 - hp) * (1 - kn) * wl, "lR": (1 - hp) * (1 - kn) * (1 - wl), "kL": (1 - hp) * kn * wl, "kR": (1 - hp) * kn * (1 - wl)}
         for n, val in w.items():
             if val > 0.02: G_[n].add([v.index], val, "REPLACE")
+# What a hanging length must clear: the body, and the clothes already on it (the waist cloth, its sash and pleats). The
+# upper cloth used to be set off the bare body only, so its ends hung through the lower cloth and merged with it.
+_WORN = None
+def over(z, x, wd, fwd):
+    global _WORN
+    if _WORN is None:
+        dg = bpy.context.evaluated_depsgraph_get(); dg.update()
+        _WORN = [BVHTree.FromObject(o_, dg) for o_ in parts if o_.type == "MESH" and o_.name.startswith(("dhoti", "sash", "girdle", "pleat", "panel", "belt"))]
+    best = None
+    for dx in (-wd, 0.0, wd):
+        o0 = Vector((x + dx, -1.0 * fwd, z)); d_ = Vector((0, fwd, 0))
+        for t_ in [BVB] + (_WORN if z < 1.08 else []):
+            h = t_.ray_cast(o0, d_, 2.0)
+            if h[0] is not None: best = h[0].y if best is None else (min(best, h[0].y) if fwd > 0 else max(best, h[0].y))
+    return best if best is not None else (-0.12 if fwd > 0 else 0.12)
 def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.5, border=False, brole="red", gather=0.82, deep=1.0, sway=None):   # a hanging length of cloth, a little waved, with a gold edge at its foot
     me = bpy.data.meshes.new(name); rows = 7 if wd < 0.02 else 10; vs = []; fs = []; C_ = 3 if wd < 0.02 else 8; fwd = 1 if y < 0 else -1; y_plane = y
     # A length hung from the shoulder lies on the body as far as its most forward point and hangs plumb from there. (It
     # was a flat sheet set at that point from the top down, and stood off the shoulder like a board.)
     lie = top == "T" and C_ > 3 and name != "apron" and name != "veilfall"; yrun = None; ylie = []
     for r in range(rows + 1):
-        zr = z_top - ln * r / rows; yb = (front(zr, x) - 0.013) if fwd > 0 else (backy(zr, x) + 0.013)
+        zr = z_top - ln * r / rows; yb = (over(zr, x, wd, 1) - 0.013) if fwd > 0 else (over(zr, x, wd, -1) + 0.013)
         yrun = yb if yrun is None else (min(yrun, yb) if fwd > 0 else max(yrun, yb)); ylie.append(yrun)
     for r in range(rows + 1):
         t = r / rows
@@ -552,19 +567,40 @@ def since(n0, part): tag(parts[n0:], part)
 # ---- Lower cloth: wound round the hips and drawn between the legs, so it folds round each leg; three lengths.
 def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt of armour over the cloth: no hem band, no pleats)
     n0 = len(parts); o = shell(name, role, lambda c: zlow - 0.001 < c.z < 1.001, 0.02 if plain else 0.012, cut=(zlow, 1.0)); LEG = 0.8 + 0.2 * H["leg"]; hemv = []   # (the skirt of scales stands off the cloth under it: lying in the same place the two flickered through each other at the hips, as the mesh check of tools/blender/skills found)
+    # The skin the cloth is cut from was thinned to a few large faces where the body is plain, as behind the knee. Drawn
+    # out to a round tube, a large face cuts straight across the curve: those were the pillows and pits behind the knee.
+    # So its long edges are halved until none is long.
+    bm = bmesh.new(); bm.from_mesh(o.data)
+    for _ in range(3):
+        long_ = [e for e in bm.edges if e.calc_length() > 0.055 and e.verts[0].co.z < 0.9]
+        if not long_: break
+        bmesh.ops.subdivide_edges(bm, edges=long_, cuts=1); bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
+    bm.to_mesh(o.data); bm.free(); o.data.update()
+    for p_ in o.data.polygons: p_.use_smooth = True
+    # The cloth hangs clear of the whole leg: for each direction round the leg, the furthest the leg itself reaches below
+    # the hip. (Clearing it point by point made the cloth follow the calf and the back of the knee, which showed as pillows.)
+    NB_ = 16; env = {}
+    for v in o.data.vertices:
+        if v.co.z < 0.8:
+            sd = 1 if v.co.x > 0 else -1; k_ = (sd, int((math.atan2(v.co.y, v.co.x - sd * HPX) + math.pi) / math.tau * NB_) % NB_); env[k_] = max(env.get(k_, 0.0), math.hypot(v.co.x - sd * HPX, v.co.y))
+    def reach(sd, a):
+        f_ = (a + math.pi) / math.tau * NB_ - 0.5; i0 = int(math.floor(f_)); u_ = f_ - i0
+        return env.get((sd, i0 % NB_), 0.0) * (1 - u_) + env.get((sd, (i0 + 1) % NB_), 0.0) * u_
     for v in o.data.vertices:
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
         t = sm(0.95, zlow, z); inner = max(0.0, -sd * math.cos(a)); below = sm(0.92, 0.78, z)     # t: 0 at the hips, 1 at the hem; inner: 1 facing the other leg
         R = (0.132 - (0.03 if zlow > 0.5 else 0.012) * t ** 1.5) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))              # full over the thigh and drawn in toward the hem, as a wound cloth is (it was a straight tube)
         R = R * (1 - inner) + min(R, HPX * 0.97) * inner                                          # between the legs the cloth is one: never past the middle
+        R = max(R, (reach(sd, a) + 0.012) * (1 - 0.6 * inner))
         r = r0 * (1 - below) + max(r0 + 0.006, R) * below
         sweep = sd * a + (0.95 - z) * 3.4                                                           # the folds run aslant, from the outer hip down toward the middle, where the cloth is drawn through
-        r += ((0.005 + 0.013 * t) * math.sin(sweep * 5) + 0.004 * t * math.sin(sweep * 11 + 1.3)) * below * (1 - 0.7 * inner)
+        r += (0.004 + 0.009 * t) * math.sin(sweep * 3) * below * (1 - 0.7 * inner)   # (three broad folds: the skin this is cut from is too coarse to carry finer ones, which broke up into pits behind the knee)
         r = max(r, r0 + 0.005)                                                                      # a fold never dips into the leg under it (the deeper folds let the back of the knee show through)
         if z < zlow + 0.045: hemv.append(v.index)
         v.co.x = cx + math.cos(a) * r; v.co.y = math.sin(a) * r
-        v.co.z += inner * 0.09 * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
+        v.co.z += inner * (0.05 if zlow > 0.2 else 0.0) * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
+    o.data.update()   # its points have moved: the normals must be the cloth's own. (They were still the leg's, so the light drew the calf and the back of the knee on the cloth as pillows with creased edges.)
     if plain: since(n0, name); return
     hb = o.copy(); hb.data = o.data.copy(); S.collection.objects.link(hb); hb.name = name + "hem"; bm = bmesh.new(); bm.from_mesh(hb.data); bm.verts.ensure_lookup_table(); keep = set(hemv)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.index not in keep], context="VERTS")

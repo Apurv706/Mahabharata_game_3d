@@ -515,3 +515,10 @@ The portraits follow the sheets since Version 57; now the 3D heads do too (`tool
 - A fold of the lower cloth can no longer dip into the leg under it (the deeper folds of Version 61 let the back of the knee show on long cloths).
 - A cloth that reaches the ankle is not drawn in as a knee-length one is (drawn in, it clung to the knee and calf and showed them as lumps).
 - **Known, not from this work:** on women's ankle-length cloth the back of the knee and the calf show as lumps from behind.
+
+## Upper cloth over the lower; the pillows behind the knee (15 November, Version 63)
+
+- **Upper cloth no longer merges with the lower.** A hanging length (`fall()`) used to be set off the bare body only, so a shawl's ends hung through the waist cloth, its sash and pleats. `over()` now casts against the body and every lower piece already built (names beginning dhoti, sash, girdle, pleat, panel, belt), at the middle and both edges of the length.
+- **Lower cloth, tidied:** its long edges are halved before shaping (the thinned skin it is cut from has a few large faces where the body is plain); it hangs clear of the whole leg by the furthest the leg reaches in each direction; three broad folds in place of the finer ones; its normals are recomputed after shaping; an ankle-length cloth's inner hem is no longer lifted.
+- **NOT fixed: the pillows behind each knee** (seen from behind on every lower cloth, clearest on women's ankle-length one). Ruled out, each by a rebuild and a photograph: the folds, the taper, the leg poking through, the cloth's weights (held rigidly to the hips it still shows), stale normals, large faces, loose pieces of mesh, the lifted hem. The built model file itself measures as a clean tube there (radius 0.09 to 0.14 at every height). So the fault is added when the game draws the figure, at heights 0.36 to 0.50, and is still to be found. Start in `js/g3/model.js` and `figure.js`, not in the builder.
+
