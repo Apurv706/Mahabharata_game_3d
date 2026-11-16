@@ -530,3 +530,8 @@ In `fall()` (`cast.py`), for a length that lies on the body:
 - Its border is made from the cloth's own points: a band along each edge and across the foot. (As separate strips hung straight, the border stood away from the gathered cloth like a frame.)
 - It stands 16 mm off what it lies on, was 13.
 
+## The shawl tied loosely across the body (15 November, Version 65)
+
+`ribbon(..., loose=True)` for the shawl and the drape (`cast.py`). The band was fitted to the body along the one line under its middle, 15 mm off, so the chest, the breast-band, the beads and the sash's roll came through it wherever they stood out to either side of that line. Now, at each point round the trunk, it takes the furthest reach of the body and of what is worn (breast-band, sash, girdle, tuck, beads, lower cloth) across its whole width, bridges from one high place to the next, is smoothed, and stands 20 mm off that.
+- **Still through it:** a woman's braid passes through the band at the back, and a bead or two of a necklace shows at its upper edge.
+
