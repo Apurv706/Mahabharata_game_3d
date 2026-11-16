@@ -503,7 +503,7 @@ The portraits follow the sheets since Version 57; now the 3D heads do too (`tool
 
 - **Lower cloth** (`dhoti()` in `cast.py`): full over the thigh and drawn in toward the hem (it was a straight tube round each leg); its folds run aslant from the outer hip toward the middle, where the cloth is drawn through; the front pleats are gathered at the waist and fan out below (`gather=0.3, deep=2.6`, half as wide again).
 - **Yudhishthira** is a lean man, as his sheet draws him: `mu=0.42`, no drawn belly muscle, a smaller chest, neck and back.
-- **Women's hips** are wider (the two hip masses in the woman's frame).
+- **Women's hips:** the two hip masses in the woman's frame were enlarged, but the measure hardly moved (0.506 to 0.511 of height; a measured woman's is 0.627). Not fixed: the frame's own scaling wins. Needs a hip width of its own in the build.
 - **Children** of the slight builds are soft: a round belly (`belly=0.32`), no muscle drawn.
 - All 79 models rebuilt.
 - **Still not the sheets:** the cloth is still one skin shaped round each leg, not a wound length with a tucked tail behind; the upper cloth's winding on the sheets' diagrams is not followed; faces are not likenesses.
