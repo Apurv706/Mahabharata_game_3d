@@ -259,7 +259,7 @@ def soften(b):   # less muscle on the same frame: what lies over the bone shrink
 torso = [b for b in map(soften, torso) if b]; arms = [b for b in map(soften, arms) if b]
 if SHE:   # a woman's frame: breasts (not a girl), fuller hips and seat
     if not H.get("flat"): torso += sym([((0.07, -0.088, 1.285), (0.06, 0.055, 0.056), 1.7)])
-    torso += sym([((0.125, 0.02, 0.93), (0.075, 0.095, 0.09), 1.7), ((0.08, 0.085, 0.9), (0.085, 0.08, 0.09), 1.7)])
+    torso += sym([((0.14, 0.02, 0.93), (0.092, 0.105, 0.1), 1.7), ((0.085, 0.09, 0.9), (0.095, 0.09, 0.1), 1.7)])   # (wider: her hips were 0.81 of a measured woman's)
 if H.get("belly"): torso += [((0, -0.07, 1.06), (0.13 * H["belly"], 0.1 * H["belly"], 0.11), 1.7)]
 # The shoulder girdle. The collar bone, the shoulder blade and the point of the shoulder are bone: they span from the neck
 # to the joint however little muscle a frame carries. The clay above is all muscle, and on a slight frame (a woman, a
@@ -556,10 +556,11 @@ def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
         t = sm(0.95, zlow, z); inner = max(0.0, -sd * math.cos(a)); below = sm(0.92, 0.78, z)     # t: 0 at the hips, 1 at the hem; inner: 1 facing the other leg
-        R = (0.13 - 0.014 * t) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))                    # it hangs from the hip, nearly straight: it does not follow the knee and calf
+        R = (0.132 - 0.03 * t ** 1.5) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))              # full over the thigh and drawn in toward the hem, as a wound cloth is (it was a straight tube)
         R = R * (1 - inner) + min(R, HPX * 0.97) * inner                                          # between the legs the cloth is one: never past the middle
         r = r0 * (1 - below) + max(r0 + 0.006, R) * below
-        r += ((0.004 + 0.009 * t) * math.sin(a * 6 * sd + z * 22) + 0.004 * t * math.sin(a * 13 - z * 35)) * below * (1 - 0.7 * inner)
+        sweep = sd * a + (0.95 - z) * 3.4                                                           # the folds run aslant, from the outer hip down toward the middle, where the cloth is drawn through
+        r += ((0.005 + 0.013 * t) * math.sin(sweep * 5) + 0.004 * t * math.sin(sweep * 11 + 1.3)) * below * (1 - 0.7 * inner)
         if z < zlow + 0.045: hemv.append(v.index)
         v.co.x = cx + math.cos(a) * r; v.co.y = math.sin(a) * r
         v.co.z += inner * 0.09 * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
@@ -569,7 +570,7 @@ def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt
     for v in bm.verts:
         sd = 1 if v.co.x > 0 else -1; cx = sd * HPX; rr = math.hypot(v.co.x - cx, v.co.y) or 1; k = (rr + 0.003) / rr; v.co.x = cx + (v.co.x - cx) * k; v.co.y *= k
     bm.to_mesh(hb.data); bm.free(); hb.data.materials.clear(); hb.data.materials.append(M["hem"]); parts.append(hb)
-    fall("pleat", "cloth", 0.0, min(front(0.95), -0.13 * LEG * flare * 1.1) - 0.016, 0.97, min(0.56, 0.97 - zlow - 0.02), 0.045, edge=False, border=True, brole="hem", sway="sF")
+    fall("pleat", "cloth", 0.0, min(front(0.95), -0.13 * LEG * flare * 1.1) - 0.016, 0.97, min(0.56, 0.97 - zlow - 0.02), 0.07, edge=False, border=True, brole="hem", gather=0.3, deep=2.6, sway="sF")   # the pleats, gathered at the waist and fanning out below
     fall("pleat", "cloth", 0.0, max(backy(0.9), 0.13 * LEG * flare * 1.1) + 0.014, 0.95, min(0.36, 0.95 - zlow - 0.1), 0.04, edge=False)
     since(n0, name)
 # ---- Fitting things to this body: where its surface is, at any height.

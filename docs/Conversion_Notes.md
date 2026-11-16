@@ -499,3 +499,12 @@ The portraits follow the sheets since Version 57; now the 3D heads do too (`tool
 - **Cloth** (`fall()` in `cast.py`): a length hung from the shoulder now lies on the body as far as its most forward point and hangs plumb from there (it was a flat sheet set at that point from the top, and stood off the shoulder like a board); shawl ends are gathered at the top and fold deeper.
 - **Not done:** the lower cloth is still wound as two loose legs, not with the sheets' pleated fall and tail; a woman's hips and a body of his own for each person (lean Yudhishthira is only a narrower strongman); a soft child's body.
 
+## The lower cloth, and three bodies (15 November, Version 61)
+
+- **Lower cloth** (`dhoti()` in `cast.py`): full over the thigh and drawn in toward the hem (it was a straight tube round each leg); its folds run aslant from the outer hip toward the middle, where the cloth is drawn through; the front pleats are gathered at the waist and fan out below (`gather=0.3, deep=2.6`, half as wide again).
+- **Yudhishthira** is a lean man, as his sheet draws him: `mu=0.42`, no drawn belly muscle, a smaller chest, neck and back.
+- **Women's hips** are wider (the two hip masses in the woman's frame).
+- **Children** of the slight builds are soft: a round belly (`belly=0.32`), no muscle drawn.
+- All 79 models rebuilt.
+- **Still not the sheets:** the cloth is still one skin shaped round each leg, not a wound length with a tucked tail behind; the upper cloth's winding on the sheets' diagrams is not followed; faces are not likenesses.
+

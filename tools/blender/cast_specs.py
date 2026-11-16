@@ -123,6 +123,7 @@ def resolve(key):
     # shoulders were 1.29 times the mean and the neck 1.33, the waist 0.77. Each build keeps its place among the others.
     H["wide"] = round(H["wide"] * 0.92, 4); sh = H["shape"]; sh["waist"] = sh["waist"] * (1.2 if H["sex"] != "f" else 1.26)
     if sh["neck"] >= 0.9: sh["neck"] = sh["neck"] * 0.86; sh["trap"] = sh["trap"] * 0.9
+    if key.endswith("_child") and H["mu"] < 0.5: H.setdefault("belly", 0.32); H["abs"] = False   # a child is soft: a round belly, no muscle drawn
     if H["sex"] == "f": H.setdefault("upper", 1.0); H.setdefault("delt", 1.0)   # (a woman's arms were slight already; thinned further they came away from the shoulder)
     H["face"] = face_of(key, H["sex"], c.get("facefix")); return H
 
@@ -312,7 +313,7 @@ def shp(**k): d = dict(chest=1.0, trap=1.0, neck=1.0, waist=1.0, lat=1.0); d.upd
 for st_ in ("child", "youth", "adult"): CAST["bhima_" + st_]["handle"] = True          # his moustache is the wrestler's, swept up (the owner's print)
 CAST["bhima_adult"].update(wide=1.27, girth=1.07, arm=1.1, leg=1.04, shape=shp(chest=1.06, trap=1.12, neck=1.1, waist=1.05, lat=1.04))                       # square and huge
 CAST["arjuna_adult"].update(wide=1.07, girth=0.94, arm=0.93, shape=shp(chest=1.06, trap=0.92, neck=0.93, waist=0.8, lat=1.18))                              # a lean wedge
-CAST["yudhishthira_adult"].update(wide=0.97, girth=0.83, arm=0.7, leg=0.84)                                                                                   # slight, upright
+CAST["yudhishthira_adult"].update(wide=0.97, girth=0.83, arm=0.7, leg=0.84, mu=0.42, abs=False, shape=shp(chest=0.86, trap=0.72, neck=0.84, waist=1.0, lat=0.78))   # a lean man, as his sheet draws him: no wrestler's chest                                                                                   # slight, upright
 CAST["karna_adult"].update(wide=1.03, girth=0.92, arm=0.94, leg=0.96, shape=shp(chest=1.03, trap=0.9, neck=0.9, waist=0.83, lat=1.1))                        # tall and narrow
 CAST["duryodhana_adult"].update(wide=1.17, girth=1.1, belly=0.45, soft=True, abs=False, shape=shp(chest=1.06, trap=1.06, neck=1.06, waist=1.1))              # a barrel
 CAST["dushasana_adult"].update(wide=1.12, girth=1.07, belly=0.35, soft=True, abs=False)
