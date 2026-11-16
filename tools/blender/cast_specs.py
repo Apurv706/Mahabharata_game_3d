@@ -124,6 +124,7 @@ def resolve(key):
     H["wide"] = round(H["wide"] * 0.92, 4); sh = H["shape"]; sh["waist"] = sh["waist"] * (1.2 if H["sex"] != "f" else 1.26)
     if sh["neck"] >= 0.9: sh["neck"] = sh["neck"] * 0.86; sh["trap"] = sh["trap"] * 0.9
     if key.endswith("_child") and H["mu"] < 0.5: H.setdefault("belly", 0.32); H["abs"] = False   # a child is soft: a round belly, no muscle drawn
+    if H["sex"] == "f" and not key.endswith("_child"): sh["hip"] = 1.22   # a woman's hips: the pelvis, the hip and the seat together (enlarging the hip masses alone did not move the measure)
     if H["sex"] == "f": H.setdefault("upper", 1.0); H.setdefault("delt", 1.0)   # (a woman's arms were slight already; thinned further they came away from the shoulder)
     H["face"] = face_of(key, H["sex"], c.get("facefix")); return H
 

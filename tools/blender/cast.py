@@ -242,7 +242,7 @@ def frame(balls):   # Bhima's own lists, refitted to this hero's frame and build
         elif ax >= SHX - 0.02: k = H["arm"] * H.get("delt", 0.86); nb = ((x, y, z), (sx * k, sy * k, sz))                                      # shoulders: placed by the shoulder joint
         else:
             SH = H["shape"]; st = b[2] if len(b) > 2 else 2.0
-            m = SH["waist"] if (0.95 < z < 1.19 and ax < 0.15 and y < 0.04) else SH["chest"] if (y < -0.055 and 1.25 < z < 1.4 and st == 1.5) else SH["neck"] if (ax < 0.05 and z > 1.49) else SH["trap"] if (z > 1.41 and y > 0.02 and ax > 0.05) else SH["lat"] if (y > 0.02 and 1.15 < z < 1.3 and ax > 0.12) else 1.0
+            m = SH.get("hip", 1.0) if (0.86 < z < 0.96) else SH["waist"] if (0.95 < z < 1.19 and ax < 0.15 and y < 0.04) else SH["chest"] if (y < -0.055 and 1.25 < z < 1.4 and st == 1.5) else SH["neck"] if (ax < 0.05 and z > 1.49) else SH["trap"] if (z > 1.41 and y > 0.02 and ax > 0.05) else SH["lat"] if (y > 0.02 and 1.15 < z < 1.3 and ax > 0.12) else 1.0
             w = GI * m; nb = ((x * FX, y * (0.5 + 0.5 * w), z), (sx * FX * w, sy * w, sz))
             if st == 1.45 and 1.42 < z < 1.44: nb = ((x * FX, y * (0.5 + 0.5 * w) * (0.74 + 0.26 * min(1.0, H["mu"])), z), nb[1])   # the collar bone: no prouder than the chest under it
         out.append(nb + tuple(b[2:]))
@@ -556,11 +556,12 @@ def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt
         v.co.z = max(v.co.z, zlow)                                                                 # a straight hem: what hung below the line is gathered up to it
         x, y, z = v.co; sd = 1 if x > 0 else -1; cx = sd * HPX; a = math.atan2(y, x - cx); r0 = math.hypot(x - cx, y)
         t = sm(0.95, zlow, z); inner = max(0.0, -sd * math.cos(a)); below = sm(0.92, 0.78, z)     # t: 0 at the hips, 1 at the hem; inner: 1 facing the other leg
-        R = (0.132 - 0.03 * t ** 1.5) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))              # full over the thigh and drawn in toward the hem, as a wound cloth is (it was a straight tube)
+        R = (0.132 - (0.03 if zlow > 0.5 else 0.012) * t ** 1.5) * LEG * flare * (1.0 + 0.12 * abs(math.sin(a)))              # full over the thigh and drawn in toward the hem, as a wound cloth is (it was a straight tube)
         R = R * (1 - inner) + min(R, HPX * 0.97) * inner                                          # between the legs the cloth is one: never past the middle
         r = r0 * (1 - below) + max(r0 + 0.006, R) * below
         sweep = sd * a + (0.95 - z) * 3.4                                                           # the folds run aslant, from the outer hip down toward the middle, where the cloth is drawn through
         r += ((0.005 + 0.013 * t) * math.sin(sweep * 5) + 0.004 * t * math.sin(sweep * 11 + 1.3)) * below * (1 - 0.7 * inner)
+        r = max(r, r0 + 0.005)                                                                      # a fold never dips into the leg under it (the deeper folds let the back of the knee show through)
         if z < zlow + 0.045: hemv.append(v.index)
         v.co.x = cx + math.cos(a) * r; v.co.y = math.sin(a) * r
         v.co.z += inner * 0.09 * sm(zlow + 0.24, zlow, z) * below                                 # the hem rises between the legs, where the cloth is drawn through
@@ -571,7 +572,7 @@ def dhoti(name, zlow, flare=1.0, role="cloth", plain=False):   # (plain: a skirt
         sd = 1 if v.co.x > 0 else -1; cx = sd * HPX; rr = math.hypot(v.co.x - cx, v.co.y) or 1; k = (rr + 0.003) / rr; v.co.x = cx + (v.co.x - cx) * k; v.co.y *= k
     bm.to_mesh(hb.data); bm.free(); hb.data.materials.clear(); hb.data.materials.append(M["hem"]); parts.append(hb)
     fall("pleat", "cloth", 0.0, min(front(0.95), -0.13 * LEG * flare * 1.1) - 0.016, 0.97, min(0.56, 0.97 - zlow - 0.02), 0.07, edge=False, border=True, brole="hem", gather=0.3, deep=2.6, sway="sF")   # the pleats, gathered at the waist and fanning out below
-    fall("pleat", "cloth", 0.0, max(backy(0.9), 0.13 * LEG * flare * 1.1) + 0.014, 0.95, min(0.36, 0.95 - zlow - 0.1), 0.04, edge=False)
+    fall("pleat", "cloth", 0.0, max(backy(0.9), 0.13 * LEG * flare * 1.1) + 0.014, 0.95, min(0.36, 0.95 - zlow - 0.1), 0.055, edge=False, border=True, brole="hem", gather=0.22, deep=2.6)   # the tail: the cloth's end drawn through, pleated and tucked in at the small of the back
     since(n0, name)
 # ---- Fitting things to this body: where its surface is, at any height.
 from mathutils.bvhtree import BVHTree

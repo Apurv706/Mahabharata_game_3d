@@ -508,3 +508,10 @@ The portraits follow the sheets since Version 57; now the 3D heads do too (`tool
 - All 79 models rebuilt.
 - **Still not the sheets:** the cloth is still one skin shaped round each leg, not a wound length with a tucked tail behind; the upper cloth's winding on the sheets' diagrams is not followed; faces are not likenesses.
 
+## Women's hips and the tucked tail (15 November, Version 62)
+
+- **Hips:** a shape factor `hip` (pelvis, hip and seat together, heights 0.86 to 0.96) set to 1.22 on grown women. Hip girth 0.511 to 0.568 of height (a measured woman's is 0.627).
+- **The tail:** the back fall of the lower cloth is now the cloth's end drawn through: pleated, gathered tight at the small of the back, with its border.
+- A fold of the lower cloth can no longer dip into the leg under it (the deeper folds of Version 61 let the back of the knee show on long cloths).
+- A cloth that reaches the ankle is not drawn in as a knee-length one is (drawn in, it clung to the knee and calf and showed them as lumps).
+- **Known, not from this work:** on women's ankle-length cloth the back of the knee and the calf show as lumps from behind.
