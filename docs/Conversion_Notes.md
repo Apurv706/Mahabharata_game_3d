@@ -622,3 +622,21 @@ Asked for: "Lets build the rest", read as the three things Version 71 said it ha
 - `tests/ragdoll.js`: 114 checks from 88. `tools/review/falls.js` takes `car`, `driver`, `wreck`, `drive` and `beast`.
 - The rules (`js/ui/battle/sim.js`) were not changed. The fight bands are as recorded.
 
+
+## Version 73 (17 November): a chariot's team is in the way
+
+Asked for, after Version 72 was played: "Player was still able to walk through horses with no stopping and damage. Can you check". It was so: in the rules a car was one circle about its deck and an elephant one about its barrel. `docs/Fight_Feel.md`, section 5, has what a body is now and what happens when you meet it. In the code (`js/ui/battle/sim.js`, "How bodies move", shape):
+
+- `TEAM`, `noseL`, `noseR`: a car (`g.car`, with `g.team` 2 or 4) and an elephant have a second circle ahead of their middle; the body is those two and everything between. `near(g, x, z, px, pz)` gives the circle inside the body nearest a point (exact for the cone between two circles); `touch(g, x, z, o, gap)` how far one body is into another, the way out, and how far along the first they met. `R3.shape`, `R3.off` and `R3.skirt` are for the view, the tools and the checks.
+- `move`, `bump`, `shove` and the easing-apart of overlapping bodies all go through `touch` or `near`. The easing-apart now includes the car you ride in, which gives no ground.
+- `jostle(R, by, o, share, tx, tz, arm)`: a man is thrown only when the part of the car that met him is coming at him at 0.8 m/s or more. That part's speed is the car's own and its turning (`g.cw`, the turn rate over the last sixth of a second, times how far ahead of the deck they met). Not while he lies thrown or within `P.downFree` of it. Car against car is judged along the line they met on.
+- `R.blocks`: what stands on the field and cannot be moved. `carDown` adds a car whose man is killed (with its team unless `g.wrecked`), `wheelSetup` Karna's car on the seventeenth day, `beatItem` a car the story takes from under its man (he is set down 1.75 m to the side of it, toward the field's middle; the `dismount` event carries his place).
+- `g.wrecked` and `g.killHeavy`: whether a car is lost with its man is decided here (`carDown`). `js/ui/battle/view.js` reads them, and no longer keeps its own judgement in `v.heavyAt` and `v.crashAt` for this.
+- `skirt(R, u, vx, vz)`, called from `walk` for every man but you and from the game's own fighter: a man against the side of a long body who is making for the far side of it walks along it to the end he will clear sooner. He keeps the choice half a second. One already getting along it is left alone.
+- `roleStep`, the champion's charge: in a car it ends where he could still pull up short of you (`span`, the distance from the nearest part of his body).
+- `planStep`: a pincer turns after 14.5 seconds whatever has become of its wings. **A wing cut down on its way round had left the fight unturned for good.**
+- The game's own fighter (`bot0`, `wants`): steps or rolls out of the way of the team, not of the deck behind it; makes for a car's man, and for a charioteer, from 0.9 m behind the deck's middle.
+- `js/ui/battle/view.js`: a car has `g.team` horses on every graphics setting; a hero's parked car has four.
+- `tests/rules3d.js`: 126 checks from 116, and four older ones made to stand on their own (`docs/Fight_Feel.md`, "Checks added"). `tools/review/footprint.js` (new).
+- Two faults of the first tries, both of which hung a fight: the team as a circle of its own left a hollow at the pole; and a man who was sent to the nearer end of a car when what he wanted was its man, at the other end, went back and forth at the horses' heads.
+- The fight bands are as recorded: 92 wins in 100 and 41 seconds over the 79 fights, none failing, none running out the clock.

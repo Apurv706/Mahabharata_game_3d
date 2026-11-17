@@ -452,7 +452,7 @@
         if (g.car) { // a chariot: the archer on its deck, a driver at the rail, the hero's own standard behind
           const theirs = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE, who = u.person || (u.side === "player" && B.enc.ride3) || (/Brihannala/.test(String(u.src || u.name)) ? "brihannala" : null), flag = STANDARD[who === "brihannala" ? "arjuna" : who] || [theirs, "#f2ead2", theirs === RED ? "sun" : "moon"];
           const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
-          v.car = G.chariot({ col: car ? car[0] : G.shade(theirs, great ? 0.82 : 0.66) /* (panelled in his host's colour) */, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
+          v.car = G.chariot({ col: car ? car[0] : G.shade(theirs, great ? 0.82 : 0.66) /* (panelled in his host's colour) */, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: g.team === 4 ? 4 : 2 });   // (as many as the rules have before it, on every setting: the team is in the way now (17 November), and what stops you has to be what you see)
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
           v.driver = G.figure(who === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand")
           v.divine = who === "arjuna";   // (Krishna's car is never lost, and he is never thrown from it: wreck3)
@@ -471,7 +471,7 @@
         const hero = u.person;
         if (!g.car && hero && u.side !== "player" && (STANDARD[hero] || STEEDS[hero]) && st && !st.indoor && (R.line || K.S.act >= 6)) {
           const steeds = STEEDS[hero], car = CAR[hero], side = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE;
-          v.parked = G.chariot({ col: car ? car[0] : G.shade(side, 0.82), trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
+          v.parked = G.chariot({ col: car ? car[0] : G.shade(side, 0.82), trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: 4 });   // (four on every setting: where this car comes onto the field, fast in the earth on the seventeenth day, the rules have a team of four in the way)
           const a = Math.atan2(g.x, g.z) + (u.side === "ally" ? 0.55 : -0.4), r = R.rad + 3.6;
           v.parked.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); v.parked.rotation.y = a + Math.PI; v.parked.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.parked);
         }
@@ -564,10 +564,10 @@
           // onto his side from one at his side; fast from a heavy blow, and never lying quite square
           const lf = g.lastFrom, fw = lf ? (lf.x - g.x) * s + (lf.z - g.z) * c : 1, sd = lf ? (lf.x - g.x) * c - (lf.z - g.z) * s : 0, hard = g.thrown === 2;
           if (PH) PH.unmover(u.uid + ":" + i);
-          const heavy2 = R.t - (v.heavyAt || -9) < 0.5;   // (a car's man is not thrown by the rules: what the eye saw strike him last says how he falls)
+          const heavy2 = g.killHeavy != null ? !!g.killHeavy : R.t - (v.heavyAt || -9) < 0.5;   // (a car's man is not thrown by the rules: how the blow that killed him was struck says how he falls)
           if (!(PH && (v.car ? rider3(v, f, g, heavy2, false) : thrown3(f, g, hard, false)))) f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
           f.speed = 0; if (!f.rag) G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g);
-          if (v.car && !v.wrecked && !v.divine && (heavy2 || R.t - (v.crashAt || -9) < 0.8 || g.wreckT > R.t)) wreck3(v, v.car); }   // (brought down by a heavy blow or a meeting: the car is lost with him)
+          if (v.car && !v.wrecked && !v.divine && g.wrecked) wreck3(v, v.car); }   // (brought down by a heavy blow or a meeting, the car is lost with him: the rules say which (carDown), since a team left standing is in the way and one that is down is not)
         if (f.fellAt) { f.update(dt, t); if (f.rag) landed(f, u); return; }
         if (PH && !v.car && u.hp > 0) { if (f.rag && !f.rag.rise) PH.unmover(u.uid + ":" + i); else PH.mover(u.uid + ":" + i, { kind: "man", x: f.root.position.x, z: f.root.position.z, s: f.size, dt }); }   // (a body thrown at a standing man strikes him)
         { const face = f.root.rotation.y, sn = Math.sin(face), cs = Math.cos(face), lx = v.car ? 0 : g.lx || 0, lz = v.car ? 0 : g.lz || 0; // (his legs go at the pace and the way he is really going: forward, back or to the side)

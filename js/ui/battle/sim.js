@@ -99,6 +99,9 @@
   //           staggered or down he gives a lot; your own men step out of your way; no one moves an elephant (move).
   //   blows   every blow that lands moves the body it lands on, a light one a hand's breadth, and what throws a body
   //           back runs out over half a second, not a tenth (knock, nudge, PHYS.fric).
+  //   shape   a man is a circle. A car is its deck and the team before it, an elephant its barrel and its head: one
+  //           closed shape (TEAM, near, touch). It is in the way of everything, it is what throws a man when it is
+  //           coming at him, and men go round it (skirt). A car whose man is killed stays where it stopped (R.blocks).
   const PHYS = (R3.PHYS = {
     acc: 30, brake: 38, accFoe: 17, brakeFoe: 24, accSquad: 12, turn: 15,
     car: { acc: 4.6, brake: 7, turn: 2.1, pivot: 0.55, rmin: 2.6 }, ele: { acc: 2.4, brake: 3.6, turn: 1.5, pivot: 0.8, rmin: 1.9 },
@@ -118,6 +121,54 @@
   const massK = (u) => Math.pow(weight(u), -PHYS.massPow);   // (how far a blow moves him)
   R3.weight = weight;
   const locked = (R, u) => u.g.role === "wall" && !!R.plan && !R.plan.broken; // (shields locked: the wall is one weight)
+  // What a body is, for what it may not pass through and what it strikes. A man, a squad, a cart: a circle (g.rad). A car
+  // is its deck and the team before it, an elephant its barrel and its head: a circle (g.rad) at its middle, a second
+  // (TEAM) ahead of it the way it points, and everything between the two, as a cord drawn tight round both would hold.
+  // (Owner, 17 November: "Player was still able to walk through horses with no stopping and damage": a car was one
+  // circle about its deck, 1.25 m, and its horses, two to four and a half metres before that, were drawn and nothing
+  // more. A car under way met a man only when its deck reached him, after its team had gone through him.) The shape has
+  // no hollow in it. The first try gave the team a circle of its own: a man was caught between it and the deck, on the
+  // pole, and carried off with the car.
+  //   z, r: where a pair stands before the deck's middle, and its reach; z4, r4: a team of four; headZ, headR: an elephant's head.
+  const TEAM = (R3.TEAM = { z: 3.4, r: 1.05, z4: 3.1, r4: 1.9, headZ: 2.45, headR: 0.95 });
+  const noseL = (g) => (g.nl != null ? g.nl : g.car ? (g.team === 4 ? TEAM.z4 : TEAM.z) : g.kind === "elephant" ? TEAM.headZ : 0);
+  const noseR = (g) => (g.nr != null ? g.nr : g.car ? (g.team === 4 ? TEAM.r4 : TEAM.r) : TEAM.headR);
+  // near(g, x, z, px, pz): of all the circles that lie inside the body g, set down at (x, z), the one nearest the point
+  // (px, pz): its middle (QX, QZ) and its reach (QR). For a man it is the man.
+  let QX = 0, QZ = 0, QR = 0;
+  function near(g, x, z, px, pz) {
+    const L = noseL(g);
+    if (!L) { QX = x; QZ = z; QR = g.rad; return; }
+    const a = g.ca != null ? g.ca : g.a, ex = Math.sin(a), ez = Math.cos(a), dx = px - x, dz = pz - z, s = (g.rad - noseR(g)) / L;
+    const w = clamp(dx * ex + dz * ez - (Math.abs(dx * ez - dz * ex) * s) / Math.sqrt(1 - s * s), 0, L);
+    QX = x + ex * w; QZ = z + ez * w; QR = g.rad - s * w;
+  }
+  // touch(g, x, z, o, gap): how far the body g, set down at (x, z), is into the body o where o is (TP, more than nothing
+  // when they meet), the way out of it (TX, TZ: from o toward g), and how far ahead of g's own middle they met (TW).
+  // Two long bodies: three places along each against the whole of the other. (One on the very middle line of a long
+  // body is put out to its side.)
+  let TP = 0, TX = 0, TZ = 0, TW = 0;
+  function touch(g, x, z, o, gap) {
+    TP = 0; TW = 0; const Lg = noseL(g), Lo = noseL(o);
+    if (!Lo) { near(g, x, z, o.x, o.z); const dx = QX - o.x, dz = QZ - o.z, d = Math.hypot(dx, dz), pen = QR + o.rad + gap - d; if (!(pen > 0)) return;
+      if (d > 1e-4) { TP = pen; TX = dx / d; TZ = dz / d; } else if (Lg) { const a = g.ca != null ? g.ca : g.a; TP = pen; TX = Math.cos(a); TZ = -Math.sin(a); }
+      TW = Math.hypot(QX - x, QZ - z); return; }
+    if (!Lg) { near(o, o.x, o.z, x, z); const dx = x - QX, dz = z - QZ, d = Math.hypot(dx, dz), pen = g.rad + QR + gap - d; if (!(pen > 0)) return;
+      if (d > 1e-4) { TP = pen; TX = dx / d; TZ = dz / d; } else { const a = o.ca != null ? o.ca : o.a; TP = pen; TX = Math.cos(a); TZ = -Math.sin(a); }
+      return; }
+    const ga = g.ca != null ? g.ca : g.a, oa = o.ca != null ? o.ca : o.a, rg = noseR(g), ro = noseR(o);
+    for (let i = 0; i < 3; i++) {
+      const w = (Lg * i) / 2, cx = x + Math.sin(ga) * w, cz = z + Math.cos(ga) * w, cr = g.rad + ((rg - g.rad) * i) / 2;
+      near(o, o.x, o.z, cx, cz); let dx = cx - QX, dz = cz - QZ, d = Math.hypot(dx, dz), pen = cr + QR + gap - d; if (pen > TP && d > 1e-4) { TP = pen; TX = dx / d; TZ = dz / d; TW = w; }
+      const ex = o.x + (Math.sin(oa) * Lo * i) / 2, ez = o.z + (Math.cos(oa) * Lo * i) / 2, er = o.rad + ((ro - o.rad) * i) / 2;
+      near(g, x, z, ex, ez); dx = QX - ex; dz = QZ - ez; d = Math.hypot(dx, dz); pen = QR + er + gap - d; if (pen > TP && d > 1e-4) { TP = pen; TX = dx / d; TZ = dz / d; TW = Math.hypot(QX - x, QZ - z); }
+    }
+  }
+  // (for the view and the checks: a body's two circles, and how far a point is from the body: less than nothing inside it)
+  R3.shape = (u) => { const g = u.g, a = g.ca != null ? g.ca : g.a, L = noseL(g); return { x: g.x, z: g.z, r: g.rad, a, len: L, nx: g.x + Math.sin(a) * L, nz: g.z + Math.cos(a) * L, nr: L ? noseR(g) : g.rad }; };
+  R3.off = (u, px, pz) => { near(u.g, u.g.x, u.g.z, px, pz); return Math.hypot(px - QX, pz - QZ) - QR; };
+  // (how far t is from e, counted from the nearest part of e's body as if e were round: for a man it is the plain distance between them)
+  const span = (e, t) => { near(e.g, e.g.x, e.g.z, t.g.x, t.g.z); return Math.hypot(t.g.x - QX, t.g.z - QZ) - QR + e.g.rad; };
   const brace = (R, u, by) => { const g = u.g;
     if (u.still) return 1e6;
     if (u.side === "player") return by.side === "ally" ? 1e6 : R.block ? 4.5 : R.roll > 0 ? 0.5 : 2.9; // (your own men do not push you about)
@@ -125,8 +176,38 @@
     if (u.hp <= 0 || g.down > 0) return 0.4;
     if (g.stag > 0 || held(u)) return 0.6;
     return locked(R, u) || (R.through && by.side === "player") ? 9 : by.side === "player" ? 4 : 2.9; }; // (one posted to bar your way is set against you, and gives almost nothing)
+  // A man does not lean on the side of a car and its team, or of an elephant, to come to the other side of it: he goes
+  // round, by whichever end he will be clear of sooner (the tail of one that is coming on, most often). skirt(R, u, vx,
+  // vz) gives the way he walks (VX, VZ) for the way he would go. It is not asked for you: where you walk is yours.
+  let VX = 0, VZ = 0;
+  function skirt1(R, g, o, cv, id, vx, vz, sp) {
+    const L = noseL(o); if (!L) return false;
+    near(o, o.x, o.z, g.x, g.z);
+    const dx = g.x - QX, dz = g.z - QZ, d = Math.hypot(dx, dz); if (d < 1e-4 || d - QR - g.rad > 0.45) return false;
+    const nx = dx / d, nz = dz / d; if (-(vx * nx + vz * nz) < 0.35 * sp) return false;   // (he is not making for the far side of it)
+    const a = o.ca != null ? o.ca : o.a, ex = Math.sin(a), ez = Math.cos(a), w = (QX - o.x) * ex + (QZ - o.z) * ez; if (w < 0.02 || w > L - 0.02) return false;   // (at either end it is round, and he comes round it of himself)
+    // Left to himself he slides along it the way he leans, as fast as that lean and its own going allow. He is turned
+    // only when one end or the other is much the sooner reached: one already going along it is left alone.
+    const along = (vx * ex + vz * ez) - cv, toTail = w + o.rad + g.rad, toNose = L - w + noseR(o) + g.rad;
+    if (Math.abs(vx * ex + vz * ez) > 0.6 * sp && Math.abs(along) > 0.3 * sp) return false;   // (he is making along it and getting along it, for something at one end: its man, from behind the wheels. Turned for the nearer end, he went back and forth at the horses' heads and the fight never ended.)
+    const self = along > 0.25 * sp ? toNose / along : along < -0.25 * sp ? toTail / -along : 1e9;
+    const tTail = toTail / (sp + cv), tNose = sp > cv + 0.4 ? toNose / (sp - cv) : 1e9;
+    let dir = tTail <= tNose ? -1 : 1;
+    // (he keeps to the end he chose for half a second and no more, and then chooses again: kept for as long as he was against it, he was sent back to the horses' heads each time he turned for the wheels)
+    if (g.skId === id && R.t < g.skT) dir = g.skDir; else { if (Math.min(tTail, tNose) > 0.6 * self) return false; g.skId = id; g.skDir = dir; g.skT = R.t + 0.5; }
+    const kx = ex * dir + nx * 0.2, kz = ez * dir + nz * 0.2, kl = Math.hypot(kx, kz); VX = (kx / kl) * sp; VZ = (kz / kl) * sp; return true;
+  }
+  function skirt(R, u, vx, vz) {
+    VX = vx; VZ = vz; const g = u.g, sp = Math.hypot(vx, vz); if (sp < 0.3) return false;
+    for (const o of R.B.units) { const og = o.g; if (o === u || !og || !(og.car || og.kind === "elephant") || o.hp <= 0 || o.spared || (o.side === "enemy" && !og.entered) || (u.side === "ally" && o.side === "player")) continue;
+      if (skirt1(R, g, og, og.ride ? 0 : og.cv || 0, o.uid, vx, vz, sp)) return true; }
+    for (const b of R.blocks) if (skirt1(R, g, b, 0, b.uid, vx, vz, sp)) return true;
+    return false;
+  }
+  R3.skirt = (R, u, vx, vz) => (skirt(R, u, vx, vz) ? [VX, VZ] : null);   // (for the checks)
   function walk(R, u, vx, vz, dt, pass) {
     const g = u.g, me = u.side === "player", going = vx || vz;
+    if (going && !me && !pass && u.hp > 0 && skirt(R, u, vx, vz)) { vx = VX; vz = VZ; }
     const rate = (going ? (me ? PHYS.acc : g.kind === "squad" ? PHYS.accSquad : PHYS.accFoe) : me ? PHYS.brake * (R.t < (g.landT || 0) ? 0.5 : 1) : PHYS.brakeFoe) * dt; // (out of a roll your feet take longer to stop you)
     const dx = vx - g.wx, dz = vz - g.wz, l = Math.hypot(dx, dz);
     if (l <= rate) { g.wx = vx; g.wz = vz; } else { g.wx += (dx / l) * rate; g.wz += (dz / l) * rate; }
@@ -142,7 +223,7 @@
     const look = 1.4 + g.cv * 0.7, ax = g.x + Math.sin(g.ca) * look, az = g.z + Math.cos(g.ca) * look, ar = Math.hypot(ax, az), lim = R.rad - g.rad - 0.3;
     if (g.entered && ar > lim) { const k = Math.min(1, (ar - lim) / 1.6); wx = wx * (1 - k) - (ax / ar) * k * 1.5; wz = wz * (1 - k) - (az / ar) * k * 1.5; l = Math.hypot(wx, wz); if (l > 1e-3) { wx /= l; wz /= l; } }
     const off = l > 1e-3 ? adiff(Math.atan2(wx, wz), g.ca) : 0, wmax = Math.min(V.turn, g.cv / V.rmin + V.pivot) * dt;
-    g.ca += clamp(off, -wmax, wmax);
+    g.ca += clamp(off, -wmax, wmax); g.cw = (g.cw || 0) + (clamp(off, -wmax, wmax) / dt - (g.cw || 0)) * Math.min(1, dt / 0.15);   // (g.cw: how fast it is coming round, over the last sixth of a second: its team swings wide of its deck)
     const al = Math.cos(off), want = pace * (al > 0 ? 0.35 + 0.65 * al : 0.35);
     g.cv = Math.max(0, g.cv + clamp(want - g.cv, -V.brake * dt, V.acc * dt));
     g.walkN = R.n; g.wx = Math.sin(g.ca) * g.cv; g.wz = Math.cos(g.ca) * g.cv;
@@ -153,27 +234,34 @@
   }
   // (on legs or on wheels, toward (mx, mz) at sp metres a second)
   function goTo(R, u, mx, mz, sp, dt) { if (wheeled(u)) return drive(R, u, mx, mz, sp, dt); const l = Math.hypot(mx, mz); if (l > 1e-3) walk(R, u, (mx / l) * sp, (mz / l) * sp, dt); }
-  function shove(R, u, dx, dz) { const g = u.g; if (g.ride) return; let x = g.x + dx, z = g.z + dz; const r = Math.hypot(x, z), lim = R.rad - 0.3; if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; } g.x = x; g.z = z; }
+  function shove(R, u, dx, dz) { const g = u.g; if (g.ride) return; let x = g.x + dx, z = g.z + dz;
+    for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { x += TX * TP; z += TZ * TP; } }   // (not into a car that stands dead on the field)
+    const r = Math.hypot(x, z), lim = R.rad - 0.3; if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; } g.x = x; g.z = z; }
   // A car or an elephant under way does not ease a man aside: it throws him, forward and to the side he was on.
-  function jostle(R, by, o, share) {
+  // (tx, tz: the way from the one to the other where they met; arm: how far ahead of its own middle that was.) What
+  // counts is how fast that place is coming at him: by the car's own way, and by its turning, for a team swings wide of
+  // its deck. A man who only brushes along its side as it passes is not thrown.
+  function jostle(R, by, o, share, tx, tz, arm) {
     const g = by.g, og = o.g; if (!wheeled(by) || !(g.cv > 1.6) || og.kind === "elephant" || o.still || g.ride || og.ride || og.jostleT > R.t || (by.side === "enemy") === (o.side === "enemy")) return; // (its own side's men get out of its way; it is the other side's it throws)
     const m1 = weight(by), m2 = weight(o), mu = (m1 * m2) / (m1 + m2);
+    const ex = Math.sin(g.ca), ez = Math.cos(g.ca), sw = (g.cw || 0) * (arm || 0), vx = ex * g.cv + ez * sw, vz = ez * g.cv - ex * sw;
     if (og.car) {   // A car meets a car, or an elephant a car: by how fast the two are closing. Each is given its share; one stopped dead throws its man down on the deck.
-      const d = Math.hypot(og.x - g.x, og.z - g.z) || 1, nx = (og.x - g.x) / d, nz = (og.z - g.z) / d, oa = og.ca != null ? og.ca : og.a;
-      const closing = g.cv * (Math.sin(g.ca) * nx + Math.cos(g.ca) * nz) - (og.cv || 0) * (Math.sin(oa) * nx + Math.cos(oa) * nz); if (closing < 1.6) return;
+      const d = Math.hypot(og.x - g.x, og.z - g.z) || 1, nx = tx != null ? tx : (og.x - g.x) / d, nz = tx != null ? tz : (og.z - g.z) / d, oa = og.ca != null ? og.ca : og.a;
+      const closing = vx * nx + vz * nz - (og.cv || 0) * (Math.sin(oa) * nx + Math.cos(oa) * nz); if (closing < 1.6) return;
       og.jostleT = R.t + 0.8; g.jostleT = R.t + 0.8;
       const J = (1 + PHYS.bounce) * mu * closing, dv2 = J / m2, dv1 = J / m1, n2 = harm(R, o, dv2), n1 = harm(R, by, dv1), fell = felled(R, o, dv2), me = felled(R, by, dv1);
       if (!fell) og.cv = Math.max(0, (og.cv || 0) - dv2 * 0.5); if (!me) g.cv = Math.max(0, g.cv - dv1);
       R.stats.bumps = (R.stats.bumps || 0) + 1;
       R.fx.push({ k: "crash", uid: o.uid, by: by.uid, fell, me, dv: dv2, n: n2, n1 }); return;
     }
-    if (share < 0.5) return;
+    if (share < 0.5 || (tx != null && vx * tx + vz * tz < 0.8)) return;
+    if (o.side === "player" ? R.t < (R.downFree || 0) : og.down > 0) return;   // (one who lies where he was thrown, or is only now on his feet again, is pushed on and not thrown a second time)
     og.jostleT = R.t + 0.8;
-    const side = Math.sign(Math.sin(g.ca) * (og.z - g.z) - Math.cos(g.ca) * (og.x - g.x)) || 1, a = g.ca - side * 1.1;
+    const va = Math.atan2(vx, vz), cx = g.x + ex * (arm || 0), cz = g.z + ez * (arm || 0), side = Math.sign(Math.sin(va) * (og.z - cz) - Math.cos(va) * (og.x - cx)) || 1, a = va - side * 1.1;
     const dv = ((1 + PHYS.bounce) * mu * g.cv) / m2;   // (the change of speed it gives him: his weight against its own)
     og.vx += Math.sin(a) * dv; og.vz += Math.cos(a) * dv; og.bumpT = R.t + 0.5;
     const hurt = harm(R, o, dv), fell = felled(R, o, dv);
-    R.fx.push({ k: "jostle", uid: o.uid, by: by.uid, fell, dv, n: hurt });
+    R.fx.push({ k: "jostle", uid: o.uid, by: by.uid, fell, dv, n: hurt, arm: arm || 0, cv: g.cv, sw });
   }
   // What a meeting costs in health: nothing below PHYS.hurtV, then by how hard. A champion who is only being held is not
   // brought below a tenth by it, nor Bhishma before the tenth day; a roll carries you through it. Returns what was taken.
@@ -206,7 +294,8 @@
     for (const o of R.B.units) {
       const og = o.g; if (o === u || !og || o.hp <= 0 || o.spared || og.ride || og.kind === "light" || o.decoy || (o.side === "enemy" && !og.entered) || og.bumpT > R.t) continue;
       if (o.side === "player" && (R.roll > 0 || R.unseen > 0)) continue;
-      const dx = og.x - g.x, dz = og.z - g.z, d = Math.hypot(dx, dz); if (d > g.rad + og.rad + sp * STEP + 0.06 || d < 1e-4) continue;   // (touching, or about to this step: bodies that only lean are eased apart before they ever overlap)
+      near(og, og.x, og.z, g.x, g.z);   // (a car's team and an elephant's head are struck as the car and the elephant are)
+      const dx = QX - g.x, dz = QZ - g.z, d = Math.hypot(dx, dz); if (d > g.rad + QR + sp * STEP + 0.06 || d < 1e-4) continue;   // (touching, or about to this step: bodies that only lean are eased apart before they ever overlap)
       const nx = dx / d, nz = dz / d, vrel = (g.vx - (og.vx || 0)) * nx + (g.vz - (og.vz || 0)) * nz; if (vrel < PHYS.bumpV * 0.6) continue;
       const m1 = weight(u), m2 = weight(o), J = (1 + PHYS.bounce) * (m1 * m2 / (m1 + m2)) * vrel, dv1 = J / m1, dv2 = J / m2;
       g.vx -= nx * dv1; g.vz -= nz * dv1; og.bumpT = R.t + 0.5; g.bumpT = R.t + 0.25;
@@ -215,6 +304,16 @@
       const fell = felled(R, o, dv2), me = u.hp > 0 && m2 >= m1 * 6 ? felled(R, u, dv1) : false;   // (against what is far the heavier, it is the one thrown who drops)
       R.stats.bumps = (R.stats.bumps || 0) + 1;
       R.fx.push({ k: "bump", uid: o.uid, by: u.uid, fell, me, dv: dv2, n: n2, n1, x: g.x + nx * g.rad, z: g.z + nz * g.rad });
+      return;
+    }
+    for (const b of R.blocks) {   // (a car that stands dead on the field: what is thrown against it stops there and drops)
+      near(b, b.x, b.z, g.x, g.z);
+      const dx = QX - g.x, dz = QZ - g.z, d = Math.hypot(dx, dz); if (d > g.rad + QR + sp * STEP + 0.06 || d < 1e-4) continue;
+      const nx = dx / d, nz = dz / d, vrel = g.vx * nx + g.vz * nz; if (vrel < PHYS.bumpV * 0.6) continue;
+      const dv1 = (1 + PHYS.bounce) * vrel; g.vx -= nx * dv1; g.vz -= nz * dv1; g.bumpT = R.t + 0.25;
+      const n1 = u.hp > 0 ? harm(R, u, dv1) : 0, me = u.hp > 0 ? felled(R, u, dv1) : false;
+      R.stats.bumps = (R.stats.bumps || 0) + 1;
+      R.fx.push({ k: "bump", uid: b.uid, by: u.uid, fell: false, me, dv: 0, n: 0, n1, x: g.x + nx * g.rad, z: g.z + nz * g.rad });
       return;
     }
   }
@@ -333,9 +432,11 @@
     };
     // The great archers fight from their chariots, as the epic has them: a wider body, a little faster over the ground.
     if (u.side !== "player" && !u.still && kind === "man" && weapon === "bow" && (/chariot/i.test(n) || ((u.hero || u.person) && K.S && K.S.act >= 6))) { u.g.car = true; u.g.rad = 1.25; u.g.speed *= 1.2; }
+    // (a great man's car is drawn by four, another's by a pair: the team is part of its body (TEAM), and the view draws as many as this says on every setting)
+    if (u.g.car) u.g.team = u.hero || u.person || /Brihannala/.test(String(u.src || u.name)) ? 4 : 2;
     // In a great man's car (enc.ride3, owner 13 Nov: "Krishna drives"): you stand on the deck with your bow and the charioteer takes the
     // car round the field on his own line. You do not steer: you aim, loose and brace.
-    if (u.side === "player" && R.B.enc.ride3) { u.g.car = true; u.g.rad = 1.25; u.g.ride = { th: 0 }; }
+    if (u.side === "player" && R.B.enc.ride3) { u.g.car = true; u.g.rad = 1.25; u.g.ride = { th: 0 }; u.g.team = 4; }
     for (const [s, v] of Object.entries(u.status)) if (typeof v === "number") u.g.st[s] = v * ROUND;
     u.g.cls = R3.classOf(u) || (foe && archer && !u.hero && !u.person && !u.line && (kind === "man" || kind === "squad") ? "archer" : null);
     if (u.g.cls === "shield" && !archer) u.shield = true;   // (his trade's own)
@@ -437,7 +538,8 @@
       return false; }
     if (g.role === "wing") { const bx = p.g.x, bz = p.g.z + 3.4, out = Math.abs(g.x - p.g.x) < 5.5 && g.z < p.g.z - 1, l = out ? (go(p.g.x + g.wing * 8, g.z + 2, 0.8), 9) : go(bx + g.wing * 4.6, bz, 0.8); if (l < 1.4 || R.t > 14) { g.role = null; pl.in++; if (pl.in >= 2 || R.t > 14) turn(R, "raid"); return false; } return true; } // (wide round your flank first, then in behind)
     if (g.role === "centre") { if (pl.in >= 1 || R.t > 14 || e.hp < e.maxHp * 0.6) { g.role = null; return false; } const a = angTo(p, e); go(p.g.x + Math.sin(a) * 6.5, p.g.z + Math.cos(a) * 6.5, 0.6); return true; }
-    if (g.role === "champ") { if (dist(e, p) <= hitReach(e) + 0.5 || R.t > 8) { g.role = null; pl.charged = R.t; return false; } go(p.g.x, p.g.z, 1.75); return true; }
+    if (g.role === "champ") { // (in a car it is his team that reaches you first: the charge ends where he can still pull them up short of you. It is a challenge, not a riding-down.)
+      if (span(e, p) <= hitReach(e) + 0.5 + (wh ? (g.cv * g.cv) / (2 * PHYS.car.brake) + 0.6 : 0) || R.t > 8) { g.role = null; pl.charged = R.t; return false; } go(p.g.x, p.g.z, 1.75); return true; }
     if (g.role === "file") { if ((pl.charged != null && R.t > pl.charged + 3) || R.t > 11 || e.hp < e.maxHp * 0.7) { g.role = null; return false; } const a = angTo(p, e); go(p.g.x + Math.sin(a) * 7.5, p.g.z + Math.cos(a) * 7.5, 0.5); return true; }
     if (g.role === "ring") { if (!R.duel) { g.role = null; return false; } const c = B.units.find((u) => u.uid === R.duel.uid) || p, a = angTo(c, e); go(c.g.x + Math.sin(a) * 7, c.g.z + Math.cos(a) * 7, 0.7); if (g.atk) cancel(e); return true; }
     if (g.role === "bpass" || g.role === "bcross") {
@@ -564,6 +666,8 @@
     if (k.side === "enemy") { R.wheel = { x: 1.5, z: -R.rad * 0.5, ca: -Math.PI / 2, uid: k.uid }; k.g.x = R.wheel.x; k.g.z = R.wheel.z + 0.85; k.g.a = Math.PI; k.g.apart = true; k.g.entered = true; k.g.wave = 0; k.g.role = null; if (R.plan) R.plan.turned = true; } // (no horn here: the day has its own turn)
     else { R.wheel = { x: k.g.x, z: k.g.z + 0.85, ca: Math.PI / 2, uid: k.uid }; k.g.a = 0; }
     k.g.car = false; k.g.rad = 0.42;
+    // (His car, fast in the earth, and his team before it are in the way as any car is: the car's middle is a pace to the left of the wheel that sank. 17 November.)
+    { const W = R.wheel; R.blocks.push({ x: W.x - Math.cos(W.ca) * 1.02, z: W.z + Math.sin(W.ca) * 1.02, rad: 1.15, a: W.ca, nl: TEAM.z4, nr: TEAM.r4 - 0.1, uid: k.uid }); }
   }
   // What the story asks you in the fight (enc.asks3; enc.order3 is one of these). Each is a card with two answers, and
   // comes at its round, or sooner when you come within `near` metres of the man (or the wheel) it is about. yes may set
@@ -608,7 +712,10 @@
   // (item3: [person, what is seen in his hand, the weapon he fights as]; down3: person: his car is lost under him and he fights on foot.)
   function beatItem(R, beat) {
     const dn = beat && beat.down3, d = dn && R.B.units.find((x) => x.person === dn && x.hp > 0 && x.g && x.g.car);
-    if (d) { d.g.car = false; d.g.rad = 0.42; d.g.ca = null; R.fx.push({ k: "dismount", uid: d.uid }); }
+    if (d) { // (the wreck stays where it stopped and is in the way; its team is down. He is on the ground beside it, on the side toward the field's middle)
+      const a = d.g.ca != null ? d.g.ca : d.g.a, cx = d.g.x, cz = d.g.z, lx = Math.cos(a), lz = -Math.sin(a), sd = lx * -cx + lz * -cz >= 0 ? 1 : -1;
+      d.g.car = false; d.g.rad = 0.42; d.g.ca = null; d.g.cv = 0; d.g.wrecked = true; R.blocks.push({ x: cx, z: cz, rad: 1.15, a, nl: 0, nr: 0, uid: d.uid });
+      d.g.x = cx + lx * sd * 1.75; d.g.z = cz + lz * sd * 1.75; R.fx.push({ k: "dismount", uid: d.uid, x: d.g.x, z: d.g.z }); }
     const it = beat && beat.item3; if (!it) return; const u = R.B.units.find((x) => x.person === it[0] && x.hp > 0 && x.g); if (!u) return;
     u.g.weapon = it[2] || it[1]; if (it[1] !== "bow") u.g.archer = false; R.fx.push({ k: "item", uid: u.uid, item: it[1], shield: it[3] });
   }
@@ -654,6 +761,7 @@
         else { pl.checks++; pl.checkAt = R.t + 1.4; c.g.stag = Math.max(c.g.stag || 0, 1.3); cancel(c); c.g.cv = 0; c.g.vz -= 2.4 * PHYS.fric; /* (thrown back on its haunches: it rolls back two paces, and does not jump there) */ R.fx.push({ k: "checked", uid: c.uid, n: pl.checks }); if (pl.checks >= 3) return held("banner"); } }
       if (!pl.noSarathi && dist(p, c) <= c.g.rad + 1.25 && !wheelGuards(R).length && !(R.downUntil > R.t) && (R.idle || 0) < 1) { T_.held += STEP;   /* (a man lying where the car threw him, or carried along in front of it doing nothing, has not reached the charioteer) */ if (T_.held >= 1) return held("sarathi"); } else T_.held = Math.max(0, T_.held - STEP);
       return; }
+    if (pl.kind === "pincer" && !pl.turned && !pl.pending && R.t > 14.5) turn(R, "raid");   // (a wing cut down on its way round never came in, and the fight never turned: found 17 November, when a car's team in a wing's way first made one late)
     const foes = living(B, "enemy").filter((u) => !u.line && !u.g.flee), n = foes.length;
     if (n < pl.alive) { const lost = pl.alive - n; pl.alive = n; if (!R.routed) spirit(R, -lost * Math.max(12, 70 / pl.n0)); if (!foes.some((u) => u.uid === pl.champ) && pl.champ && !pl.champDown) { pl.champDown = true; spirit(R, -30); } }
     if (pl.kind === "charge" && !pl.turned && pl.charged != null) { const c = B.units.find((u) => u.uid === pl.champ); if (c && c.hp > 0 && (c.hp <= c.maxHp * 0.65 || R.t > pl.charged + 9) && n > 1) turn(R, "duel"); }
@@ -674,7 +782,7 @@
       orders: { friend: "balanced", soldiers: "defend" }, breath: P.breathMax, combo: 0, comboT: -9, buffer: false, roll: 0, rollT: -9, rdx: 0, rdz: -1, block: false, blockT: -9, winded: false,
       kneel: 0, skillCd: 0, herbCd: 0, salve: null, unseen: 0, double: false, haste: 0, frozen: 0, assist: !!opts.assist, lock: null, kind,
       stats: { blows: 0, hits: 0, rolls: 0, dodged: 0, perfect: 0, blocks: 0, blocked: 0, perfectBlocks: 0, parries: 0, parried: 0, fblocks: 0, taken: 0, maxAtk: 0 },
-      skill: null, D: RT.level(K.S, null, true), noStrike: kind === "weather", escort: kind === "escort", through: kind === "breakthrough", sp: P.shieldPts, broken: false, spOff: 0, ground: [], gid: 0 };
+      skill: null, D: RT.level(K.S, null, true), noStrike: kind === "weather", escort: kind === "escort", through: kind === "breakthrough", sp: P.shieldPts, broken: false, spOff: 0, ground: [], blocks: [], gid: 0 };
     B.rt = R;
     const L = opts.noLine ? null : R3.lineFor(B);
     if (L) { R.line = Object.assign({ n: 0, next: L.every, sent: [0, 0] }, R3.LINE, L); if (L.dream) { R.line.hpTheirs = 22; R.line.atkTheirs = 4; R.line.hpMine = 7; R.line.atkMine = 3; } for (let i = 0; i < L.mine; i++) addLine(R, "ally"); for (let i = 0; i < L.theirs; i++) addLine(R, "enemy"); }
@@ -1235,6 +1343,7 @@
   }
   function hitFx(R, t, d, heavy, by, melee, blocked) {
     if (t.g && by && by.g) t.g.lastFrom = { x: by.g.x, z: by.g.z };
+    if (t.g && t.g.car && t.hp <= 0 && d > 0) t.g.killHeavy = !!heavy;   // (how a car's man was killed: carDown)
     if (t.g && t.hp <= 0 && d > 0 && by && by.g && !t.g.thrown && !t.still && t.g.kind !== "elephant" && t.g.kind !== "light" && !t.g.car) { // (the body of a man killed goes the way the blow went: far for a heavy one)
       const a = angTo(by, t), v = (heavy ? 4.4 : melee ? 1.9 : 1.2) * (t.g.kind === "squad" ? 0.5 : 1); t.g.thrown = heavy ? 2 : 1; t.g.vx += Math.sin(a) * v; t.g.vz += Math.cos(a) * v; }
     R.fx.push({ k: "hit", uid: t.uid, n: d, heavy: !!heavy, by: by ? by.uid : null, melee: !!melee, blocked: !!blocked });
@@ -1324,22 +1433,38 @@
     const a = R.rad * 0.56, b = R.rad * 0.4, c0 = R.rad * 0.06, th = (g.ride.th += 0.36 * dt);
     g.x = a * Math.sin(th); g.z = c0 + b * Math.cos(th); g.ca = Math.atan2(a * Math.cos(th), -b * Math.sin(th)); g.moving = 1;
   }
+  // (DEEP: one who has ended up well inside a long body, at the end of a roll through a team, comes out of it at this much a step, eighteen metres a second, and not all at once: with a car's team that could be two metres in one frame. Between two round bodies it is as it was, all at once: there it is never far.)
+  const DEEP = 0.3;
   function move(R, u, dx, dz, pass) {
     if (u.g.ride) return; // (the charioteer has the reins)
     const g = u.g; let x = g.x + dx, z = g.z + dz;
-    if (!pass) for (const o of R.B.units) {
-      if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light") continue;
-      if (u.side !== "player" && o.side === "player" && u.side !== "enemy") continue;
-      const min = g.rad + o.g.rad + (u.side !== o.side && !(u.side !== "enemy" && o.side !== "enemy") ? 0.25 : 0), ox = x - o.g.x, oz = z - o.g.z, d = Math.hypot(ox, oz);
-      if (d < min && d > 1e-4) { // each gives ground by the other's weight (a wall's locked shields push as one)
-        const pen = min - d, mu = weight(u) * (locked(R, u) ? 3 : 1), mo = weight(o) * brace(R, o, u), sh0 = mu / (mu + mo), share = sh0 > 0.8 ? 1 : sh0; /* (what is far the heavier is not turned from its way) */
-        if (share > 0.004) { const bx = o.g.x, bz = o.g.z; shove(R, o, -(ox / d) * pen * share, -(oz / d) * pen * share); jostle(R, u, o, share); const got = Math.hypot(o.g.x - bx, o.g.z - bz); x += (ox / d) * (pen - got); z += (oz / d) * (pen - got); }
-        else { x = o.g.x + (ox / d) * min; z = o.g.z + (oz / d) * min; }
+    if (!pass) {
+      for (const o of R.B.units) {
+        if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light") continue;
+        if (u.side !== "player" && o.side === "player" && u.side !== "enemy") continue;
+        touch(g, x, z, o.g, u.side !== o.side && !(u.side !== "enemy" && o.side !== "enemy") ? 0.25 : 0);   // (the whole of the one against the whole of the other: a car's team is in the way as its deck is)
+        if (TP > 0) { // each gives ground by the other's weight (a wall's locked shields push as one)
+          const pen = TP, nx = TX, nz = TZ, tw = TW, deep = noseL(g) || noseL(o.g) ? DEEP : 1e9, mu = weight(u) * (locked(R, u) ? 3 : 1), mo = weight(o) * brace(R, o, u), sh0 = mu / (mu + mo), share = sh0 > 0.8 ? 1 : sh0; /* (what is far the heavier is not turned from its way) */
+          if (share > 0.004) { const bx = o.g.x, bz = o.g.z; shove(R, o, -nx * pen * share, -nz * pen * share); jostle(R, u, o, share, -nx, -nz, tw); const got = Math.hypot(o.g.x - bx, o.g.z - bz), out = Math.min(pen - got, deep); x += nx * out; z += nz * out; }
+          else { const out = Math.min(pen, deep); x += nx * out; z += nz * out; }
+        }
       }
+      for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; } }   // (a car that stands dead on the field, and its team if they still stand: nothing moves them)
     }
     const r = Math.hypot(x, z), lim = R.rad - 0.3;
     if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; }
     g.x = x; g.z = z;
+  }
+
+  // A car whose man is killed. Brought down by a heavy blow, or within a moment of a meeting with a car or an elephant, or
+  // while it stood stopped dead by one, it is wrecked: its team goes down with it (g.wrecked; the view shows it). Krishna's
+  // car is never wrecked, nor yours. Either way the car stands where it stopped and is in the way of everything from then
+  // on, and so is its team if they still stand: the dead were never in anyone's way, and a car left standing with its
+  // horses could be walked through.
+  function carDown(R, u) {
+    const g = u.g; g.cv = 0;
+    g.wrecked = u.side !== "player" && who(u) !== "arjuna" && !!(g.killHeavy || g.jostleT > R.t || g.bumpT > R.t || g.wreckT > R.t);
+    R.blocks.push({ x: g.x, z: g.z, rad: g.rad - 0.1, a: g.ca != null ? g.ca : g.a, nl: g.wrecked ? 0 : noseL(g), nr: noseR(g) - 0.1, uid: u.uid });
   }
 
   // ---------- Foes ----------
@@ -1718,16 +1843,17 @@
         else if (s !== "crit") u.status[s] = Math.max(1, Math.ceil(u.g.st[s] / ROUND));
       }
       // what throws a body back wears off quickly
-      if (u.g.walkN !== R.n) { if (wheeled(u)) { if (u.g.cv > 0) drive(R, u, 0, 0, 0, dt); } else if (u.g.wx || u.g.wz) walk(R, u, 0, 0, dt, u.hp <= 0); } // (legs asked for nothing run down; a car runs on a little)
+      if (u.g.walkN !== R.n) { if (wheeled(u)) { if (u.g.cv > 0) drive(R, u, 0, 0, 0, dt); else u.g.cw = 0; } else if (u.g.wx || u.g.wz) walk(R, u, 0, 0, dt, u.hp <= 0); } // (legs asked for nothing run down; a car runs on a little)
       if (u.g.vx || u.g.vz) { if (!(u.g.bumpT > R.t)) bump(R, u); move(R, u, u.g.vx * dt, u.g.vz * dt, true); const k = Math.max(0, 1 - PHYS.fric * dt); u.g.vx *= k; u.g.vz *= k; if (Math.abs(u.g.vx) + Math.abs(u.g.vz) < 0.05) { u.g.vx = 0; u.g.vz = 0; } const r = Math.hypot(u.g.x, u.g.z); if (r > R.rad - 0.3 && u.g.entered) { u.g.x *= (R.rad - 0.3) / r; u.g.z *= (R.rad - 0.3) / r; } }
     }
     // Bodies that have ended up in each other (a roll's end, a body thrown back, a press) ease apart, each by the other's weight.
-    { const us = B.units.filter((u) => u.g && u.hp > 0 && !u.spared && !u.g.ride && u.g.kind !== "light" && (u.side !== "enemy" || u.g.entered)), cap = PHYS.sep * dt;
+    // (The car you ride in is among them since 17 November, and gives no ground itself: a man who stands where its team is going is put out of their way.)
+    { const us = B.units.filter((u) => u.g && u.hp > 0 && !u.spared && u.g.kind !== "light" && (u.side !== "enemy" || u.g.entered)), cap = PHYS.sep * dt;
       for (let i = 0; i < us.length; i++) for (let j = i + 1; j < us.length; j++) { const a = us[i], b = us[j];
         if ((a.still && b.still) || (R.roll > 0 && (a.side === "player" || b.side === "player"))) continue;
-        const dx = b.g.x - a.g.x, dz = b.g.z - a.g.z, d = Math.hypot(dx, dz), min = a.g.rad + b.g.rad; if (d >= min || d < 1e-4) continue;
-        const ma = weight(a) * brace(R, a, b), mb = weight(b) * brace(R, b, a), pen = Math.min(min - d, cap), sa = mb / (ma + mb);
-        shove(R, a, -(dx / d) * pen * sa, -(dz / d) * pen * sa); shove(R, b, (dx / d) * pen * (1 - sa), (dz / d) * pen * (1 - sa)); } }
+        touch(b.g, b.g.x, b.g.z, a.g, 0); if (!(TP > 0)) continue;   // (the whole of each: a team swung round into a man standing by it, an elephant's head)
+        const nx = TX, nz = TZ, ma = weight(a) * brace(R, a, b), mb = weight(b) * brace(R, b, a), pen = Math.min(TP, cap), sa = mb / (ma + mb);
+        shove(R, a, -nx * pen * sa, -nz * pen * sa); shove(R, b, nx * pen * (1 - sa), nz * pen * (1 - sa)); } }
     if (R.slow > 0) R.slow -= dt;
     if (R.haste > 0) R.haste -= dt;
     R.doT -= dt;
@@ -1823,7 +1949,7 @@
     shotsStep(R);
     clocks(R);
     lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R); rideStep(R, STEP);
-    for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; if (u.captive && !u.fled && R.task && R.task.kind === "capture" && R.task.uid === u.uid) u.taken = true; /* (brought down inside the count: he is taken, not killed) */ R.fx.push({ k: u.taken ? "taken" : "fall", uid: u.uid }); if (u.side === "enemy" && leads(u)) captainDown(R, u); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
+    for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; if (u.g.car) carDown(R, u); if (u.captive && !u.fled && R.task && R.task.kind === "capture" && R.task.uid === u.uid) u.taken = true; /* (brought down inside the count: he is taken, not killed) */ R.fx.push({ k: u.taken ? "taken" : "fall", uid: u.uid }); if (u.side === "enemy" && leads(u)) captainDown(R, u); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
     const out = overNow(R);
     if (out) end(R, out);
     return R;
@@ -1869,11 +1995,13 @@
   // ---------- The bot: a person's hands, not a machine's ----------
   // It reads most blows a little late (better with grace), presses one thing at a time with a thumb's gap between.
   const TAPS = ["block", "roll", "herbs", "call", "astra", "spare", "layDown", "cover", "skill", "strike"];
-  R3.bot = function (R, opt) {
+  // (a person does not lean on the side of a car and its team to get past it: he goes round)
+  R3.bot = function (R, opt) { const a = bot0(R, opt); if (a && (a.mx || a.mz) && !a.roll) { const p = C.player(), l = Math.hypot(a.mx, a.mz), k = Math.min(1, l), sp = (p && p.g && p.g.speed) || 5; if (p && p.g && l > 1e-3 && skirt(R, p, (a.mx / l) * sp, (a.mz / l) * sp)) { a.mx = (VX / sp) * k; a.mz = (VZ / sp) * k; } } return a; };
+  function bot0(R, opt) {
     opt = opt || {};
     if (R.offer) return { duel: R.offer.kind === "order" ? "no" : C.player().hp > C.player().maxHp * 0.5 ? "yes" : "no" };
     if (R.task && R.task.kind === "standard") { const q = C.player().g; return { mx: R.task.x - q.x, mz: R.task.z - q.z }; }
-    if (R.task && R.task.kind === "sarathi") { const q = C.player().g, c = R.B.units.find((u) => u.uid === R.task.uid); if (c && c.g) return { mx: c.g.x - q.x, mz: c.g.z - q.z }; }
+    if (R.task && R.task.kind === "sarathi") { const q = C.player().g, c = R.B.units.find((u) => u.uid === R.task.uid); if (c && c.g) { const ca = c.g.ca != null ? c.g.ca : c.g.a; return { mx: c.g.x - Math.sin(ca) * 0.9 - q.x, mz: c.g.z - Math.cos(ca) * 0.9 - q.z }; } }   // (the charioteer is reached from behind the wheels, not through the team)
     const a = wants(R, opt);
     if (!P.botGap || opt.perfect) return a;
     const h = R.hum || (R.hum = { btn: null, next: 0 });
@@ -1920,8 +2048,14 @@
     if (p.hp < p.maxHp * 0.36 && R3.can(R, "herbs") && !soon) { a.herbs = true; return a; }
     const foes = foesIn(R).filter((e) => e.g.kind !== "light");
     { // A car or an elephant under way and bearing down on him would take him off his feet: he steps out of its path, to the side he is already on.
-      const car = foes.find((e) => wheeled(e) && e.g.cv > 2.2 && dist(e, p) < e.g.rad + 1.6 + e.g.cv * 0.5 && Math.abs(adiff(angTo(e, p), e.g.ca != null ? e.g.ca : e.g.a)) < 0.55);
-      if (car && R.roll <= 0) { const ca = car.g.ca != null ? car.g.ca : car.g.a, px_ = Math.cos(ca), pz_ = -Math.sin(ca), sd = (g.x - car.g.x) * px_ + (g.z - car.g.z) * pz_ >= 0 ? 1 : -1; a.mx = px_ * sd; a.mz = pz_ * sd; a.run = true; return a; } }
+      const car = foes.find((e) => { if (!wheeled(e) || !(e.g.cv > 2.2)) return false;   // (it is the team that reaches him first, or the head: he gets out of the way of that)
+        const ca = e.g.ca != null ? e.g.ca : e.g.a, dx = g.x - e.g.x, dz = g.z - e.g.z, al = dx * Math.sin(ca) + dz * Math.cos(ca), lat = Math.abs(dx * Math.cos(ca) - dz * Math.sin(ca)), L = noseL(e.g), nr = L ? noseR(e.g) : e.g.rad;
+        return al > 0 && lat < nr + g.rad + 0.4 && al < L + nr + 1.6 + e.g.cv * 0.5; });
+      if (car && R.roll <= 0) { const ca = car.g.ca != null ? car.g.ca : car.g.a, px_ = Math.cos(ca), pz_ = -Math.sin(ca), lat = (g.x - car.g.x) * px_ + (g.z - car.g.z) * pz_, sd = lat >= 0 ? 1 : -1; a.mx = px_ * sd; a.mz = pz_ * sd; a.run = true;
+        // (and if it is on him before he could run clear of it, he throws himself aside, as a person would)
+        const L = noseL(car.g), nr = L ? noseR(car.g) : car.g.rad, al = (g.x - car.g.x) * Math.sin(ca) + (g.z - car.g.z) * Math.cos(ca), left = (al - L - nr - g.rad) / car.g.cv, clear = nr + g.rad + 0.3 - Math.abs(lat);
+        if (left < 0.4 && clear > g.speed * 1.1 * Math.max(0, left) && R3.can(R, "roll")) a.roll = true;
+        return a; } }
     if (R.through && R.goal && !B.enc.cannot) { // make for the far side, fighting whoever bars the way
       const f0 = foes.filter((e) => dist(e, p) < g.reach + 0.6 && !e.g.beaten).sort((x, y) => dist(x, p) - dist(y, p))[0];
       if (!f0) { a.mx = R.goal.x - g.x; a.mz = R.goal.z - g.z; return a; }
@@ -1954,6 +2088,7 @@
     if (d <= g.reach * 0.92 + t.g.rad - 0.42) { if (!inSwing) a.strike = true; }
     else if (t.g.atk && t.g.atk.sig && !t.g.atk.ranged && !t.g.atk.dash && bs.read[t.uid + "@" + t.g.atk.c0] && d <= hitReach(t) + 1.6) { /* (he waits out a chain of blows he has got clear of) */ }
     else { a.mx = t.g.x - g.x; a.mz = t.g.z - g.z;
+      if (t.g.car && !t.g.ride) { const ca = t.g.ca != null ? t.g.ca : t.g.a; a.mx -= Math.sin(ca) * 0.9; a.mz -= Math.cos(ca) * 0.9; }   // (he makes for the car's man from behind its wheels, as a person does: not through its team)
       // (a person learns it from the first point he runs onto: after that he walks up to a spearman whose point is free)
       if (R.told && R.told.c_spear && foes.some((e) => e.g.cls === "spear" && !(e.g.cd.set > 0) && dist(e, p) <= hitReach(e) + P.setReach + 1.2 && Math.abs(adiff(angTo(e, p), e.g.a)) < 0.9)) { const l = Math.hypot(a.mx, a.mz) || 1; a.mx = (a.mx / l) * 0.6; a.mz = (a.mz / l) * 0.6; } }
     return a;

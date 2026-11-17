@@ -149,3 +149,38 @@ Three fights are harder than they were and were left so: Bhishma twice (he is th
 All 79 fights, 28 runs: 93% won (93% before), 42 seconds (41), none failing, none running out the clock. The bands were recorded again.
 
 What the five kinds of player make of it (`node tools/review/fight_depth.js 7 11`) is in `Named_Opponents.md`.
+
+## 17 November: a chariot's team in the rules (Version 73)
+
+A chariot's team and an elephant's head are part of its body now: they stop you, and under way they throw you (`docs/Fight_Feel.md`, section 5). Nothing was tuned for it. The fights were kept where they were by what the others do about it: their champion's charge in a car pulls up short of you, men go round a car, and the game's own fighter goes round, goes for a car's man from behind the wheels, and rolls clear of a team that is on it.
+
+Seventeen fights with a chariot or an elephant in them, 28 runs each (`tests/fights.js`'s lives and seeds; "met" is how many times a fight the fighter was thrown or struck by a car, an elephant or a thrown body):
+
+| Fight | Before | Now |
+|---|---|---|
+| The battle of days one to nine (`e_day1`) | 93%, 52 s, met 0.2 | 96%, 53 s, met 0.1 |
+| Into the wheel (`e_wheel`) | 79%, 59 s, met 0.4 | 75%, 59 s, met 0.1 |
+| The heart of the wheel (`e_last_stand`) | 54%, 53 s, met 0.5 | 46%, 58 s, met 0.4 |
+| The road to Jayadratha (`e_road`) | 82%, 64 s, met 0.3 | 79%, 63 s, met 0.0 |
+| Guarding Jayadratha (`e_jaya`) | 100%, 54 s, met 0.2 | 100%, 59 s, met 0.1 |
+| The sixteenth day (`e_day16`) | 100%, 55 s, met 0.3 | 100%, 54 s, met 0.0 |
+| The last battle (`e_day18`) | 100%, 48 s, met 0.1 | 100%, 47 s, met 0.0 |
+| Karna's chariot, pinned (`hold_karna`) | 96%, 36 s, met 1.3 | 96%, 34 s, met 1.5 |
+| Against Arjuna's chariot (`hold_arjuna`) | 100%, 34 s, met 1.9 | 96%, 33 s, met 0.9 |
+| The sworn men's challenge (`oath_arjuna_12`) | 100%, 33 s, met 1.6 | 100%, 32 s, met 0.9 |
+| The white horses, again (`oath_arjuna_16`) | 100%, 33 s, met 1.7 | 100%, 36 s, met 0.9 |
+| The king's chariot (`oath_king_hold`) | 96%, 32 s, met 1.0 | 93%, 32 s, met 0.7 |
+| The line under Bhishma (`bh_line9`) | 86%, 32 s, met 1.0 | 93%, 31 s, met 0.6 |
+| Wheel to wheel (`fs_sk_chariot`) | 100%, 31 s, met 0.1 | 100%, 31 s, met 0.0 |
+| Supratika's charge (`fs_d12_elephant`) | 100%, 32 s, met 0.1 | 100%, 32 s, met 0.2 |
+| On the road to Jayadratha, the chariot duel (`fs_d14_chariot`) | 100%, 31 s, met 0.1 | 100%, 31 s, met 0.0 |
+| Under the ape banner (`new_arjuna_place`) | 100%, 48 s, met 0.0 | 89%, 48 s, met 0.0 |
+| **All seventeen** | **93%, 43 s, met 0.63** | **92%, 43 s, met 0.37** |
+
+None of these is outside what one set of 28 fights gives from another. Karna's wheel (`kw_e_close`), where his car and its four horses now stand in the way, is anywhere from 71% to 93% by which 28 fights are drawn, and it was 71% to 86% under the old rules.
+
+All 79 fights, 28 runs: 92% won (92% recorded), 41 seconds (41), none failing, none running out the clock. Fifty-five of the 79 give the recorded figures to the last digit: with no chariot or elephant in them, and no pincer that lost a wing, they play exactly as they did, blow for blow. Of the twenty-four that differ, only "Under the ape banner" moved by ten points. The bands were not recorded again.
+
+What was not kept: the first try had the team as a circle of its own and left the champion's charge as it was. The road to Jayadratha fell to 46% from 82%, with four meetings a fight costing 42% of the fighter's health between them, and two fights in 56 never ended. None of that was published.
+
+A player is not the fighter. One who stands in front of a team that is coming on will be thrown down and lose up to 16% of their health each time, where before the horses passed through them.

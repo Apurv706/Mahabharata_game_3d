@@ -75,6 +75,8 @@ Then each horse is given to the engine and goes over to its own side, a wheel co
 
 Krishna's car is never wrecked and he is never thrown from it.
 
+**Since Version 73 the rules say whether a car is wrecked** (`carDown` in `js/ui/battle/sim.js`, by the same three tests), and the picture follows. It had been the picture's own judgement. It became the rules' because a car's team is now part of its body there: a team left standing is in the way of everyone on the field, and one that has gone down is not (`docs/Fight_Feel.md`, section 5). The engine itself was not changed. A great man's four horses are drawn on every graphics setting now (the lowest drew two), so that what stops you is what you see.
+
 ## How a body is thrown
 
 The rules already give a killed man a speed (1.2 m/s from an arrow, 1.9 from a blade, 4.4 from a heavy blow) and a man thrown down the speed of the blow that threw him. The engine is given two thirds of that for the whole body, and more above the hips than below, away from whoever struck him, so a blow high on the body sends him over. A heavy blow lifts him. A small turn about the upright is added by chance.
@@ -101,7 +103,7 @@ Counted in parts: a man is eleven, a horse ten, an elephant twelve.
 ## Checks
 
 - `tests/ragdoll.js` (114 checks, no page; in `tests/run.js` and `npm run test:ragdoll`). Version 71's 88: a standing man struck five ways never goes wrong, lies still in time, keeps every joint whole and bending the right way; six bodies at once; a body stopped by a standing man; a car over a man on the ground; a man run down; a man thrown down alive; dropped weapons. Version 72's 26: a rider killed with no blow goes down on the deck; struck by a blade from his left he lies on the ground beside the car; struck by a heavy blow from in front he is thrown clear behind it; another car's team standing through his car does not hold him up; a rider only thrown down has the car's speed and stays in it while it runs, turns and stops, and is let go when killed; a horse is ten parts and 400 kg with its weight in its barrel, comes to rest down and toward its side with its joints whole; an elephant the same at 3.6 tonnes, onto its side; a man who falls where it lies does not lie inside it; a team of four goes down together; the engine finds room for more where a step costs little and for fewer where it costs much; a wheel runs on some paces, leans, goes over and lies flat.
-- The fights' own tests are as they were: `tests/rules3d.js` 116, the fight bands all inside their bands, `tests/smoke3d.js` 3 cases with the engine running.
+- The fights' own tests were as they were through Versions 71 and 72: `tests/rules3d.js` 116 (126 since Version 73, which changed the rules and not the engine), the fight bands all inside their bands, `tests/smoke3d.js` 3 cases with the engine running.
 - Looked at in the studio (`tools/review/falls.js`, which now takes chariots and beasts): five kills, three men thrown down and getting up, an elephant, a horse, a wrecked car with four horses, and four riders struck four ways.
 - Looked at in real fights, held still at the moment the engine took a body and photographed a few frames at a time: a bandit thrown down and getting up; a kill in the first day's line; you thrown down; and in Version 72 a chariot wrecked on the sixteenth day (rider over one rail, driver over the other, the wheel gone, the car down on its axle), Drona's car wrecked in the last stand, Supratika killed, a chariot-warrior thrown down on his deck and getting up as the car ran on, and you thrown down while riding in Arjuna's place.
 
@@ -114,7 +116,8 @@ Counted in parts: a man is eleven, a horse ten, an elephant twelve.
 
 ## Not done
 
-- **A horse cannot be hurt or killed by itself.** A team goes down only when its car is wrecked. Aiming at a team to stop a car would be a change to the rules.
+- **A horse cannot be hurt or killed by itself.** A team goes down only when its car is wrecked. Aiming at a team to stop a car would be a change to the rules. (Version 73 made the team part of the car's body in the rules: it stops you, and under way it throws you. That is `docs/Fight_Feel.md`, section 5.)
+- **The fallen are not in the way.** A dead elephant, a dead horse, a dead man can be walked through: the rules do not read back where the engine laid them. A dead man's car is in the way, and its team if they still stand, because the rules know where those are.
 - A team stopped dead by a meeting still rears by a pose; the horses do not fall and get up.
 - An elephant's howdah has no one in it to fall out.
 - **Arrows** fly as the rules have them. An arrow already in a body goes with that body.
