@@ -68,13 +68,15 @@
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
   R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.25 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.0 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.44 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 1.05, atk: 0.9 }, e_ash: { hp: 1.05, atk: 0.9 },
-    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.66, over: 1 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
+    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.6, over: 1 }, fs_sk_hold: { atk: 0.74 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
     e_wheel: { hp: 1, atk: 1.12 }, e_day16: { hp: 0.85, atk: 0.7 }, e_road: { atk: 1.2 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.0, atk: 1.25 },
     // (13 November, night: with a man to take where a banner on a pole had ended a war fight in fifteen seconds, and with the trades, these needed easing)
     e_night: { hp: 0.85, atk: 0.9 }, e_lake_hold: { atk: 0.85 }, e_lake_hold_deep: { atk: 0.85 },
-    hold_duryodhana: { atk: 0.92 },
+    hold_duryodhana: { atk: 0.84 },
     // (16 November, the named's own blows: where a great blow now does what the plain ones did; over: his plain blow's floor above the common men's, 0 for none)
-    fs_d3_storm: { atk: 0.9, over: 0 } };
+    fs_d3_storm: { atk: 0.9, over: 0 },
+    // (16 November, Version 70: two fights that had grown harder with each of the last three versions, eased back toward nine wins in ten)
+    wc_e_ghost: { atk: 0.88 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
   const held = (u) => !!(u.status.stun || u.status.asleep || u.status.bound);
@@ -106,7 +108,10 @@
     // named about 0.6, three men together 0.44, a car 0.14). bumpV: the speed (m/s) above which a body thrown back strikes
     // what it meets. bounce: how much of the meeting is given back. stagV, fallV: the change of speed (m/s) that staggers a
     // man, and that takes him off his feet. wreckV: that stops a car dead and throws its man down on the deck.
-    massPow: 0.75, bumpV: 2.2, bounce: 0.5, stagV: 1.5, fallV: 2.8, wreckV: 2.6
+    massPow: 0.75, bumpV: 2.2, bounce: 0.5, stagV: 1.5, fallV: 2.8, wreckV: 2.6,
+    // And what it costs ("collision should also lead to damage": owner, 16 November): a change of speed above hurtV (m/s) takes
+    // hurtPer of the body's full health for each m/s above it, and never more than hurtMost at one meeting.
+    hurtV: 2, hurtPer: 0.035, hurtMost: 0.16
   });
   const wheeled = (u) => !!(u.g && !u.g.ride && (u.g.car || u.g.kind === "elephant"));
   const weight = (u) => (u.still ? 1e6 : u.g.kind === "elephant" ? 40 : u.g.kind === "cart" ? 20 : u.g.car ? 14 : u.g.kind === "squad" ? 3 : u.side !== "player" && (u.hero || u.person) ? 2 : 1);   // (a man is 1: one of the named, in his armour, 2; an elephant 40)
@@ -151,19 +156,41 @@
   function shove(R, u, dx, dz) { const g = u.g; if (g.ride) return; let x = g.x + dx, z = g.z + dz; const r = Math.hypot(x, z), lim = R.rad - 0.3; if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; } g.x = x; g.z = z; }
   // A car or an elephant under way does not ease a man aside: it throws him, forward and to the side he was on.
   function jostle(R, by, o, share) {
-    const g = by.g, og = o.g; if (!wheeled(by) || !(g.cv > 1.6) || og.kind === "elephant" || (og.car && g.kind !== "elephant") || o.still || share < 0.5 || og.jostleT > R.t || (by.side === "enemy") === (o.side === "enemy")) return; // (its own side's men get out of its way; it is the other side's it throws)
+    const g = by.g, og = o.g; if (!wheeled(by) || !(g.cv > 1.6) || og.kind === "elephant" || o.still || g.ride || og.ride || og.jostleT > R.t || (by.side === "enemy") === (o.side === "enemy")) return; // (its own side's men get out of its way; it is the other side's it throws)
+    const m1 = weight(by), m2 = weight(o), mu = (m1 * m2) / (m1 + m2);
+    if (og.car) {   // A car meets a car, or an elephant a car: by how fast the two are closing. Each is given its share; one stopped dead throws its man down on the deck.
+      const d = Math.hypot(og.x - g.x, og.z - g.z) || 1, nx = (og.x - g.x) / d, nz = (og.z - g.z) / d, oa = og.ca != null ? og.ca : og.a;
+      const closing = g.cv * (Math.sin(g.ca) * nx + Math.cos(g.ca) * nz) - (og.cv || 0) * (Math.sin(oa) * nx + Math.cos(oa) * nz); if (closing < 1.6) return;
+      og.jostleT = R.t + 0.8; g.jostleT = R.t + 0.8;
+      const J = (1 + PHYS.bounce) * mu * closing, dv2 = J / m2, dv1 = J / m1, n2 = harm(R, o, dv2), n1 = harm(R, by, dv1), fell = felled(R, o, dv2), me = felled(R, by, dv1);
+      if (!fell) og.cv = Math.max(0, (og.cv || 0) - dv2 * 0.5); if (!me) g.cv = Math.max(0, g.cv - dv1);
+      R.stats.bumps = (R.stats.bumps || 0) + 1;
+      R.fx.push({ k: "crash", uid: o.uid, by: by.uid, fell, me, dv: dv2, n: n2, n1 }); return;
+    }
+    if (share < 0.5) return;
     og.jostleT = R.t + 0.8;
     const side = Math.sign(Math.sin(g.ca) * (og.z - g.z) - Math.cos(g.ca) * (og.x - g.x)) || 1, a = g.ca - side * 1.1;
-    const m1 = weight(by), m2 = weight(o), dv = ((1 + PHYS.bounce) * (m1 * m2 / (m1 + m2)) * g.cv) / m2;   // (the change of speed it gives him: his weight against its own)
+    const dv = ((1 + PHYS.bounce) * mu * g.cv) / m2;   // (the change of speed it gives him: his weight against its own)
     og.vx += Math.sin(a) * dv; og.vz += Math.cos(a) * dv; og.bumpT = R.t + 0.5;
-    const fell = felled(R, o, dv);
-    R.fx.push({ k: "jostle", uid: o.uid, by: by.uid, fell, dv });
+    const hurt = harm(R, o, dv), fell = felled(R, o, dv);
+    R.fx.push({ k: "jostle", uid: o.uid, by: by.uid, fell, dv, n: hurt });
+  }
+  // What a meeting costs in health: nothing below PHYS.hurtV, then by how hard. A champion who is only being held is not
+  // brought below a tenth by it, nor Bhishma before the tenth day; a roll carries you through it. Returns what was taken.
+  function harm(R, o, dv) {
+    if (o.hp <= 0 || o.still || o.decoy || !o.maxHp || !(dv > PHYS.hurtV) || (o.g && o.g.kind === "light")) return 0;
+    if (o.side === "player" && (R.roll > 0 || R.unseen > 0)) return 0;
+    const keep = (R.B.enc.hold && o.hero) || (who(o) === "bhishma" && RT.warDay && RT.warDay() < 10) ? Math.round(o.maxHp * 0.1) : 0;
+    const n = Math.max(0, Math.min(Math.round(o.maxHp * Math.min(PHYS.hurtMost, (dv - PHYS.hurtV) * PHYS.hurtPer)), o.hp - keep)); if (!n) return 0;
+    o.hp -= n; R.stats.crash = (R.stats.crash || 0) + n;
+    if (o.side === "player") { R.stats.taken += n; R.kneel = 0; R.salveStop = true; }
+    return n;
   }
   // What a sudden change of speed does to a body (dv, m/s): nothing, a stagger, or off his feet. A car is stopped dead and
   // its man thrown down on the deck; you are thrown down as by a great blow. True when it took him down.
   function felled(R, o, dv) {
     const og = o.g; if (o.hp <= 0 || o.still || og.kind === "elephant" || og.kind === "light" || o.decoy) return false;
-    if (og.car) { if (dv < PHYS.wreckV) return false; og.cv = 0; og.wreckT = R.t + 3; og.down = Math.max(og.down || 0, 1.8); if (og.atk) cancel(o); return true; }
+    if (og.car) { if (dv < PHYS.wreckV) return false; og.cv = 0; og.wreckT = R.t + 3; if (og.atk) cancel(o); if (o.side === "player") throwDown(R, 0.9); else og.down = Math.max(og.down || 0, 1.8); return true; }
     const set = o.side !== "player" && (og.role === "wall" && R.plan && !R.plan.broken) ? 1.5 : 1;   // (shields locked: harder to throw down)
     if (dv >= PHYS.fallV * set) {
       if (o.side === "player") { if (R.roll > 0 || R.unseen > 0) return false; throwDown(R, Math.min(1, 0.5 + (dv - PHYS.fallV) * 0.12)); return true; }
@@ -184,9 +211,10 @@
       const m1 = weight(u), m2 = weight(o), J = (1 + PHYS.bounce) * (m1 * m2 / (m1 + m2)) * vrel, dv1 = J / m1, dv2 = J / m2;
       g.vx -= nx * dv1; g.vz -= nz * dv1; og.bumpT = R.t + 0.5; g.bumpT = R.t + 0.25;
       if (!o.still) { og.vx = (og.vx || 0) + nx * dv2; og.vz = (og.vz || 0) + nz * dv2; }
+      const n2 = harm(R, o, dv2), n1 = u.hp > 0 ? harm(R, u, dv1) : 0;   // (and both pay for it, each by what he was given)
       const fell = felled(R, o, dv2), me = u.hp > 0 && m2 >= m1 * 6 ? felled(R, u, dv1) : false;   // (against what is far the heavier, it is the one thrown who drops)
       R.stats.bumps = (R.stats.bumps || 0) + 1;
-      R.fx.push({ k: "bump", uid: o.uid, by: u.uid, fell, me, dv: dv2, x: g.x + nx * g.rad, z: g.z + nz * g.rad });
+      R.fx.push({ k: "bump", uid: o.uid, by: u.uid, fell, me, dv: dv2, n: n2, n1, x: g.x + nx * g.rad, z: g.z + nz * g.rad });
       return;
     }
   }
@@ -747,6 +775,8 @@
   R3.comboOf = () => { const w = C.player() && C.player().g && C.player().g.weapon; return w === "mace" ? MACE : w === "bow" ? BOW : w === "dagger" ? DAGGER : w === "spear" ? SPEAR : w === "fist" ? FIST : COMBO; };
   // Weariness: how much longer your blows take, by the health you have left (1 with half or more of it; P.tireFrom, P.tireMost).
   const tire = (R3.tire = (R) => { const p = C.player(), f = p && p.maxHp ? Math.max(0, p.hp) / p.maxHp : 1; return 1 + P.tireMost * clamp((P.tireFrom - f) / P.tireFrom, 0, 1); });
+  // A foe tires as you do: his wind-up and his rest between blows lengthen by the health he has lost. (Not a man who fights harder hurt.)
+  const tireOf = (R3.tireOf = (u) => (!u || !u.maxHp || (u.g && u.g.wind2) ? 1 : 1 + P.tireMost * clamp((P.tireFrom - Math.max(0, u.hp) / u.maxHp) / P.tireFrom, 0, 1)));
   const tired = (R, c) => { const k = tire(R); return k > 1.001 ? Object.assign({}, c, { land: c.land * k, len: c.len * k, tire: k }) : c; };
   R3.nextBlow = (R) => { const list = R3.comboOf(); return tired(R, list[R.t - R.comboT > 0.6 || R.combo >= list.length ? 0 : R.combo]); };
   const PARRY_WITH = new Set(["sword", "woodsword", "mace", "spear", "staff", "club", "hammer", "dagger", "fist"]), LIGHT = new Set(["dagger", "fist"]);
@@ -963,7 +993,7 @@
     a.also.x = x; a.also.z = z;
   }
   function sigBegin(R, e, t, S, i, prev) {
-    const g = e.g, s = S.steps[i], p = C.player(), ranged = s.k === "shots", area = s.k === "ring", wind = Math.max(0.3, s.w * R.D.wind);
+    const g = e.g, s = S.steps[i], p = C.player(), ranged = s.k === "shots", area = s.k === "ring", wind = Math.max(0.3, s.w * R.D.wind * tireOf(e));
     if (!(area && !s.at)) g.a = angTo(e, t);
     const mult = Math.max(s.m || 1, s.pct ? (p.maxHp * s.pct * R.D.atk) / Math.max(1, e.atk) : 0);
     const a = (g.atk = { id: ranged ? "arrows" : "strike", on: t.uid, t0: R.t, land: R.t + wind, ranged, area, dir: g.a, locked: false, heavy: s.hv !== 0, arc: s.arc || null, r: s.r || 0, px: null, pz: null,
@@ -1367,6 +1397,7 @@
     if (arc) wind = Math.max(wind, arc === "smash" ? P.maceSmash : P.maceSweep);
     if (g.kind === "elephant") wind = Math.max(wind, 1.1);
     if (light) wind = 1.5;
+    wind *= tireOf(e);   // (hurt, he is slower)
     if (who(e) === "satyaki" && !ranged) wind *= 0.85; // a quick blade
     if (g.slowNext) { wind *= g.slowNext; g.slowNext = 0; } // heavy eyes (the sleep's gift): once
     if (ranged && g.archer && t.side === "player" && dist(e, t) <= t.g.reach * 1.15) wind += 0.45; // caught close, he draws slowly
@@ -1427,7 +1458,7 @@
     g.atk = null;
     if (ab.cd && a.id !== "arrows") g.cd[a.id] = ab.cd * ROUND;
     const tr = traitRest(R, e); if (tr < 1) tip(R, who(e));
-    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 * (R.stance === "flank" ? P.flankRest : 1) : 1) * (g.kind === "light" ? 0.7 : 1) * tr * (common(e) && led(R, e) ? P.ledRest : 1) * (R.shaken && !R.routed ? P.shakenRest : 1);
+    g.cool = rr(P.gap[0], P.gap[1]) * R.D.rest * tireOf(e) * (a.heavy ? 1.2 : 1) * (g.archer ? 0.6 * (R.stance === "flank" ? P.flankRest : 1) : 1) * (g.kind === "light" ? 0.7 : 1) * tr * (common(e) && led(R, e) ? P.ledRest : 1) * (R.shaken && !R.routed ? P.shakenRest : 1);
     const open = ((RT.OPEN[g.weapon] != null ? RT.OPEN[g.weapon] : 0.35) + (a.heavy && g.weapon !== "mace" ? 0.15 : 0)) * (who(e) === "duryodhana" && g.weapon === "mace" ? 0.85 : 1) + (g.cls === "heavy" && a.heavy ? P.crushOpen : 0);
     g.rec = open; g.openUntil = R.t + open;
     R.fx.push({ k: "swing", uid: e.uid, id: a.id, arc: a.arc, area: a.area, x: m.x, z: m.z, r: m.r });

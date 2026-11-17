@@ -504,21 +504,39 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   for (const u of B.units) if (u.side !== "player" && u !== a && u !== b && u.g) { u.g.x = 40 + Math.random(); u.g.z = 40; u.g.entered = u.side !== "enemy" ? u.g.entered : false; }
   p.g.x = -9; p.g.z = 9; a.g.x = 0; a.g.z = 0; b.g.x = 1.2; b.g.z = 0; a.g.entered = b.g.entered = true; a.g.stag = b.g.stag = 0; a.g.down = b.g.down = 0; b.g.atk = null; a.g.atk = null;
   a.g.vx = 6; a.g.vz = 0; b.g.vx = 0; b.g.vz = 0; let bumped = null, was = 6;
-  for (let i = 0; i < 40 && !bumped; i++) { p.hp = p.maxHp; was = a.g.vx; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "bump" && e.uid === b.uid) bumped = { fell: e.fell, va: a.g.vx, vb: b.g.vx, down: b.g.down, was }; R.fx.length = 0; }
+  for (let i = 0; i < 40 && !bumped; i++) { p.hp = p.maxHp; was = a.g.vx; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "bump" && e.uid === b.uid) bumped = { fell: e.fell, va: a.g.vx, vb: b.g.vx, down: b.g.down, was, n: e.n, n1: e.n1 }; R.fx.length = 0; }
   const slow = 1 - R3.PHYS.fric * R3.STEP;   // (what the ground takes from both in the step they meet)
   ok(!!bumped && bumped.fell && bumped.down > 0.5 && bumped.vb > bumped.va * 2 && Math.abs(bumped.va + bumped.vb - bumped.was * slow) < 0.2, "A man thrown into another takes him off his feet and gives him most of his speed; between them they keep what he had (" + (bumped ? bumped.was.toFixed(1) + " m/s before, " + bumped.va.toFixed(1) + " and " + bumped.vb.toFixed(1) + " after" : "no meeting") + ")");
+  ok(!!bumped && bumped.n > 0 && bumped.n1 > 0 && bumped.n <= Math.round(b.maxHp * R3.PHYS.hurtMost) && Math.abs(bumped.n / b.maxHp - bumped.n1 / a.maxHp) < 0.01, "And both pay for it in health, each by what he was given (" + (bumped ? (100 * bumped.n / b.maxHp).toFixed(1) + "% and " + (100 * bumped.n1 / a.maxHp).toFixed(1) + "%" : "") + "; never more than " + Math.round(R3.PHYS.hurtMost * 100) + "% at one meeting)");
   // a chariot under way and a man in its path
   car.g.entered = true; car.g.role = null; car.g.x = 0; car.g.z = -6; car.g.ca = 0; car.g.a = 0; car.g.cv = 4.5; car.g.atk = null; car.g.cool = 99; p.g.x = 0; p.g.z = -3.2; R.roll = 0; R.downFree = 0; R.downUntil = 0;
   let ram = null, carV = 9;
-  for (let i = 0; i < 90 && !ram; i++) { p.hp = p.maxHp; car.g.cool = 99; const x0 = car.g.z; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "jostle" && e.uid === p.uid) ram = { fell: e.fell, down: R.downUntil > R.t, noRoll: !R3.can(R, "roll"), carV: car.g.cv }; R.fx.length = 0; }
+  for (let i = 0; i < 90 && !ram; i++) { p.hp = p.maxHp; car.g.cool = 99; const x0 = car.g.z; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "jostle" && e.uid === p.uid) ram = { fell: e.fell, down: R.downUntil > R.t, noRoll: !R3.can(R, "roll"), carV: car.g.cv, n: e.n }; R.fx.length = 0; }
   ok(!!ram && ram.fell && ram.down && ram.noRoll && ram.carV > 2.5, "A chariot under way takes a man in its path off his feet, and is hardly slowed (" + (ram ? ram.carV.toFixed(1) + " m/s after" : "it never met him") + ")");
+  ok(!!ram && ram.n > p.maxHp * 0.03 && ram.n <= p.maxHp * R3.PHYS.hurtMost, "And it costs him health: " + (ram ? Math.round(100 * ram.n / p.maxHp) : 0) + "% of it at that speed");
+  // a car meets a car
+  { const al = B.units.find((u) => u.side === "ally" && u.g && u.hp > 0 && !u.g.car) || B.units.find((u) => u.side === "ally" && u.g && u.hp > 0);
+    al.g.car = true; al.g.rad = 1.25; al.g.cv = 0; al.g.ca = Math.PI; al.g.a = Math.PI; al.g.x = 0; al.g.z = 3.2; al.g.entered = true; al.g.role = null; al.g.atk = null; al.g.cool = 99; al.still = false; al.maxHp = al.hp = 1000; car.maxHp = car.hp = 1000;
+    p.g.x = 0; p.g.z = 13; car.g.x = 0; car.g.z = 0; car.g.ca = 0; car.g.a = 0; car.g.cv = 4.5; car.g.tgt = p.uid; car.g.jostleT = 0; car.g.wreckT = 0; car.g.down = 0; al.g.jostleT = 0; R.downFree = 0; R.downUntil = 0;
+    let cr = null; for (let i = 0; i < 120 && !cr; i++) { p.hp = p.maxHp; car.g.cool = 99; al.g.cool = 99; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "crash") cr = { fell: e.fell, me: e.me, n: e.n, n1: e.n1, a: car.g.wreckT > R.t && car.g.cv === 0, b: al.g.wreckT > R.t, down: car.g.down > 1 }; R.fx.length = 0; }
+    ok(!!cr && cr.fell && cr.me && cr.a && cr.b && cr.down && cr.n > 0 && cr.n1 > 0, "A chariot that runs into another at speed stops both dead, throws their men down on the deck, and costs both health (" + (cr ? (cr.n / 10).toFixed(1) + "% and " + (cr.n1 / 10).toFixed(1) + "%" : "they never met") + ")"); }
   try { C.settle("flee"); C.end(); } catch (x) {}
 }
 {
   const K = fresh(43); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_spar", null), R = R3.begin(B, {}), p = C.player();
   const full = R3.tire(R), l0 = R3.nextBlow(R).land; p.hp = Math.round(p.maxHp * 0.5); const half = R3.tire(R); p.hp = Math.round(p.maxHp * 0.25); const quarter = R3.tire(R), l1 = R3.nextBlow(R).land; p.hp = 1; const last = R3.tire(R);
   ok(full === 1 && half === 1 && quarter > 1.12 && quarter < 1.18 && last > 1.28 && last <= 1.3 && Math.abs(l1 / l0 - quarter) < 1e-6, "Hurt, your blows are slower: as before with half your health or more, " + Math.round((quarter - 1) * 100) + "% longer at a quarter, " + Math.round((last - 1) * 100) + "% with almost nothing left");
+  // and a foe is slower hurt, as you are
+  const e = B.units.find((u) => u.side === "enemy" && u.g); e.hp = e.maxHp; const f1 = R3.tireOf(e); e.hp = Math.round(e.maxHp * 0.25); const f2 = R3.tireOf(e); e.g.wind2 = true; const f3 = R3.tireOf(e); e.g.wind2 = false;
+  ok(f1 === 1 && f2 > 1.12 && f2 < 1.18 && f3 === 1, "A foe tires as you do: his wind-up and his rest are " + Math.round((f2 - 1) * 100) + "% longer at a quarter of his health (not a man who fights harder hurt)");
   try { C.settle("flee"); C.end(); } catch (x) {}
+}
+{ // the first blow of the same fight, with the foes whole and with them at a quarter: the same blow, longer in coming
+  const first = (share) => { const K = fresh(47); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, {}), p = C.player(); p.maxHp = p.hp = 100000; let w = null;
+    for (let i = 0; i < 60 * 20 && !w; i++) { for (const u of B.units) if (u.side === "enemy" && u.hp > 0) u.hp = Math.max(1, Math.round(u.maxHp * share)); R3.step(R, { mx: 0.01 }); for (const x of R.fx) if (x.k === "windup" && !w) { const u = B.units.find((q) => q.uid === x.uid); if (u && u.side === "enemy" && !u.line) w = { uid: x.uid, id: x.id, wind: x.wind }; } R.fx.length = 0; }
+    try { C.settle("flee"); C.end(); } catch (x) {} return w; };
+  const whole = first(1), hurt = first(0.25);
+  ok(!!whole && !!hurt && whole.uid === hurt.uid && whole.id === hurt.id && Math.abs(hurt.wind / whole.wind - 1.15) < 0.01, "The same first blow of the same fight takes " + (whole && hurt ? Math.round((hurt.wind / whole.wind - 1) * 100) : "?") + "% longer to wind up from a foe at a quarter of his health");
 }
 
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));

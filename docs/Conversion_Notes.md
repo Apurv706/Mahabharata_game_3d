@@ -584,3 +584,15 @@ Asked for: "Improve the physics of the fights": faces for attack, defence, a hit
 - `js/ui/battle/view.js`: the `hit` event drives all of it (jolt, impact, pain, longer hold, dust ring, shake by the share of health, the phone's own shake); `bump` and `jostle` are shown and heard; surprise on a great blow called, a parry and a clean guard; at the end the side that has the field cheers and the other's shoulders fall; a stopped car leans.
 - `tools/review/lineup.js` takes `mood` and `weary` for a figure.
 - `tests/rules3d.js`: 111 checks from 107; three made to test their own subject, not a thin life's survival.
+
+## Version 70 (16 November): a meeting costs health; chariot against chariot; foes tire
+
+Asked for, after Version 69 was played: "Collision should also lead to damage. Fix remaining steps too." The remaining steps were read as the two things Version 69 said it had not done. `docs/Fight_Feel.md` has the rules and numbers. In the code (`js/ui/battle/sim.js`):
+
+- `harm(R, o, dv)`: what a change of speed costs in health (`PHYS.hurtV`, `PHYS.hurtPer`, `PHYS.hurtMost`), with the floors a blow has (a champion only held, Bhishma before the tenth day) and a roll's passage. Called from `bump` for both bodies and from `jostle`.
+- `jostle`: a car that meets a car of the other side is judged by how fast the two are closing; each gets its share, and `felled` stops dead whichever is given `PHYS.wreckV`. A car you ride in is left out. The event is `crash`.
+- `tireOf(u)`: a foe's wind-up (`startAttack`, `sigBegin`) and rest lengthen with the health he has lost, on your scale; not a man with `wind2`.
+- `R3.TUNE`: `hold_duryodhana` 0.84, `wc_e_ghost` 0.88, `bh_line9` 0.6.
+- Caught by the browser test before it went out: the new `cost()` in the view named a variable that was not in its reach, and the first chariot to run a man down stopped the fight's drawing.
+- `js/ui/battle/view.js`: `cost()` shows what a meeting took over each head; `crash` is shown and heard; a stopped team rears.
+- `tests/rules3d.js`: 116 checks from 111.

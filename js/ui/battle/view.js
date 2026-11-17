@@ -450,7 +450,9 @@
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
         G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); v.tilt = (v.tilt || 0) + ((g.wreckT > R.t ? 0.2 : 0) - (v.tilt || 0)) * Math.min(1, dt * 6); c.rotation.z = v.tilt; // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
-        v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t); // (thrown back, its wheels turn back)
+        v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t);
+        { const rk = g.wreckT > R.t && u.hp > 0 ? clamp((g.wreckT - R.t - 2.1) / 0.9, 0, 1) : 0;   // (stopped dead by a meeting: for the first moment the team rears in the traces)
+          if (rk > 0 || v.reared) { const up = Math.sin(rk * Math.PI); for (const h of c.userData.horses || []) { h.rotation.x = -up * 0.55; h.position.y = up * 0.28; } v.reared = rk > 0; } } // (thrown back, its wheels turn back)
         { const cb = c.userData.car; if (cb) { for (const f of v.figs) { f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
         if (u.hp > 0 && mps > 2.2 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
       }
@@ -644,11 +646,15 @@
           case "ask": orderCard(e.uid, e.i || 0); sfx("drumCall"); break;
           case "orderTaken": orderTaken(e.i || 0, e.uid); break;
           case "orderDone": orderDone(e.how, e.i || 0); break;
-          case "jostle": { const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: e.fell ? 16 : 8, s: e.fell ? 1.6 : 1 }); sfx("hit"); if (e.fell) sfx("fall"); if (e.uid === p.uid) { G.shake(e.fell ? 0.5 : 0.3, 0.35); if (e.fell) { hurt(); buzz(45); } }
+          case "jostle": { cost(e.uid, e.n); const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: e.fell ? 16 : 8, s: e.fell ? 1.6 : 1 }); sfx("hit"); if (e.fell) sfx("fall"); if (e.uid === p.uid) { G.shake(e.fell ? 0.5 : 0.3, 0.35); if (e.fell) { hurt(); buzz(45); } }
             const bv = views.get(e.by); if (v && bv) for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 1); if (v && G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.6); break; } // (run into by a car or an elephant under way: thrown aside, or off his feet)
-          case "bump": { const at = e.x != null ? tmp.set(e.x, 0.9, e.z).clone() : posOf(e.uid, 0.9); if (at) { G.fx.burst("hit", at, { n: e.fell ? 10 : 5, s: 1 }); if (e.fell) G.fx.burst("dust", at.clone().setY(0.2), { n: 10, s: 1.4 }); } sfx("hit"); if (e.fell || e.me) sfx("fall");
+          case "bump": { cost(e.uid, e.n); cost(e.by, e.n1); const at = e.x != null ? tmp.set(e.x, 0.9, e.z).clone() : posOf(e.uid, 0.9); if (at) { G.fx.burst("hit", at, { n: e.fell ? 10 : 5, s: 1 }); if (e.fell) G.fx.burst("dust", at.clone().setY(0.2), { n: 10, s: 1.4 }); } sfx("hit"); if (e.fell || e.me) sfx("fall");
             const bv = views.get(e.by); if (v && bv) { for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 0.9); if (G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.5); }
             if (e.uid === p.uid || e.by === p.uid) G.shake(0.25, 0.25); break; } // (a body thrown back has struck another: they share it by their weights)
+          case "crash": { cost(e.uid, e.n); cost(e.by, e.n1); const at = posOf(e.uid, 0.6), bt = posOf(e.by, 0.6), mid = at && bt ? at.clone().lerp(bt, 0.5) : at;   // (a car has met a car, or an elephant a car)
+            if (mid) { G.fx.burst("dust", mid.clone().setY(0.2), { n: 22, s: 2 }); G.fx.burst("hit", mid.clone().setY(1.1), { n: 14, s: 1.5 }); G.fx.ring(mid.clone().setY(0.08), 0xffe0b0, 0.3, 3.2, 0.4); }
+            sfx("hit"); sfx("drum"); if (e.fell || e.me) sfx("fall"); G.shake(e.uid === p.uid || e.by === p.uid ? 0.55 : 0.2, 0.4); if (e.uid === p.uid || e.by === p.uid) { hurt(); buzz(60); hitStop = Math.max(hitStop, 0.1); }
+            if (G.feel) for (const id of [e.uid, e.by]) { const w = views.get(id); if (w) for (const x of w.figs) G.feel(x, "pain", 0.6); } break; }
           case "wheelArrow": { const me = C.player(), to = new T.Vector3(me.g.x, 1.35, me.g.z), far = wheelFar(); G.fx.arrow(far, to, 0.8, null, () => { G.fx.burst("spark", to, { n: 5 }); }, 0); float(to.clone().setY(2.1), "-" + e.n, "mine"); G.fx.flash("rgba(190,40,30,.22)", 220); sfx("hit"); G.shake(0.18, 0.2);
             if (!tips.wheelArrow) tip("wheelArrow", "Arjuna's arrows find whoever is at the wheel. Step away to guard; come back to heave."); break; }
           case "wheelEnd": wheelEnd(!!e.stand); break;
@@ -951,6 +957,7 @@
       void o;
     };
     let hurtT = 0;
+    function cost(uid, n_) { if (!(n_ > 0)) return; const w = views.get(uid), at = posOf(uid, 1.5); if (at && w) float(at, String(Math.round(n_)), (w.u.side === "enemy" ? "foe" : "mine") + " big"); if (w && w.u.side === "player") hurt(); }   // (what a meeting cost a body, over its head)
     function buzz(ms) { try { if (navigator.vibrate && !U.calm()) navigator.vibrate(ms); } catch (e) { /* (a phone that will not shake in the hand) */ } }
     function hurt() { hurtT = 0.35; const sh = U.$("shade"); if (sh) sh.style.background = "radial-gradient(130% 100% at 50% 45%, transparent 40%, rgba(160, 20, 10, 0.6) 100%)"; }
     // One-time hints, the first time each thing happens (kept in the settings, so they are said once).
