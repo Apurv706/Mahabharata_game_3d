@@ -86,11 +86,19 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
     BH, BA, BW, BWO, BS = F.get("brow_h", 1.42), F.get("brow_arch", 0.32), F.get("brow_w", 0.2), F.get("brow_w_out", 0.09), F.get("brow_slant", -0.25)
     for sd in "LR":
         c, _ = MHI["eyes"][sd]; r = 0.0115 * sH; sg = 1 if sd == "L" else -1; bk = H.get("browk", 1.0)
-        bo = strip("browhair", "lash", "face", lambda u, c=c, r=r, sg=sg: (c.x + sg * r * (-0.95 + 2.55 * u), c.z + r * (BH + BA * math.sin(math.pi * min(1.0, u * 1.25)) + BS * u * u)),
+        AUTO = bool((H.get("mpfb") or {}).get("auto")); hc = H.get("hair", 0); pale = AUTO and ((hc >> 16) & 255) + ((hc >> 8) & 255) + (hc & 255) > 330   # (a grey or white head has brows of its own colour)
+        X0, X1 = (-1.05, 2.95) if AUTO else (-0.95, 2.55)   # (the cast's brows run longer, from beside the nose out past the eye's corner)
+        bo = strip("browhair", "hair" if pale else "lash", "face", lambda u, c=c, r=r, sg=sg: (c.x + sg * r * (X0 + X1 * u), c.z + r * (BH + BA * math.sin(math.pi * min(1.0, u * 1.25)) + BS * u * u)),
               lambda u, r=r: r * (BW - (BW - BWO) * u) * bk, F.get("brow_off", 0.0013), NU=14, NV=3)
         for g in list(bo.vertex_groups): bo.vertex_groups.remove(g)
         rigid(bo, "b" + sd)   # (each brow on the game's brow joint: it rises, knits and falls with the face's mood)
         bc = sum((Vector(v.co) for v in bo.data.vertices), Vector()) / len(bo.data.vertices); RIG["b" + sd] = ("H", (c.x + sg * r * 0.3, bc.y, bc.z))
+        if AUTO and MHI.get("lids"):   # the lash line: a dark edge along the upper lid, from corner to corner (it closes with the lid)
+            up = MHI["lids"][sd][0]; er = MHI["eyes"][sd][1]; lk = F.get("lash", 1.0)
+            lo = strip("lash", "lash", "face", lambda u, c=c, er=er, sg=sg, up=up: (c.x + sg * er * (-0.78 + 1.62 * u), c.z - 0.10 * er + (up.z - c.z + 0.10 * er + 0.0012) * math.sin(math.pi * (0.08 + 0.84 * u)) ** 0.8 + 0.12 * er * u),
+                       lambda u, er=er, lk=lk: er * (0.035 + 0.06 * math.sin(math.pi * u)) * lk, 0.0011, NU=12, NV=2)
+            for g in list(lo.vertex_groups): lo.vertex_groups.remove(g)
+            rigid(lo, "E")
     # lips: the red of the mouth. (MakeHuman's mouth joint is at the jaw's hinge, so the lips are found by their shape:
     # the face's most forward points in the middle between the nose and the chin.)
     mid = [i for i in range(len(hv)) if abs(hv[i].x) < 0.004 and abs(hv[i].z - MHI["mouth"].z) < 0.035]
@@ -135,12 +143,13 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
     worn = {p for L_ in H["looks"].values() for p in L_["parts"]}
     if "stache" in worn:
         if H.get("handle"):   # the wrestler's (Bhima's): heavy over the lip, swept out past the mouth's corners and up at its ends
-            SW, SH_, SD = SW * 1.42, SH_ * 1.5, SD * 1.5
+            SW, SH_, SD = SW * 1.25, SH_ * 1.45, SD * 1.5
             strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0125 - 0.005 * (2 * u - 1) ** 2 + 0.019 * max(0.0, abs(2 * u - 1) - 0.52) ** 1.5 / 0.48 ** 1.5),
                   lambda u: (SH_ - SH_ * 0.62 * (2 * u - 1) ** 2) * sk, SD, NU=28, NV=4)
         else:
-            strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0105 - SDR * (2 * u - 1) ** 2),
-                  lambda u: (SH_ - SH_ * 0.5 * (2 * u - 1) ** 2) * sk, SD, NU=20, NV=4)
+            CU = F.get("stache_curl", 0.0)
+            strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0105 - SDR * (2 * u - 1) ** 2 + CU * max(0.0, abs(2 * u - 1) - 0.55) ** 1.5 / 0.45 ** 1.5),
+                  lambda u: (SH_ - SH_ * 0.5 * (2 * u - 1) ** 2) * sk, SD, NU=24, NV=4)
     # a short beard (F["beard"]: how thick): the jaw, the chin and under it, the cheeks up to a line from the mouth's corner to
     # the ear's lobe, and the sideburns; thinning to nothing at its edges so it does not end in a cut line; not on the lips
     BEARDS = [("beardS", F.get("beard"), F)] if F.get("beard") else []

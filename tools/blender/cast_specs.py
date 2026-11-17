@@ -55,7 +55,7 @@ PEOPLE = {
   "player_m": dict(jawsq=0.6, cheekp=0.55), "player_f": dict(eye=1.1, tilt=0.1, browarch=0.6, cheekp=0.55),
   # the five brothers
   "yudhishthira": dict(hw=0.96, lowh=1.08, nosel=1.1, jaww=0.92, chinw=0.95, cheekw=0.96, full=-0.15, brow=0.35, browtilt=-0.45, browarch=0.2, browth=0.9, tilt=-0.02, open=0.9, hood=0.35, eye=0.98, nosew=0.95, bridgeh=1.05, lipw=0.95, lipu=0.9, corner=-0.15, fold=0.35, hairline=0.006, recede=0.3),
-  "bhima": dict(hw=1.05, cheekw=1.07, jaww=1.2, chinw=1.3, jawsq=0.7, full=0.9, jowl=0.5, lowh=0.98, nosel=0.95, nosew=1.28, tipw=1.3, nosep=0.95, bridgew=1.2, brow=0.8, browth=1.5, browarch=0.5, eye=0.9, open=0.92, gap=1.03, lipw=1.12, lipu=1.15, lipl=1.2, corner=0.5, cheekp=0.2, fores=0.2),
+  "bhima": dict(hw=1.05, cheekw=1.07, jaww=1.2, chinw=1.3, jawsq=0.7, full=0.45, jowl=0.15, lowh=0.98, nosel=0.95, nosew=1.28, tipw=1.3, nosep=0.95, bridgew=1.2, brow=0.8, browth=1.5, browarch=0.5, eye=0.9, open=0.92, gap=1.03, lipw=1.12, lipu=1.15, lipl=1.2, corner=0.5, cheekp=0.2, fores=0.2),
   "arjuna": dict(hw=0.98, cheekp=1.0, full=-0.45, jaww=0.97, jawsq=0.85, chinw=0.95, chinp=0.2, lowh=1.02, nosel=1.04, nosew=0.92, bridgew=0.85, bridgeh=1.15, tipw=0.9, nosep=1.08, brow=0.75, browth=1.1, browtilt=0.3, browarch=0.25, deep=0.6, tilt=0.1, lipw=0.95, lipu=0.9, lipl=0.95, temple=0.2),
   "nakula": dict(hw=0.97, cheekw=0.98, jaww=0.93, chinw=0.9, lowh=0.98, nosel=0.98, nosew=0.88, bridgew=0.8, tipw=0.88, brow=0.25, browth=0.85, browarch=0.6, eye=1.1, open=1.05, tilt=0.12, lipu=1.15, lipl=1.1, lipw=0.97, corner=0.25, cheekp=0.6, fores=-0.2),
   "sahadeva": dict(hw=0.99, cheekw=0.99, jaww=0.95, jawsq=0.35, chinw=0.94, lowh=0.96, nosel=0.96, nosew=0.92, bridgew=0.85, nosep=0.96, tip=0.3, brow=0.2, browth=0.9, browarch=0.4, browtilt=-0.2, eye=1.08, tilt=0.06, lipu=1.1, lipl=1.05, full=0.25, cheekp=0.4, fores=-0.3),
@@ -369,7 +369,7 @@ for k_ in ("arjuna_adult", "bhima_adult", "karna_adult", "dhrishtadyumna_adult",
 for k_ in ("arjuna_adult", "bhima_adult", "duryodhana_adult", "bhishma_elder"): wears(k_, "sandal", looks=("war",))                                          # sandals at war
 wears("arjuna_adult", drop="pauldron", looks=("war",)); CAST["arjuna_adult"]["pauldronk"] = "none"; CAST["arjuna_adult"]["signk"] = 2.0                        # bare shoulders; a wide fan of gold on the chest
 CAST["bhima_adult"].update(wide=1.34, girth=1.1, pauldronk="dome", signk=1.7)                                                                               # the broadest of all; great round shoulder domes
-CAST["duryodhana_adult"].update(pauldronk="dome", goateek=1.5); CAST["dushasana_adult"]["goateek"] = 1.3
+CAST["duryodhana_adult"].update(pauldronk="dome", goateek=0.85); CAST["dushasana_adult"]["goateek"] = 0.85   # (17 November: a small pointed tuft, as his portrait has it)
 wears("draupadi_adult", "tikka", drop="crown", looks=("court",))                                                                                           # a brow jewel, not a crown
 wears("krishna_adult", "garland flute", looks=("court", "home"))
 CAST["dhrishtadyumna_adult"]["crown"] = "circlet"; CAST["dhrishtadyumna_adult"].pop("crownk", None)                                                          # a low diadem and a hair knot
@@ -484,11 +484,12 @@ def sculpt(key):
     T.update(face_targets(f, dict(child=0.35, youth=0.75).get(st, 1.0), she, 0.6 if st == "elder" else 1.0, 0.4 if st == "child" else 0.7 if st == "youth" else 0.95))
     # the hair of the face: brows as this person's are (how thick, how arched, their slant, how low over a heavy brow)
     kf = dict(child=0.35, youth=0.75).get(st, 1.0); browth = f.get("browth", 0.8 if she else 1.0) * (0.8 if st == "child" else 1.0); bw = (0.3 if she else 0.36) * browth   # (17 November, the faces: fuller brows, as the portraits have them)
-    face = dict(brow_h=round(_cl(1.38 - 0.3 * (f.get("brow", 0.0 if she else 0.5) - 0.5) - 0.1 * f.get("deep", 0.0), 1.12, 1.55), 3),
+    face = dict(brow_h=round(_cl((1.2 if she else 1.06) - 0.2 * (f.get("brow", 0.0 if she else 0.5) - 0.5) - 0.08 * f.get("deep", 0.0), 0.9, 1.3), 3),
                 brow_arch=round(_cl(0.9 * f.get("browarch", 0.7 if she else 0.35) - 0.1, 0.04, 0.5), 3), brow_w=round(bw, 3), brow_w_out=round(bw * (0.4 if she else 0.52), 3),
-                brow_slant=round(-0.2 + 0.5 * kf * f.get("browtilt", 0.0), 3))
+                brow_slant=round(-0.28 + 0.4 * kf * f.get("browtilt", 0.0), 3), lash=1.25 if she else 0.8 if st == "child" else 1.0)
     worn = set(p for L_ in c["looks"].values() for p in L_["parts"])
-    if "stache" in worn: face.update(stache_w=round(0.034 * f.get("lipw", 1.0), 4), stache_h=0.0056, stache_droop=0.007, stache_off=0.0025)   # (as wide as the mouth, its ends turned down)
+    if "stache" in worn: face.update(stache_w=round(0.039 * f.get("lipw", 1.0), 4), stache_h=0.0068, stache_droop=0.006, stache_off=0.003, stache_curl=0.012 if (c.get("crown") and st != "elder") else 0.0)   # (the portraits: a full moustache past the mouth's corners; a prince's turned up at its ends)   # (as wide as the mouth, its ends turned down)
+    if "beardS" in worn and "stache" in worn: face["stache_off"] = 0.0048   # (over the beard, not sunk in it)
     if "beardS" in worn: face.update(beard=0.0018, beard_cheek=0.55, beard_low=0.075, beard_back=0.055)   # (close-cut: dark hair over skin, see stubblek below)   # a short beard, of this face's own jaw
     if "beardF" in worn: face["beardF"] = dict(beard=0.017, beard_cheek=0.5, beard_low=0.1, beard_back=0.062, beard_role="hair", beard_drop=0.03 * c.get("beardk", 1.0) ** 0.5)   # and a full one
     lead = who in LEADS; few = c.get("lod", 1.0) < 1 or c.get("sided")

@@ -309,6 +309,7 @@ def build_full(spec, J):
         c = jc(f"joint-{k}-eye"); u = jc(f"joint-{k}-upperlid") - c; l = jc(f"joint-{k}-lowerlid") - c
         u = Vector((0, u.y, u.z)).normalized(); l = Vector((0, l.y, l.z)).normalized(); return math.acos(max(-1.0, min(1.0, u.dot(l))))
     info["lidr"] = 0.5 * (lid_ang("l") + lid_ang("r"))
+    info["lids"] = {"L": (head(jc("joint-l-upperlid")), head(jc("joint-l-lowerlid"))), "R": (head(jc("joint-r-upperlid")), head(jc("joint-r-lowerlid")))}   # (the lids' edges, for the lash line)
     info["neck_lift"] = J.get("neck_lift", 0.0)
     info["jaw"] = head(jc("joint-jaw")); info["mouth"] = head(jc("joint-mouth")); info["head_scale"] = sH
     # the game's joints for each point (the neck shares the trunk's and the head's; the fingers' bones become the

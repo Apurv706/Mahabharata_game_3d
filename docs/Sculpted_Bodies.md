@@ -89,9 +89,19 @@ The other 78 figures were put on the same body by one recipe, `sculpt()` at the 
 - **Short beards** are close-cut, dark hair over skin (`stubblek` 0.78), rising across the cheek to the ear. They were solid black blocks.
 - **Full beards** (Bhishma, Drona, Dhritarashtra, Drupada, Virata, Mauni, the forest looks) are now made from each face's own jaw and hang off the chin. The old ball-shaped beards are gone; Bhishma's and Dhritarashtra's long fall below is kept.
 
+### Likeness (17 November, Version 76)
+
+Each lead's head was set beside its portrait (`art/p_<name>.webp`) and what differed most was put right, for the whole cast:
+
+- **A lash line** along every upper lid (it closes with the lid). Eyes read as dark and defined, as painted. Heavier on women.
+- **Brows** are longer, lower over the eye and slanted as each person's are. A grey or white head has brows of its own colour (they were black on Bhishma and Drona).
+- **Moustaches** are full and run past the mouth's corners; a prince's turns up at its ends. Over a short beard the moustache stands clear of it.
+- **Bhima** is strong in the face, no longer fat. **Duryodhana** and **Dushasana** have a small pointed tuft, not a long block.
+
 ### Still open (whole cast)
 
 - Faces come from the old measures by rule, not from each sheet by eye as Arjuna's was. Leads deserve the same hand pass.
 - Chin tufts (Duryodhana, Dushasana, Shakuni, Jayadratha) are still the old shape set onto the new chin.
-- Women have no lash line yet.
+- Skin reads lighter in the game than in the portraits, most on the elders.
+- Karna's portrait shows a moustache only; the model keeps his sheet's short beard.
 - Upper cloths still hang like boards (older issue).
