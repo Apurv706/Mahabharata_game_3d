@@ -98,10 +98,16 @@ Each lead's head was set beside its portrait (`art/p_<name>.webp`) and what diff
 - **Moustaches** are full and run past the mouth's corners; a prince's turns up at its ends. Over a short beard the moustache stands clear of it.
 - **Bhima** is strong in the face, no longer fat. **Duryodhana** and **Dushasana** have a small pointed tuft, not a long block.
 
+### The gaps closed (17 November, Version 77)
+
+- **Skin** is warmer and deeper for the whole cast, a little more on the elders. Measured cheek against cheek, the game's skin had been far paler than the portraits.
+- **Karna** wears a moustache and no beard, as his portrait has it.
+- **Six leads' bones reshaped from their portraits** (in `PEOPLE`): Yudhishthira (a soft oval face, larger gentler eyes, no longer gaunt), Bhima (squarer, heavier brow, larger eyes), Duryodhana (narrower jaw and chin, high cheekbones, slanted brows), Karna (level brows, open eyes), Bhishma (broader face, a shorter broader nose).
+- **Full beards** thin toward the lips, so the mouth's opening is a soft edge.
+
 ### Still open (whole cast)
 
 - Faces come from the old measures by rule, not from each sheet by eye as Arjuna's was. Leads deserve the same hand pass.
 - Chin tufts (Duryodhana, Dushasana, Shakuni, Jayadratha) are still the old shape set onto the new chin.
-- Skin reads lighter in the game than in the portraits, most on the elders.
-- Karna's portrait shows a moustache only; the model keeps his sheet's short beard.
+- The portraits are painted in low warm light; the game's skin is still lighter than they are, by choice, so faces read on a bright field.
 - Upper cloths still hang like boards (older issue).

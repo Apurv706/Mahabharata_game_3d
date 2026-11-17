@@ -160,7 +160,9 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
         earY = MHI["eyes"]["L"][0].y + F.get("beard_back", 0.075)
         def margin(p):   # how far inside the beard's ground a point is (m; below 0, outside)
             if lipm(p): return -1.0
-            return min(top(p.x) - p.z, p.z - (mo.z - F.get("beard_low", 0.085)), earY - p.y)
+            m_ = min(top(p.x) - p.z, p.z - (mo.z - F.get("beard_low", 0.085)), earY - p.y)
+            if BN == "beardF": m_ = min(m_, (math.sqrt((p.x / (LW * 1.15)) ** 2 + ((p.z - mo.z) / (LH * 1.3)) ** 2) - 1.0) * 0.02)   # (a full beard thins toward the lips, so the mouth's opening is a soft edge, not a cut one)
+            return m_
         fs = [p for p in Hd.data.polygons if margin(Vector(p.center)) > 0]
         ids = sorted({i for p in fs for i in p.vertices}); rm = {i: k for k, i in enumerate(ids)}
         vs = []
