@@ -133,20 +133,58 @@
     }
     // Thrown down but alive: the physics engine has him while he is down, draws him toward where the rules have him, and
     // gives him back to his poses in time to be on his feet when the rules say he is. (dn: he is down; left: for how
-    // many seconds more; x, z: where the rules have him.) Riders thrown down on a deck, and anyone the engine has no room
-    // for, go down and get up by their poses, as before.
+    // many seconds more; x, z: where the rules have him.) A rider thrown down stays in his car and gets up in it. Anyone the
+    // engine has no room for goes down and gets up by his poses, as before.
     function down3(v, f, g, dn, left, x, z, dt) {
-      if (!PH || v.car) { f.drop(dn); return; }
+      if (!PH) { f.drop(dn); return; }
       const again = dn && left > (f.leftWas || 0) + 0.2; f.leftWas = dn ? left : 0;   // (thrown down; or thrown down again before he was up)
       if (again) { const r0 = f.rag;
         if (r0 && r0.alive && !r0.rise) PH.shove(r0, (g.vx || 0) * 0.5, 0.8, (g.vz || 0) * 0.5);
-        else f.engine = left > 0.8 && thrown3(f, g, Math.hypot(g.vx || 0, g.vz || 0) > 3, true); }
+        else f.engine = left > 0.8 && (v.car ? rider3(v, f, g, false, true) : thrown3(f, g, Math.hypot(g.vx || 0, g.vz || 0) > 3, true)); }
       const r = f.rag;
       if (r && r.alive && !r.rise) { if (!dn || left <= RISE) PH.rise(f, RISE); else PH.lead(r, x, z, dt); }
       if (!dn && !f.rag) f.engine = false;
       f.drop(dn && !f.engine);
     }
     const RISE = 0.45;   // (seconds a man takes to come from where he lay to his feet)
+    // A rider given to the engine. Killed, he falls on the deck, against a rail, or over it and out, by how he was
+    // struck: an arrow from far off leaves him where he stood or over the low rail behind him; a blade sends him over
+    // the side; a heavy blow throws him clear of the car. Only thrown down, he stays in the car (walls no one sees keep
+    // him in it) and gets up in it. False if the engine would not take him.
+    function rider3(v, f, g, hard, alive) {
+      const id = v.u.uid; if (!(v.car || v.parked) || !PH.moving(id)) return false;
+      const lf = g.lastFrom, rnd = Math.random; let dx = 0, dz = 0, far = 99; if (lf) { dx = g.x - lf.x; dz = g.z - lf.z; far = Math.hypot(dx, dz) || 1; dx /= far; dz /= far; }
+      if (alive) return !!PH.take(f, { car: id, alive: true, v: [0, 0.6, 0], push: [dx * 1.6 + (rnd() - 0.5), 0.8, dz * 1.6 + (rnd() - 0.5)], spin: (rnd() - 0.5) * 2 });
+      if (f.rag && f.rag.alive && !f.rag.rise) { if (!PH.kill(f.rag, [dx * 1.2, 0.8, dz * 1.2])) return false; }   // (killed where he lay on the deck)
+      else { const near = far < 4.5, k = hard ? 2.4 : near ? 1.2 : 0, pk = hard ? 2.4 : near ? 2.2 : 1.4;
+        if (!PH.take(f, { car: id, v: [dx * k, hard ? 2.2 : near ? 0.8 : 0, dz * k], push: [dx * pk, hard ? 1.2 : near ? 0.8 : 0.4, dz * pk], spin: (rnd() - 0.5) * 1.6 })) return false; }
+      G.actors.attach(f.root); return true;   // (he is the field's now, not the car's)
+    }
+    // A car lost: its team goes down under the engine, each horse a body of its own; a wheel comes off, runs on a few
+    // paces, leans and falls over; its driver falls from the rail. A horse the engine has no room for is laid down as
+    // it was before there was an engine.
+    function wreck3(v, c) {
+      if (!c || v.wrecked) return; v.wrecked = true;
+      const u = v.u, g = u.g, hs = c.userData.horses || [], rnd = Math.random, vel = [(g.lx || 0) * 0.6, 0, (g.lz || 0) * 0.6], sn = Math.sin(c.rotation.y), cs = Math.cos(c.rotation.y);
+      if (PH) { PH.unmover(u.uid + ":team"); if (PH.moving(u.uid)) PH.mover(u.uid, { kind: "car", x: c.position.x, z: c.position.z, a: c.rotation.y }); }   // (the car stands where it is)
+      hs.forEach((h, i) => { const out = hs.length < 2 ? (rnd() < 0.5 ? -1 : 1) : i < hs.length / 2 ? 1 : -1;   // (the near horses go over to the near side, the off horses to the off side)
+        if (PH && PH.takeBeast(h, "horse", { v: vel, roll: out * (1.4 + rnd()), spin: (rnd() - 0.5) * 0.8 })) { G.actors.attach(h); (v.strays = v.strays || []).push(h); }
+        else { h.rotation.z = (i % 2 ? -1 : 1) * 1.45; h.position.y = 0.28; G.gallop(h, 0, 0); } });
+      c.userData.horses = [];
+      { const ws = c.userData.wheels || [], w0 = ws[1] || ws[0]; if (w0 && w0.parent) { c.userData.wheels = ws.filter((q) => q !== w0);   // (a wheel comes off, runs on a few paces, and falls over)
+          if (!(PH && PH.loose(w0, new T.Vector3(sn * 2.8 + cs * 0.6, 0.5, cs * 2.8 - sn * 0.6), new T.Vector3((cs * 2.8) / 0.72, 0.3, (-sn * 2.8) / 0.72), { wheel: [0.72, 0.07], m: 25, life: 600 })))
+            G.fx.toss(w0, new T.Vector3(sn * 2.6 + cs * 1.4, 1.6, cs * 2.6 - sn * 1.4), new T.Vector3(7, 0.6, 1.6), { r: 0.1, flat: [0, Math.PI / 2], life: 9 }); } }
+      if (v.driver && !v.divine) { const d = v.driver; let ok = false;
+        if (PH && PH.moving(u.uid)) { ok = !!PH.take(d, { car: u.uid, v: [sn * 0.8, 0.9, cs * 0.8], push: [sn * 1.4 + cs * (rnd() - 0.5) * 2.4, 0.6, cs * 1.4 - sn * (rnd() - 0.5) * 2.4], spin: (rnd() - 0.5) * 2 }); if (ok) G.actors.attach(d.root); }
+        if (!ok) { d.pose("down", true); d.update(0.016, 0); } }
+      c.rotation.z = 0.2; G.fx.burst("dust", c.position.clone().setY(0.3), { n: 22 }); sfx("clang"); G.shake(0.25, 0.3);
+    }
+    // What a beast the engine has is heard and seen to strike: an elephant shakes the ground.
+    function landedBeast(r, big) {
+      if (!r || r.frozen || !(r.hit > 1.6)) return; const n = r.hit, b = r.b.root.position; r.hit = 0;
+      if (G.t - (r.heardAt || -9) < 0.3) return; r.heardAt = G.t;
+      G.fx.burst("dust", new T.Vector3(b.x, 0.2, b.z), { n: Math.min(big ? 26 : 14, Math.round(n * (big ? 5 : 2.5))) }); sfx(big ? "drum" : "fall"); if (big) G.shake(Math.min(0.5, 0.12 * n), 0.4);
+    }
     // What a body the engine has is heard and seen to strike: dust and a thud by how hard its trunk met the ground or
     // another body.
     function landed(f, u) {
@@ -198,7 +236,7 @@
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
       for (const bt of K.val(enc.beats) || []) if (bt.art3 && typeof Image !== "undefined") { const im = new Image(); im.src = U.artUrl(bt.art3); } /* (a turn's painting is fetched now, so it is there when its turn comes) */
       G.lookHint = (K.S && K.S.act >= 6) || enc.dream || (enc.lethal !== false && B.units.some((u) => u.line || u.plural || (u.g && (u.g.car || u.g.kind === "squad")))) ? "war" : ""; /* (who wears what: on a field where companies meet, everyone is in what he fights in; in a yard or a hall, his everyday dress. js/g3/model.js) */
-      st = G.setStage(key, { clear: 15 }); if (PH) { PH.TUNE.most = G.q && G.q.name === "low" ? 3 : 6; PH.open(); }   // (the lowest drawing setting is a modest phone: the engine carries half as many bodies at once)
+      st = G.setStage(key, { clear: 15 }); if (PH) { const low = G.q && G.q.name === "low"; PH.TUNE.parts = low ? 33 : 66; PH.TUNE.partsMost = low ? 66 : 132; PH.open(); }   // (the engine begins with room for six men, three on the lowest drawing setting, and then finds from what a step costs on this machine how many it can carry: up to twelve, six on the lowest)
       buildEdge(key);
       backdrop(key);
       lockRing = new T.Mesh(new T.RingGeometry(0.62, 0.74, 30).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
@@ -416,7 +454,9 @@
           const steeds = STEEDS[who], car = CAR[who], great = !!(u.hero || u.person || who);
           v.car = G.chariot({ col: car ? car[0] : G.shade(theirs, great ? 0.82 : 0.66) /* (panelled in his host's colour) */, trim: car ? car[1] : great ? 0xe2b55a : 0xb8873a, flag, canopy: UMBRELLA.has(who) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: great && (G.q.crowd || 1) >= 0.5 ? 4 : 2 });
           v.car.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.car);
-          v.driver = G.figure(who === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand") v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);
+          v.driver = G.figure(who === "arjuna" ? D3("krishna") : Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: u.side === "enemy" ? "#8a2a24" : "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }) /* a charioteer: turbaned, bare-chested, the whip in his hand */, { item: "whip", noBlob: true }); // (Krishna drives "whip in hand")
+          v.divine = who === "arjuna";   // (Krishna's car is never lost, and he is never thrown from it: wreck3)
+          v.driver.pose("drive", true); v.car.add(v.driver.root); v.driver.root.position.set(0.25, 0.86, 0.55);   // (17 November: these three calls had stood behind the note above, on its line, since the standards and steeds were added: no car in a fight had its driver)
         }
         for (let i = 0; i < n; i++) {
           const f = G.figure(i ? Object.assign({}, look, { size: (look.size || 1) * (0.94 + i * 0.04) }) : look, { item: B.enc.wheel3 && u.person === B.enc.wheel3 ? null : itemOf(g.weapon), noBlob: !!v.car || !!u.decoy, lite: !!u.line || (!!u.plural && i > 0) }); // (the rank and file are plainer figures: fewer points to draw)
@@ -451,7 +491,8 @@
       if (v.mark) { v.mark.userData.free(); v.mark = null; }
       if (v.mark2) { v.mark2.userData.free(); v.mark2 = null; }
       if (v.bar) v.bar.remove();
-      if (PH) { PH.unmover(v.u.uid); v.figs.forEach((f, i) => { PH.unmover(v.u.uid + ":" + i); PH.free(f); }); }
+      if (PH) { PH.unmover(v.u.uid); PH.unmover(v.u.uid + ":team"); v.figs.forEach((f, i) => { PH.unmover(v.u.uid + ":" + i); PH.free(f); }); if (v.driver) PH.free(v.driver); if (v.obj) PH.freeBeast(v.obj); for (const h of v.strays || []) PH.freeBeast(h); }
+      { const strays = v.strays || []; v.strays = null; const away = () => { for (const h of strays) { if (h.parent) h.parent.remove(h); G.dispose(h); } }; if (how === "now") away(); else setTimeout(away, 1400); }   // (horses that went down out of their traces)
       const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.parked) { if (v.parked.parent) v.parked.parent.remove(v.parked); G.dispose(v.parked); } if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
       if (how === "now") gone(); else setTimeout(gone, 1400);
       views.delete(v.u.uid);
@@ -480,23 +521,28 @@
         if (v.kind === "light") { v.obj.position.set(g.x * 0.5, 15, g.z * 0.5 - 6); v.obj.material.opacity = 0.75 + Math.sin(t * 3) * 0.2; return; }
         { const mps = Math.hypot(g.lx || 0, g.lz || 0); v.obj.position.x += (g.x - v.obj.position.x) * Math.min(1, snap ? 1 : dt * 20); v.obj.position.z += (g.z - v.obj.position.z) * Math.min(1, snap ? 1 : dt * 20); v.obj.position.y = 0;
           let da = (g.ca != null ? g.ca : g.a) - v.obj.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); v.obj.rotation.y += da * Math.min(1, snap ? 1 : dt * 14); v.mps = mps;
-          if (v.kind === "elephant") G.stomp(v.obj, t * 7, 0, u.hp > 0 ? mps : 0); } // (it points the way it goes, and its feet keep the ground at the pace it is really making)
+          if (v.kind === "elephant" && !v.obj.userData.rag) G.stomp(v.obj, t * 7, 0, u.hp > 0 ? mps : 0); } // (it points the way it goes, and its feet keep the ground at the pace it is really making)
         if (v.kind === "elephant" && u.hp > 0 && v.mps > 1 && Math.random() < dt * 5) G.fx.burst("dust", new T.Vector3(g.x + (Math.random() - 0.5) * 2, 0.15, g.z + (Math.random() - 0.5) * 2.6), { n: 2 }); // (and from under an elephant's feet)
-        if (u.hp <= 0 && v.kind === "elephant") v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2);
+        if (u.hp <= 0 && v.kind === "elephant") { // killed: it comes down on its legs and goes over onto its side, a body of three and a half tonnes under the physics engine (where the engine cannot take it, it goes over by a turn, as before)
+          if (!v.fellEl) { v.fellEl = true; v.elRag = (PH && PH.takeBeast(v.obj, "elephant", { v: [(g.lx || 0) * 0.5, 0, (g.lz || 0) * 0.5], roll: (Math.random() < 0.5 ? -1 : 1) * (0.8 + Math.random() * 0.5) })) || null; }
+          if (v.elRag) landedBeast(v.elRag, 1); else v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2); }
         if (PH && v.kind === "elephant") { if (u.hp > 0) PH.mover(u.uid, { kind: "elephant", x: v.obj.position.x, z: v.obj.position.z, a: v.obj.rotation.y, dt }); else PH.unmover(u.uid); }   // (it throws aside any body in its way)
         return;
       }
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
-        if (PH) PH.mover(u.uid, { kind: "car", x: c.position.x, z: c.position.z, a: c.rotation.y, dt });   // (and so does a car and its team)
-        G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); v.tilt = (v.tilt || 0) + ((g.wreckT > R.t ? 0.2 : 0) - (v.tilt || 0)) * Math.min(1, dt * 6); c.rotation.z = v.tilt; // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
+        if (PH) { PH.mover(u.uid, { kind: "car", x: c.position.x, z: c.position.z, a: c.rotation.y, dt });   // (and so does a car, and its team before it)
+          if (!v.wrecked) { const tm = c.userData.team, tp = tm.getWorldPosition(v.tp || (v.tp = new T.Vector3())); PH.mover(u.uid + ":team", { kind: "team", n: (c.userData.horses || []).length || 2, x: tp.x, z: tp.z, a: c.rotation.y + tm.rotation.y, dt }); } }
+        G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); v.tilt = (v.tilt || 0) + ((g.wreckT > R.t || v.wrecked ? 0.2 : 0) - (v.tilt || 0)) * Math.min(1, dt * 6); c.rotation.z = v.tilt; // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
         v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t);
         { const rk = g.wreckT > R.t && u.hp > 0 ? clamp((g.wreckT - R.t - 2.1) / 0.9, 0, 1) : 0;   // (stopped dead by a meeting: for the first moment the team rears in the traces)
           if (rk > 0 || v.reared) { const up = Math.sin(rk * Math.PI); for (const h of c.userData.horses || []) { h.rotation.x = -up * 0.55; h.position.y = up * 0.28; } v.reared = rk > 0; } } // (thrown back, its wheels turn back)
-        { const cb = c.userData.car; if (cb) { for (const f of v.figs) { f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
+        { const cb = c.userData.car; if (cb) { for (const f of v.figs) { if (f.rag && !f.rag.alive) continue; /* (fallen from it under the physics engine: he is the field's) */ f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver && !v.driver.rag) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
         if (u.hp > 0 && mps > 2.2 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
       }
+      if (v.strays) for (const h of v.strays) landedBeast(h.userData.rag, 0);
+      if (!v.car && v.driver && v.driver.rag) { v.driver.update(dt, t); landed(v.driver, u); }   // (the driver of a car lost under its man, fallen from it)
       if (v.fled) { // he ran from a divine weapon: he goes on running, off the field, and is gone
         v.fled += dt; for (const f of v.figs) { if (f.fellAt) continue; f.root.position.x += Math.sin(g.a) * 5.4 * dt; f.root.position.z += Math.cos(g.a) * 5.4 * dt; f.face = g.a; f.speed = 5.4; f.pose("stand"); f.update(dt, t); f.root.visible = v.fled < 2.2; if (f.shield && v.fled < 0.1) f.setShield(false); }
         if (v.bar) v.bar.style.display = "none"; return; }
@@ -505,7 +551,7 @@
         const o = v.bodies > 1 ? SQUAD[i] : [0, 0], s = Math.sin(g.a), c = Math.cos(g.a);
         const x = g.x + o[0] * c + o[1] * s, z = g.z - o[0] * s + o[1] * c;
         const down = i >= alive;
-        if (v.car) { f.root.rotation.y = g.ca != null ? g.a - v.car.rotation.y : 0; f.face = 0; } // (in a car another drives you turn on the deck to aim)
+        if (v.car && !f.fellAt) { f.root.rotation.y = g.ca != null ? g.a - v.car.rotation.y : 0; f.face = 0; } // (in a car another drives you turn on the deck to aim)
         else if ((!f.rag || f.rag.rise) && (!f.fellAt || t - f.fellAt < 1.1)) { // (a body thrown by the blow that killed it slides as it goes down; one the physics engine has goes where that takes it)
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
           if (!f.fellAt) f.face = g.a;
@@ -518,8 +564,10 @@
           // onto his side from one at his side; fast from a heavy blow, and never lying quite square
           const lf = g.lastFrom, fw = lf ? (lf.x - g.x) * s + (lf.z - g.z) * c : 1, sd = lf ? (lf.x - g.x) * c - (lf.z - g.z) * s : 0, hard = g.thrown === 2;
           if (PH) PH.unmover(u.uid + ":" + i);
-          if (!(PH && !v.car && thrown3(f, g, hard, false))) f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
-          f.speed = 0; if (!f.rag) G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g); }
+          const heavy2 = R.t - (v.heavyAt || -9) < 0.5;   // (a car's man is not thrown by the rules: what the eye saw strike him last says how he falls)
+          if (!(PH && (v.car ? rider3(v, f, g, heavy2, false) : thrown3(f, g, hard, false)))) f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
+          f.speed = 0; if (!f.rag) G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g);
+          if (v.car && !v.wrecked && !v.divine && (heavy2 || R.t - (v.crashAt || -9) < 0.8 || g.wreckT > R.t)) wreck3(v, v.car); }   // (brought down by a heavy blow or a meeting: the car is lost with him)
         if (f.fellAt) { f.update(dt, t); if (f.rag) landed(f, u); return; }
         if (PH && !v.car && u.hp > 0) { if (f.rag && !f.rag.rise) PH.unmover(u.uid + ":" + i); else PH.mover(u.uid + ":" + i, { kind: "man", x: f.root.position.x, z: f.root.position.z, s: f.size, dt }); }   // (a body thrown at a standing man strikes him)
         { const face = f.root.rotation.y, sn = Math.sin(face), cs = Math.cos(face), lx = v.car ? 0 : g.lx || 0, lz = v.car ? 0 : g.lz || 0; // (his legs go at the pace and the way he is really going: forward, back or to the side)
@@ -594,7 +642,7 @@
             pf.act(name, Math.max(0.16, e.land / G.ACTS[name].land), 0); sfx("step"); break; }
           case "whiffme": break;
           case "hit": {
-            const at = posOf(e.uid, 1.25); if (!at) break;
+            const at = posOf(e.uid, 1.25); if (!at) break; if (e.heavy && v) v.heavyAt = R.t;
             if (e.n > 0) float(at, String(Math.round(e.n)), (v.u.side === "enemy" ? "foe" : "mine") + (e.heavy ? " big" : ""));
             // (Owner, 16 November: "make hits feel more strong".) The one struck rocks away from the blow and comes back; the blow
             // comes back up the striker's arm; a heavy one lifts the dust about him and is heard twice; the fight holds its breath
@@ -678,12 +726,9 @@
           case "item": { const iv = views.get(e.uid), fi = iv && iv.figs[0]; if (fi) { try { fi.setItem(itemOf(e.item)); if (e.shield != null) fi.setShield(!!e.shield); fi.act("draw", 0.5, 0.4); } catch (err) {} G.fx.burst("hit", fi.chest(), { n: 8 }); } break; }
           // His car is lost under him: the charioteer is down at the rail, the team lies in its traces, and he is on the ground beside the wreck.
           case "dismount": { const dv = views.get(e.uid), c = dv && dv.car, f0 = dv && dv.figs[0]; if (c && f0) {
+            if (PH) PH.free(f0);
             c.remove(f0.root); G.actors.add(f0.root); f0.root.rotation.set(0, 0, 0); f0.root.position.y = 0; f0.place(e.x != null ? e.x : c.position.x, e.z != null ? e.z : c.position.z, dv.u.g.a);
-            if (dv.driver) { dv.driver.pose("down", true); dv.driver.update(0.016, 0); }
-            (c.userData.horses || []).forEach((h, i) => { h.rotation.z = (i % 2 ? -1 : 1) * 1.45; h.position.y = 0.28; G.gallop(h, 0, 0); });
-            c.rotation.z = 0.07; G.fx.burst("dust", c.position.clone().setY(0.3), { n: 22 }); sfx("clang"); G.shake(0.25, 0.3);
-            { const ws = c.userData.wheels || [], w0 = ws[1] || ws[0]; if (w0 && w0.parent) { const sn = Math.sin(c.rotation.y), cs = Math.cos(c.rotation.y); c.userData.wheels = ws.filter((q) => q !== w0); c.rotation.z = 0.2; // (a wheel comes off, runs on a few paces, and falls over)
-              G.fx.toss(w0, new T.Vector3(sn * 2.6 + cs * 1.4, 1.6, cs * 2.6 - sn * 1.4), new T.Vector3(7, 0.6, 1.6), { r: 0.1, flat: [0, Math.PI / 2], life: 9 }); } }
+            wreck3(dv, c);   // (its team down, a wheel off, its driver fallen)
             if (dv.parked) { if (dv.parked.parent) dv.parked.parent.remove(dv.parked); G.dispose(dv.parked); } dv.parked = c; dv.car = null; } break; }
           case "mahout": banner(U.tr(e.n >= 3 ? "The mahout cries out and hauls the beast's head round." : "You are in under its flank, at the mahout's leg. {n} of 3!", { n: e.n })); sfx("clang"); G.shake(0.2, 0.25); break;
           case "ask": orderCard(e.uid, e.i || 0); sfx("drumCall"); break;
@@ -691,10 +736,10 @@
           case "orderDone": orderDone(e.how, e.i || 0); break;
           case "jostle": { cost(e.uid, e.n); const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: e.fell ? 16 : 8, s: e.fell ? 1.6 : 1 }); sfx("hit"); if (e.fell) sfx("fall"); if (e.uid === p.uid) { G.shake(e.fell ? 0.5 : 0.3, 0.35); if (e.fell) { hurt(); buzz(45); } }
             const bv = views.get(e.by); if (v && bv) for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 1); if (v && G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.6); break; } // (run into by a car or an elephant under way: thrown aside, or off his feet)
-          case "bump": { cost(e.uid, e.n); cost(e.by, e.n1); const at = e.x != null ? tmp.set(e.x, 0.9, e.z).clone() : posOf(e.uid, 0.9); if (at) { G.fx.burst("hit", at, { n: e.fell ? 10 : 5, s: 1 }); if (e.fell) G.fx.burst("dust", at.clone().setY(0.2), { n: 10, s: 1.4 }); } sfx("hit"); if (e.fell || e.me) sfx("fall");
+          case "bump": { cost(e.uid, e.n); cost(e.by, e.n1); { const va = views.get(e.uid), vb = views.get(e.by); if (va) va.crashAt = R.t; if (vb) vb.crashAt = R.t; } const at = e.x != null ? tmp.set(e.x, 0.9, e.z).clone() : posOf(e.uid, 0.9); if (at) { G.fx.burst("hit", at, { n: e.fell ? 10 : 5, s: 1 }); if (e.fell) G.fx.burst("dust", at.clone().setY(0.2), { n: 10, s: 1.4 }); } sfx("hit"); if (e.fell || e.me) sfx("fall");
             const bv = views.get(e.by); if (v && bv) { for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 0.9); if (G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.5); }
             if (e.uid === p.uid || e.by === p.uid) G.shake(0.25, 0.25); break; } // (a body thrown back has struck another: they share it by their weights)
-          case "crash": { cost(e.uid, e.n); cost(e.by, e.n1); const at = posOf(e.uid, 0.6), bt = posOf(e.by, 0.6), mid = at && bt ? at.clone().lerp(bt, 0.5) : at;   // (a car has met a car, or an elephant a car)
+          case "crash": { cost(e.uid, e.n); cost(e.by, e.n1); { const va = views.get(e.uid), vb = views.get(e.by); if (va) va.crashAt = R.t; if (vb) vb.crashAt = R.t; } const at = posOf(e.uid, 0.6), bt = posOf(e.by, 0.6), mid = at && bt ? at.clone().lerp(bt, 0.5) : at;   // (a car has met a car, or an elephant a car)
             if (mid) { G.fx.burst("dust", mid.clone().setY(0.2), { n: 22, s: 2 }); G.fx.burst("hit", mid.clone().setY(1.1), { n: 14, s: 1.5 }); G.fx.ring(mid.clone().setY(0.08), 0xffe0b0, 0.3, 3.2, 0.4); }
             sfx("hit"); sfx("drum"); if (e.fell || e.me) sfx("fall"); G.shake(e.uid === p.uid || e.by === p.uid ? 0.55 : 0.2, 0.4); if (e.uid === p.uid || e.by === p.uid) { hurt(); buzz(60); hitStop = Math.max(hitStop, 0.1); }
             if (G.feel) for (const id of [e.uid, e.by]) { const w = views.get(id); if (w) for (const x of w.figs) G.feel(x, "pain", 0.6); } break; }
@@ -1328,8 +1373,8 @@
       // "don't put a card on the screen, show them in 3D scenes, a line or two below the scene").
       { const seen = new Set(), stop = K.lang === "hi" ? "।" : ".";
         for (const u of every) { const c = u.g.cls; if (!c || seen.has(c) || seen.size >= 3 || u === boss || !R3.CLASS_LINE[c]) continue; seen.add(c);
-          const x = u.g.x, z = u.g.z, dz = Math.sign(pz - z) || 1, dx = x >= px ? 1 : -1;
-          shots.push({ secs: 2.2, a: [[x + dx * 2.4, 1.75, z + dz * 3.6], [x, 1.2, z], 38], b: [[x + dx * 1.3, 1.55, z + dz * 2.5], [x, 1.25, z], 34], kind: U.tr("Their men"), head: K.text(u.name) + " · " + K.tr(R3.CLASS_TAG[c]), text: K.tr(R3.CLASS_LINE[c]) + stop, who: u.uid, act: "taunt", sfx: "tap" }); } }
+          const x = u.g.x, z = u.g.z, dz = Math.sign(pz - z) || 1, dx = x >= px ? 1 : -1, up = u.g.car ? 0.95 : 0, far = u.g.car ? 1.9 : 1;   // (a man in a car stands a deck higher, behind its rail: the camera goes up with him and stands off. It had looked at his belt from beside the wheel.)
+          shots.push({ secs: 2.2, a: [[x + dx * 2.4 * far, 1.75 + up, z + dz * 3.6 * far], [x, 1.2 + up, z], 38], b: [[x + dx * 1.3 * far, 1.55 + up, z + dz * 2.5 * far], [x, 1.25 + up, z], 34], kind: U.tr("Their men"), head: K.text(u.name) + " · " + K.tr(R3.CLASS_TAG[c]), text: K.tr(R3.CLASS_LINE[c]) + stop, who: u.uid, act: "taunt", sfx: "tap" }); } }
       // (their plan is shown, and what your scouts make of it is said. The last thing before the fight is the whole field from behind your own line.)
       if (R.plan) shots.push({ secs: 3.4, plan: true, a: [[0, 15, pz + 13], [0, 0, -R.rad * 0.2], 50], b: [[0, 20, pz + 9], [0, 0, -R.rad * 0.28], 50], kind: U.tr("Across the field"), head: U.tr("How they stand"), text: scoutLine() });   // (the line is plain text; the frame shows it as text)
       if (style === 1) {   // from behind their leader, across the field to you; then the rest as it was
