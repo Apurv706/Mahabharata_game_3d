@@ -93,7 +93,7 @@ Use this when adding or changing anything a player sees.
 - **Tone:** no gore; the fallen lie where they fell. Names and terms follow the glossary.
 
 ## 6. Technology
-Plain JavaScript, no build step, static hosting (a two-part build exists for a host that holds at most 512 files). 2D UI in DOM and SVG; 3D battles in three.js r187 (vendored) with all
+Plain JavaScript, no build step, static hosting (a two-part build exists for a host that holds at most 512 files). 2D UI in DOM and SVG; 3D battles in three.js r187 (vendored), bodies of the killed and the thrown under cannon-es 0.20.0 (vendored; docs/Physics_Engine.md), with all
 3D assets made in code (merged low-poly geometry, canvas textures, jointed figures from the same look data as the 2D
 puppets). Deterministic fixed-step battle simulation, separate from drawing, so it can be tested without a screen. Figures have
 faces, coiled turbans, armour in rows, the sacred thread, garlands and deer-skins, a soft shadow underfoot and a
@@ -108,7 +108,7 @@ fights and tests in a real browser with software WebGL). CI runs the quick tier 
 ## 7. Known gaps and roadmap
 | Priority | Item |
 |---|---|
-| 1 | The play review of 16 November (`docs/Play_Review.md`): ten areas that would make the game more compelling, measured. The first, the fights, was begun in Version 67 (`docs/Named_Opponents.md`: each named opponent stronger and with a great blow of his own; ignoring a blow costs more; the opening brings both sides on and counts three seconds). Version 69 added the feel of a fight (`docs/Fight_Feel.md`: faces for each moment, weight and falls from collisions, coil and recoil, heavier hits, weariness). The other nine are not built |
+| 1 | The play review of 16 November (`docs/Play_Review.md`): ten areas that would make the game more compelling, measured. The first, the fights, was begun in Version 67 (`docs/Named_Opponents.md`: each named opponent stronger and with a great blow of his own; ignoring a blow costs more; the opening brings both sides on and counts three seconds). Version 69 added the feel of a fight (`docs/Fight_Feel.md`: faces for each moment, weight and falls from collisions, coil and recoil, heavier hits, weariness), Version 70 the cost of a meeting, and Version 71 a physics engine for the bodies of the killed and the thrown and for what they let go of (`docs/Physics_Engine.md`). The other nine are not built |
 | 1 | Play every fight by hand (the two private play pages are the place to do it) on real phones and desktops in all three views; tune feel and frame rate |
 | 1 | Run the full test tier (playthroughs, layout, visual baselines) on this build and accept the puppets' new colours |
 | 2 | The portraits: 18 were replaced on 15 November by cuts from the artist's sheets, which are now the true look (`docs/Repaint_Brief.md`). Still to follow the sheets: the 3D heads' hair and beards (Karna, Duryodhana, Kripa, Yudhishthira, Ugra, Mauni, Vidura), and nine story paintings, left as they are by choice |

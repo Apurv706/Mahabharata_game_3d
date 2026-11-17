@@ -67,6 +67,8 @@ The fighter was taught one thing: to step out of the path of a chariot or an ele
 
 `tests/rules3d.js` (116 from 107; the last five in Version 70: both bodies pay for a meeting, a chariot's ram costs health, a chariot that runs into another stops both dead, a foe's blows slow with his health, and the same first blow of the same fight is 15% longer from a foe at a quarter of his health): the same blow throws a man and a chariot by their weights; a man thrown into another takes him off his feet and between them they keep the speed he had; a chariot under way takes a man in its path off his feet and is hardly slowed; your blows are slower by the health you have lost. Three older checks that had depended on a thin test life outlasting Bhishma now give that life more health, and the checks of the three battle plans look at the first of three fights in which the task was done: they test the rule, and the fight bands test the difficulty.
 
+(Version 71 gave the bodies of the killed and the thrown to a physics engine: `docs/Physics_Engine.md`. The rules on this page are unchanged by it.)
+
 ## Not done, or only looked at in stills
 
 - The coil, the recoil and the rock of a struck body are motion. They were checked for faults by the automated fights in a real browser, and the faces were looked at in stills (`tools/review/lineup.js` now takes a `mood`). None of it has been watched at speed on a phone.

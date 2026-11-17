@@ -10,6 +10,7 @@ Made for the review of 15 November (`docs/Human_Asset_Review.md`). They change n
 | `measure_summary.py <measure.json>` | Those measures beside the US Army survey of 2010-12 (`survey.json`: 4,082 men, 1,986 women, each measure as a share of height). |
 | `scan.js <out.json> [regex]` | Every costume in 47 poses from six sides, drawn in flat part colours with depth. Counts skin in front of the cloth meant to cover it, the inside of the body or of armour showing, and the lowest point. About 6 seconds a costume. `DBG=<file.json>` keeps a picture of what was counted for chosen poses and views. |
 | `scan_summary.py <scan.json>` | The worst costumes for each fault, and the poses that sink into the ground. |
+| `falls.js <job.json> <outdir>` | Falls under the physics engine (`js/g3/ragdoll.js`) as a strip of stills: figures in the studio, each struck its own way at time 0 (`v`, `push`, `low`, `spin`), thrown down alive and given back to their poses (`alive`, `rise`), or with a car's or an elephant's collider driven through them (`by`), photographed at the `times` asked for. The tool steps the engine itself, so a slow machine photographs the same fall. |
 
 ## Jobs
 

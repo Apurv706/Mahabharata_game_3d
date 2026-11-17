@@ -73,6 +73,9 @@ const CASES = {
     const out = await until(() => page.evaluate(() => window.__out), 240000, 500); // (every figure on the field is a modelled one now: a software renderer needs minutes for it)
     check(["win", "lose", "flee", "spare"].includes(out), "the fight is played to its end and the story is told how it went (" + out + ")");
     check(await until(() => page.evaluate(() => !document.body.classList.contains("in3d")), 6000), "and the page is the 2D game's again");
+    { const ph = await page.evaluate(() => { const P = window.K.G3.phys; return P && P.ok ? Object.assign({ live: P.live() }, P.tally) : null; });   // (the physics engine: js/g3/ragdoll.js)
+      check(!!ph && ph.made > 0, "the physics engine was given the bodies of the fallen (" + (ph ? ph.made + " bodies, " + ph.things + " things let go, " + ph.refused + " not taken" : "no engine") + ")");
+      check(!!ph && ph.broke === 0 && ph.live === 0, "none of them went wrong, and it carries none once the fight is closed"); }
     check(!errs.length, "no error on the page" + (errs.length ? ": " + [...new Set(errs)].slice(0, 3).join(" | ") : ""));
     await ctx.close();
   },

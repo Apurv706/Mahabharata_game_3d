@@ -221,13 +221,14 @@
   G.feel = function (f, mood, secs) { if (f && MOODS[mood]) { f.feelNow = mood; f.feelT = secs || 0.5; } return f; };
   G.rigDrive = function (f, dt) {
     const R = f.rig; if (!R) return; const j = f.j, k = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
-    if (j.fL && j.fR) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }
-    if (j.kL && j.kR && (f.fall || 0) < 0.5) { const lo = Math.min(knee(j, "L"), knee(j, "R")) - R.ankle * 0.66; if (lo < 0) j.P.position.y -= lo * (1 - 2 * (f.fall || 0)); }   // (nor a knee: kneeling sank it 4.5 cm into the ground and pleading 7.4, on every figure; review of 15 November)   // (no foot under the ground: a stance's crouch, and some poses, sank the front foot five centimetres into it. The body rises instead; owner, 14 November)
+    const rag = !!(f.rag && !f.rag.rise);   // (the physics engine has the body, js/g3/ragdoll.js: the ground is its affair, and a foot or a collar is left as made)
+    if (j.fL && j.fR && !rag) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }
+    if (j.kL && j.kR && (f.fall || 0) < 0.5 && !rag) { const lo = Math.min(knee(j, "L"), knee(j, "R")) - R.ankle * 0.66; if (lo < 0) j.P.position.y -= lo * (1 - 2 * (f.fall || 0)); }   // (nor a knee: kneeling sank it 4.5 cm into the ground and pleading 7.4, on every figure; review of 15 November)   // (no foot under the ground: a stance's crouch, and some poses, sank the front foot five centimetres into it. The body rises instead; owner, 14 November)
     if (j.T1) j.T1.quaternion.slerpQuaternions(ID, j.T.quaternion, 0.5);
     if (j.N) j.N.quaternion.slerpQuaternions(ID, j.H.quaternion, 0.5);
     const fists = /Fist|punch|grab|clasp/.test(f.base || "") || (f.action && /punch|grab/.test(f.action.name || ""));
     for (let s = 0; s < 2; s++) { const sd = s ? "R" : "L", sx = s ? -1 : 1, a = j["a" + sd], c = j["c" + sd];
-      if (c) { // the collar goes with the arm: up as it rises past the level of the shoulder, forward as it reaches
+      if (c && !rag) { // the collar goes with the arm: up as it rises past the level of the shoulder, forward as it reaches
         V1.set(0, -1, 0).applyQuaternion(a.quaternion); const up = Math.acos(Math.max(-1, Math.min(1, -V1.y)));
         const lift = Math.max(0, Math.min(0.5, (up - 0.7) * 0.26)), fwd = Math.max(-0.2, Math.min(0.3, V1.z * 0.3 * Math.sin(up)));
         E1.set(0, -sx * fwd, sx * lift); c.quaternion.setFromEuler(E1); a.quaternion.premultiply(Q1.copy(c.quaternion).invert()); }
@@ -240,7 +241,7 @@
         const h = ankle(j, sd) - R.ankle; let down = Math.asin(Math.max(0, Math.min(0.9, h / (0.15 * R.leg))));
         if (f.footW) down += (-f.footTh[s] - down) * f.footW; // (walking or running, the foot's own roll from the stride: heel down, flat, onto the toes, and pointed as it swings) // (a raised heel: the foot tips until the ball of it is on the ground; higher than that and it hangs)
         Q2.multiply(Q3.setFromAxisAngle(X1, down)); Q1.invert().multiply(Q2); const ang = 2 * Math.acos(Math.min(1, Math.abs(Q1.w)));
-        ft.quaternion.slerpQuaternions(ID, Q1, (ang > 1.0 ? 1.0 / ang : 1) * (1 - (f.fall || 0))); }
+        ft.quaternion.slerpQuaternions(ID, Q1, rag ? 0 : (ang > 1.0 ? 1.0 / ang : 1) * (1 - (f.fall || 0))); }
       const g = j["g" + sd], h = j["h" + sd];
       if (g && h) { const held = sd === "R" ? !!f.item : !!(f.bow || f.shield), want = held || fists ? 0 : 0.55; R.open[sd] += (want - R.open[sd]) * k;
         g.rotation.z = sx * R.open[sd] * 0.4; h.rotation.z = sx * R.open[sd] * 1.25; }

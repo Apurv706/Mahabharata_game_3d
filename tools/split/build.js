@@ -65,7 +65,8 @@ for (const n of [1, 2]) {
   cont.forEach((f, i) => { page = page.replace(new RegExp('<script src="' + f.replace(/[.\/]/g, "\\$&") + '"><\\/script>\\n?'), i ? "" : '<script src="content.js"></script>\n'); });
   fs.writeFileSync(path.join(dir, "content.js"), cont.map((f) => "/* " + f + " */\n" + read(f)).join("\n;\n"));
   for (const f of k3d) { page = page.replace(new RegExp('<script src="' + f.replace(/[.\/]/g, "\\$&") + '"><\\/script>\\n?'), first ? '<script src="k3d.js"></script>\n' : ""); first = false; }
-  const licence = fs.existsSync(path.join(G, "js/vendor/three.LICENSE.txt")) ? "/* three.js, whose code follows, is used under this licence:\n\n" + read("js/vendor/three.LICENSE.txt").replace(/\*\//g, "* /") + "\n*/\n" : "";
+  const lic = (name, file) => (fs.existsSync(path.join(G, file)) ? "/* " + name + ", whose code follows, is used under this licence:\n\n" + read(file).replace(/\/\*/g, "").replace(/\*\//g, "") + "\n*/\n" : "");
+  const licence = lic("three.js", "js/vendor/three.LICENSE.txt") + lic("cannon-es (the physics engine)", "js/vendor/cannon-es.LICENSE.txt");
   fs.writeFileSync(path.join(dir, "k3d.js"), licence + k3d.map((f) => "/* " + f + " */\n" + read(f)).join("\n;\n"));
   // The engine's scripts and the pages' own scripts go out as one file each, engine.js and ui.js, in the order the page
   // loads them: thirty-four files fewer in each part, which is the room the new paintings need beside the clips.

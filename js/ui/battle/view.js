@@ -20,6 +20,7 @@
   const headless = () => U.headless();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const sfx = (n) => { if (K.Sound) K.Sound.play(n); };
+  const PH = K.G3 && K.G3.phys && K.G3.phys.ok && window.THREE ? K.G3.phys : null;   // the physics engine (js/g3/ragdoll.js): what bodies and loose things do once the rules have struck them
   const RED = "#a3302a", BLUE = "#2d5aa0";
 
   // ---------- Who each fighter is drawn as ----------
@@ -120,14 +121,51 @@
       }
       while (stuck.length > 14) unstick(stuck.shift());
     }
+    // A body given to the physics engine, with the way it was going and the blow that sent it: the speed the rules gave
+    // it, more of that above the hips than below (a blow high on the body, and it goes over), a lift from a heavy one,
+    // and a turn that is never the same twice. False if the engine would not take it: he falls by his poses instead.
+    function thrown3(f, g, hard, alive) {
+      const lf = g.lastFrom; let dx = 0, dz = 0; if (lf) { dx = g.x - lf.x; dz = g.z - lf.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l; }
+      const kv = Math.hypot(g.vx || 0, g.vz || 0); if (!lf && kv > 0.3) { dx = g.vx / kv; dz = g.vz / kv; }
+      const pk = hard ? 2.3 : kv > 1.5 ? 1.5 : 0.9, rnd = Math.random;
+      if (!alive && f.rag && f.rag.alive && !f.rag.rise && PH.kill(f.rag, [(g.vx || 0) * 0.6 + dx * pk * 0.6, hard ? 1.4 : 0.4, (g.vz || 0) * 0.6 + dz * pk * 0.6])) return true;   // (killed where he lay)
+      return !!PH.take(f, { v: [(g.vx || 0) * 0.65 + (g.lx || 0) * 0.5, 0, (g.vz || 0) * 0.65 + (g.lz || 0) * 0.5], push: [dx * pk, hard ? 1.6 : kv > 1.5 ? 0.9 : 0.3, dz * pk], spin: (rnd() - 0.5) * (hard ? 3.2 : 1.6), alive: !!alive });
+    }
+    // Thrown down but alive: the physics engine has him while he is down, draws him toward where the rules have him, and
+    // gives him back to his poses in time to be on his feet when the rules say he is. (dn: he is down; left: for how
+    // many seconds more; x, z: where the rules have him.) Riders thrown down on a deck, and anyone the engine has no room
+    // for, go down and get up by their poses, as before.
+    function down3(v, f, g, dn, left, x, z, dt) {
+      if (!PH || v.car) { f.drop(dn); return; }
+      const again = dn && left > (f.leftWas || 0) + 0.2; f.leftWas = dn ? left : 0;   // (thrown down; or thrown down again before he was up)
+      if (again) { const r0 = f.rag;
+        if (r0 && r0.alive && !r0.rise) PH.shove(r0, (g.vx || 0) * 0.5, 0.8, (g.vz || 0) * 0.5);
+        else f.engine = left > 0.8 && thrown3(f, g, Math.hypot(g.vx || 0, g.vz || 0) > 3, true); }
+      const r = f.rag;
+      if (r && r.alive && !r.rise) { if (!dn || left <= RISE) PH.rise(f, RISE); else PH.lead(r, x, z, dt); }
+      if (!dn && !f.rag) f.engine = false;
+      f.drop(dn && !f.engine);
+    }
+    const RISE = 0.45;   // (seconds a man takes to come from where he lay to his feet)
+    // What a body the engine has is heard and seen to strike: dust and a thud by how hard its trunk met the ground or
+    // another body.
+    function landed(f, u) {
+      const r = f.rag; if (!r || !(r.hit > 2.2) || r.frozen) return;
+      const n = r.hit, b = r.b.T.position; r.hit = 0;
+      if (R.t - (r.heardAt || -9) < 0.25) return; r.heardAt = R.t;
+      G.fx.burst("dust", new T.Vector3(b.x, 0.12, b.z), { n: Math.min(12, Math.round(n * 1.6)) });
+      if (!u.line || Math.hypot(b.x - G.cam.pos.x, b.z - G.cam.pos.z) < 14) sfx(n > 5 ? "fall" : "step");
+    }
     // What a man lets go of as he falls: his weapon and his shield leave his hands with the way his body was going, turn
     // in the air, strike the ground and lie there.
     function dropArms(v, f, g) {
       const T3 = T.Vector3, rnd = Math.random, vx = (g.vx || 0) * 0.6 + (g.lx || 0) * 0.5, vz = (g.vz || 0) * 0.6 + (g.lz || 0) * 0.5;
-      const let_go = (m, r, flat, up) => { if (!m || !m.parent) return; G.fx.toss(m, new T3(vx + (rnd() - 0.5) * 1.4, up * 0.7 + rnd() * 0.8, vz + (rnd() - 0.5) * 1.4), new T3((rnd() - 0.5) * 9, (rnd() - 0.5) * 5, (rnd() - 0.5) * 9), { r, flat, life: 6 + rnd() * 2 }); };
-      if (f.item) { const m = f.item; f.item = null; let_go(m, 0.05, [Math.PI / 2, 0], 1.4); }
-      if (f.bow) { const m = f.bow; f.bow = null; let_go(m, 0.04, [Math.PI / 2, 0], 1.1); }
-      if (f.shield && v.u.side !== "player") { const m = f.shield; f.shield = null; let_go(m, 0.06, [Math.PI / 2, 0], 1.8); }
+      const let_go = (m, r, flat, up, kg) => { if (!m || !m.parent) return; const vel = new T3(vx + (rnd() - 0.5) * 1.4, up * 0.7 + rnd() * 0.8, vz + (rnd() - 0.5) * 1.4), spin = new T3((rnd() - 0.5) * 9, (rnd() - 0.5) * 5, (rnd() - 0.5) * 9);
+        if (PH && PH.loose(m, vel, spin, { m: kg, life: 7 + rnd() * 2 })) return;   // (a rigid thing under the physics engine: it lands as its own shape leaves it)
+        G.fx.toss(m, vel, spin, { r, flat, life: 6 + rnd() * 2 }); };
+      if (f.item) { const m = f.item; f.item = null; let_go(m, 0.05, [Math.PI / 2, 0], 1.4, /mace|club|hammer/.test(g.weapon || "") ? 6 : 1.8); }
+      if (f.bow) { const m = f.bow; f.bow = null; let_go(m, 0.04, [Math.PI / 2, 0], 1.1, 0.9); }
+      if (f.shield && v.u.side !== "player") { const m = f.shield; f.shield = null; let_go(m, 0.06, [Math.PI / 2, 0], 1.8, 4); }
     }
     function stuckFrame(dt) {
       for (let i = stuck.length - 1; i >= 0; i--) { const s = stuck[i];
@@ -160,7 +198,7 @@
       const key = FIGHT_BG[enc.id] || K.val(enc.art) || "fight_war_field";
       for (const bt of K.val(enc.beats) || []) if (bt.art3 && typeof Image !== "undefined") { const im = new Image(); im.src = U.artUrl(bt.art3); } /* (a turn's painting is fetched now, so it is there when its turn comes) */
       G.lookHint = (K.S && K.S.act >= 6) || enc.dream || (enc.lethal !== false && B.units.some((u) => u.line || u.plural || (u.g && (u.g.car || u.g.kind === "squad")))) ? "war" : ""; /* (who wears what: on a field where companies meet, everyone is in what he fights in; in a yard or a hall, his everyday dress. js/g3/model.js) */
-      st = G.setStage(key, { clear: 15 });
+      st = G.setStage(key, { clear: 15 }); if (PH) { PH.TUNE.most = G.q && G.q.name === "low" ? 3 : 6; PH.open(); }   // (the lowest drawing setting is a modest phone: the engine carries half as many bodies at once)
       buildEdge(key);
       backdrop(key);
       lockRing = new T.Mesh(new T.RingGeometry(0.62, 0.74, 30).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.85, depthWrite: false, fog: false }));
@@ -413,6 +451,7 @@
       if (v.mark) { v.mark.userData.free(); v.mark = null; }
       if (v.mark2) { v.mark2.userData.free(); v.mark2 = null; }
       if (v.bar) v.bar.remove();
+      if (PH) { PH.unmover(v.u.uid); v.figs.forEach((f, i) => { PH.unmover(v.u.uid + ":" + i); PH.free(f); }); }
       const gone = () => { for (const f of v.figs) f.dispose(); if (v.driver) v.driver.dispose(); if (v.parked) { if (v.parked.parent) v.parked.parent.remove(v.parked); G.dispose(v.parked); } if (v.car) { if (v.car.parent) v.car.parent.remove(v.car); G.dispose(v.car); } if (v.obj) { if (v.obj.parent) v.obj.parent.remove(v.obj); G.dispose(v.obj); } };
       if (how === "now") gone(); else setTimeout(gone, 1400);
       views.delete(v.u.uid);
@@ -444,11 +483,13 @@
           if (v.kind === "elephant") G.stomp(v.obj, t * 7, 0, u.hp > 0 ? mps : 0); } // (it points the way it goes, and its feet keep the ground at the pace it is really making)
         if (v.kind === "elephant" && u.hp > 0 && v.mps > 1 && Math.random() < dt * 5) G.fx.burst("dust", new T.Vector3(g.x + (Math.random() - 0.5) * 2, 0.15, g.z + (Math.random() - 0.5) * 2.6), { n: 2 }); // (and from under an elephant's feet)
         if (u.hp <= 0 && v.kind === "elephant") v.obj.rotation.z = Math.min(Math.PI / 2, v.obj.rotation.z + dt * 2);
+        if (PH && v.kind === "elephant") { if (u.hp > 0) PH.mover(u.uid, { kind: "elephant", x: v.obj.position.x, z: v.obj.position.z, a: v.obj.rotation.y, dt }); else PH.unmover(u.uid); }   // (it throws aside any body in its way)
         return;
       }
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
+        if (PH) PH.mover(u.uid, { kind: "car", x: c.position.x, z: c.position.z, a: c.rotation.y, dt });   // (and so does a car and its team)
         G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); v.tilt = (v.tilt || 0) + ((g.wreckT > R.t ? 0.2 : 0) - (v.tilt || 0)) * Math.min(1, dt * 6); c.rotation.z = v.tilt; // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
         v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t);
         { const rk = g.wreckT > R.t && u.hp > 0 ? clamp((g.wreckT - R.t - 2.1) / 0.9, 0, 1) : 0;   // (stopped dead by a meeting: for the first moment the team rears in the traces)
@@ -465,7 +506,7 @@
         const x = g.x + o[0] * c + o[1] * s, z = g.z - o[0] * s + o[1] * c;
         const down = i >= alive;
         if (v.car) { f.root.rotation.y = g.ca != null ? g.a - v.car.rotation.y : 0; f.face = 0; } // (in a car another drives you turn on the deck to aim)
-        else if (!f.fellAt || t - f.fellAt < 1.1) { // (a body thrown by the blow that killed it slides as it goes down)
+        else if ((!f.rag || f.rag.rise) && (!f.fellAt || t - f.fellAt < 1.1)) { // (a body thrown by the blow that killed it slides as it goes down; one the physics engine has goes where that takes it)
           if (snap) f.place(x, z, g.a); else { f.root.position.x += (x - f.root.position.x) * Math.min(1, dt * 22); f.root.position.z += (z - f.root.position.z) * Math.min(1, dt * 22); }
           if (!f.fellAt) f.face = g.a;
           { const lp = !f.fellAt && g.atk && g.atk.step && g.atk.step.leap ? g.atk : null;   // (Ghatotkacha in the air: up from where he stood, down where the ring is)
@@ -476,9 +517,11 @@
           // he goes down the way he was struck: onto his back from a blow in front, onto his face from one behind, over
           // onto his side from one at his side; fast from a heavy blow, and never lying quite square
           const lf = g.lastFrom, fw = lf ? (lf.x - g.x) * s + (lf.z - g.z) * c : 1, sd = lf ? (lf.x - g.x) * c - (lf.z - g.z) * s : 0, hard = g.thrown === 2;
-          f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
-          f.speed = 0; G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g); }
-        if (f.fellAt) { f.update(dt, t); return; }
+          if (PH) PH.unmover(u.uid + ":" + i);
+          if (!(PH && !v.car && thrown3(f, g, hard, false))) f.drop(true, fw > 0 ? 1 : -1, { side: lf && Math.abs(sd) > Math.abs(fw) * 1.2 ? (sd > 0 ? -1 : 1) : 0, rate: hard ? 1.7 : g.thrown ? 1.15 : 0.9, twist: (Math.random() - 0.5) * (hard ? 1.3 : 0.7) });
+          f.speed = 0; if (!f.rag) G.fx.burst("dust", f.root.position, { n: hard ? 10 : 6 }); dropArms(v, f, g); }
+        if (f.fellAt) { f.update(dt, t); if (f.rag) landed(f, u); return; }
+        if (PH && !v.car && u.hp > 0) { if (f.rag && !f.rag.rise) PH.unmover(u.uid + ":" + i); else PH.mover(u.uid + ":" + i, { kind: "man", x: f.root.position.x, z: f.root.position.z, s: f.size, dt }); }   // (a body thrown at a standing man strikes him)
         { const face = f.root.rotation.y, sn = Math.sin(face), cs = Math.cos(face), lx = v.car ? 0 : g.lx || 0, lz = v.car ? 0 : g.lz || 0; // (his legs go at the pace and the way he is really going: forward, back or to the side)
           f.vf = lx * sn + lz * cs; f.vs = lx * cs - lz * sn; f.speed = Math.hypot(lx, lz); }
         // How it holds itself now.
@@ -489,16 +532,16 @@
           if (R.roll > 0) { f.face = Math.atan2(R.rdx, R.rdz); f.root.rotation.y = f.face; } // the tumble goes the way you roll
           if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.heave) pose = "push"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
-          f.drop(R.downUntil > R.t && u.hp > 0);   // (thrown down)
+          down3(v, f, g, R.downUntil > R.t && u.hp > 0 && !R.over, R.downUntil - R.t, x, z, dt);   // (thrown down)
           f.weary = u.hp > 0 && !R.over ? Math.max(0, Math.min(1, (0.42 - u.hp / u.maxHp) / 0.42)) : 0;   // (hurt: the shoulders sag and heave, the mouth hangs open, and the blows come slower: R3.tire)
         } else {
           if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (g.counterUntil > R.t) pose = "block"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
-          f.drop(g.down > 0);
+          down3(v, f, g, g.down > 0 && !R.over, g.down, x, z, dt);
           // (a close camera does not look through the back of someone's head)
           if (!v.car) f.root.visible = viewMode === "top" || !!intro || Math.hypot(f.root.position.x - G.cam.pos.x, f.root.position.z - G.cam.pos.z) > (viewMode === "eyes" && started ? (u.side === "enemy" ? 0.9 : 1.7) : 2.2); // (from your own eyes a comrade at your shoulder would fill the screen with his helmet; a foe is hidden only when he is nose to nose)
         }
         if (f.base !== pose) f.pose(pose);
-        f.update(dt, t);
+        f.update(dt, t); if (f.rag) landed(f, u);
       });
     }
     // The blow a foe is winding up, shown by its body: the act is timed so the weapon comes down when the blow lands.
@@ -561,7 +604,7 @@
             if (e.heavy && real) G.fx.ring(at.clone().setY(0.08), 0xffe0b0, 0.2, 1.7, 0.28);
             sfx(e.blocked ? "clang" : "hit"); if (e.heavy && real) sfx("drum");
             if (by && by !== v) { const dx = v.u.g.x - by.u.g.x, dz = v.u.g.z - by.u.g.z, k = (e.blocked ? 0.3 : e.heavy ? 1 : 0.5) * (e.melee ? 1 : 0.6);
-              for (const x of v.figs) if (!x.fellAt && x.jolt) x.jolt(dx, dz, k);
+              for (const x of v.figs) { if (PH && x.rag && !x.rag.rise) { const l = Math.hypot(dx, dz) || 1; PH.shove(x.rag, (dx / l) * k * 2.2, k * 0.9, (dz / l) * k * 2.2); } else if (!x.fellAt && x.jolt) x.jolt(dx, dz, k); }   // (a blow on a body the physics engine has moves that body)
               if (e.melee) for (const x of by.figs) if (x.impact) x.impact(e.blocked ? 2 : e.heavy ? 1.3 : 1); }
             if (f && !f.action && e.n > 0) for (const x of v.figs) if (!x.fellAt) x.act("hit", 0.3);
             if (real && G.feel) for (const x of v.figs) G.feel(x, "pain", e.heavy ? 0.6 : 0.4);
@@ -1407,7 +1450,7 @@
     }
     function retryCard() {
       const el = U.el('<div class="b-card b-retry"><h2>' + U.tr("You are beaten") + "</h2><p>" + U.tr("One more try: you start a little hurt, and what you used stays used.") + '</p><div class="btnrow"></div></div>');
-      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); for (const x of stuck.splice(0)) unstick(x); if (K.S) for (const a of asks3()) K.S.flags = K.S.flags.filter((f) => f.indexOf(a.flag + "_") !== 0); wheelUp = 0; wheelDone = false; R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
+      const again = () => { el.remove(); U.keys([]); for (const v of [...views.values()]) dropView(v, "now"); for (const m of shots.values()) { G.fxRoot.remove(m); G.dispose(m); } shots.clear(); for (const x of stuck.splice(0)) unstick(x); if (PH) PH.open(); if (K.S) for (const a of asks3()) K.S.flags = K.S.flags.filter((f) => f.indexOf(a.flag + "_") !== 0); wheelUp = 0; wheelDone = false; R = R3.retry(R); B = R.B; lastLog = B.log.length; sync(); camera(0, true); asked = false; };
       const accept = () => { el.remove(); U.keys([]); R3.accept(R); asked = false; };
       el.querySelector(".btnrow").appendChild(U.button("cta", U.tr("Try again"), again, "battle-retry"));
       el.querySelector(".btnrow").appendChild(U.button("ghost", U.tr("Accept the loss"), accept));
@@ -1449,6 +1492,7 @@
       if (lockRing) { G.fxRoot.remove(lockRing); G.dispose(lockRing); } if (goalMark) goalMark.userData.free(); if (wheelMud) { G.fxRoot.remove(wheelMud); G.dispose(wheelMud); wheelMud = null; }
       hud.remove(); U.setPaused("battle", false); U.astraFx = null; U.battleState = null;
       const sh = U.$("shade"); if (sh) sh.style.background = "";
+      if (PH) PH.close();
       G.clear(G.actors);
     }
     document.addEventListener("keydown", onKey, true); document.addEventListener("keyup", onKey, true);
@@ -1470,6 +1514,7 @@
       sync();
       if (marching && !started) march += real;
       if (intro) introFrame(real);
+      if (PH && !paused) PH.step(Math.min(dt, 0.1));
       for (const v of [...views.values()]) { if (!B.units.includes(v.u) && !v.gone && !(v.u.line && R.over)) { v.gone = true; dropView(v, "now"); continue; } place(v, dt, t); }
       windups(t);
       // Arrows in the air.

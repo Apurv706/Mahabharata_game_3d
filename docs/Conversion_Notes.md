@@ -596,3 +596,18 @@ Asked for, after Version 69 was played: "Collision should also lead to damage. F
 - Caught by the browser test before it went out: the new `cost()` in the view named a variable that was not in its reach, and the first chariot to run a man down stopped the fight's drawing.
 - `js/ui/battle/view.js`: `cost()` shows what a meeting took over each head; `crash` is shown and heard; a stopped team rears.
 - `tests/rules3d.js`: 116 checks from 111.
+
+## Version 71 (16 November): a real physics engine
+
+Asked for: "Let's add a real physics library". `docs/Physics_Engine.md` has what it does, the joints, the limits and the checks. In the code:
+
+- `js/vendor/cannon-es.min.js`: cannon-es 0.20.0 (MIT), fetched from npm and built with esbuild into one file that defines `CANNON` (`esbuild dist/cannon-es.js --bundle --format=iife --global-name=CANNON --minify --target=es2019`). Its licence is `js/vendor/cannon-es.LICENSE.txt`; the two-part build writes it at the head of `k3d.js` beside three.js's (`tools/split/build.js`).
+- `js/g3/ragdoll.js` (new): `K.G3.phys`. A world for each fight (`open`, `close`, `step`); a body from where a figure's joints are (`rag`, `take`), with a `Joint` that is a ball joint plus limits (`limit`, a one-sided equation between a line in each part; `hingeOn`, for a knee or an elbow); what cannot be moved and moves bodies (`mover`: a man, a car and its team, an elephant); loose rigid things (`thing`, `loose`); a living man drawn to his place (`lead`), struck where he lies (`shove`), killed there (`kill`), given back to his poses (`rise`, `blend`).
+- `js/g3/figure.js`: `f.update` asks `G.phys.put` first. While the engine has the body, the pose is not computed; the skeleton is written from the engine and only the fuller skeleton's helpers, the face and the cloth run. Coming back, the fall is laid over the pose in `apply()`. The cloth's sway is now its own function, `sway`.
+- `js/g3/model.js`: `rigDrive` leaves the ground, the collars and the feet alone while the engine has the body.
+- `js/ui/battle/view.js`: `PH`; the world is opened in `build()` and again on a retry, stepped in `frame()`, closed in `close()`. `thrown3` gives a body to the engine with the blow that sent it; `down3` handles a man thrown down alive (and thrown down again before he is up); `landed` is the dust and the thud; `dropArms` gives weapons to `PH.loose`; every living man, car and elephant is a `mover`.
+- `index.html`: the two new scripts. They load only with the 3D layer.
+- `tests/ragdoll.js` (new, 88 checks); `tools/review/falls.js` (new).
+- Found on the way: a hanging cloth end stood out stiff from a body lying on its side, because its "down" was the body's own; a car's collider carried a man off on its front like a plough (its team is now rounded and slippery, begins at the axle, and lets go of a man who begins under it); the test's own measure of a bend had its sign the wrong way round.
+- The rules (`js/ui/battle/sim.js`) were not changed. The fight bands are as recorded.
+

@@ -52,6 +52,7 @@ Acts V–VII); a life crosses from one to the other with its save code.
 ```
 index.html, css/, js/engine, js/content, js/i18n, js/ui, art/, video/, music/   the 2D game, as it is
 js/vendor/three.min.js      three.js r187
+js/vendor/cannon-es.min.js  cannon-es 0.20.0, the physics engine (bodies of the killed and the thrown, what they let go of)
 js/g3/                      the 3D kit: renderer, textures, builder and props, figures, effects, places
 js/ui/battle/sim.js         the fight's rules on open ground (no drawing; rides on the 2D combat engine)
 js/ui/battle/view.js        what you see and what your hands do
@@ -68,5 +69,5 @@ See [docs/Game_Development_Document.md](docs/Game_Development_Document.md), [doc
 [docs/Costume_Audit.md](docs/Costume_Audit.md), [docs/Fighting_Moves.md](docs/Fighting_Moves.md) and [docs/Balance_3D.md](docs/Balance_3D.md).
 
 ## Credits
-Story, rules, art, music and Hindi: the original 2D game. 3D: [three.js](https://threejs.org) (MIT). Story text and
+Story, rules, art, music and Hindi: the original 2D game. 3D: [three.js](https://threejs.org) (MIT). Physics: [cannon-es](https://github.com/pmndrs/cannon-es) (MIT). Story text and
 Hindi are drafts that still need review by scholars, community advisors and a native speaker.

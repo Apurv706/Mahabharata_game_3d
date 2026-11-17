@@ -806,10 +806,22 @@
       const fl = f.fall, over = fl < 0.3 ? 0 : (fl - 0.3) / 0.7, go = over * over * (3 - 2 * over);
       { const sd = f.fallSide || 0; tilt.rotation.x = (sd ? 0 : -go * (PI / 2) * f.fallDir) + f.spin; tilt.rotation.z = sd ? -go * (PI / 2) * sd : 0; tilt.rotation.y = go * (f.fallTwist || 0); } // (onto its back, its face or its side, and never quite square)
       tilt.position.y = go * 0.11 + (f.spin ? 0.5 * Math.abs(Math.sin(f.spin / 2)) * 1.1 : 0);
+      if (f.rag && f.rag.rise) { tilt.rotation.set(0, 0, 0); tilt.position.y = 0; G.phys.blend(f, f.dt || 0); }   // (getting up from where the physics engine left him: what is left of the fall is laid over the pose)
       if (f.rig) G.rigDrive(f, f.dt || 0); // (a model with the fuller skeleton: collars, feet, fingers, face and the joints between, js/g3/model.js)
     }
     f.update = function (dt, t) {
-      f.dt = dt; compute(dt, t);
+      f.dt = dt;
+      // A body the physics engine has (js/g3/ragdoll.js): killed or thrown down, it is moved by its weight and what it
+      // strikes, not by a pose. 1: the engine has it; 2: it lies as the engine left it; 3: it is getting up.
+      const rg = f.rag && G.phys ? G.phys.put(f, dt) : 0;
+      if (rg === 1 || rg === 2) {
+        if (rg === 2 && f.rag.lain > 1.2) return;   // (it lies still, and its face has settled)
+        const to = f.rag.alive ? 0.5 : 1; if (f.fall < to) f.fall = Math.min(to, f.fall + dt * 1.7);   // (for the face: a wound, then the eyes shut; a man only thrown down keeps his open)
+        if (f.rig) G.rigDrive(f, dt);
+        if (rg === 2) return;
+        sway(dt, t); return;
+      }
+      compute(dt, t);
       const k = f.exact ? 1 : 1 - Math.exp(-(f.action ? 26 : f.rate) * dt), c = f.cur, tg = f.tgt;
       const kl = f.legExact && !f.action ? 1 : k; // (a placed foot is not eased toward: easing it is what made feet slide)
       for (const key of JOINTS) { const a = c[key], b = tg[key], kk = key[0] === "l" || key[0] === "k" ? kl : k; a[0] += (b[0] - a[0]) * kk; a[1] += (b[1] - a[1]) * kk; a[2] += (b[2] - a[2]) * kk; }
@@ -819,6 +831,10 @@
       let d = f.face - f.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
       f.root.rotation.y += d * (1 - Math.exp(-(f.turnRate || 12) * dt));
       apply();
+      sway(dt, t);
+      if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
+    };
+    function sway(dt, t) {
       { // What hangs, swings, as a weighted cloth does: it is driven by how the body really moved this frame (not by a
         // clock), trails behind a run, is flung out by a turn, swings on past and settles, stays plumb when the body leans,
         // and never passes through what it hangs against (a back cloth cannot swing into the back, nor pleats into the legs).
@@ -827,7 +843,8 @@
         const sp2 = Math.hypot(vx, vz); if (sp2 > 9) { vx *= 9 / sp2; vz *= 9 / sp2; } // (being set down somewhere else is not a gust)
         sw.x = f.root.position.x; sw.z = f.root.position.z; sw.a = f.root.rotation.y; yaw = Math.max(-6, Math.min(6, yaw));
         const ca = Math.cos(f.root.rotation.y), sa = Math.sin(f.root.rotation.y), vf = vx * sa + vz * ca, vs = vx * ca - vz * sa, kick = Math.max(-4, Math.min(4, vf - sw.vf)); sw.vf = vf;
-        const lean = j.T.rotation.x + j.P.rotation.x, roll = j.T.rotation.z + j.P.rotation.z, air = Math.sin(t * 1.3 + f.phase) * 0.012;
+        const lying = !!(f.rag && !f.rag.rise);   // (the physics engine has the body: what hangs lies along it, for "down" is no longer toward its feet)
+        const lean = lying ? 0 : j.T.rotation.x + j.P.rotation.x, roll = lying ? 0 : j.T.rotation.z + j.P.rotation.z, air = lying ? 0 : Math.sin(t * 1.3 + f.phase) * 0.012;
         const swing = (name, tx, tz, lo, hi, side, om, zeta, kx) => { const b = j[name], st = sw.b[name] || (sw.b[name] = { vx: 0, vz: 0 });
           st.vx += kx * kick; st.vx += ((tx - b.rotation.x) * om * om - 2 * zeta * om * st.vx) * h; st.vz += ((tz - b.rotation.z) * om * om - 2 * zeta * om * st.vz) * h;
           b.rotation.x += st.vx * h; b.rotation.z += st.vz * h;
@@ -835,13 +852,13 @@
           if (b.rotation.z < -side) { b.rotation.z = -side; st.vz = 0; } else if (b.rotation.z > side) { b.rotation.z = side; st.vz = 0; } };
         const trail = Math.max(-0.2, Math.min(0.62, vf * 0.1)), fling = Math.max(-0.3, Math.min(0.3, -vs * 0.07 + yaw * 0.045));
         swing("sB", -lean * 0.9 + trail + air, -roll * 0.8 + fling, -0.03, 0.9, 0.34, 8.5, 0.5, 0.05);                                       // the upper cloth's end, down the back
-        swing("sF", Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.85 - j.P.rotation.x * 0.8 + Math.min(0, trail * -0.2), -j.P.rotation.z * 0.6 + fling * 0.5, -1.05, 0.05, 0.22, 11, 0.62, 0); // the pleats: the forward thigh carries them
-        swing("sS", -j.P.rotation.x * 0.9 + trail * 0.8 + air, -j.P.rotation.z * 0.8 + fling * 1.2, -0.45, 0.7, 0.4, 7.5, 0.42, 0.06);
+        const px = lying ? 0 : j.P.rotation.x, pz = lying ? 0 : j.P.rotation.z;
+        swing("sF", (lying ? 0 : Math.min(j.lL.rotation.x, j.lR.rotation.x, 0) * 0.85) - px * 0.8 + Math.min(0, trail * -0.2), -pz * 0.6 + fling * 0.5, -1.05, 0.05, 0.22, 11, 0.62, 0); // the pleats: the forward thigh carries them
+        swing("sS", -px * 0.9 + trail * 0.8 + air, -pz * 0.8 + fling * 1.2, -0.45, 0.7, 0.4, 7.5, 0.42, 0.06);
         if (j.sC) swing("sC", -lean * 0.9 - Math.max(0, trail) * 0.3 + air, -roll * 0.8 + fling * 0.6, -0.9, 0.03, 0.3, 8, 0.5, -0.04);                                // an upper cloth's end down the chest (modelled figures)         // the sash's ends
-        swing("sH", -(lean + j.H.rotation.x) * 0.9 + trail * 0.75, -(roll + j.H.rotation.z) * 0.8 + fling * 0.8, -0.02, 0.75, 0.3, 10, 0.55, 0.04); // hair
+        swing("sH", -(lean + (lying ? 0 : j.H.rotation.x)) * 0.9 + trail * 0.75, -(roll + (lying ? 0 : j.H.rotation.z)) * 0.8 + fling * 0.8, -0.02, 0.75, 0.3, 10, 0.55, 0.04); // hair
       }
-      if (f.trails || f.trail) { f.root.updateWorldMatrix(true, true); trail(dt); }
-    };
+    }
     // The streak of a weapon through its blow: a ribbon between where the weapon was and where it is, fading behind it.
     const tipA = new V3(), tipB = new V3();
     function trail(dt) {
