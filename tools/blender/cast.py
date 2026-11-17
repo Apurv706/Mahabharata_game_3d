@@ -275,6 +275,21 @@ girdle = [] if QG < 0.05 else sym([
   ((0.76 * SHX, 0.040, 1.335), (0.26 * SHX, 0.028 * GK, 0.060 * GK)),                                  # and its back fold
 ])
 B = mk_body("body", frame(torso + (ABS if (H["abs"] and MU >= 0.7) else [])) + girdle, [(b[0], (b[1][0] * (H["arm"] * UPK if b[0][2] > 1.12 else FAK), b[1][1] * (H["arm"] * UPK if b[0][2] > 1.12 else FAK), b[1][2])) + tuple(b[2:]) for b in arms])
+MPFB = None if os.environ.get("CAST_CLAY") else H.get("mpfb")   # (CAST_CLAY=1: the clay body, to compare)
+if MPFB and not MPFB.get("full"):   # a sculpted body (MakeHuman's, CC0: mpfb_body.py) in place of the clay one, refitted to this figure's joints
+    import mpfb_body
+    _J = dict(shoulder=(SHX, 1.41), elbow=(SHX + 0.008, 1.12), wrist=(SHX + 0.008, 0.82), hip=(HPX + 0.008, 0.92), knee=(HPX + 0.006, 0.47),
+              ankle=(HPX + 0.006, 0.085), toe=(HPX + 0.012, -0.15, 0.02), head=1.47, neck_top=MPFB.get("neck_top", 1.63), neck_tuck=MPFB.get("neck_tuck", (1.55, 1.66)), neck_y=MPFB.get("neck_y", 0.0), girth=MPFB.get("girth", 1.0))
+    _pts, _fs, _ws = mpfb_body.build(MPFB, _J)
+    _me = bpy.data.meshes.new("body"); _me.from_pydata([tuple(p) for p in _pts], [], _fs); _me.update()
+    _bm = bmesh.new(); _bm.from_mesh(_me); _rim = [e for e in _bm.edges if e.is_boundary]
+    if _rim: bmesh.ops.holes_fill(_bm, edges=_rim, sides=64); bmesh.ops.triangulate(_bm, faces=[f for f in _bm.faces if len(f.verts) > 4])
+    bmesh.ops.recalc_face_normals(_bm, faces=_bm.faces[:]); _bm.to_mesh(_me); _bm.free()
+    _old = B; B = bpy.data.objects.new("body", _me); S.collection.objects.link(B); bpy.data.objects.remove(_old)
+    for _i, _w in enumerate(_ws):   # (the points the closing of the cuts added have none: they go to the nearest bone, below)
+        for _j, _v in _w.items():
+            if _v > 0.003: (B.vertex_groups.get(_j) or B.vertex_groups.new(name=_j)).add([_i], _v, "REPLACE")
+    print("MPFB body", len(_me.vertices), "points", len(_me.polygons), "faces, cuts closed:", len(_rim), "edges")
 HANDS = [metaballs("handL", hand(1), 0.0055, 0.62), metaballs("handR", hand(-1), 0.0055, 0.62)]
 for o_ in HANDS:   # (a closed hand is all creases: every face is turned outward again, so none is lit from the wrong side; found by the mesh check)
     bm_ = bmesh.new(); bm_.from_mesh(o_.data); bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.to_mesh(o_.data); bm_.free()
@@ -312,8 +327,51 @@ def mesh_obj(name, m, role):   # a mesh from face.py (heights from the head's ce
     return o
 HEADM = FACEM.build_head(FC); EARS, LOBE = FACEM.build_ears(FC)
 Hd = mesh_obj("head", FACEM.join(HEADM["head"], EARS), "skin")
+MHI = None
+if MPFB and MPFB.get("full"):   # the whole person, MakeHuman's (mpfb_body.build_full): its own head, face and hands in place of the game's
+    import mpfb_body
+    _J = dict(shoulder=(SHX, 1.41), elbow=(SHX + 0.008, 1.12), wrist=(SHX + 0.008, 0.82), hip=(HPX + 0.008, 0.92), knee=(HPX + 0.006, 0.47),
+              ankle=(HPX + 0.006, 0.085), toe=(HPX + 0.012, -0.15, 0.02), girth=MPFB.get("girth", 1.0), hand=MPFB.get("hand", 1.08),
+              eye_c=(FC.cx, -FC.fe, HZ + FC.ze), neck_lift=MPFB.get("neck", 0.035), crown=max(v.co.z for v in Hd.data.vertices) + MPFB.get("crown_dz", 0.0))
+    MHI = mpfb_body.build_full(MPFB, _J)
+    _HS = mpfb_body.HEADSEG
+    def _outward(bm_):   # turn a skin outward if it came out turned in (asked of each face: does it look away from the bone it lies round?)
+        out_ = 0
+        for f_ in bm_.faces:
+            c_ = f_.calc_center_median(); out_ += 1 if f_.normal.dot(c_ - MHI["axis"](c_)) > 0 else -1
+        if out_ < 0: bmesh.ops.reverse_faces(bm_, faces=bm_.faces[:]); bm_.normal_update()
+        return out_
+    def _piece(name, keep):   # a mesh of the faces chosen, with their points' shares of the joints
+        ids = sorted({i for fc in keep for i in fc}); rm = {i: k for k, i in enumerate(ids)}
+        me = bpy.data.meshes.new(name); me.from_pydata([tuple(MHI["pts"][i]) for i in ids], [], [[rm[i] for i in fc] for fc in keep]); me.update()
+        bm_ = bmesh.new(); bm_.from_mesh(me); bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces[:]); bm_.normal_update()
+        # (outward, as the garments taken from it expect. A piece open at the neck or the wrists can come out turned in:
+        #  each face is asked whether it looks away from the limb's or the trunk's middle line it lies around.)
+        _outward(bm_); bm_.to_mesh(me); bm_.free(); me.update()
+        o = bpy.data.objects.new(name, me); S.collection.objects.link(o); me.materials.append(M["skin"])
+        for p_ in me.polygons: p_.use_smooth = True
+        for i in ids:
+            for j_, v_ in MHI["w"][i].items():
+                if v_ > 0.003: (o.vertex_groups.get(j_) or o.vertex_groups.new(name=j_)).add([rm[i]], v_, "REPLACE")
+        o["src_ids"] = ids; return o
+    def _kind(fc):
+        ds = [MHI["seg"][i] for i in fc]
+        if sum(d in _HS for d in ds) * 2 > len(ds): return "head"
+        hl = [d for d in ds if d[0] == "F" or d[0] == "w"]
+        if len(hl) * 2 > len(ds): return "hand" + hl[0][-1]
+        return "body"
+    _sets = {}
+    for fc in MHI["faces"]: _sets.setdefault(_kind(fc), []).append(fc)
+    for _o in [B, Hd] + HANDS: bpy.data.objects.remove(_o)
+    B = _piece("body", _sets["body"]); Hd = _piece("head", _sets["head"]); HANDS = [_piece("handL", _sets["handL"]), _piece("handR", _sets["handR"])]
+    GRIP = [tuple(MHI["grip"]["L"]), tuple(MHI["grip"]["R"])]
+    for sd_ in "LR": RIG["g" + sd_] = ("w" + sd_, tuple(MHI["g"][sd_])); RIG["h" + sd_] = ("g" + sd_, tuple(MHI["h"][sd_]))
+    print("MPFB whole: body", len(B.data.vertices), "head", len(Hd.data.vertices), "hands", len(HANDS[0].data.vertices), "points")
 for o in [B] + HANDS:
     o.data.materials.append(M["skin"])
+    if MPFB and (o is B or MPFB.get("full")):
+        for p in o.data.polygons: p.use_smooth = True
+        continue
     m = o.modifiers.new("sm", "SMOOTH"); m.iterations = 2; m.factor = 0.5
     bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="sm")
     for p in o.data.polygons: p.use_smooth = True
@@ -339,7 +397,8 @@ PAIRS = [("P", "T", "T1"), ("T", "H", "N")] + [q for sd_ in "LR" for q in (("c" 
 LOD = H.get("lod", 1.0)
 # (A figure in a fight is seen from above at seventy to ninety pixels tall, and a field holds dozens of them with their
 #  shadows: the meshes are a third of what they were. Smooth normals and the shaded hollows keep the forms.)
-for o, r in ((B, 0.115 * LOD), (HANDS[0], 0.2 if LOD >= 1 else 0.13), (HANDS[1], 0.2 if LOD >= 1 else 0.13)):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
+_HR = MPFB.get("hand_dec", 0.8) if (MPFB and MPFB.get("full")) else (0.2 if LOD >= 1 else 0.13)
+for o, r in ((B, MPFB.get("dec", 0.6) if MPFB else 0.115 * LOD), (HANDS[0], _HR), (HANDS[1], _HR)) + (((Hd, MPFB.get("head_dec", 1.0)),) if MHI and MPFB.get("head_dec", 1.0) < 1 else ()):   # (the rank and file, lod 0.7, are lighter still: a field holds dozens)
     d = o.modifiers.new("dec", "DECIMATE"); d.ratio = r; bpy.context.view_layer.objects.active = o; bpy.ops.object.modifier_apply(modifier="dec")
     for p in o.data.polygons: p.use_smooth = True
 def no_fins(o):   # thinning a skin can leave a fin where two folds lay close (inside an armpit): cut off, and any hole closed
@@ -359,6 +418,8 @@ if not os.environ.get("CAST_NOFUSE"):
         nc_ = specks(B, 60)   # (a fin's root can be a bubble shut inside the skin: with the fin gone it hangs free, and goes too)
         if nc_: print("body: a bubble inside the skin taken out:", nc_, "points")
         for p in B.data.polygons: p.use_smooth = True
+    if MHI:   # (closing the cuts can turn an open skin inward again: the neck and the wrists stay open here, so it is asked again)
+        _bm = bmesh.new(); _bm.from_mesh(B.data); _bm.normal_update(); _o = _outward(_bm); _bm.to_mesh(B.data); _bm.free(); B.data.update(); print("body turned outward again" if _o < 0 else "body faces outward")
     odd_edges(B, "body after thinning:")
     print("FUSE body after thinning in", pieces(B), "piece(s)")
 arm = bpy.data.armatures.new("rig"); A = bpy.data.objects.new("rig", arm); S.collection.objects.link(A); bpy.context.view_layer.objects.active = A; bpy.ops.object.mode_set(mode="EDIT")
@@ -375,7 +436,7 @@ for sd, sx in (("L", 1), ("R", -1)):
 bpy.ops.object.mode_set(mode="OBJECT")
 for o in (B,):
     bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); A.select_set(True); bpy.context.view_layer.objects.active = A
-    try: bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    try: bpy.ops.object.parent_set(type="ARMATURE_NAME" if MPFB else "ARMATURE_AUTO")   # (a sculpted body comes with its own weights)
     except Exception as e: print("AUTO WEIGHTS FAILED", e)
     o.select_set(False); A.select_set(False)
     lost = [v for v in o.data.vertices if not v.groups]
@@ -404,7 +465,7 @@ for o in (B,):
     # breast and the shoulder blade far in toward the breastbone (through whatever cloth lies there). An arm's hold on the
     # trunk's skin fades out a hand's breadth in from the joint, as it did when the arm was a separate skin.
     held = 0
-    if not os.environ.get("CAST_NOFUSE"):
+    if not os.environ.get("CAST_NOFUSE") and not MPFB:   # (a sculpted body's own weights already let go of the trunk as they should)
         nm_ = [g.name for g in o.vertex_groups]; SK_ = SHX / 0.2295   # (the distances were set on a frame of that half-width)
         for v in o.data.vertices:
             if v.co.z < 1.1 or abs(v.co.x) > SHX - 0.03 * SK_: continue
@@ -534,7 +595,7 @@ def fall(name, role, x, y, z_top, ln, wd, lean_=0.0, top="P", edge=True, side=0.
         for sx_ in (-1, 1): fall(name + "b", brole, x + sx_ * wd * 0.86 * (1 - 0.06), y - (0.004 if y < 0 else -0.004), z_top, ln, 0.007, lean_, top, False, side, sway=sway, hold=hold)
         e = prim("cube", name + "b", brole, (x + lean_ * ln, y - (0.005 if y < 0 else -0.005), z_top - ln + 0.016), (wd * 0.86, 0.003, 0.008), size=2); clothw(e, top, side, sway, zt_, ln); parts.append(e)
     return o
-def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stiff=False):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
+def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stiff=False, top=None):   # a garment taken from the body's own surface and stood off it; it keeps the body's weights. cut: (low, high) edges, cut clean; sides: cut clean at the arm-holes too
     src = src or B; o = src.copy(); o.data = src.data.copy(); S.collection.objects.link(o); o.name = name
     bm = bmesh.new(); bm.from_mesh(o.data)
     if cut:
@@ -547,9 +608,25 @@ def shell(name, role, keep, off, src=None, cut=None, sides=None, neck=None, stif
         for co, no in (((-xh, 0, 0), (1, 0, 0)), ((xh, 0, 0), (1, 0, 0)), ((0, 0, zl), (0, 0, 1))):
             bmesh.ops.bisect_plane(bm, geom=[e for e in bm.verts[:] + bm.edges[:] + bm.faces[:] if near(e)], plane_co=co, plane_no=no)
         bmesh.ops.delete(bm, geom=[f for f in bm.faces if abs(f.calc_center_median().x) < xh and f.calc_center_median().z > zl], context="FACES")
+    if top:   # an upper edge along a curve, top(x) -> its height (a scooped neckline running out over the shoulders): the faces
+        # above it go, and the points left along it are set on it, so the edge runs smooth and not in steps
+        bm.faces.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_center_median().z > top(f.calc_center_median().x)], context="FACES")
+        for v in bm.verts:
+            if v.is_boundary and v.co.z > top(v.co.x) - 0.04 and abs(v.co.z - top(v.co.x)) < 0.04: v.co.z = top(v.co.x)
     dl = bm.verts.layers.deform.active; ai = {i for i, g in enumerate(src.vertex_groups) if g.name[0] in "aew"}
     armw = lambda v: sum(w for i, w in v[dl].items() if i in ai)
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co) or armw(v) > (0.66 if stiff else 0.3)], context="VERTS")   # (skin the arm has a real hold on is left bare: under armour that does not move it would be hidden at rest and missing when the arm rose)
+    if top:   # (the edges where whole faces were dropped run in steps: each edge point is drawn toward the middle of its two
+        #  neighbours along the edge, a few times over, so the edges run smooth)
+        for _ in range(8):
+            mv = {}
+            for v in bm.verts:
+                if not v.is_boundary: continue
+                nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+                if len(nb) == 2: mv[v] = v.co * 0.5 + (nb[0].co + nb[1].co) * 0.25
+            for v, c in mv.items(): v.co = c
+        bm.normal_update()
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o)
     if stiff:   # armour does not go up with a raised arm as skin does: the arm moves in its arm-hole (its edge rose in spikes otherwise)
@@ -703,7 +780,12 @@ for nm_, dy_ in (("beads", 0.006), ("beadsA", 0.03)):   # (beadsA: worn over a w
         a = (k - 11.5) / 11.5 * 1.45; x_, z_ = math.sin(a) * 0.1 * FX, 1.47 - math.cos(a) * 0.21; parts.append(prim("uv_sphere", "beads", "beads", (x_, front(z_, x_) - dy_, z_), (0.013, 0.013, 0.013), segments=6, ring_count=5)); rigid(parts[-1], "T")
     since(n0, nm_); n0 = len(parts)
 # ---- Armour: a cuirass taken from the trunk, shoulder plates, forearm guards, shin guards
-shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.021, cut=(1.03, 1.45), sides=SHX + 0.01, neck=(0.085, 1.4), stiff=True)
+if MHI:   # (on a sculpted body: close on it, as leather is, and its neck scooped in one smooth curve out over the shoulders)
+    AOFF = MPFB.get("armour_off", 0.009); _nt = lambda x: min(1.475, 1.388 + 7.0 * x * x)
+    shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.49, AOFF, cut=(1.03, 1.475), sides=SHX + 0.01, stiff=True, top=_nt)
+else:
+    AOFF = 0.021
+    shell("cuirass", "armour", lambda c: 1.029 < c.z < 1.451, 0.021, cut=(1.03, 1.45), sides=SHX + 0.01, neck=(0.085, 1.4), stiff=True)
 ring("cuirassbelt", "leather", 1.045, 0.016, 1.6, 0.016, bone="T")
 since(n0, "cuirass"); n0 = len(parts)
 PK_ = H.get("pauldronk")   # (the sheets: Bhima's and Duryodhana's are great round domes with a boss; others three lapped plates)
@@ -726,6 +808,16 @@ def limbshell(name, role, z0, z1, bones, off):
     for z_, up in ((z0, -1), (z1, 1)): bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, z_), plane_no=(0, 0, up), clear_outer=True)
     dl = bm.verts.layers.deform.active; bi = {i for i, g in enumerate(B.vertex_groups) if g.name[0] in bones}
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not (z0 - 0.001 < v.co.z < z1 + 0.001 and sum(w for i, w in v[dl].items() if i in bi) > 0.5)], context="VERTS")
+    if top:   # (the edges where whole faces were dropped run in steps: each edge point is drawn toward the middle of its two
+        #  neighbours along the edge, a few times over, so the edges run smooth)
+        for _ in range(8):
+            mv = {}
+            for v in bm.verts:
+                if not v.is_boundary: continue
+                nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+                if len(nb) == 2: mv[v] = v.co * 0.5 + (nb[0].co + nb[1].co) * 0.25
+            for v, c in mv.items(): v.co = c
+        bm.normal_update()
     for v in bm.verts: v.co += v.normal * off
     bm.to_mesh(o.data); bm.free(); o.data.materials.clear(); o.data.materials.append(M[role]); parts.append(o); return o
 limbshell("vambrace", "leather", 0.885, 1.075, "ew", 0.009)
@@ -751,7 +843,7 @@ for sx, sd in ((1, "L"), (-1, "R")):
     ring("sandal", "leather", 0.072, 0.005, 1.6, 0.006, cx=sx * (HPX + 0.008), cy=0.005, N=12, bone="k" + sd)
 since(n0, "sandal"); n0 = len(parts)
 # bands of trim round a cuirass, and a boss on the breast
-for zz in (1.12, 1.27): ring("lames", "gold", zz, 0.0045, 1.3, 0.016, capx=SHX - 0.03, bone="T")
+for zz in (1.12, 1.27): ring("lames", "gold", zz, 0.0045, 1.3, AOFF + 0.004 if MHI else 0.016, capx=SHX - 0.03, bone="T")   # (gold rows on the coat's face)
 since(n0, "lames"); n0 = len(parts)
 dhoti("tasset", 0.79, 1.13, role="armour", plain=True); n0 = len(parts)   # the skirt of scales that hangs from the belt, over the cloth
 parts.append(prim("uv_sphere", "boss", "gold", (0, front(1.3) - 0.016, 1.3), (0.05, 0.016, 0.05), segments=12, ring_count=6)); rigid(parts[-1], "T")
@@ -760,7 +852,7 @@ parts.append(prim("uv_sphere", "bossgem", "gem", (0, front(1.3) - 0.03, 1.3), (0
 # a fan of golden rays, a jewel in flames. (H["sign"]; gold, standing a little off the coat.)
 SG = H.get("sign")
 if SG:
-    sk = H.get("signk", 1.3); SZ_ = 1.3; SY_ = front(SZ_) - 0.05   # (clear of the coat, which stands off the body)
+    sk = H.get("signk", 1.3); SZ_ = 1.3; SY_ = front(SZ_) - (0.05 if AOFF > 0.015 else AOFF + 0.016)   # (clear of the coat, which stands off the body)
     def sp_(nm, role, x, dy, z, sc, rv=(0, 0, 0), kind="uv_sphere", **kw):
         if kind == "uv_sphere": kw.setdefault("segments", 10); kw.setdefault("ring_count", 6)
         parts.append(prim(kind, nm, role, (x * sk, SY_ - dy, SZ_ + z * sk), tuple(c * sk for c in sc), rv, **kw))
@@ -1077,6 +1169,10 @@ for o in parts:
 for o in parts:
     if part_of(o) == "knot" and o.name.startswith("knotband"): o.data.materials.clear(); o.data.materials.append(M["red"])
 print("parts", len(parts), sorted({part_of(o) for o in parts}))
+if MHI:   # the whole person: the old face's features go; MakeHuman's face gets its own; what sits on the head is set on it
+    import mpfb_face
+    parts = mpfb_face.dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG)
+    FACE["lidr"] = round(MHI["lidr"] * MPFB.get("lidk", 0.95), 4); print("FACE: the lids close through %.3f" % FACE["lidr"])
 LOOKS = H["looks"]; BASE = ["body", "head", "hands", "face"]
 def setcol(m, h): M[m].node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (*lin(hexc(h)), 1)
 def look(name, loc, at, lens=60):
