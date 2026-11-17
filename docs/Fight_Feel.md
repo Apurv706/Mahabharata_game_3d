@@ -134,3 +134,12 @@ Four older checks were made to stand on their own. The duel and the shaken host 
 - The shape is rounded. At the very corners of a team of four the outer horses' heads stand about 0.4 m outside it.
 - Version 73 was looked at in stills from above in real fights (Arjuna's four walked at from in front and from the flank, the same car driven at you, Supratika's head) and measured by the game's own fighter. It has not been played on a phone.
 - A body thrown against the edge of the field stops there unharmed: the fights have no walls or rocks to be thrown against.
+
+## Postures on the sculpted bodies (17 November, Version 78)
+
+Seven figures of different build (Arjuna, Bhima, Draupadi, a child, a foot soldier, Bhishma, Dhritarashtra) were photographed walking, running, on guard, blocking, in four strikes, parrying, struck, rolling, sneaking and kneeling, front and side. The postures hold on every build. Two were put right:
+
+- **Block:** the guard arm crossed the chest so close that on a broad man (Bhima, Duryodhana) the wrist sank into it. The arm is held further out in front (`POSES.block`).
+- **Struck:** the head snapped back 46 degrees, which on the new longer necks read as a broken neck. It now goes back 31 (`ACTS.hit`).
+
+Seen and left: the hip rings of the heavy war dress stand off the waist in a deep crouch; in the sneak the arms are held wide.
