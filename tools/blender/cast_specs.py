@@ -449,7 +449,8 @@ def face_targets(f, k, she, aged=1.0, wide_eyes=0.7):
     tw = d("tipw"); two("nose/nose-point-width", tw * 3.0)
     if tw > 0: put("nose/nose-volume-incr", tw * 1.5)
     # the eyes: MakeHuman's rest a little more open (the game's set face lowers the lids a fifth), then this person's
-    two("eyes/*-eye-scale", d("eye") * 4.0); two("eyes/*-eye-trans", d("gap") * 8.0, up="out", dn="in")
+    two("eyes/*-eye-scale", 0.3 + d("eye") * 4.0);   # (larger, darker eyes than MakeHuman's plain face: the portraits')
+    two("eyes/*-eye-trans", d("gap") * 8.0, up="out", dn="in")
     two("eyes/*-eye-height2", wide_eyes + d("open") * 2.0); put("eyes/*-eye-height1-incr", wide_eyes * 0.43 + d("open"))
     two("eyes/*-eye-corner1", d("tilt") * 8.0, up="up", dn="down")
     put("eyes/*-eye-eyefold-down", d("hood") * 0.9); put("eyes/*-eye-bag-incr", d("bag") * 0.9)
@@ -480,19 +481,22 @@ def sculpt(key):
         put("neck/neck-scale-horiz-incr", (sh["neck"] - 0.82) * 2.2)
     put("stomach/stomach-pregnant-incr", belly * 0.5); put("torso/torso-scale-depth-incr", (c.get("wide", b["wide"]) - 1.02) * 2.2 + (b["girth"] - 1.0) * 2.0)   # (a broad man is deep through the chest too)
     f = dict(PEOPLE.get(who, {})); f.update(c.get("facefix") or {})
-    T.update(face_targets(f, dict(child=0.35, youth=0.75).get(st, 1.0), she, 0.6 if st == "elder" else 1.0, 0.3 if st == "child" else 0.55 if st == "youth" else 0.7))
+    T.update(face_targets(f, dict(child=0.35, youth=0.75).get(st, 1.0), she, 0.6 if st == "elder" else 1.0, 0.4 if st == "child" else 0.7 if st == "youth" else 0.95))
     # the hair of the face: brows as this person's are (how thick, how arched, their slant, how low over a heavy brow)
-    kf = dict(child=0.35, youth=0.75).get(st, 1.0); browth = f.get("browth", 0.8 if she else 1.0) * (0.8 if st == "child" else 1.0); bw = 0.27 * browth
+    kf = dict(child=0.35, youth=0.75).get(st, 1.0); browth = f.get("browth", 0.8 if she else 1.0) * (0.8 if st == "child" else 1.0); bw = (0.3 if she else 0.36) * browth   # (17 November, the faces: fuller brows, as the portraits have them)
     face = dict(brow_h=round(_cl(1.38 - 0.3 * (f.get("brow", 0.0 if she else 0.5) - 0.5) - 0.1 * f.get("deep", 0.0), 1.12, 1.55), 3),
                 brow_arch=round(_cl(0.9 * f.get("browarch", 0.7 if she else 0.35) - 0.1, 0.04, 0.5), 3), brow_w=round(bw, 3), brow_w_out=round(bw * (0.4 if she else 0.52), 3),
                 brow_slant=round(-0.2 + 0.5 * kf * f.get("browtilt", 0.0), 3))
     worn = set(p for L_ in c["looks"].values() for p in L_["parts"])
-    if "beardS" in worn: face.update(beard=0.0034, beard_cheek=0.42, beard_low=0.078, beard_back=0.058, beard_role="hair")   # a short beard, of this face's own jaw
+    if "stache" in worn: face.update(stache_w=round(0.034 * f.get("lipw", 1.0), 4), stache_h=0.0056, stache_droop=0.007, stache_off=0.0025)   # (as wide as the mouth, its ends turned down)
+    if "beardS" in worn: face.update(beard=0.0018, beard_cheek=0.55, beard_low=0.075, beard_back=0.055)   # (close-cut: dark hair over skin, see stubblek below)   # a short beard, of this face's own jaw
+    if "beardF" in worn: face["beardF"] = dict(beard=0.017, beard_cheek=0.5, beard_low=0.1, beard_back=0.062, beard_role="hair", beard_drop=0.03 * c.get("beardk", 1.0) ** 0.5)   # and a full one
     lead = who in LEADS; few = c.get("lod", 1.0) < 1 or c.get("sided")
-    return dict(full=True, auto=True, rel=1.011, hand=1.08, lidk=0.8, sex=0.0 if she else 1.0, age=round(age, 1), muscle=round(_cl(0.3 + 0.62 * mu, 0.3, 0.95), 3),
+    return dict(full=True, auto=True, rel=1.011, hand=1.08, neck=round(0.03 if st == "child" else 0.045 if she else 0.045 + 0.02 * mu, 3),   # (a neck that shows: longer where heavy shoulders rise beside it)
+                 lidk=0.8, sex=0.0 if she else 1.0, age=round(age, 1), muscle=round(_cl(0.3 + 0.62 * mu, 0.3, 0.95), 3),
                 weight=round(_cl(0.5 + 0.8 * (b["girth"] - 0.93) + 0.1 * belly + (0.03 if b.get("soft") else 0.0), 0.3, 0.8), 3), height=0.55,
                 proportions=round(0.5 if st == "child" else (0.8 if c["build"] == "woman" else 0.6) if she else _cl(0.45 + 0.55 * mu, 0.5, 1.0), 3),
                 eth={"caucasian": 0.5, "african": 0.25, "asian": 0.25}, girth=1.0, targets=T, face=face,
                 dec=0.5 if lead else 0.26 if few else 0.4, head_dec=0.8 if lead else 0.4 if few else 0.6, hand_dec=0.5 if lead else 0.25 if few else 0.35)
 for k_ in list(CAST):
-    if "mpfb" not in CAST[k_]: CAST[k_]["mpfb"] = sculpt(k_)
+    if "mpfb" not in CAST[k_]: CAST[k_]["mpfb"] = sculpt(k_); CAST[k_].setdefault("stubblek", 0.78)   # (a short beard's colour: mostly hair, a little skin through it)

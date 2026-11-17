@@ -79,10 +79,19 @@ The other 78 figures were put on the same body by one recipe, `sculpt()` at the 
 | Draupadi | 24,441 triangles, 517 KB | 33,571 triangles, 702 KB |
 | A child (Yudhishthira) | 20,018 triangles, 418 KB | 29,080 triangles, 603 KB |
 
+### Faces and necks (17 November, Version 75; owner: "fix faces next and add neck")
+
+- **Necks.** Every figure stands on a longer neck (spec `neck`): 3 cm more for a child, 4.5 for a woman, 4.5 to 6.5 for a man (longer where heavy shoulders rise beside it). Arjuna keeps his 3.5.
+- **Eyes** are larger and more open (they read half shut once the game's resting face lowered the lids).
+- **Brows** are fuller, about a third thicker, as the portraits have them.
+- **Lips** have a clean edge: the points on the edge are drawn onto the lips' outline.
+- **Moustaches** are as wide as the mouth with the ends turned down.
+- **Short beards** are close-cut, dark hair over skin (`stubblek` 0.78), rising across the cheek to the ear. They were solid black blocks.
+- **Full beards** (Bhishma, Drona, Dhritarashtra, Drupada, Virata, Mauni, the forest looks) are now made from each face's own jaw and hang off the chin. The old ball-shaped beards are gone; Bhishma's and Dhritarashtra's long fall below is kept.
+
 ### Still open (whole cast)
 
 - Faces come from the old measures by rule, not from each sheet by eye as Arjuna's was. Leads deserve the same hand pass.
-- Full and long beards (Bhishma, Drona, the forest looks) and chin tufts are still the old shapes set onto the new chin.
-- Women have no lash line yet; their brows are thin.
-- Lips' edges are a little ragged on the lighter heads.
+- Chin tufts (Duryodhana, Dushasana, Shakuni, Jayadratha) are still the old shape set onto the new chin.
+- Women have no lash line yet.
 - Upper cloths still hang like boards (older issue).
