@@ -44,6 +44,14 @@ check(P.ok && typeof C.World === "function", "the physics engine is loaded");
   const big = P.rag(standing(4, 0, 1.2, 0), {}); let mb = 0; for (const k of P.PARTS) mb += big.b[k].mass;
   check(Math.abs(mb / m - 1.728) < 0.01, "a man a fifth taller weighs 1.73 times as much (" + (mb / m).toFixed(2) + ")");
   check(P.live() === 2, "the engine is carrying two bodies"); P.close(); check(P.live() === 0 && r.frozen, "closing the world lets go of them"); }
+// ---- each figure's own build (Version 78) ----
+{ P.open(); const sum = (r) => { let m = 0; for (const k of P.PARTS) m += r.b[k].mass; return m; };
+  const plain = P.rag(standing(0, 0, 1, 0), {}), fr = standing(3, 0, 1.13, 0); fr.g = P.BUILDS.bhima_adult; const bh = P.rag(fr, {}), fd = standing(6, 0, 0.97, 0); fd.g = P.BUILDS.draupadi_adult; const dr = P.rag(fd, {});
+  check(Object.keys(P.BUILDS).length === 79 && P.BUILDS.soldier_foot_adult[0] === 1 && P.BUILDS.soldier_foot_adult[1] === 1, "every figure has its build; the foot soldier's is the ordinary man's");
+  check(sum(bh) > 140 && sum(bh) < 175, "Bhima weighs about 155 kg (" + sum(bh).toFixed(0) + ")"); check(sum(dr) > 45 && sum(dr) < 60, "Draupadi weighs about 52 kg (" + sum(dr).toFixed(0) + ")");
+  check(bh.b.T.shapes[1].radius > plain.b.T.shapes[1].radius * 1.35 && dr.b.lL.shapes[0].radius < plain.b.lL.shapes[0].radius * 0.85, "his chest is broader in the engine and her thigh slighter");
+  for (let i = 0; i < 240; i++) P.step(1 / 60); let low = Infinity, ok = true; for (const r of [bh, dr]) for (const k of P.PARTS) { const y = r.b[k].position.y; if (!(y === y)) ok = false; low = Math.min(low, y); }
+  check(ok && low > -0.05 && bh.b.T.position.y < 0.6 && dr.b.T.position.y < 0.6, "both fall and come to lie on the ground (lowest " + low.toFixed(2) + ")"); P.close(); }
 { P.open(); check(P.step(H) === 0, "nothing is reckoned while nothing is loose"); }
 
 // ---- five blows ----

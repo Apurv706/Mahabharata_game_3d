@@ -43,6 +43,15 @@ A man's own parts strike each other. What the engine works out is written back i
 
 **Version 72 moved every part's own place to the middle of its weight.** The engine takes a body's place to be where its weight is. Version 71 had each part's place at its joint, so a thigh swung as if all its weight were at the hip. For a man that was a small fault. For a horse it was not: the barrel's weight was at its hooves, and it could not be knocked over.
 
+### Each figure's own build (17 November, Version 78; owner: "redo the physics on human forms")
+
+The figures are sculpted people now and differ in build, but the engine still gave every man the same body, only taller or shorter. It now reads each figure's build (`P.BUILDS` in `js/g3/ragdoll.js`, written from the cast's specs by `tools/blender/phys_table.py`): how thick the limbs and the trunk are against the foot soldier's.
+
+- The engine's balls for the hips, trunk and limbs are that much wider, so a broad man lies on his own chest and a slight woman's limbs don't hover off the ground.
+- A part's weight goes by the square of its thickness. Bhima is about 155 kg (he was 109 by height alone), Draupadi about 52 (she was 69), Dhritarashtra heavier in the trunk, a child lighter. A heavy man is harder to throw far and falls harder; a light one flies further from the same blow.
+- The head, the joints and their limits are as before. The fight's rules (who is hit, who is thrown, how much hurt) are unchanged; this is how a thrown or fallen body moves.
+- Limbs range 0.83 to 1.16 of the soldier's, trunks 0.87 to 1.31. Run `python3 tools/blender/phys_table.py` after changing a build.
+
 ## A horse, an elephant (Version 72)
 
 A beast is its barrel, which has nearly all the weight, and what hangs from it.

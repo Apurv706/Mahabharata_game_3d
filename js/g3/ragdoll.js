@@ -42,6 +42,11 @@
   const PARTS = (P.PARTS = ["P", "T", "H", "aL", "aR", "eL", "eR", "lL", "lR", "kL", "kR"]);
   const UP = (P.UP = { T: "P", H: "T", aL: "T", aR: "T", eL: "aL", eR: "aR", lL: "P", lR: "P", kL: "lL", kR: "lR" });
   const MASS = { P: 11, T: 24, H: 5, aL: 3, aR: 3, eL: 2.2, eR: 2.2, lL: 8, lR: 8, kL: 4.5, kR: 4.5 };   // (kg, a man of ordinary size)
+  // 17 November (Version 78): each figure's own build. The bodies are sculpted people now, and they differ: Bhima's trunk is a
+  // quarter broader than a foot soldier's, Draupadi's limbs a sixth slighter. The engine's body follows: [limbs, trunk],
+  // how thick against the ordinary man's (the foot soldier's, 1). A part's weight goes by the square of it (its length
+  // is the skeleton's, which the figure's height already scales). Written by tools/blender/phys_table.py from the cast's specs.
+  P.BUILDS = /*BUILDS*/{"player_m_child":[0.92,0.93],"player_m_youth":[0.94,0.94],"player_m_adult":[1.0,1.0],"player_m_elder":[0.94,0.95],"player_f_child":[0.83,0.87],"player_f_youth":[0.83,0.88],"player_f_adult":[0.83,0.88],"player_f_elder":[0.84,0.9],"soldier_foot_adult":[1.0,1.0],"soldier_archer_adult":[1.0,1.0],"soldier_charioteer_adult":[1.0,1.0],"soldier_cw_adult":[1.07,1.1],"yudhishthira_child":[0.92,0.93],"yudhishthira_youth":[0.94,0.94],"yudhishthira_adult":[0.92,0.93],"bhima_child":[1.01,1.05],"bhima_youth":[1.02,1.05],"bhima_adult":[1.13,1.26],"arjuna_child":[0.92,0.93],"arjuna_youth":[0.94,0.94],"arjuna_adult":[1.04,1.05],"nakula_child":[0.92,0.93],"nakula_youth":[0.94,0.94],"nakula_adult":[0.96,0.96],"sahadeva_child":[0.92,0.93],"sahadeva_youth":[0.94,0.94],"sahadeva_adult":[0.95,0.94],"draupadi_youth":[0.83,0.88],"draupadi_adult":[0.83,0.88],"krishna_adult":[1.0,1.01],"karna_child":[0.92,0.93],"karna_youth":[1.02,1.05],"karna_adult":[1.04,1.03],"duryodhana_child":[1.01,1.05],"duryodhana_youth":[1.02,1.05],"duryodhana_adult":[1.15,1.31],"bhishma_elder":[1.04,1.07],"drona_elder":[0.95,0.95],"dushasana_child":[1.01,1.05],"dushasana_youth":[1.02,1.05],"dushasana_adult":[1.13,1.25],"shakuni_elder":[0.94,0.95],"ashwatthama_child":[0.92,0.93],"ashwatthama_youth":[0.94,0.94],"ashwatthama_adult":[1.03,1.04],"kripa_elder":[0.94,0.95],"vidura_elder":[0.92,0.93],"dhritarashtra_elder":[1.07,1.31],"gandhari_elder":[0.84,0.9],"kunti_elder":[0.84,0.9],"balarama_adult":[1.12,1.23],"abhimanyu_youth":[0.97,0.95],"ghatotkacha_adult":[1.09,1.16],"drupada_elder":[1.03,1.07],"dhrishtadyumna_youth":[0.94,0.94],"dhrishtadyumna_adult":[1.07,1.1],"shikhandi_adult":[0.96,0.96],"satyaki_adult":[1.09,1.13],"jayadratha_adult":[1.1,1.2],"shalya_adult":[1.07,1.1],"virata_elder":[1.06,1.28],"uttara_adult":[0.97,0.95],"ekalavya_youth":[0.94,0.94],"ekalavya_adult":[1.0,1.0],"charu_adult":[1.02,1.01],"ugra_adult":[1.04,1.09],"mauni_elder":[0.94,0.95],"healer_elder":[0.84,0.9],"bard_adult":[0.97,0.98],"village_child_child":[0.92,0.93],"villager_m_adult":[0.99,0.99],"villager_f_adult":[0.84,0.9],"guard_adult":[1.02,1.01],"raider_adult":[1.05,1.09],"brahmin_adult":[1.0,1.15],"charu_child":[0.92,0.93],"charu_youth":[0.94,0.94],"ugra_child":[1.01,1.05],"ugra_youth":[0.99,1.04]}/*END*/;
   // Who meets whom. A body on the ground meets the ground, what moves (men, cars, teams, elephants), other bodies and
   // loose things. A man killed in a car meets its floor and rails, the ground, other bodies and loose things, and not
   // what moves: he is inside one car, and in a press another's team may be standing through it (the rules keep cars
@@ -155,20 +160,21 @@
   // car he rides in.
   const HI = { H: 1.15, T: 1, aL: 0.9, aR: 0.9, eL: 0.8, eR: 0.8, P: 0.5, lL: 0.28, lR: 0.28, kL: 0.08, kR: 0.08 }, LO = { H: 0.1, T: 0.25, aL: 0.2, aR: 0.2, eL: 0.2, eR: 0.2, P: 0.55, lL: 0.9, lR: 0.9, kL: 1.15, kR: 1.15 };
   P.rag = function (frames, o) {
-    const at = frames.at, hs = frames.hs || 1;
-    return build({ kind: "man", keys: PARTS, up: UP, core: "T", at, s: frames.s || 1, mass: MASS, apart: !TUNE.self,
+    const at = frames.at, hs = frames.hs || 1, kl = frames.g ? frames.g[0] : 1, kt = frames.g ? frames.g[1] : 1, mass = {};
+    for (const k of PARTS) mass[k] = MASS[k] * (k === "H" ? 1 : k === "P" || k === "T" ? kt * kt : kl * kl);
+    return build({ kind: "man", keys: PARTS, up: UP, core: "T", at, s: frames.s || 1, mass, apart: !TUNE.self,
       // The parts' shapes: balls, which meet the ground and each other cheaply and never catch on an edge.
       shapes(b, loc, s) {
         const near = (k, key, d) => { const e = at[key] ? loc(k, at[key].p) : null, l = e ? e.length() : 0, want = Math.hypot(d[0], d[1], d[2]) * s; return e && l > want * 0.6 && l < want * 1.5 ? e : new V(d[0] * s, d[1] * s, d[2] * s); };
-        ball(b.P, 0, -0.02 * s, 0, 0.125 * s); ball(b.P, 0.09 * s, -0.05 * s, 0, 0.1 * s); ball(b.P, -0.09 * s, -0.05 * s, 0, 0.1 * s);
-        ball(b.T, 0, 0.2 * s, 0, 0.125 * s); ball(b.T, 0, 0.39 * s, 0.01 * s, 0.145 * s);
-        for (const sd of ["L", "R"]) { const sh = loc("T", at["a" + sd].p); ball(b.T, sh.x * 0.7, sh.y * 0.96, sh.z, 0.085 * s); }
+        ball(b.P, 0, -0.02 * s, 0, 0.125 * s * kt); ball(b.P, 0.09 * s * kt, -0.05 * s, 0, 0.1 * s * kt); ball(b.P, -0.09 * s * kt, -0.05 * s, 0, 0.1 * s * kt);
+        ball(b.T, 0, 0.2 * s, 0, 0.125 * s * kt); ball(b.T, 0, 0.39 * s, 0.01 * s, 0.145 * s * kt);
+        for (const sd of ["L", "R"]) { const sh = loc("T", at["a" + sd].p); ball(b.T, sh.x * 0.7, sh.y * 0.96, sh.z, 0.085 * s * kl); }
         ball(b.H, 0, 0.125 * s * hs, 0.012 * s, 0.105 * s * hs);
         for (const sd of ["L", "R"]) {
-          chain(b["a" + sd], loc("a" + sd, at["e" + sd].p), s, [[0.28, 0.056], [0.78, 0.05]]);
-          { const end = near("e" + sd, "w" + sd, [0, -0.3, 0]); chain(b["e" + sd], end, s, [[0, 0.047], [0.3, 0.046], [0.74, 0.04], [1.2, 0.045]]); }
-          chain(b["l" + sd], loc("l" + sd, at["k" + sd].p), s, [[0.16, 0.086], [0.52, 0.078], [0.88, 0.064]]);
-          { const end = near("k" + sd, "f" + sd, [0, -0.44, 0]); chain(b["k" + sd], end, s, [[0, 0.062], [0.3, 0.06], [0.7, 0.05], [1, 0.046]]); ball(b["k" + sd], end.x, end.y - 0.02 * s, end.z + 0.11 * s, 0.04 * s); }
+          chain(b["a" + sd], loc("a" + sd, at["e" + sd].p), s * kl, [[0.28, 0.056], [0.78, 0.05]]);
+          { const end = near("e" + sd, "w" + sd, [0, -0.3, 0]); chain(b["e" + sd], end, s * kl, [[0, 0.047], [0.3, 0.046], [0.74, 0.04], [1.2, 0.045]]); }
+          chain(b["l" + sd], loc("l" + sd, at["k" + sd].p), s * kl, [[0.16, 0.086], [0.52, 0.078], [0.88, 0.064]]);
+          { const end = near("k" + sd, "f" + sd, [0, -0.44, 0]); chain(b["k" + sd], end, s * kl, [[0, 0.062], [0.3, 0.06], [0.7, 0.05], [1, 0.046]]); ball(b["k" + sd], end.x, end.y - 0.02 * s, end.z + 0.11 * s, 0.04 * s * kl); }
         }
       },
       // The joints. At rest every part's frame lies square with the body (x to its left, y up, z the way it faces), so
@@ -352,7 +358,7 @@
   function framesOf(f) {
     f.root.updateMatrixWorld(true); const at = {}; let s = 1;
     for (const k of PARTS.concat(["wL", "wR", "fL", "fR"])) { const j = f.j[k]; if (!j) continue; j.matrixWorld.decompose(_p, _qa, _s); at[k] = { p: [_p.x, _p.y, _p.z], q: [_qa.x, _qa.y, _qa.z, _qa.w] }; if (k === "P") s = _s.y; }
-    return { s, at, hs: f.model ? 1 : Math.min(1.5, f.j.H.scale.y) };
+    return { s, at, hs: f.model ? 1 : Math.min(1.5, f.j.H.scale.y), g: (f.modelKey && P.BUILDS[f.modelKey]) || null };   // (g: this figure's own build)
   }
   // The figure, as it stands this moment, is given to the engine. Null if the engine would not take it (it is carrying
   // all it can): the figure then falls by its own poses, as it did before there was an engine.

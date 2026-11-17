@@ -105,7 +105,7 @@
   // The model a figure wears at its age: its own where the artist drew that age, else the nearest age drawn.
   G.modelFor = function (sp) {
     const id = sp && sp.model, all = G.MODELS; if (!id || !all) return null;
-    for (const s of ORDER[sp.stage] || ORDER.adult) if (all[id + "_" + s]) return all[id + "_" + s];
+    for (const s of ORDER[sp.stage] || ORDER.adult) if (all[id + "_" + s]) { all[id + "_" + s].key = id + "_" + s; return all[id + "_" + s]; }   /* (its name goes with it: the physics reads the figure's build by it) */
     return null;
   };
   // Which of its looks: what the figure itself asks for (a disguise), else what the hour calls for, else its everyday dress.
@@ -173,7 +173,7 @@
     const mesh = new T.SkinnedMesh(geo, MAT); mesh.frustumCulled = false; mesh.castShadow = true; body.add(mesh);
     f.root.updateMatrixWorld(true); mesh.updateMatrixWorld(true);
     if (M.rig) rig(f, M, mesh);
-    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k] || f.j.P)); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.dress = look;
+    f.modelSkeleton = new T.Skeleton(M.joints.map((k) => f.j[k] || f.j.P)); mesh.bind(f.modelSkeleton, mesh.matrixWorld); f.model = mesh; f.modelKey = M.key || null; f.dress = look;
     if (/^player_/.test(sp.model || "") && (sp.heir || sp.eye)) keepsakes(f, sp, M, D, mesh);
     if (M.grip) { // the hollow of each closed hand, in its wrist's own space: a haft is set there, so the fingers are round it (figure.js)
       const at = (j, g) => new T.Vector3(g[0], g[1], g[2]).applyMatrix4(mesh.matrixWorld).applyMatrix4(new T.Matrix4().copy(f.j[j].matrixWorld).invert());
