@@ -1191,7 +1191,9 @@ def render(tag, shots, res=(560, 800), samples=24):
         S.camera = look(n, loc, at, lens); S.render.filepath = f"{OUT}/{tag}_{n}.png"; bpy.ops.render.render(write_still=True)
 if STAGE == "looks":
     lights()
+    if os.environ.get("CAST_BARE"): LOOKS = dict(LOOKS, bare=dict(parts=["hair", "dhotiS", "tuck"] + (["stache"] if H.get("stache") else []), cols={}))   # (to judge the body itself)
     for lk, L in LOOKS.items():
+        if os.environ.get("CAST_LOOK") and lk not in os.environ["CAST_LOOK"].split(","): continue   # (only the looks asked for)
         for r, v in ROLE0.items():
             if r != "stubble": setcol(r, L.get("cols", {}).get(r, v))
         show = set(BASE + L["parts"])

@@ -1,6 +1,6 @@
 # Sculpted bodies (17 November)
 
-Arjuna (`arjuna_adult`) is built as a **whole MakeHuman person**: MakeHuman's own body, head, face and hands, reshaped to the game's skeleton and dressed in the game's costumes. The other 78 figures are unchanged.
+**Every human figure in the game (all 79) is now built as a whole MakeHuman person**: MakeHuman's own body, head, face and hands, reshaped to the game's skeleton and dressed in the game's costumes. Arjuna was first (set by hand, below); the other 78 follow one general recipe ("The whole cast", at the end).
 
 (An earlier try the same night kept the game's own head and hands on a MakeHuman body. The owner asked to start from the full MakeHuman person instead, and that's what's live now.)
 
@@ -56,4 +56,33 @@ All 3D tests pass (`npm run test:3d`). Model QA: no floating parts; eye, lip and
 - The sheet's eyes are deeper-set with heavier lids than the model's.
 - The upper cloths still hang like boards (older issue).
 - The head still turns about the game's head joint at the neck's base (1.47), which the game sets for every figure.
-- **To roll out:** add `mpfb=dict(full=True, …)` per figure, with its own face targets and `face=` settings from its sheet. Women and children use the same data (sex, age) but are untested.
+
+## The whole cast (17 November, Version 74)
+
+The other 78 figures were put on the same body by one recipe, `sculpt()` at the end of `tools/blender/cast_specs.py`. Nothing was set by hand per figure; each figure's existing numbers are read as a MakeHuman person.
+
+- **Sex and age.** Women use MakeHuman's woman. Age is in years: a child's is read from its height (115 cm is 6, 142 cm is 11), a youth is 17 to 21, grown figures 25 to 50, elders 54 to 72 (table `AGE`). MakeHuman's baby and old shapes were added to the data for this (`mpfb_vendor.py`; the pack is now 515 targets, 22 MB, still CC0).
+- **Build.** The old build numbers (`BUILD` and each figure's own changes) become muscle and weight, plus local shapes: the V of the back, chest, arms, legs, neck, a deeper chest on a broad man, a belly where one was drawn (Dhritarashtra, Virata, Duryodhana, the brahmin, children).
+- **Face.** Each person's face measures (`PEOPLE`: skull, cheekbones, jaw, chin, nose, eyes, brow, mouth) are turned into MakeHuman face targets by `face_targets()`. A child's face carries about a third of the grown person's, a youth's three quarters. A woman's are read against a woman's plain face. Brows are set from the same measures.
+- **Hair of the face.** A moustache is made only where a costume wears one. Bhima's is the wrestler's, swept out and up. Where a costume has a short beard, it is made from that face's own jaw.
+- **One skeleton, many sizes** (`mpfb_body.py`, spec `rel`). A child's or a woman's body is smaller than the man the fitting was made on, and all are drawn out to the game's one skeleton. Hands and the thickness of limbs now go by each body's own scale, so a child keeps a child's hands and legs. A leg's skin stays on its own side and goes with its own leg.
+- **Lips** are sized by the head and centred on the line where they meet (they sat too high on small heads).
+- **Kept light.** Three grades of detail: leads (the player, the five brothers, Draupadi, Krishna, Karna, Duryodhana, Bhishma, Drona), the rest of the cast, and the rank and file and villagers (who fill a field).
+- Arjuna's own model is unchanged, point for point.
+
+### Measured
+
+| | Before (clay) | Now |
+|---|---|---|
+| All 79 model files | 40.2 MB | 49.7 MB |
+| Foot soldier | 16,141 triangles, 344 KB | 18,478 triangles, 395 KB |
+| Draupadi | 24,441 triangles, 517 KB | 33,571 triangles, 702 KB |
+| A child (Yudhishthira) | 20,018 triangles, 418 KB | 29,080 triangles, 603 KB |
+
+### Still open (whole cast)
+
+- Faces come from the old measures by rule, not from each sheet by eye as Arjuna's was. Leads deserve the same hand pass.
+- Full and long beards (Bhishma, Drona, the forest looks) and chin tufts are still the old shapes set onto the new chin.
+- Women have no lash line yet; their brows are thin.
+- Lips' edges are a little ragged on the lighter heads.
+- Upper cloths still hang like boards (older issue).

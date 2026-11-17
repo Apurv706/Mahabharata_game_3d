@@ -41,11 +41,14 @@ def shape(spec):
     height, proportions (0..1, 0.5 the average), eth {caucasian, african, asian}, and local targets {name: weight}."""
     vs0, faces, groups, W, T = _load(); vs = [v.copy() for v in vs0]
     def tg(name, w):
-        if abs(w) < 1e-4: return
+        if abs(w) < 1e-4 or name not in T: return   # (the old's and the very young's shapes by height and by proportions were not taken: mpfb_vendor.py)
         for i, dx, dy, dz in T[name]: vs[i] += Vector((dx, dy, dz)) * (0.1 * w)
     sex = spec.get("sex", 1.0); age = spec.get("age", 25)
-    # MakeHuman's age: child 11, young 25 (between them by years); no baby or old here
-    a = max(0.0, min(1.0, (age - 11) / 14.0)); ages = {"child": 1 - a, "young": a}
+    # MakeHuman's ages: a baby of 1, a child of 11, the young of 25, the old of 90; between them by years. (17 November:
+    # the baby and the old were added for the whole cast. A grown figure of 25 is as it was.)
+    if age <= 11: a = max(0.0, (age - 1) / 10.0); ages = {"baby": 1 - a, "child": a}
+    elif age <= 25: a = (age - 11) / 14.0; ages = {"child": 1 - a, "young": a}
+    else: a = min(1.0, (age - 25) / 65.0); ages = {"young": 1 - a, "old": a}
     sexes = {"female": 1 - sex, "male": sex}
     mus = _split(spec.get("muscle", 0.5), "minmuscle", "averagemuscle", "maxmuscle"); wgt = _split(spec.get("weight", 0.5), "minweight", "averageweight", "maxweight")
     hg = spec.get("height", 0.5); pr = spec.get("proportions", 0.5)
@@ -239,16 +242,20 @@ def build_full(spec, J):
         src["a" + s] = (jc(f"joint-{k}-shoulder"), jc(f"joint-{k}-elbow")); src["e" + s] = (jc(f"joint-{k}-elbow"), jc(f"joint-{k}-hand"))
         src["w" + s] = (jc(f"joint-{k}-hand"), jc(f"joint-{k}-hand-3")); src["l" + s] = (jc(f"joint-{k}-upper-leg"), jc(f"joint-{k}-knee"))
         src["k" + s] = (jc(f"joint-{k}-knee"), jc(f"joint-{k}-ankle")); src["f" + s] = (jc(f"joint-{k}-ankle"), jc(f"joint-{k}-foot-2"))
-    HK = J.get("hand", 1.0); dst = {}
+    sP = (src["lL"][0].z + src["lR"][0].z) / 2; sS = (src["aL"][0].z + src["aR"][0].z) / 2
+    dP = J["hip"][1]; dS = J["shoulder"][1]; zk = (dS - dP) / (sS - sP)
+    # (17 November, the whole cast: a child's body, a woman's, an old man's are smaller than the grown man this was made
+    #  on, and all are drawn out to the game's one skeleton. With "rel" (the trunk's scale on that man) a figure's hands
+    #  and the thickness of its limbs go by its own scale, so a child keeps a child's hands and legs. Without it, as before.)
+    ZR = zk / spec["rel"] if spec.get("rel") else 1.0
+    HK = J.get("hand", 1.0) * ZR; dst = {}
     for s, sx in (("L", 1), ("R", -1)):
         V = lambda p: Vector((sx * p[0], p[1] if len(p) == 3 else 0.0, p[-1]))
         dst["a" + s] = (V(J["shoulder"]), V(J["elbow"])); dst["e" + s] = (V(J["elbow"]), V(J["wrist"]))
         d_ = (dst["e" + s][1] - dst["e" + s][0]).normalized(); dst["w" + s] = (V(J["wrist"]), V(J["wrist"]) + d_ * (src["w" + s][1] - src["w" + s][0]).length * HK)
         dst["l" + s] = (V(J["hip"]), V(J["knee"])); dst["k" + s] = (V(J["knee"]), V(J["ankle"])); dst["f" + s] = (V(J["ankle"]), V(J["toe"]))
-    sP = (src["lL"][0].z + src["lR"][0].z) / 2; sS = (src["aL"][0].z + src["aR"][0].z) / 2
-    dP = J["hip"][1]; dS = J["shoulder"][1]
     sHx = (src["lL"][0].x - src["lR"][0].x) / 2; sSx = (src["aL"][0].x - src["aR"][0].x) / 2
-    dHx = J["hip"][0]; dSx = J["shoulder"][0]; zk = (dS - dP) / (sS - sP); gk = J.get("girth", 1.0)
+    dHx = J["hip"][0]; dSx = J["shoulder"][0]; gk = J.get("girth", 1.0)
     SY0 = (src["lL"][0].y + src["lR"][0].y) / 2
     # the head: a likeness kept whole (one scale), set so the eyes sit where the game's did and the skull's top as high
     eL, eR = jc("joint-l-eye"), jc("joint-r-eye"); Es = (eL + eR) / 2
@@ -273,7 +280,7 @@ def build_full(spec, J):
         h0, t0 = src[seg]; h1, t1 = dst[seg]; d0 = t0 - h0; d1 = t1 - h1
         R = d0.normalized().rotation_difference(d1.normalized()).to_matrix(); ax = d0.normalized()
         r = v - h0; along = r.dot(ax); across = r - ax * along
-        k = d1.length / d0.length; rk = gk * (0.5 + 0.5 * k) if seg[0] not in "wf" else (0.5 + 0.5 * k)
+        k = d1.length / d0.length; rk = (gk if seg[0] not in "wf" else 1.0) * (0.5 * ZR + 0.5 * k)
         return h1 + R @ (ax * (along * k) + across * rk)
     def mapv(v, ws):
         t = sum(ws.values()) or 1.0; p = Vector()
@@ -287,6 +294,12 @@ def build_full(spec, J):
         return p
     used = sorted({i for fc in faces for i in fc}); remap = {i: k for k, i in enumerate(used)}
     pts = [mapv(vs[i], W.get(i, {"P": 1.0})) for i in used]; fs = [[remap[i] for i in fc] for fc in faces]
+    if spec.get("rel"):   # (on a narrow frame the thighs meet: a leg's skin does not cross the middle into the other leg)
+        for n_, i in enumerate(used):
+            ws = W.get(i)
+            if not ws: continue
+            for sd_, sx_ in (("L", 1), ("R", -1)):
+                if sum(w for k_, w in ws.items() if k_[0] in "lkf" and k_[-1] == sd_) > 0.5 * sum(ws.values()) and pts[n_].x * sx_ < 0.001: pts[n_].x = 0.001 * sx_
     for s in "LR":
         ws = {"w" + s: 1.0}
         info["g"][s] = mapv(info["g"][s], ws); info["h"][s] = mapv(info["h"][s], ws); info["grip"][s] = mapv(hollow_src[s], ws)
@@ -319,7 +332,13 @@ def build_full(spec, J):
             if best is None or dd < best[0]: best = (dd, q)
         return best[1]
     info["axis"] = axis
-    info.update(pts=pts, faces=fs, w=[game_w(i) for i in used], seg=[dom(i) for i in used], raw=[W.get(i, {"P": 1.0}) for i in used])
-    print("MPFB whole: fist hollow radius %.4f (to the finger bones' line)" % info["hollow_r"]["L"])
+    gw = [game_w(i) for i in used]
+    if spec.get("rel"):   # (a hip's skin goes with its own side's leg: on a small frame some of it had the other leg's share, and a step dented the far hip)
+        for n_, w_ in enumerate(gw):
+            for j_ in list(w_):
+                if j_[0] in "lkf" and len(j_) == 2 and pts[n_].x * (1 if j_[1] == "L" else -1) < -0.02:
+                    o_ = j_[0] + ("R" if j_[1] == "L" else "L"); w_[o_] = w_.get(o_, 0) + w_.pop(j_)
+    info.update(pts=pts, faces=fs, w=gw, seg=[dom(i) for i in used], raw=[W.get(i, {"P": 1.0}) for i in used])
+    print("MPFB whole: fist hollow radius %.4f (to the finger bones' line); trunk scale %.3f, hands %.3f" % (info["hollow_r"]["L"], zk, HK))
     print("MPFB whole: head scale %.3f, crown %.3f, eyes at" % (sH, J["crown"]), tuple(round(c, 3) for c in info["eyes"]["L"][0]), "r %.4f" % info["eyes"]["L"][1], "grip L", tuple(round(c, 3) for c in info["grip"]["L"]))
     return info

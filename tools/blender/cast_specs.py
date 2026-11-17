@@ -120,11 +120,11 @@ def L(parts, **cols):
     return dict(parts=parts.split(), cols=cols)
 CAST = {}
 def add(key, build, face, skin, hair=BLACK, cm=None, looks=None, **kw):
-    st = key.rsplit("_", 1)[1]; CAST[key] = dict(build=build, face=face, skin=skin, hair=hair, looks=looks or {}, size=round(cm / (100 * (1.47 + 0.33 * HEADK[st]) * SC[st]), 3) if cm else 1, **kw)
+    st = key.rsplit("_", 1)[1]; CAST[key] = dict(build=build, face=face, skin=skin, hair=hair, looks=looks or {}, cm=cm, size=round(cm / (100 * (1.47 + 0.33 * HEADK[st]) * SC[st]), 3) if cm else 1, **kw)
 def resolve(key):
     c = CAST[key]; H = dict(sex="m", stache=False, stubble=False, crown=None, locks=4, rich=False, belly=0); H.update({k: (dict(v) if isinstance(v, dict) else v) for k, v in BUILD[c["build"]].items()})
     for k, v in c.items():
-        if k not in ("build", "face", "facefix"): H[k] = v
+        if k not in ("build", "face", "facefix"): H[k] = dict(v) if k == "shape" else v
     # Bodies nearer life (15 November, the figure review): every frame was a strongman's. Against 4,082 measured soldiers the
     # shoulders were 1.29 times the mean and the neck 1.33, the waist 0.77. Each build keeps its place among the others.
     H["wide"] = round(H["wide"] * 0.92, 4); sh = H["shape"]; sh["waist"] = sh["waist"] * (1.2 if H["sex"] != "f" else 1.26)
@@ -398,3 +398,101 @@ CAST["arjuna_adult"]["mpfb"] = dict(full=True, hand=1.08, lidk=0.8, sex=1.0, age
               stache_off=0.0028, beard=0.0007, beard_cheek=0.22, beard_low=0.07, beard_back=0.042))
 CAST["arjuna_adult"]["stubblek"] = 0.58   # (his short beard's colour: dark hair over his skin, a close beard, not a black mass)
 wears("arjuna_adult", "beardS", looks=("home", "court", "war", "mourning"))   # (his sheet: a short beard)   # (eyes a little more open than MakeHuman's rest: the game's set face lowers the lids a fifth)
+
+# ---- 17 November: the whole cast on sculpted bodies, as Arjuna is (docs/Sculpted_Bodies.md). ---------------------------
+# Each figure's build and face were already set down as measures (BUILD, PEOPLE, and each one's own changes above). They
+# are read here as a MakeHuman person: sex, age in years, muscle, weight; the chest, the V of the back, the arms, legs
+# and neck from the build; a belly where one was drawn; and the face's bones from that person's own face measures. A
+# figure given its own "mpfb" above (Arjuna) keeps it.
+AGE = dict(   # years. A child's age is read from its height; a youth is 18, a grown figure 28, an elder 62, but for these.
+  karna_youth=21, abhimanyu_youth=17, draupadi_youth=19, player_m_youth=17, player_f_youth=17, charu_youth=17, ugra_youth=18,
+  yudhishthira=34, bhima=31, nakula=26, sahadeva=26, draupadi=28, krishna=30, karna=34, duryodhana=33, dushasana=31, ashwatthama=32, balarama=38,
+  ghatotkacha=27, dhrishtadyumna=30, shikhandi=30, satyaki=32, jayadratha=34, shalya=50, uttara=20, ekalavya=28, charu=27, ugra=30, bard=38,
+  villager_m=40, villager_f=36, guard=30, raider=36, brahmin=48, soldier_foot=28, soldier_archer=25, soldier_charioteer=36, soldier_cw=32, player_m=26, player_f=25,
+  bhishma_elder=72, drona_elder=66, kripa_elder=64, vidura_elder=62, dhritarashtra_elder=66, gandhari_elder=60, kunti_elder=56, shakuni_elder=54,
+  drupada_elder=60, virata_elder=58, mauni_elder=72, healer_elder=66, player_m_elder=62, player_f_elder=60)
+LEADS = set("player_m player_f yudhishthira bhima arjuna nakula sahadeva draupadi krishna karna duryodhana bhishma drona".split())   # (seen closest and longest: built finer)
+FBASE = dict(brow=0.5, cheekp=0.5, jawsq=0.5, tilt=0.07, browarch=0.35)   # (face.py DEF: what the plain face has where it is not 1 or 0)
+def _cl(x, a, b): return a if x < a else b if x > b else x
+def face_targets(f, k, she, aged=1.0, wide_eyes=0.7):
+    """A person's face measures (face.py) as MakeHuman's face targets. k: how much of the person shows (a child's face has
+    a trace of the grown one). A woman's measures are read against a woman's plain face, since MakeHuman's woman has it."""
+    T = {}
+    base = dict(FBASE, **(WOMAN if she else {}))
+    def d(n):
+        b = base.get(n, 1.0 if n in MULT else 0.0); return (f.get(n, b) - b) * k * (aged if n in AGED else 1.0)
+    def put(name, w):
+        if w > 0.03: T[name] = round(min(1.0, T.get(name, 0.0) + w), 3)
+    def two(stem, w, up="incr", dn="decr", ku=1.0, kd=1.0):
+        if w > 0: put(stem + "-" + up, w * ku)
+        else: put(stem + "-" + dn, -w * kd)
+    # the skull and the face's outline
+    two("head/head-scale-horiz", d("hw") / 0.16)
+    two("cheek/*-cheek-bones", (d("cheekw") - d("hw")) * 6.0 + d("cheekp"), kd=3.0)
+    full = d("full"); two("cheek/*-cheek-volume", full, ku=0.8)
+    if full < 0: put("cheek/*-cheek-inner-decr", -full * 0.6); put("head/head-fat-decr", -full * 0.8)
+    else: put("head/head-fat-incr", full * 0.4)
+    put("cheek/*-cheek-trans-down", d("jowl") * 0.5); put("head/head-fat-incr", d("jowl") * 0.25)
+    jw = d("jaww"); js = d("jawsq")
+    if jw > 0: put("head/head-square", jw * 2.5); put("chin/chin-bones-incr", jw * 1.5)
+    else: put("head/head-invertedtriangular", -jw * 4.0)
+    if js > 0: put("chin/chin-bones-incr", js * 0.8); put("head/head-rectangular", js * 0.4)
+    else: put("head/head-round", -js * 0.5)
+    two("chin/chin-width", d("chinw"), ku=3.0, kd=5.0); two("chin/chin-prominent", d("chinp") * 1.2); two("chin/chin-height", d("lowh"), ku=3.8, kd=8.0)
+    # the nose
+    two("nose/nose-scale-vert", _cl(d("nosel"), -0.1, 0.075), ku=9.0, kd=7.0); two("nose/nose-scale-depth", d("nosep"), ku=3.5, kd=3.0)
+    nw = d("nosew"); two("nose/nose-scale-horiz", nw, ku=3.0, kd=4.5)
+    if nw > 0: put("nose/nose-width3-incr", nw * 2.0); put("nose/nose-nostrils-width-incr", nw * 1.5)
+    bw = d("bridgew"); two("nose/nose-width1", bw, ku=3.5, kd=3.5); two("nose/nose-width2", bw, ku=3.0, kd=3.0)
+    two("nose/nose-greek", d("bridgeh") * 3.0); two("nose/nose-curve", d("hump") * 0.6, up="convex", dn="concave")
+    tp = d("tip"); two("nose/nose-point", tp, up="up", dn="down", kd=0.35)
+    tw = d("tipw"); two("nose/nose-point-width", tw * 3.0)
+    if tw > 0: put("nose/nose-volume-incr", tw * 1.5)
+    # the eyes: MakeHuman's rest a little more open (the game's set face lowers the lids a fifth), then this person's
+    two("eyes/*-eye-scale", d("eye") * 4.0); two("eyes/*-eye-trans", d("gap") * 8.0, up="out", dn="in")
+    two("eyes/*-eye-height2", wide_eyes + d("open") * 2.0); put("eyes/*-eye-height1-incr", wide_eyes * 0.43 + d("open"))
+    two("eyes/*-eye-corner1", d("tilt") * 8.0, up="up", dn="down")
+    put("eyes/*-eye-eyefold-down", d("hood") * 0.9); put("eyes/*-eye-bag-incr", d("bag") * 0.9)
+    # the brow's bone and the forehead
+    br = d("brow"); dp = d("deep")
+    two("eyebrows/eyebrows-trans", _cl(br * 0.5 + dp * 0.3, -0.4, 0.5), up="forward", dn="backward", kd=1.2); put("eyebrows/eyebrows-trans-down", br * 0.3 + dp * 0.35)
+    two("eyebrows/eyebrows-angle", d("browtilt") * 0.4, up="down", dn="up")
+    fs = d("fores"); two("forehead/forehead-trans", fs, up="backward", dn="forward", ku=0.5, kd=0.25); put("forehead/forehead-temple-decr", d("temple") * 0.6)
+    # the mouth
+    two("mouth/mouth-scale-horiz", d("lipw") * 6.0); two("mouth/mouth-upperlip-volume", d("lipu") * 2.0); two("mouth/mouth-lowerlip-volume", d("lipl") * 2.0)
+    two("mouth/mouth-angles", d("corner") * 0.5, up="up", dn="down"); put("mouth/mouth-laugh-lines-in", d("fold") * 0.9)
+    return T
+def sculpt(key):
+    c = CAST[key]; who, st = key.rsplit("_", 1); b = dict(BUILD[c["build"]]); b.update({k: c[k] for k in ("mu", "girth", "arm", "leg", "soft", "belly") if k in c})
+    sh = dict(c.get("shape") or b["shape"]); she = b.get("sex") == "f"; cm = c.get("cm") or 172; mu = b["mu"]
+    age = AGE.get(key) or (_cl(6 + (cm - 115) / 5.0, 5.0, 11.5) if st == "child" else AGE.get(who) if st == "adult" else None) or dict(youth=18, adult=28, elder=62)[st]
+    belly = b.get("belly", 0.32 if (st == "child" and mu < 0.5) else 0.0)
+    T = {}
+    def put(name, w):
+        if w > 0.03: T[name] = round(min(1.0, w), 3)
+    v = (sh["lat"] - 0.85) * 1.8; put("torso/torso-vshape-incr", min(0.8, v)); put("torso/torso-muscle-dorsi-incr", min(0.8, v))
+    put("torso/torso-muscle-pectoral-incr", min(0.6, (sh["chest"] - 0.9) * 1.6 * mu))
+    if not she:
+        a = (b["arm"] - 0.72) * 2.4
+        if a > 0: put("arms/*-upperarm-muscle-incr", a); put("arms/*-upperarm-shoulder-muscle-incr", a * 1.2); put("arms/*-lowerarm-muscle-incr", a * 0.8)
+        else: put("arms/*-upperarm-muscle-decr", -a)
+        l = (b["leg"] - 0.86) * 2.5; put("legs/*-upperleg-muscle-incr", min(0.8, l)); put("legs/*-lowerleg-muscle-incr", min(0.8, l))
+        put("neck/neck-scale-horiz-incr", (sh["neck"] - 0.82) * 2.2)
+    put("stomach/stomach-pregnant-incr", belly * 0.5); put("torso/torso-scale-depth-incr", (c.get("wide", b["wide"]) - 1.02) * 2.2 + (b["girth"] - 1.0) * 2.0)   # (a broad man is deep through the chest too)
+    f = dict(PEOPLE.get(who, {})); f.update(c.get("facefix") or {})
+    T.update(face_targets(f, dict(child=0.35, youth=0.75).get(st, 1.0), she, 0.6 if st == "elder" else 1.0, 0.3 if st == "child" else 0.55 if st == "youth" else 0.7))
+    # the hair of the face: brows as this person's are (how thick, how arched, their slant, how low over a heavy brow)
+    kf = dict(child=0.35, youth=0.75).get(st, 1.0); browth = f.get("browth", 0.8 if she else 1.0) * (0.8 if st == "child" else 1.0); bw = 0.27 * browth
+    face = dict(brow_h=round(_cl(1.38 - 0.3 * (f.get("brow", 0.0 if she else 0.5) - 0.5) - 0.1 * f.get("deep", 0.0), 1.12, 1.55), 3),
+                brow_arch=round(_cl(0.9 * f.get("browarch", 0.7 if she else 0.35) - 0.1, 0.04, 0.5), 3), brow_w=round(bw, 3), brow_w_out=round(bw * (0.4 if she else 0.52), 3),
+                brow_slant=round(-0.2 + 0.5 * kf * f.get("browtilt", 0.0), 3))
+    worn = set(p for L_ in c["looks"].values() for p in L_["parts"])
+    if "beardS" in worn: face.update(beard=0.0034, beard_cheek=0.42, beard_low=0.078, beard_back=0.058, beard_role="hair")   # a short beard, of this face's own jaw
+    lead = who in LEADS; few = c.get("lod", 1.0) < 1 or c.get("sided")
+    return dict(full=True, auto=True, rel=1.011, hand=1.08, lidk=0.8, sex=0.0 if she else 1.0, age=round(age, 1), muscle=round(_cl(0.3 + 0.62 * mu, 0.3, 0.95), 3),
+                weight=round(_cl(0.5 + 0.8 * (b["girth"] - 0.93) + 0.1 * belly + (0.03 if b.get("soft") else 0.0), 0.3, 0.8), 3), height=0.55,
+                proportions=round(0.5 if st == "child" else (0.8 if c["build"] == "woman" else 0.6) if she else _cl(0.45 + 0.55 * mu, 0.5, 1.0), 3),
+                eth={"caucasian": 0.5, "african": 0.25, "asian": 0.25}, girth=1.0, targets=T, face=face,
+                dec=0.5 if lead else 0.26 if few else 0.4, head_dec=0.8 if lead else 0.4 if few else 0.6, hand_dec=0.5 if lead else 0.25 if few else 0.35)
+for k_ in list(CAST):
+    if "mpfb" not in CAST[k_]: CAST[k_]["mpfb"] = sculpt(k_)

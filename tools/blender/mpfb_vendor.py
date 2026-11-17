@@ -4,7 +4,7 @@
 #   python3 mpfb_vendor.py <mpfb2 checkout>
 import sys, os, shutil, json, gzip
 SRC = os.path.join(sys.argv[1], "src", "mpfb", "data")
-DST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpfb_data")
+DST = os.environ.get("MPFB_DST") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "mpfb_data")
 os.makedirs(DST, exist_ok=True)
 shutil.copy(os.path.join(sys.argv[1], "LICENSE.ASSETS.md"), os.path.join(DST, "LICENSE.md"))
 
@@ -16,7 +16,7 @@ with open(os.path.join(SRC, "3dobjs", "base.obj")) as f, gzip.open(os.path.join(
 
 T = os.path.join(SRC, "targets"); n = 0
 PACK = gzip.open(os.path.join(DST, "targets.txt.gz"), "wt")   # every target in one file: "## name" and then its lines
-TAKEN = set()
+TAKEN = set(); LATE = []
 def take(rel):
     global n
     if rel in TAKEN: return
@@ -31,6 +31,12 @@ for fn in os.listdir(os.path.join(T, "macrodetails")):
 for sub in ("height", "proportions"):
     for fn in os.listdir(os.path.join(T, "macrodetails", sub)):
         if "baby" not in fn and "old" not in fn: take(f"macrodetails/{sub}/{fn}")
+# (17 November, the whole cast: the old and the very young. They come after everything else in the pack, so the pack's
+#  first part is as it was when only the grown and the child of eleven were taken.)
+for fn in sorted(os.listdir(os.path.join(T, "macrodetails"))):
+    if fn.endswith(".target.gz") and ("baby" in fn or "old" in fn): LATE.append("macrodetails/" + fn)
+# (Their shapes by height and by proportions are not taken: another fifteen megabytes, for what the refit to the game's
+#  skeleton mostly undoes. An old or a very young body keeps the grown body's share of those.)
 for rel in ["torso/" + x for x in ("torso-vshape-incr", "torso-vshape-decr", "torso-muscle-pectoral-incr", "torso-muscle-dorsi-incr", "torso-scale-depth-decr", "torso-scale-depth-incr", "measure-waist-circ-decr", "measure-waist-circ-incr", "measure-hips-circ-incr", "measure-hips-circ-decr", "measure-shoulder-dist-incr", "measure-shoulder-dist-decr", "measure-bust-circ-incr")] + \
            ["stomach/stomach-pregnant-decr", "stomach/stomach-pregnant-incr", "stomach/stomach-navel-in", "neck/neck-scale-horiz-incr", "neck/neck-scale-horiz-decr", "neck/neck-scale-depth-incr", "neck/measure-neck-circ-incr", "neck/measure-neck-circ-decr"] + \
            [f"{p}/{s}-{m}-{d}" for s in "lr" for p, m in (("arms", "upperarm-muscle"), ("arms", "lowerarm-muscle"), ("arms", "upperarm-shoulder-muscle"), ("arms", "upperarm-scale-horiz"), ("legs", "upperleg-muscle"), ("legs", "lowerleg-muscle"), ("legs", "upperleg-scale-horiz"), ("eyes", "eye-height2"), ("eyes", "eye-height1"), ("eyes", "eye-scale")) for d in ("incr", "decr")]:
@@ -39,6 +45,7 @@ for sub in ("chin", "cheek", "nose", "mouth", "eyebrows", "head", "forehead", "e
     for fn in sorted(os.listdir(os.path.join(T, sub))):
         if fn.endswith(".target.gz") and not os.path.exists(os.path.join(DST, "_none")) and ("##" not in fn):
             take(f"{sub}/{fn}") if f"{sub}/{fn}" not in TAKEN else None
+for rel in LATE: take(rel)
 PACK.close()
 
 # the skin weights, folded into the parts a body is refitted by

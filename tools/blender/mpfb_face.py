@@ -99,6 +99,13 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
     f_ = min(low, key=lambda i: hv[i].y); mo = Vector((0.0, hv[f_].y, hv[f_].z - 0.002)); MHI["lips"] = mo   # the lips' fullest point
     print("FACE: nose tip", tuple(round(c, 4) for c in hv[nt]), "lips", tuple(round(c, 4) for c in mo))
     LW, LH = 0.0245 * H.get("lipw", 1.0), 0.0088
+    if (H.get("mpfb") or {}).get("auto"):
+        # (the whole cast: heads of other sizes than the one this was set on, a child's among them. The lips' size goes by
+        #  the head's; their middle is the line where they meet, found as the hollow next to their fullest point.)
+        ks = sH / 1.15; LW *= ks; LH *= ks
+        near = [i for i in range(len(hv)) if abs(hv[i].x) < 0.004 and abs(hv[i].z - hv[f_].z) < 0.011 * ks and i != f_]
+        slit = max(near, key=lambda i: hv[i].y) if near else f_
+        mo = Vector((0.0, hv[f_].y, hv[slit].z)); MHI["lips"] = mo
     def lip(p):
         return (p.x / LW) ** 2 + ((p.z - mo.z) / LH) ** 2 < 1.0 and p.y < mo.y + 0.011
     # (the lips' faces are taken out of the head's skin and given their own colour: nothing lies on the skin to flicker)
@@ -113,8 +120,15 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
         bm = bmesh.new(); bm.from_mesh(Hd.data); bm.faces.ensure_lookup_table(); bmesh.ops.delete(bm, geom=[bm.faces[k] for k in lf], context="FACES_ONLY"); bm.to_mesh(Hd.data); bm.free(); Hd.data.update()
     # a moustache: along the upper lip, thick in the middle, its ends drawn down toward (or past) the mouth's corners
     sk = H.get("stachek", 1.0); SW, SH_, SD, SDR = F.get("stache_w", 0.0285), F.get("stache_h", 0.0042), F.get("stache_off", 0.0022), F.get("stache_droop", 0.0045)
-    strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0105 - SDR * (2 * u - 1) ** 2),
-          lambda u: (SH_ - SH_ * 0.5 * (2 * u - 1) ** 2) * sk, SD, NU=20, NV=4)
+    worn = {p for L_ in H["looks"].values() for p in L_["parts"]}
+    if "stache" in worn:
+        if H.get("handle"):   # the wrestler's (Bhima's): heavy over the lip, swept out past the mouth's corners and up at its ends
+            SW, SH_, SD = SW * 1.42, SH_ * 1.5, SD * 1.5
+            strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0125 - 0.005 * (2 * u - 1) ** 2 + 0.019 * max(0.0, abs(2 * u - 1) - 0.52) ** 1.5 / 0.48 ** 1.5),
+                  lambda u: (SH_ - SH_ * 0.62 * (2 * u - 1) ** 2) * sk, SD, NU=28, NV=4)
+        else:
+            strip("stache", "hair", "stache", lambda u: (SW * (2 * u - 1), mo.z + 0.0105 - SDR * (2 * u - 1) ** 2),
+                  lambda u: (SH_ - SH_ * 0.5 * (2 * u - 1) ** 2) * sk, SD, NU=20, NV=4)
     # a short beard (F["beard"]: how thick): the jaw, the chin and under it, the cheeks up to a line from the mouth's corner to
     # the ear's lobe, and the sideburns; thinning to nothing at its edges so it does not end in a cut line; not on the lips
     BD = F.get("beard")
