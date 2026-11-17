@@ -108,7 +108,7 @@ fights and tests in a real browser with software WebGL). CI runs the quick tier 
 ## 7. Known gaps and roadmap
 | Priority | Item |
 |---|---|
-| 1 | The play review of 16 November (`docs/Play_Review.md`): ten areas that would make the game more compelling, measured. The first, the fights, was begun in Version 67 (`docs/Named_Opponents.md`: each named opponent stronger and with a great blow of his own; ignoring a blow costs more; the opening brings both sides on and counts three seconds). The other nine are not built |
+| 1 | The play review of 16 November (`docs/Play_Review.md`): ten areas that would make the game more compelling, measured. The first, the fights, was begun in Version 67 (`docs/Named_Opponents.md`: each named opponent stronger and with a great blow of his own; ignoring a blow costs more; the opening brings both sides on and counts three seconds). Version 69 added the feel of a fight (`docs/Fight_Feel.md`: faces for each moment, weight and falls from collisions, coil and recoil, heavier hits, weariness). The other nine are not built |
 | 1 | Play every fight by hand (the two private play pages are the place to do it) on real phones and desktops in all three views; tune feel and frame rate |
 | 1 | Run the full test tier (playthroughs, layout, visual baselines) on this build and accept the puppets' new colours |
 | 2 | The portraits: 18 were replaced on 15 November by cuts from the artist's sheets, which are now the true look (`docs/Repaint_Brief.md`). Still to follow the sheets: the 3D heads' hair and beards (Karna, Duryodhana, Kripa, Yudhishthira, Ugra, Mauni, Vidura), and nine story paintings, left as they are by choice |

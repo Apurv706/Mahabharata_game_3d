@@ -571,3 +571,16 @@ Owner, from a phone: "parts of armor is a few feet away from the body... in both
 - Looked at after the fix in the poses that showed it: guard, both arms raised, the bow drawn, a mace mid-blow, from behind and in front, on the player, Bhima, Duryodhana, Karna, a guard and Bhishma.
 
 What to keep from it: a figure is not checked until it has been seen moving.
+
+## Version 69 (16 November): the feel of a fight
+
+Asked for: "Improve the physics of the fights": faces for attack, defence, a hit, winning, losing and surprise; weight, and falls from collisions, for bodies, animals and chariots; coil and recoil between strikes; hits that feel stronger, and strikes that grow sluggish as health falls. What was done, with the numbers, is in `docs/Fight_Feel.md`. In the code:
+
+- `js/ui/battle/sim.js`, "How bodies move": `weight` (one of the named is now 2), `massK` (how far a blow moves a body: weight to the power -0.75) in `knock` and `nudge`; `bump` (a body thrown back strikes what it meets: an impulse shared by weight, with `PHYS.bounce`) called from `clocks`; `felled` (what a change of speed does: `PHYS.stagV`, `PHYS.fallV`, `PHYS.wreckV`); `jostle` now gives what the weights say and takes a man off his feet; `tire` and `tired` (your blows by your health: `P.tireFrom`, `P.tireMost`), used by `blow` and `R3.nextBlow`; a blow caught on a shield sets its striker back.
+- `planStep`: beside a champion's car, a player thrown down or doing nothing has not reached the charioteer.
+- `R3.bot` steps out of the path of a car or an elephant under way.
+- `js/g3/model.js`: the face has two more channels (`lift`, `wide`), eleven moods (`MOODS`), a mood from the pose (`BASE_MOOD`), from the blow's phase and from weariness, and `G.feel` for a face held a moment.
+- `js/g3/figure.js`: the held coil winds further and takes the weight back; `f.impact(k)` (the blow met something: it comes back up the arm); `f.jolt(dx, dz, k)` (struck: a spring that rocks the trunk away and back); `f.weary` (the sag and heave of a body worn out).
+- `js/ui/battle/view.js`: the `hit` event drives all of it (jolt, impact, pain, longer hold, dust ring, shake by the share of health, the phone's own shake); `bump` and `jostle` are shown and heard; surprise on a great blow called, a parry and a clean guard; at the end the side that has the field cheers and the other's shoulders fall; a stopped car leans.
+- `tools/review/lineup.js` takes `mood` and `weary` for a figure.
+- `tests/rules3d.js`: 111 checks from 107; three made to test their own subject, not a thin life's survival.

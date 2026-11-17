@@ -205,7 +205,7 @@
     for (const c in M.reparent || {}) if (j[c] && j[M.reparent[c]]) j[M.reparent[c]].attach(j[c]);
     f.root.updateMatrixWorld(true);
     const sc = (o) => o.getWorldScale(V1).y, ms = mesh.getWorldScale(V2).y;
-    const R = (f.rig = { M, kH: j.H ? ms / sc(j.H) : 1, open: { L: 0, R: 0 }, jaw: 0, mouth: 0, lid: 0, brow: 0, blink: 0, next: 1 + Math.random() * 4, y: {} });
+    const R = (f.rig = { M, kH: j.H ? ms / sc(j.H) : 1, open: { L: 0, R: 0 }, jaw: 0, mouth: 0, lid: 0, brow: 0, lift: 0, wide: 0, blink: 0, next: 1 + Math.random() * 4, y: {} });
     for (const k of ["M", "E", "bL", "bR"]) if (j[k]) R.y[k] = j[k].position.y;
     R.ankle = j.fL ? ankle(j, "L") : 0; R.leg = j.kL ? Math.abs(j.kL.position.y) / 0.45 : 1;
     return R;
@@ -214,7 +214,11 @@
   function ankle(j, sd) { const l = j["l" + sd], k = j["k" + sd], ft = j["f" + sd];
     V1.copy(ft.position).applyQuaternion(k.quaternion).add(k.position).applyQuaternion(l.quaternion).add(l.position).applyQuaternion(j.P.quaternion); return V1.y + j.P.position.y; }
   function knee(j, sd) { const l = j["l" + sd], k = j["k" + sd]; V1.copy(k.position).applyQuaternion(l.quaternion).add(l.position).applyQuaternion(j.P.quaternion); return V1.y + j.P.position.y; }
-  const STRIKE = /^(slash|slash2|heavy|thrust|smash|sweep|stab|punch|hammer|throw|cheer|roar)$/, HURT = /^(hit|stagger|down|slump|shame|plead)$/, SHUT = /^(sleep|down|slump)$/;
+  const STRIKE = /^(slash|slash2|heavy|thrust|smash|sweep|stab|punch|hammer|throw|cheer|roar|taunt|grab)$/, HURT = /^(hit|stagger)$/, SHUT = /^(sleep|down)$/;
+  // What a held pose says of the face under it (a blow, a wound or a word from outside comes first).
+  const BASE_MOOD = { block: "guard", brace: "guard", push: "strain", heave: "strain", climb: "strain", cheer: "triumph", proud: "glad", slump: "grief", shame: "grief", plead: "fear", freeze: "fear", kneel: "strain", herbs: "strain", sneak: "guard", aim: "guard" };
+  // G.feel(f, mood, secs): a face for a moment, over whatever the body is doing (surprise, pain), then back to its own.
+  G.feel = function (f, mood, secs) { if (f && MOODS[mood]) { f.feelNow = mood; f.feelT = secs || 0.5; } return f; };
   G.rigDrive = function (f, dt) {
     const R = f.rig; if (!R) return; const j = f.j, k = dt > 0 ? 1 - Math.exp(-14 * dt) : 1;
     if (j.fL && j.fR) { const lo = Math.min(ankle(j, "L"), ankle(j, "R")) - R.ankle; if (lo < 0) j.P.position.y -= lo; }
@@ -242,20 +246,35 @@
         g.rotation.z = sx * R.open[sd] * 0.4; h.rotation.z = sx * R.open[sd] * 1.25; }
     }
     if (j.J) { // the face
-      const name = f.action ? f.action.name : "", p = f.action ? f.action.t / f.action.dur : 0;
-      const shout = STRIKE.test(name) && p > 0.25 && p < 0.9, hurt = HURT.test(name) || HURT.test(f.base || "") || (f.fall || 0) > 0.15, shut = SHUT.test(f.base || "") || (f.fall || 0) > 0.8;
-      const mood = f.mood || (shut ? "shut" : shout ? "shout" : hurt ? "pain" : "set"), want = MOODS[mood] || MOODS.set;
-      R.jaw += (want[0] - R.jaw) * k; R.mouth += (want[1] - R.mouth) * k; R.lid += (want[2] - R.lid) * k; R.brow += (want[3] - R.brow) * k;
+      const a = f.action, name = a ? a.name : "", p = a ? a.t / a.dur : 0, blow = !!(a && a.A.coil);
+      // The face goes with what the body is doing (owner, 16 November: "attack, defense, getting hit, win, lose, surprise should
+      // reflect different"): teeth set as a blow is wound up, the mouth open as it is thrown; narrowed eyes behind a guard; eyes
+      // screwed shut on a wound; wide at a surprise; a grin for a fight won, a fallen face for one lost; hanging open when spent.
+      const coil = blow && a.t < a.tS, shout = blow ? a.t >= a.tS && a.t < a.tF + 0.12 : STRIKE.test(name) && p > 0.25 && p < 0.9, hurt = HURT.test(name) || HURT.test(f.base || "") || ((f.fall || 0) > 0.15 && (f.fall || 0) <= 0.8), shut = SHUT.test(f.base || "") || (f.fall || 0) > 0.8;
+      if (f.feelT > 0) { f.feelT -= dt; if (f.feelT <= 0) f.feelNow = null; }
+      const mood = f.feelNow || f.mood || (shut ? "shut" : hurt ? "pain" : coil ? "strain" : shout ? "shout" : BASE_MOOD[f.base] || (f.weary > 0.45 ? "spent" : "set")), want = MOODS[mood] || MOODS.set;
+      const kq = dt > 0 && (mood === "pain" || mood === "surprise" || mood === "shout" || mood === "fear") ? 1 - Math.exp(-34 * dt) : k;   // (a wound and a start come at once; the rest settle)
+      R.jaw += (want[0] - R.jaw) * kq; R.mouth += (want[1] - R.mouth) * kq; R.lid += (want[2] - R.lid) * kq; R.brow += (want[3] - R.brow) * kq; R.lift += ((want[4] || 0) - R.lift) * kq; R.wide += ((want[5] || 0) - R.wide) * kq; f.moodNow = mood;
       if (dt > 0) { R.next -= dt; if (R.next <= 0) { R.blink = 0.14; R.next = 2.2 + Math.random() * 4.2; } if (R.blink > 0) R.blink -= dt; }
       const lid = Math.max(R.lid, R.blink > 0 ? Math.sin((R.blink / 0.14) * Math.PI) : 0), kH = R.kH, F = R.M.face || {};
       j.J.rotation.x = R.jaw;
-      if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; }
+      if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; j.M.scale.x = 1 + 0.3 * R.wide; }   // (wide: the corners drawn out in a grin or a grimace; drawn in for a round mouth)
       if (j.E) { if (F.lidr) j.E.rotation.x = F.lidr * lid; /* (the upper lids are skin on the eyeball: they turn down over it, about the line through both eyes) */ else { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; } }
-      if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = (R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }
+      if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = ((R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) + R.lift * 0.011) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }   // (lift: both brows up the forehead, or down onto the eyes)
     }
   };
-  // jaw (radians open), mouth (0 a line … 1 open), lids (0 open … 1 shut), brows (+ drawn down at the middle, - lifted there)
-  const MOODS = { set: [0, 0, 0.2, 0.06], shout: [0.24, 1, 0.06, 0.3], pain: [0.1, 0.5, 0.8, -0.34], shut: [0, 0, 1, 0], glad: [0.05, 0.25, 0.16, -0.1] }; // (at rest the upper lid lies on the iris, as on the artist's sheets: fully open, every face stared; review of 15 November)
+  // jaw (radians open), mouth (0 a line … 1 open), lids (0 wide open … 1 shut), brows' slant (+ drawn down at the middle, - lifted
+  // there), brows' height (+ up the forehead, - down on the eyes), mouth's width (+ corners out, - drawn in)
+  const MOODS = { set: [0, 0, 0.2, 0.06, 0, 0], shut: [0, 0, 1, 0, 0, 0], glad: [0.05, 0.25, 0.16, -0.1, 0.2, 0.6],
+    strain: [0.03, 0.14, 0.44, 0.42, -0.3, 0.75],     // winding up a blow, or under a weight: teeth set, eyes narrowed, brows hard down
+    shout: [0.27, 1, 0.07, 0.34, -0.12, 0.3],         // the blow itself: the mouth wide open
+    guard: [0, 0.03, 0.52, 0.3, -0.4, -0.25],         // behind a shield: jaw shut, eyes narrowed, brows low and level
+    pain: [0.1, 0.55, 0.88, -0.4, 0.1, 0.65],         // struck: eyes screwed shut, the mouth pulled wide, brows up at the middle
+    surprise: [0.2, 0.5, 0, -0.08, 1, -0.55],         // eyes wide, brows high, the mouth round
+    fear: [0.12, 0.34, 0, -0.34, 0.7, 0.15],          // eyes wide, brows up and drawn together
+    triumph: [0.07, 0.3, 0.38, -0.03, 0.4, 1],        // the fight won: a broad smile, the lips just parted, eyes creased, brows easy (the head is thrown back by the pose)
+    grief: [0.04, 0.16, 0.64, -0.52, -0.1, -0.4],     // beaten: eyes cast down and half shut, brows up at the middle, the mouth small
+    spent: [0.13, 0.44, 0.5, -0.16, 0, 0] };          // worn out: the mouth hanging open for breath, the lids heavy // (at rest the upper lid lies on the iris, as on the artist's sheets: fully open, every face stared; review of 15 November)
   G.MOODS = MOODS;
   // What the story put on you, as the 2D puppet shows it: the family amulet on your breast (cracked once it has turned
   // a blow), the palm-leaf manuscript or the purse of the family's debt at your waist, a patch over a lost eye.

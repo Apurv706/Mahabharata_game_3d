@@ -691,6 +691,11 @@
     // left or right side, where the blow came from the other), rate (a hard blow drops a man faster), twist (radians: no two lie alike) }.
     f.drop = function (on, dir, how) { f.fallTo = on ? 1 : 0; if (dir) f.fallDir = dir; if (how) { f.fallSide = how.side || 0; f.fallRate = how.rate || 1; f.fallTwist = how.twist || 0; } else if (!on) { f.fallSide = 0; f.fallRate = 1; f.fallTwist = 0; } return f; };
 
+    // f.jolt(dx, dz, k): struck by something going the way (dx, dz) on the ground: the body rocks that way and comes back (k: 0.4 a light blow, 1 a heavy one).
+    // f.impact(k): the blow this figure is striking has met something: it comes back up the arm (1 a body, 2 a shield).
+    f.jv = [0, 0]; f.jp = [0, 0]; f.weary = 0;
+    f.jolt = function (dx, dz, k) { const l = Math.hypot(dx, dz) || 1, ry = f.root.rotation.y, sn = Math.sin(ry), cs = Math.cos(ry), fwd = (dx * sn + dz * cs) / l, left = (dx * cs - dz * sn) / l; f.jv[0] += fwd * k * 300; f.jv[1] -= left * k * 240; return f; };
+    f.impact = function (k) { if (f.action && f.action.A.coil) f.action.impact = Math.max(f.action.impact || 0, k); return f; };
     const k1 = blank(), k2 = blank();
     function copyTo(a, b) { copyPose(a, b); }
     function compute(dt, t) {
@@ -747,6 +752,7 @@
       if (f.look && f.fall < 0.2) { const a = Math.atan2(f.look.x - f.root.position.x, f.look.z - f.root.position.z) - f.root.rotation.y, d = Math.atan2(Math.sin(a), Math.cos(a)) / D; tg.H[1] += G.clamp(d, -62, 62) * 0.8; }
       // Going down: the knees give first, the body folds, and only then does it go over.
       if (f.fall > 0) { const b = Math.sin(Math.min(1, f.fall * 1.5) * PI), dn = POSES.down, m = Math.min(1, f.fall * 1.6); overlay(k1, dn, {}); mixPose(tg, tg, k1, m); tg.kL[0] += 64 * b; tg.kR[0] += 48 * b; tg.lL[0] -= 30 * b; tg.lR[0] -= 18 * b; tg.y -= 0.24 * b; tg.T[0] += 22 * b * f.fallDir; tg.H[0] += 16 * b * f.fallDir; }
+      if (f.weary > 0 && f.fall < 0.2) { const w = Math.min(1, f.weary), pant = Math.sin(t * (2.2 + 2.8 * w) + f.phase) * w; tg.T[0] += 8 * w + pant * 2.8; tg.H[0] += 7 * w - pant * 1.2; tg.y -= 0.03 * w; tg.aL[2] += pant * 1.4; tg.aR[2] -= pant * 1.4; }   // (worn out: the shoulders sag and heave, the head hangs)
       f.exact = false;
       let drawn = f.base === "aim" ? 1 : 0;
       if (f.action && f.action.A.coil) {
@@ -755,7 +761,7 @@
         else {
           const t2 = a.t; let u;
           if (t2 < a.tC) { u = t2 / Math.max(1e-3, a.tC); mixPose(tg, a.snap, a.coil, 1 - (1 - u) * (1 - u)); }
-          else if (t2 < a.tS) { u = (t2 - a.tC) / Math.max(1e-3, a.tS - a.tC); copyPose(tg, a.coil); const w = Math.sin(u * PI) * 2.2; tg.T[0] -= w; tg.aR[0] -= w * 1.5; tg.y -= 0.012 * u; } // held, tightening
+          else if (t2 < a.tS) { u = (t2 - a.tC) / Math.max(1e-3, a.tS - a.tC); copyPose(tg, a.coil); const w = Math.sin(u * PI) * 4, tw = Math.sign(a.coil.T[1] || 0); tg.T[0] -= w; tg.aR[0] -= w * 1.5; tg.y -= 0.012 * u + 0.004 * w; tg.z -= 0.008 * w; tg.T[1] += tw * w * 1.5; tg.P[1] += Math.sign(a.coil.P[1] || 0) * w * 0.8; tg.H[1] -= tw * w * 1.2; } // held, tightening: the spring is wound a little further and the weight goes back onto the rear foot (owner, 16 November: "coil and recoil between strikes")
           else if (t2 < a.tL) { u = (t2 - a.tS) / Math.max(1e-3, a.tL - a.tS); mixPose(tg, a.coil, a.hit, u * u * u);                 // the snap, gathering speed
             // A blow is thrown from the ground up: the hips turn first, the trunk follows them, and the arm is dragged
             // behind and whips through last, so the weapon is still back while the body has already gone. All of them
@@ -764,7 +770,8 @@
             const hp = Math.min(1, u * 1.7), tr = Math.min(1, u * 1.3), ar = Math.max(0, (u - 0.34) / 0.66);
             lead("P", hp * hp * (3 - 2 * hp)); lead("T", tr * tr); lead("aR", ar * ar * ar); lead("eR", ar * ar * ar); lead("wR", ar * ar * ar * ar); }
           else if (t2 < a.tF) { u = (t2 - a.tL) / Math.max(1e-3, a.tF - a.tL); mixPose(tg, a.hit, a.follow, 1 - (1 - u) * (1 - u));
-            const jolt = Math.sin(Math.min(1, u * 2.2) * PI) * (1 - u); tg.T[0] += 3.5 * jolt; tg.H[0] -= 4 * jolt; tg.y -= 0.018 * jolt; }   // the brake: the body takes the blow's weight, the head stays on its mark
+            const jolt = Math.sin(Math.min(1, u * 2.2) * PI) * (1 - u), ik = a.impact || 0; tg.T[0] += 3.5 * jolt * (1 + ik * 0.8); tg.H[0] -= 4 * jolt * (1 + ik * 0.5); tg.y -= 0.018 * jolt;
+            if (ik) { const tw = Math.sign((a.hit.T[1] || 0) - (a.coil.T[1] || 0)); tg.aR[0] -= 15 * jolt * ik; tg.eR[0] -= 22 * jolt * ik; tg.wR[0] -= 12 * jolt * ik; tg.T[1] -= tw * 7 * jolt * ik; tg.z -= 0.04 * jolt * ik; } }   // (the recoil: a blow that met something comes back up the arm, and the body gives a hand's breadth; one caught on a shield comes back twice as far)   // the brake: the body takes the blow's weight, the head stays on its mark
           else { u = (t2 - a.tF) / Math.max(1e-3, a.dur - a.tF); copyPose(k2, tg); mixPose(tg, a.follow, k2, u * u * (3 - 2 * u)); }
           f.exact = true;
         }
@@ -785,6 +792,10 @@
           }
         }
       }
+      // Struck: the trunk rocks away from the blow and springs back, the head a beat behind it, over whatever else it is doing.
+      if (f.jv[0] || f.jv[1] || f.jp[0] || f.jp[1]) { const h = Math.min(dt, 0.033);
+        for (let i = 0; i < 2; i++) { f.jv[i] += (-150 * f.jp[i] - 15 * f.jv[i]) * h; f.jp[i] = G.clamp(f.jp[i] + f.jv[i] * h, -30, 30); if (Math.abs(f.jp[i]) < 0.03 && Math.abs(f.jv[i]) < 0.6) { f.jp[i] = 0; f.jv[i] = 0; } }
+        if (f.fall < 0.2) { tg.T[0] += f.jp[0]; tg.T[2] += f.jp[1]; tg.P[0] += f.jp[0] * 0.25; tg.H[0] -= f.jp[0] * 0.45; tg.H[2] -= f.jp[1] * 0.4; tg.y -= Math.min(0.05, (Math.abs(f.jp[0]) + Math.abs(f.jp[1])) * 0.0013); } }
       if (f.bow && f.autoDraw !== false) drawBow(f.bow, drawn);
     }
     function apply() {

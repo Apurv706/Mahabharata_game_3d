@@ -449,7 +449,7 @@
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
         const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
         const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
-        G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
+        G.steer(c, g.ca != null ? g.ca : g.a, dt, 1, u.hp > 0); v.tilt = (v.tilt || 0) + ((g.wreckT > R.t ? 0.2 : 0) - (v.tilt || 0)) * Math.min(1, dt * 6); c.rotation.z = v.tilt; // (the team swings round first, and the car comes after it; g.ca: the way the car is pointing, which is the only way it goes)
         v.rolled = (v.rolled || 0) + mv * (mx * Math.sin(c.rotation.y) + mz * Math.cos(c.rotation.y) < 0 ? -1 : 1); G.roll(c, v.rolled, t, u.hp > 0 ? Math.min(1, mps / 4) : 0, u.hp > 0 ? mps : 0); if (v.driver) v.driver.update(dt, t); // (thrown back, its wheels turn back)
         { const cb = c.userData.car; if (cb) { for (const f of v.figs) { f.root.position.y = 0.86 + cb.position.y; f.root.rotation.z = cb.rotation.z; } if (v.driver) { v.driver.root.position.y = 0.86 + cb.position.y; v.driver.root.rotation.z = cb.rotation.z; } } } // (those who ride the car ride its jolts: the deck does not move under still feet)
         if (u.hp > 0 && mps > 2.2 && Math.random() < dt * 7) G.fx.burst("dust", new T.Vector3(c.position.x - Math.sin(c.rotation.y) * 0.9 + (Math.random() - 0.5) * 1.6, 0.12, c.position.z - Math.cos(c.rotation.y) * 0.9), { n: 1 }); // (dust from under the wheels of a car at the run)
@@ -488,6 +488,7 @@
           if (intro) pose = "proud"; else if (R.roll > 0 && !R.dash) pose = "roll"; else if (R.block) pose = "block"; else if (R.heave) pose = "push"; else if (R.kneel > 0) pose = "herbs"; else if (R.kneelPose > 0) pose = "kneel"; else if (R.frozen > 0) pose = "cast";
           f.root.visible = !(R.unseen > 0 && Math.floor(t * 14) % 2 === 0);
           f.drop(R.downUntil > R.t && u.hp > 0);   // (thrown down)
+          f.weary = u.hp > 0 && !R.over ? Math.max(0, Math.min(1, (0.42 - u.hp / u.maxHp) / 0.42)) : 0;   // (hurt: the shoulders sag and heave, the mouth hangs open, and the blows come slower: R3.tire)
         } else {
           if (g.beaten) pose = "plead"; else if (g.stag > 0) pose = "stagger"; else if (g.counterUntil > R.t) pose = "block"; else if (u.status.stun || u.status.asleep || u.status.bound) pose = u.status.asleep ? "slump" : "freeze";
           f.drop(g.down > 0);
@@ -550,18 +551,27 @@
           case "hit": {
             const at = posOf(e.uid, 1.25); if (!at) break;
             if (e.n > 0) float(at, String(Math.round(e.n)), (v.u.side === "enemy" ? "foe" : "mine") + (e.heavy ? " big" : ""));
-            G.fx.burst(e.blocked ? "spark" : "hit", at, { n: e.heavy ? 12 : 7, s: e.heavy ? 1.3 : 1 });
-            sfx(e.blocked ? "clang" : "hit");
+            // (Owner, 16 November: "make hits feel more strong".) The one struck rocks away from the blow and comes back; the blow
+            // comes back up the striker's arm; a heavy one lifts the dust about him and is heard twice; the fight holds its breath
+            // a little longer; the screen shakes by how much of you it took; and the face shows it.
+            const share = v.u.maxHp ? Math.max(0, e.n) / v.u.maxHp : 0, by = e.by != null ? views.get(e.by) : null, real = e.n > 0 && !e.blocked;
+            G.fx.burst(e.blocked ? "spark" : "hit", at, { n: e.heavy ? 16 : 8, s: e.heavy ? 1.5 : 1.05 });
+            if (e.heavy && real) G.fx.ring(at.clone().setY(0.08), 0xffe0b0, 0.2, 1.7, 0.28);
+            sfx(e.blocked ? "clang" : "hit"); if (e.heavy && real) sfx("drum");
+            if (by && by !== v) { const dx = v.u.g.x - by.u.g.x, dz = v.u.g.z - by.u.g.z, k = (e.blocked ? 0.3 : e.heavy ? 1 : 0.5) * (e.melee ? 1 : 0.6);
+              for (const x of v.figs) if (!x.fellAt && x.jolt) x.jolt(dx, dz, k);
+              if (e.melee) for (const x of by.figs) if (x.impact) x.impact(e.blocked ? 2 : e.heavy ? 1.3 : 1); }
             if (f && !f.action && e.n > 0) for (const x of v.figs) if (!x.fellAt) x.act("hit", 0.3);
-            if (v.u.side === "player" && e.n > 0) { G.shake(e.heavy ? 0.34 : 0.18, 0.3); hurt(); }
-            else if (e.by === p.uid && e.melee) { hitStop = e.heavy ? 0.07 : 0.035; if (e.heavy) G.shake(0.14, 0.2); }
+            if (real && G.feel) for (const x of v.figs) G.feel(x, "pain", e.heavy ? 0.6 : 0.4);
+            if (v.u.side === "player" && e.n > 0) { G.shake(Math.min(0.6, (e.heavy ? 0.3 : 0.16) + share * 1.6), 0.32); hurt(); if (e.heavy && real) hitStop = Math.max(hitStop, 0.06); buzz(e.heavy ? 40 : 18); }
+            else if (e.by === p.uid && e.melee) { hitStop = Math.max(hitStop, e.blocked ? 0.03 : e.heavy ? 0.1 : 0.05); G.shake(e.heavy ? 0.2 : 0.07, e.heavy ? 0.22 : 0.12); buzz(e.heavy ? 25 : 10); }
             break; }
           case "windup": if (!tips.mark && v && v.u.side === "enemy" && C.player() && (R3.threats(R).length)) tip("mark", "A mark on the ground shows where a blow will land. Step or roll out of it before it fills."); break;
           case "swing": if (e.dash) { sfx("drum"); G.shake(0.15, 0.25); } else if (e.sky && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); G.fx.ring(at, 0xffd9a0, 0.3, e.r || 2, 0.35); G.fx.burst("dust", at, { n: 10, s: 1.4 }); sfx("tap"); } else if (e.area && e.x != null) { const at = tmp.set(e.x, 0.1, e.z).clone(); if (v && v.kind === "light") { G.fx.beam(at, new T.Vector3(e.x, 28, e.z), 0xfff0b0, 0.9, 0.7); G.fx.flash("rgba(255,240,200,.35)", 300); } G.fx.ring(at, 0xffb060, 0.4, e.r || 3, 0.5); G.fx.burst("dust", at, { n: 16, s: 2 }); G.shake(0.3, 0.35); sfx("drum"); } break;
           case "shot": sfx("tap"); if (f && e.uid !== p.uid) for (const x of v.figs) if (!x.action || !G.ACTS[x.action.name].bow) x.act("loose", 0.4, 0.55); break;
           case "arrive": { const s = shots.get(e.shot.n); if (s) { if (e.uid != null) G.fx.burst("spark", s.position, { n: 4 }); shots.delete(e.shot.n); stick(s, e.uid, e.shot.a); } break; }
-          case "parry": { const at = posOf(e.uid, 1.3); if (at && pf) { at.lerp(pf.root.position.clone().setY(1.3), 0.5); G.fx.burst("spark", at, { n: 16, s: 1.4 }); } if (pf) pf.act("parry", 0.3); sfx("clang"); if (!e.part) { toast(U.tr("Parried!"), "good"); G.fx.flash("rgba(255,255,255,.25)", 260); } break; }
-          case "parried": if (pf) pf.act("hit", 0.3); sfx("clang"); toast(U.tr("Parried")); break;
+          case "parry": { const at = posOf(e.uid, 1.3); if (at && pf) { at.lerp(pf.root.position.clone().setY(1.3), 0.5); G.fx.burst("spark", at, { n: 16, s: 1.4 }); } if (pf) pf.act("parry", 0.3); sfx("clang"); if (!e.part && v && G.feel) for (const x of v.figs) G.feel(x, "surprise", 0.7); if (!e.part) { toast(U.tr("Parried!"), "good"); G.fx.flash("rgba(255,255,255,.25)", 260); } break; }
+          case "parried": if (pf) { pf.act("hit", 0.3); if (pf.impact) pf.impact(2); if (G.feel) G.feel(pf, "surprise", 0.6); } sfx("clang"); toast(U.tr("Parried")); break;
           case "fblock": { const at = posOf(e.uid, 1.2); if (at) G.fx.burst("spark", at, { n: 8 }); sfx("clang"); float(at, U.tr("Blocked"), "note"); if (!tips.fblock) tip("fblock", "He took it on his shield. While he lowers it he cannot strike: hit him again."); break; }
           case "perfect": toast(U.tr("Perfect roll"), "good"); break;
           // What each kind of man can do (sim.js): said over his head each time, so it is learned by seeing it.
@@ -570,7 +580,7 @@
           case "runs": { const at = posOf(e.uid, 2.0); if (at) float(at, U.tr("He runs!"), "note"); break; }
           case "captainDown": { const at = posOf(e.uid, 2.1); if (at) float(at, U.tr("Their captain is down!"), "good big"); sfx("gong"); toast(U.tr("Their captain is down: his men reel."), "good"); break; }
           case "taken": { const tv = views.get(e.uid); if (tv) { tv.over = "plead"; if (tv.mark) { tv.mark.userData.free(); tv.mark = null; } if (tv.bar) tv.bar.classList.add("gone"); for (const f of tv.figs) { try { f.pose("plead"); } catch (err) {} } } sfx("gong"); break; }
-          case "perfectblock": toast(U.tr("Perfect block"), "good"); sfx("clang"); break;
+          case "perfectblock": toast(U.tr("Perfect block"), "good"); sfx("clang"); if (v && G.feel) for (const x of v.figs) G.feel(x, "surprise", 0.7); break;
           case "miss": { const at = posOf(e.uid, 1.6); if (at && e.uid !== p.uid) float(at, U.tr("Missed"), "note"); break; }
           case "roll": if (pf) G.fx.burst("dust", pf.root.position, { n: 5 }); sfx("step"); break;
           case "shield": if (e.up) sfx("tap"); break;
@@ -600,9 +610,9 @@
           case "trait": if (RT.TRAIT_TIP && RT.TRAIT_TIP[e.who] && !tips["trait_" + e.who]) { tips["trait_" + e.who] = true; toast(U.tr(RT.TRAIT_TIP[e.who]), "tip"); } break;
           case "wheel": { const at = posOf(e.uid, 2.2); if (at) { float(at, U.tr("The wheel sinks!"), "foe big"); G.fx.burst("dust", at.clone().setY(0.2), { n: 18, s: 1.6 }); G.shake(0.25, 0.3); sfx("drum"); } break; }
           case "cry": { const at = posOf(e.uid, 2.1); if (at) { float(at, U.tr("War cry!"), "mine"); for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xffe2a0, 0.4, 7 + i * 2, 0.7); }, i * 140); G.shake(0.2, 0.25); sfx("drumCall"); } break; }
-          case "knocked": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Knocked down"), "me"); G.shake(0.3, 0.3); break; }
+          case "knocked": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Knocked down"), "me"); G.shake(0.4, 0.35); hitStop = Math.max(hitStop, 0.08); buzz(50); break; }
           // The named's own great blows (sim.js, "The named: each man's own fight"): called over his head as he begins, explained once.
-          case "sig": { const S = R3.SIG[e.id], at = posOf(e.uid, v && v.car ? 3.2 : v && v.kind === "elephant" ? 4.4 : 2.45); if (S && S.name) callout(at, U.tr(S.name), S.steps && S.steps.some((x) => x.nb) ? "nb" : ""); sfx("drumCall");
+          case "sig": { if (pf && G.feel && v && v.u.g.atk && v.u.g.atk.on === p.uid) G.feel(pf, "surprise", 0.7); /* (you see it coming) */ const S = R3.SIG[e.id], at = posOf(e.uid, v && v.car ? 3.2 : v && v.kind === "elephant" ? 4.4 : 2.45); if (S && S.name) callout(at, U.tr(S.name), S.steps && S.steps.some((x) => x.nb) ? "nb" : ""); sfx("drumCall");
             if (e.id === "rally" && at) for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xff9a70, 0.4, 7 + i * 2, 0.7); }, i * 140);
             if (S && S.tip) tip("sig_" + e.id, S.tip); break; }
           case "sigEnd": { const at = posOf(e.uid, 2.3); if (at) float(at, U.tr("Open!"), "good big"); break; }
@@ -634,7 +644,11 @@
           case "ask": orderCard(e.uid, e.i || 0); sfx("drumCall"); break;
           case "orderTaken": orderTaken(e.i || 0, e.uid); break;
           case "orderDone": orderDone(e.how, e.i || 0); break;
-          case "jostle": { const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: 8 }); sfx("hit"); if (e.uid === p.uid) G.shake(0.3, 0.3); break; } // (shouldered aside by a car or an elephant under way)
+          case "jostle": { const at = posOf(e.uid, 0.4); if (at) G.fx.burst("dust", at, { n: e.fell ? 16 : 8, s: e.fell ? 1.6 : 1 }); sfx("hit"); if (e.fell) sfx("fall"); if (e.uid === p.uid) { G.shake(e.fell ? 0.5 : 0.3, 0.35); if (e.fell) { hurt(); buzz(45); } }
+            const bv = views.get(e.by); if (v && bv) for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 1); if (v && G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.6); break; } // (run into by a car or an elephant under way: thrown aside, or off his feet)
+          case "bump": { const at = e.x != null ? tmp.set(e.x, 0.9, e.z).clone() : posOf(e.uid, 0.9); if (at) { G.fx.burst("hit", at, { n: e.fell ? 10 : 5, s: 1 }); if (e.fell) G.fx.burst("dust", at.clone().setY(0.2), { n: 10, s: 1.4 }); } sfx("hit"); if (e.fell || e.me) sfx("fall");
+            const bv = views.get(e.by); if (v && bv) { for (const x of v.figs) if (x.jolt) x.jolt(v.u.g.x - bv.u.g.x, v.u.g.z - bv.u.g.z, 0.9); if (G.feel) for (const x of v.figs) G.feel(x, e.fell ? "pain" : "surprise", 0.5); }
+            if (e.uid === p.uid || e.by === p.uid) G.shake(0.25, 0.25); break; } // (a body thrown back has struck another: they share it by their weights)
           case "wheelArrow": { const me = C.player(), to = new T.Vector3(me.g.x, 1.35, me.g.z), far = wheelFar(); G.fx.arrow(far, to, 0.8, null, () => { G.fx.burst("spark", to, { n: 5 }); }, 0); float(to.clone().setY(2.1), "-" + e.n, "mine"); G.fx.flash("rgba(190,40,30,.22)", 220); sfx("hit"); G.shake(0.18, 0.2);
             if (!tips.wheelArrow) tip("wheelArrow", "Arjuna's arrows find whoever is at the wheel. Step away to guard; come back to heave."); break; }
           case "wheelEnd": wheelEnd(!!e.stand); break;
@@ -937,6 +951,7 @@
       void o;
     };
     let hurtT = 0;
+    function buzz(ms) { try { if (navigator.vibrate && !U.calm()) navigator.vibrate(ms); } catch (e) { /* (a phone that will not shake in the hand) */ } }
     function hurt() { hurtT = 0.35; const sh = U.$("shade"); if (sh) sh.style.background = "radial-gradient(130% 100% at 50% 45%, transparent 40%, rgba(160, 20, 10, 0.6) 100%)"; }
     // One-time hints, the first time each thing happens (kept in the settings, so they are said once).
     const tips = Object.assign({}, K.prefs().tips3d || {});
@@ -1404,6 +1419,9 @@
       if (pf && p.hp > 0 && !pf.fellAt) pf.pose(enc.wheel3 && out === "win" ? "stand" : out === "win" || out === "spare" ? "cheer" : "slump"); // (no one cheers at the wheel)
       // The line breaks with the named: the beaten side's soldiers give up the ground, the other raises its weapons.
       for (const v of views.values()) if (v.u.line && v.u.hp > 0 && !enc.wheel3) { const won = (v.u.side === "ally") === (out === "win" || out === "spare"); v.over = won ? "cheer" : "plead"; }
+      // (and the named and the common men who fought: the side that has the field raises its arms, the other's shoulders fall;
+      // their faces go with it. Not at the wheel, not a man who kneels or was spared, not one on a car's deck.)
+      if (!enc.wheel3 && out !== "flee") for (const v of views.values()) { const u = v.u; if (u.line || u.side === "player" || u.hp <= 0 || u.spared || u.still || v.car || v.obj || (u.g && (u.g.beaten || u.g.down > 0))) continue; const won = (u.side === "ally") === (out === "win" || out === "spare"); v.over = won ? "cheer" : "slump"; }
       setTimeout(() => {
         U.curtain(() => {
           res.remove(); close(); U.b3d.off();
