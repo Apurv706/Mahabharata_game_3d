@@ -379,3 +379,22 @@ for lk_ in ("court", "war"): CAST["satyaki_adult"]["looks"][lk_]["cols"].update(
 CAST["bhishma_elder"]["beardk"] = 1.75; wears("bhishma_elder", "beadsA", drop="beads", looks=("war",))                                                      # a beard to the chest; his beads over the coat
 wears("drona_elder", "beadsA", drop="beads", looks=("war",)); CAST["drona_elder"]["looks"]["war"]["cols"].update(armour=0x8e8c88, leather=0x8a8884, gold=0xa8a6a0)   # grey steel, as his sheet has it
 for k_ in ("kunti_elder", "gandhari_elder", "healer_elder", "villager_f_adult", "player_f_elder"): wears(k_, "pallu")                                         # an elder woman's cloth is drawn across her as well
+# ---- 17 November: Arjuna on a sculpted body (MakeHuman's base mesh and targets, CC0: mpfb_body.py, tools/blender/mpfb_data).
+# A young man, an archer's build: lean, a long V from shoulders to waist, shoulders and arms that draw a bow, legs not heavy.
+CAST["arjuna_adult"]["mpfb"] = dict(full=True, hand=1.08, lidk=0.8, sex=1.0, age=25, muscle=0.9, weight=0.5, height=0.6, proportions=1.0,
+    eth={"caucasian": 0.5, "african": 0.25, "asian": 0.25}, girth=1.0, dec=0.75,
+    targets={"torso/torso-vshape-incr": 0.6, "torso/torso-muscle-pectoral-incr": 0.25, "torso/torso-muscle-dorsi-incr": 0.6,
+             "arms/*-upperarm-muscle-incr": 0.5, "arms/*-upperarm-shoulder-muscle-incr": 0.6, "arms/*-lowerarm-muscle-incr": 0.4,
+             "legs/*-upperleg-muscle-incr": 0.3, "legs/*-lowerleg-muscle-incr": 0.3, "neck/neck-scale-horiz-incr": 0.25,
+             "eyes/*-eye-height2-incr": 0.7, "eyes/*-eye-height1-incr": 0.3,
+             # his face, from his sheet: lean, high cheekbones over hollow cheeks, a squarer jaw and a firm chin with a cleft,
+             # a long straight narrow nose, a low brow ridge
+             "head/head-rectangular": 0.15, "head/head-fat-decr": 0.4, "head/head-scale-horiz-decr": 0.25, "cheek/*-cheek-bones-incr": 0.6, "cheek/*-cheek-volume-decr": 0.5,
+             "cheek/*-cheek-inner-decr": 0.3, "chin/chin-prominent-incr": 0.3, "chin/chin-cleft-incr": 0.35,
+             "chin/chin-bones-incr": 0.3, "nose/nose-scale-vert-incr": 0.35, "nose/nose-scale-horiz-decr": 0.25, "nose/nose-hump-decr": 0.3,
+             "nose/nose-point-width-decr": 0.3, "nose/nose-width1-decr": 0.25, "eyebrows/eyebrows-trans-down": 0.4, "eyebrows/eyebrows-trans-forward": 0.3},
+    # his sheet's brows (thick, dark, nearly straight, low), a full moustache drawn down at the corners, a short beard
+    face=dict(brow_h=1.2, brow_arch=0.1, brow_w=0.3, brow_w_out=0.16, brow_slant=-0.05, stache_w=0.031, stache_h=0.0055, stache_droop=0.008,
+              stache_off=0.0028, beard=0.0007, beard_cheek=0.22, beard_low=0.07, beard_back=0.042))
+CAST["arjuna_adult"]["stubblek"] = 0.58   # (his short beard's colour: dark hair over his skin, a close beard, not a black mass)
+wears("arjuna_adult", "beardS", looks=("home", "court", "war", "mourning"))   # (his sheet: a short beard)   # (eyes a little more open than MakeHuman's rest: the game's set face lowers the lids a fifth)
