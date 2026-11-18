@@ -258,7 +258,7 @@
       R.jaw += (want[0] - R.jaw) * kq; R.mouth += (want[1] - R.mouth) * kq; R.lid += (want[2] - R.lid) * kq; R.brow += (want[3] - R.brow) * kq; R.lift += ((want[4] || 0) - R.lift) * kq; R.wide += ((want[5] || 0) - R.wide) * kq; f.moodNow = mood;
       if (dt > 0) { R.next -= dt; if (R.next <= 0) { R.blink = 0.14; R.next = 2.2 + Math.random() * 4.2; } if (R.blink > 0) R.blink -= dt; }
       const lid = Math.max(R.lid, R.blink > 0 ? Math.sin((R.blink / 0.14) * Math.PI) : 0), kH = R.kH, F = R.M.face || {};
-      j.J.rotation.x = R.jaw;
+      j.J.rotation.x = R.jaw * (F.lidr ? 1.7 : 1);   /* (a sculpted face's jaw turns at its true hinge, by the ear: it needs a wider swing to open the lips as far as the old face's did) */
       if (j.M) { j.M.position.y = R.y.M - 0.012 * kH * R.mouth; j.M.scale.y = 1 + 11 * R.mouth; j.M.scale.x = 1 + 0.3 * R.wide; }   // (wide: the corners drawn out in a grin or a grimace; drawn in for a round mouth)
       if (j.E) { if (F.lidr) j.E.rotation.x = F.lidr * lid; /* (the upper lids are skin on the eyeball: they turn down over it, about the line through both eyes) */ else { j.E.position.y = R.y.E - (F.lid || 0.0085) * kH * lid; j.E.scale.y = 1 + 0.5 * lid; j.E.scale.z = 1 + 0.6 * lid; j.E.scale.x = 1 + 0.08 * lid; } }
       if (j.bL) { j.bL.rotation.z = R.brow; j.bR.rotation.z = -R.brow; const up = ((R.brow < 0 ? -R.brow * 0.012 : -R.brow * 0.006) + R.lift * 0.011) * kH; j.bL.position.y = R.y.bL + up; j.bR.position.y = R.y.bR + up; }   // (lift: both brows up the forehead, or down onto the eyes)

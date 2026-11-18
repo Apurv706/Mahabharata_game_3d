@@ -105,6 +105,14 @@ Each lead's head was set beside its portrait (`art/p_<name>.webp`) and what diff
 - **Six leads' bones reshaped from their portraits** (in `PEOPLE`): Yudhishthira (a soft oval face, larger gentler eyes, no longer gaunt), Bhima (squarer, heavier brow, larger eyes), Duryodhana (narrower jaw and chin, high cheekbones, slanted brows), Karna (level brows, open eyes), Bhishma (broader face, a shorter broader nose).
 - **Full beards** thin toward the lips, so the mouth's opening is a soft edge.
 
+### Expressions on the sculpted faces (17 November, Version 79)
+
+The nine expressions (`docs/Fight_Feel.md`, section 1) were made for the clay faces. Photographed on the new ones, only the brows moved.
+
+- **The mouth never opened.** The jaw's joint was MakeHuman's marker at the chin, so the jaw turned about its own tip. The hinge is now in front of the ear below the eye, and the game swings it 1.7 times as far. A dark hollow sits behind the lips, so an open mouth is dark inside and not a hole into the skull.
+- **The eyes barely closed.** The cast's eyes were opened wider than MakeHuman's (Version 75) but the lids still closed by the old angle. They close 1.6 times as far (`lidk` 1.3): shut for pain, narrowed for strain and guard.
+- **Not there:** the mouth's corners. A sculpted face has no points on the mouth's own joint, so a grin and a grimace differ from a plain open mouth only by the eyes and brows.
+
 ### Still open (whole cast)
 
 - Faces come from the old measures by rule, not from each sheet by eye as Arjuna's was. Leads deserve the same hand pass.

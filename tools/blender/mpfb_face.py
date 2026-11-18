@@ -212,4 +212,14 @@ def dress(bpy, S, M, MHI, Hd, parts, part_of, rigid, H, RIG):
     print("FACE: head wear set on the new head, points moved:", moved)
     eL, eR = MHI["eyes"]["L"][0], MHI["eyes"]["R"][0]
     RIG["J"] = ("H", tuple(MHI["jaw"])); RIG["M"] = ("H", tuple(MHI["lips"])); RIG["E"] = ("H", tuple((eL + eR) / 2))
+    if (H.get("mpfb") or {}).get("jawfix", True):
+        # 17 November (Version 79; owner: "did we fix expressions?"). No mouth opened on a sculpted face: the jaw's joint was
+        # MakeHuman's marker at the chin, so the jaw turned about its own tip and went nowhere. The hinge is where a jaw's is,
+        # in front of the ear below the eye. And behind the lips there was nothing, so an open mouth would have shown the
+        # inside of the skull: a dark hollow is set there, on the head.
+        ec = (eL + eR) / 2; ks = sH / 1.15; RIG["J"] = ("H", (0.0, ec.y + 0.078 * ks, ec.z - 0.03 * ks))
+        mz = MHI["lips"].z; my = MHI["lips"].y; vs = []; N_ = 12
+        for i in range(N_): a_ = 2 * math.pi * i / N_; vs.append((0.026 * ks * math.cos(a_), my + 0.012 * ks + 0.01 * ks * abs(math.cos(a_)), mz - 0.012 * ks + 0.024 * ks * math.sin(a_)))
+        vs.append((0.0, my + 0.03 * ks, mz - 0.012 * ks))
+        mo_ = new("mouthin", "lash", "face", vs, [[i, (i + 1) % N_, N_] for i in range(N_)]); rigid(mo_, "H")
     return parts

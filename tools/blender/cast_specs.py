@@ -495,8 +495,8 @@ def sculpt(key):
     if "beardS" in worn: face.update(beard=0.0018, beard_cheek=0.55, beard_low=0.075, beard_back=0.055)   # (close-cut: dark hair over skin, see stubblek below)   # a short beard, of this face's own jaw
     if "beardF" in worn: face["beardF"] = dict(beard=0.017, beard_cheek=0.5, beard_low=0.1, beard_back=0.062, beard_role="hair", beard_drop=0.03 * c.get("beardk", 1.0) ** 0.5)   # and a full one
     lead = who in LEADS; few = c.get("lod", 1.0) < 1 or c.get("sided")
-    return dict(full=True, auto=True, rel=1.011, hand=1.08, neck=round(0.03 if st == "child" else 0.045 if she else 0.045 + 0.02 * mu, 3),   # (a neck that shows: longer where heavy shoulders rise beside it)
-                 lidk=0.8, sex=0.0 if she else 1.0, age=round(age, 1), muscle=round(_cl(0.3 + 0.62 * mu, 0.3, 0.95), 3),
+    return dict(full=True, auto=True, rel=1.011, hand=1.08, lidk=1.3, neck=round(0.03 if st == "child" else 0.045 if she else 0.045 + 0.02 * mu, 3),   # (a neck that shows: longer where heavy shoulders rise beside it)
+                 sex=0.0 if she else 1.0, age=round(age, 1), muscle=round(_cl(0.3 + 0.62 * mu, 0.3, 0.95), 3),
                 weight=round(_cl(0.5 + 0.8 * (b["girth"] - 0.93) + 0.1 * belly + (0.03 if b.get("soft") else 0.0), 0.3, 0.8), 3), height=0.55,
                 proportions=round(0.5 if st == "child" else (0.8 if c["build"] == "woman" else 0.6) if she else _cl(0.45 + 0.55 * mu, 0.5, 1.0), 3),
                 eth={"caucasian": 0.5, "african": 0.25, "asian": 0.25}, girth=1.0, targets=T, face=face,
