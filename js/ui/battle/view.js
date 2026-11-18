@@ -1354,9 +1354,10 @@
       shots.push({ secs: 2.4, a: [[px + 1.9, 1.62, pz - 3.1], [px, 1.34, pz], 32], b: [[px + 1.05, 1.52, pz - 2.05], [px, 1.42, pz], 30], kind, head: title, text: cap, who: p.uid, act: "taunt", sfx: enc.lethal ? "drumCall" : "tap" });
       // (what the story says as the fight opens: read over the same close view, a caption or two at most)
       const caps = []; for (const ln of lines) { if (caps.length && (caps[caps.length - 1] + " " + ln).length <= 230) caps[caps.length - 1] += " " + ln; else if (caps.length < 2) caps.push(ln); }
-      caps.forEach((ln, n) => shots.push({ secs: 2.0, a: [[px + 1.05, 1.52, pz - 2.05], [px, 1.42, pz], 30], b: [[px + (n % 2 ? 1.5 : -1.2), 1.56, pz - 2.15], [px, 1.42, pz], 30], kind, head: title, text: ln }));
+      caps.forEach((ln, n) => shots.push({ cap: true, secs: 2.0, a: [[px + 1.05, 1.52, pz - 2.05], [px, 1.42, pz], 30], b: [[px + (n % 2 ? 1.5 : -1.2), 1.56, pz - 2.15], [px, 1.42, pz], 30], kind, head: title, text: ln }));
       // 2. Them: from over your shoulder, across the field, to the one who leads them.
-      const boss = foes.find((u) => u.person || u.hero) || foes.slice().sort((x, y) => y.maxHp - x.maxHp)[0], bx = boss.g.x, bz = boss.g.z;
+      /* (17 November, owner: "the cards were showing in incorrect order before some battles". The one shown as leading them was the first named man in the list, who could be a lesser one while their champion was only counted among "and with them". It is the strongest of the named.) */
+      const boss = foes.filter((u) => u.person || u.hero).sort((x, y) => y.maxHp - x.maxHp)[0] || foes.slice().sort((x, y) => y.maxHp - x.maxHp)[0], bx = boss.g.x, bz = boss.g.z;
       const bh = boss.g.kind === "elephant" ? 3.2 : boss.g.car ? 2.2 : 1.38, bd = boss.g.kind === "elephant" ? 9 : boss.g.car ? 6.6 : boss.g.kind === "squad" ? 4.4 : 3.2;
       const rest = tally(every.filter((u) => u !== boss)), more = every.some((u) => u.g.entered === false) || (enc.rounds && !enc.hold && every.length > foes.length);
       shots.push({ secs: 2.8, a: [[px - 0.95, 1.95, pz + 2.4], [bx, bh, bz], 42], b: [[bx + bd * 0.4, bh + 0.28, bz + bd], [bx, bh, bz], 33], kind: U.tr("Against you"), head: K.text(boss.name) + (boss.plural && boss.g.bodies > 1 ? "" : ""),
@@ -1384,6 +1385,14 @@
         shots.splice(first, 0, { secs: 3.0, a: [[R.rad * 0.9, 13, 2], [0, 0.6, -1], 52], b: [[R.rad * 0.55, 4.2, 1.2], [0, 1.0, -1.2], 46], kind, head: title, text: cap, sfx: enc.lethal ? "drumCall" : "tap" });
         const you = shots[first + 1]; you.head = (K.S && K.S.name) || title; you.text = ""; you.kind = U.tr("You"); you.sfx = "tap"; you.secs = 1.8;
       }
+      // One order, whatever the fight (17 November, the same report). The shots were shown in the order they were made: you, their
+      // leader, his great blow, THEN your own side, then their men again, so your allies' card came in the middle of the
+      // enemy's. And in two of the three openings the story's lines came after the card that names you. Now always: the
+      // fight's name; what the story says; you; who stands with you; who leads them; his great blow; what their men can do;
+      // how they stand.
+      { const AG = U.tr("Against you"), WY = U.tr("With you"), TM = U.tr("Their men"), YOU = U.tr("You");
+        const rank = (x) => x.plan ? 7 : x.kind === TM ? 6 : x.sig ? 5 : x.kind === AG ? 4 : x.kind === WY ? 3 : x.kind === YOU ? 2 : x.cap ? 1 : 0;
+        const sorted = shots.map((x, i) => [x, i]).sort((p, q) => rank(p[0]) - rank(q[0]) || p[1] - q[1]).map((p) => p[0]); shots.length = 0; for (const x of sorted) shots.push(x); }
       // After the first battles the opening changes (owner, 13 November: "don't show the player's face and characters after
       // the first few times; show the whole friend side and then the enemy side together; zoom into the important people
       // on both sides"). One long shot from behind your line, over your whole side and on across the field to theirs; then

@@ -143,3 +143,15 @@ Seven figures of different build (Arjuna, Bhima, Draupadi, a child, a foot soldi
 - **Struck:** the head snapped back 46 degrees, which on the new longer necks read as a broken neck. It now goes back 31 (`ACTS.hit`).
 
 Seen and left: the hip rings of the heavy war dress stand off the waist in a deep crouch; in the sneak the arms are held wide.
+
+## The order of the cards before a fight (17 November, Version 80)
+
+Owner, after playing: "the cards were showing in incorrect order before some battles". Read through `brief()` in `js/ui/battle/view.js`, which builds the opening's shots, and found three faults:
+
+- **Your own side's card came in the middle of the enemy's.** In the first two battles, in dreams and in the quick fights, the shots ran: you, their leader, his great blow, *those with you*, their men. (After two battles a different opening is used, which had them right. So it was "some battles".)
+- **In two of the three opening styles the story's lines came after the card that names you**, under the fight's title again, so the title seemed to come twice with your name between.
+- **The wrong man could be shown as leading them.** It took the first named man in the list. Where a lesser named man stood before the champion, the champion was only counted in "and with them". It now takes the strongest of the named.
+
+There is one order now, whatever the fight or the style: the fight's name; what the story says; you; who stands with you; who leads them; his great blow; what their men can do; how they stand; and then the question of how you will fight them. The shots are sorted into it after they are made, so a new kind of shot cannot fall out of place.
+
+Checked by reading, and by the three automated fights in a real browser that play their openings through. Not every fight's opening was watched, and none on a phone.
