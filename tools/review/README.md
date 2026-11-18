@@ -34,3 +34,7 @@ A close-up job is the same with `focus` on each group and `cols` / `byColumn` fo
 ## Reading the scan
 
 Areas are square centimetres as seen in one view. Skin counts as "through" when a garment meant to cover that part of the body lies within 5 cm behind it. Some is always counted where an arm leaves a shoulder plate; look at a `DBG` picture before calling a count a fault. The pose `down` is an upright sprawl (the fall is done by `f.drop`) and says nothing.
+
+## openings.js: every fight's opening cards
+
+`node tools/review/openings.js <out.json> [only]` opens each fight in a real page twice (first battles, and later) and writes the cards in order, the question card, the HUD's text and the names. Use it after changing `brief()` in `js/ui/battle/view.js`. About 12 minutes for all 79.

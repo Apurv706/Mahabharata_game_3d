@@ -480,7 +480,7 @@
         v.bar = U.el('<div class="ubar ' + (u.side === "enemy" ? "foe" : "ally") + (u.hero || u.person ? " hero" : "") + (u.line ? " line" : "") + '"><span></span><i></i></div>');
         v.bar.querySelector("span").textContent = K.text(u.name);
         { const tag = u.side === "enemy" ? (u.g && u.g.cls && R3.CLASS_TAG[u.g.cls]) || (u.captive ? "A man of name" : RT.who && RT.TRAIT_TAG && RT.TRAIT_TAG[RT.who(u)]) : null;   // (what he can do: his trade's, or his own)
-          if (tag) { v.bar.insertAdjacentHTML("beforeend", "<em></em>"); v.bar.querySelector("em").textContent = U.tr(tag); v.bar.classList.add("tagged"); } }
+          if (tag) { v.bar.insertAdjacentHTML("beforeend", "<em></em>"); v.bar.querySelector("em").textContent = K.tr(tag); v.bar.classList.add("tagged"); } }
         hud.appendChild(v.bar);
       }
       views.set(u.uid, v);
@@ -629,7 +629,7 @@
       hud.appendChild(el); setTimeout(() => el.remove(), 900);
     }
     function toast(text, cls) { const box = hud.querySelector(".b-toasts"); if (!box) return; const el = U.el('<div class="t-toast ' + (cls || "") + '">' + text + "</div>"); box.appendChild(el); while (box.children.length > 2) box.firstChild.remove(); setTimeout(() => el.remove(), /\btip\b/.test(cls || "") ? 4200 : 1300); }   // (a sentence is given the time it takes to read)
-    function callout(at, text, cls) { if (!at || !text) return; G.toScreen(at, scr); if (scr.behind) return; const el = U.el('<span class="dmg sig ' + (cls || "") + '"></span>'); el.textContent = text; el.style.left = Math.round(Math.max(90, Math.min(G.W - 90, scr.x))) + "px"; el.style.top = Math.round(Math.max(70, scr.y)) + "px"; hud.appendChild(el); setTimeout(() => el.remove(), 1900); }   // (a great blow's name, over the head of the man who begins it)
+    function callout(at, text, cls) { if (!at || !text) return; G.toScreen(at, scr); if (scr.behind) return; const el = U.el('<span class="dmg sig ' + (cls || "") + '"></span>'); el.textContent = unesc(text);   /* (18 November, owner: "I see &79 etc coming up". A great blow's name is called out as plain text, and came made safe for a page: "Bhishma&#39;s rain". Decoded here.) */ el.style.left = Math.round(Math.max(90, Math.min(G.W - 90, scr.x))) + "px"; el.style.top = Math.round(Math.max(70, scr.y)) + "px"; hud.appendChild(el); setTimeout(() => el.remove(), 1900); }   // (a great blow's name, over the head of the man who begins it)
     const unesc = (x) => String(x || "").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");   // (the line is shown as text: a name with an apostrophe in it came out as code)
     function banner(text) { const el = hud.querySelector(".b-line"); if (!el) return; el.textContent = unesc(text); el.classList.remove("in"); void el.offsetWidth; el.classList.add("in"); }
     const ASTRA_FX = { agneya: [0xff7a2a, "fire"], varuna: [0x7ad0ff, "water"], vayavya: [0xe8e0c8, "wind"], sammohana: [0xc8a0ff, "sleep"], nagapasha: [0x8aff9a, "bind"], astra: [0xfff0a0, "bolt"] };
@@ -1343,7 +1343,15 @@
       const p = C.player(), every = B.units.filter((u) => u.side === "enemy" && u.g && !u.line), foes = every.filter((u) => u.g.entered !== false && u.g.kind !== "light");
       const allies = B.units.filter((u) => u.side === "ally" && u.g && !u.line), title = K.text(K.val(enc.title) || "A fight"), cap = K.val(enc.caption) ? K.text(K.val(enc.caption)) : "";
       const lines = B.log.filter((r) => r && r.raw).map((r) => C.line(r));
-      if (U.battleBot || U.calm() || !foes.length || !p.g) return ready(true);
+      if (U.battleBot || U.calm() || !p.g) return ready(true);
+      if (!foes.length) {   /* (18 November: one fight, the Narayana weapon, has no foe on the field to show, and so had no opening at all: it went straight to the question. It opens on its name, over you, and what the story says.) */
+        hud.classList.add("pre"); const x0 = p.g.x, z0 = p.g.z, kd = U.tr(enc.lethal ? "Battle" : "A fight"), sh = [{ secs: 2.6, a: [[x0 + 1.9, 1.62, z0 - 3.1], [x0, 1.34, z0], 32], b: [[x0 + 1.05, 1.52, z0 - 2.05], [x0, 1.42, z0], 30], kind: kd, head: title, text: cap, who: p.uid, act: "taunt", sfx: enc.lethal ? "drumCall" : "tap" }];
+        lines.slice(0, 2).forEach((ln, n) => sh.push({ cap: true, secs: 2.0, a: [[x0 + 1.05, 1.52, z0 - 2.05], [x0, 1.42, z0], 30], b: [[x0 + (n % 2 ? 1.5 : -1.2), 1.56, z0 - 2.15], [x0, 1.42, z0], 30], kind: kd, head: title, text: ln }));
+        U.lastIntro = sh.map((x) => ({ kind: x.kind, head: x.head, text: x.text || "", plan: false, sig: false, cap: !!x.cap, pic: null })); U.fightShut = () => { if (!closed) { close(); U.b3d.off(); } };
+        intro = { shots: sh, i: -1, t: 0 }; marching = true; march = 0;
+        intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
+        hud.appendChild(intro.box); hud.appendChild(intro.skip); U.keys([introNext]); return introNext();
+      }
       hud.classList.add("pre");
       const px = p.g.x, pz = p.g.z, kind = U.tr(enc.dream ? "A dream of the war" : enc.lethal ? "Battle" : "A fight"), shots = [];
       // The opening is not the same every time (owner, 13 November: "opening sequence also seems repeated"). The same
@@ -1406,6 +1414,7 @@
         for (const x of keep) if (x.kind === U.tr("Against you")) x.a = [[bx + bd * 0.9, bh + 2.2, bz + bd * 1.7], [bx, bh, bz], 40];   // (from out on the field, not over your shoulder)
         shots.length = 0; for (const x of out.concat(keep)) shots.push(x);
       }
+      U.lastIntro = shots.map((x) => ({ kind: x.kind, head: x.head, text: x.text || "", plan: !!x.plan, sig: !!x.sig, cap: !!x.cap, pic: x.pic || null })); U.fightShut = () => { if (!closed) { close(); U.b3d.off(); } };   /* (for tools/review/openings.js: what the opening will show, and a way to leave the fight) */
       intro = { shots, i: -1, t: 0 }; marching = true; march = 0;
       intro.box = U.el('<div class="b-intro"><span class="kind war"></span><h2></h2><p></p></div>'); intro.skip = U.button("b-skip", U.tr("Skip") + " ▸", () => ready(false));
       hud.appendChild(intro.box); hud.appendChild(intro.skip);
