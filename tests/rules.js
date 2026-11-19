@@ -668,18 +668,22 @@ require(G + "content/war_oath.js");
 require(G + "content/war_bhishma.js");
 {
   const L = K.BEFORE.a6_bhishma, war = (o) => fresh(Object.assign({ act: 6, age: 44, path: "warrior" }, o));
-  ok(L.indexOf("bh_day9") > L.indexOf("wl_iravan") && L.indexOf("bh_day9") < L.indexOf("cmd_promotion_1") && L.indexOf("bh_fall") === L.indexOf("ep_shikhandi") + 1,
-    "day 9 comes after Iravan and before the ninth night; the fall straight after Shikhandi's charge");
+  ok(L.indexOf("bh_day9") > L.indexOf("wl_iravan") && L.indexOf("bh_day9") < L.indexOf("cmd_promotion_1") && L.indexOf("bh_stand") === L.indexOf("ep_shikhandi") + 1 && L.indexOf("bh_fall") === L.indexOf("bh_stand") + 1,
+    "day 9 comes after Iravan and before the ninth night; the stand and then the fall straight after Shikhandi's charge");
   S = war({ side: "pandava" });
   ok(K.resolveScene("a6_bhishma").id === "bh_day9" && K.SCENES.bh_day9.next === "bh_wheel", "a Pandava fights in the line under Bhishma on the ninth day, then sees the wheel");
   ok(K.SCENES.bh_day9.choices.every((c) => c.combat === "bh_line9") && K.ENCOUNTERS.bh_line9.hold && !K.ENCOUNTERS.bh_line9.lethal, "both choices lead to the holding fight (not deadly)");
   S.seen.push("bh_day9", "bh_wheel");
   ok(K.resolveScene("a6_bhishma").id === "ep_shikhandi", "then Shikhandi's charge on the tenth morning");
   S.seen.push("ep_shikhandi");
+  ok(K.resolveScene("a6_bhishma").id === "bh_stand" && K.choiceList(K.SCENES.bh_stand)[0].c.combat === "e_bh_drona" && K.ENCOUNTERS.e_bh_drona.hold && !K.ENCOUNTERS.e_bh_drona.lethal, "then the stand in Drona's road (a holding fight, not deadly)");
+  S.seen.push("bh_stand");
   ok(K.resolveScene("a6_bhishma").id === "bh_fall", "then the fall");
   S = war({ side: "kaurava" });
   ok(K.resolveScene("a6_bhishma").id === "bh_guard9", "a Kaurava is in Bhishma's guard on the ninth day");
   S.seen.push("bh_guard9");
+  ok(K.resolveScene("a6_bhishma").id === "bh_stand" && K.choiceList(K.SCENES.bh_stand)[0].c.combat === "e_bh_shikhandi", "on the tenth he goes at Shikhandi before the grandsire");
+  S.seen.push("bh_stand");
   ok(K.resolveScene("a6_bhishma").id === "bh_fall", "and sees him fall on the tenth");
   S = war({ side: "neutral" });
   ok(K.resolveScene("a6_bhishma").id === "a6_bhishma", "the neutral do not see either");

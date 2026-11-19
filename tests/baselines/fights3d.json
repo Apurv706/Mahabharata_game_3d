@@ -1,7 +1,7 @@
 {
  "runs": 28,
  "seed": 21,
- "mean": 81,
+ "mean": 82,
  "fights": {
   "e_dream": {
    "win": 0,
@@ -64,23 +64,23 @@
    "capped": 0
   },
   "e_day1": {
+   "win": 82,
+   "secs": 88,
+   "capped": 0
+  },
+  "e_guard": {
    "win": 86,
    "secs": 91,
    "capped": 0
   },
-  "e_guard": {
-   "win": 82,
-   "secs": 89,
-   "capped": 0
-  },
   "e_hunt": {
-   "win": 50,
-   "secs": 84,
+   "win": 54,
+   "secs": 85,
    "capped": 0
   },
   "e_wheel": {
-   "win": 29,
-   "secs": 92,
+   "win": 21,
+   "secs": 91,
    "capped": 0
   },
   "e_last_stand": {
@@ -99,8 +99,8 @@
    "capped": 0
   },
   "e_road": {
-   "win": 46,
-   "secs": 78,
+   "win": 43,
+   "secs": 76,
    "capped": 0
   },
   "e_jaya": {
@@ -120,12 +120,12 @@
   },
   "e_day16": {
    "win": 86,
-   "secs": 88,
+   "secs": 84,
    "capped": 0
   },
   "e_day18": {
-   "win": 89,
-   "secs": 75,
+   "win": 86,
+   "secs": 76,
    "capped": 0
   },
   "e_raid": {
@@ -140,7 +140,7 @@
   },
   "hold_karna": {
    "win": 100,
-   "secs": 35,
+   "secs": 34,
    "capped": 0
   },
   "hold_duryodhana": {
@@ -155,7 +155,7 @@
   },
   "hold_bhima": {
    "win": 100,
-   "secs": 28,
+   "secs": 29,
    "capped": 0
   },
   "e_bandits": {
@@ -174,8 +174,8 @@
    "capped": 0
   },
   "e_ep_ugra": {
-   "win": 86,
-   "secs": 81,
+   "win": 82,
+   "secs": 83,
    "capped": 0
   },
   "e_bhadra": {
@@ -224,7 +224,7 @@
    "capped": 0
   },
   "e_iravan": {
-   "win": 86,
+   "win": 93,
    "secs": 44,
    "capped": 0
   },
@@ -250,7 +250,7 @@
   },
   "oath_arjuna_12": {
    "win": 93,
-   "secs": 37,
+   "secs": 38,
    "capped": 0
   },
   "oath_arjuna_16": {
@@ -259,13 +259,23 @@
    "capped": 0
   },
   "oath_king_hold": {
-   "win": 86,
-   "secs": 30,
+   "win": 89,
+   "secs": 31,
    "capped": 0
   },
   "bh_line9": {
    "win": 89,
    "secs": 31,
+   "capped": 0
+  },
+  "e_bh_drona": {
+   "win": 86,
+   "secs": 38,
+   "capped": 0
+  },
+  "e_bh_shikhandi": {
+   "win": 100,
+   "secs": 40,
    "capped": 0
   },
   "cross_e_escape": {
@@ -279,7 +289,7 @@
    "capped": 0
   },
   "cross_e_called": {
-   "win": 89,
+   "win": 86,
    "secs": 69,
    "capped": 0
   },
@@ -294,7 +304,7 @@
    "capped": 0
   },
   "fs_sk_hold": {
-   "win": 93,
+   "win": 96,
    "secs": 32,
    "capped": 0
   },
@@ -379,7 +389,7 @@
    "capped": 0
   },
   "new_banner": {
-   "win": 71,
+   "win": 68,
    "secs": 45,
    "capped": 0
   },
@@ -389,8 +399,8 @@
    "capped": 0
   },
   "kw_e_close": {
-   "win": 64,
-   "secs": 44,
+   "win": 68,
+   "secs": 45,
    "capped": 0
   },
   "kw_e_guard": {

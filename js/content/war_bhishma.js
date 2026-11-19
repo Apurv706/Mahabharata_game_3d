@@ -408,7 +408,25 @@
       ],
       after: ["Arjuna drags Krishna back by the tenth step, and the day goes on."]
     },
-    // ---------- Day 10: the barrage (after Shikhandi's charge) ----------
+    // ---------- Day 10: the stand before the fall (19 November) ----------
+    // Owner: "Can we make a fight where the player is close to this happening? Maybe he has to guard Bhishma and fight
+    // Shikhandi, which he fails to do, and then this happens. From the Pandavas' side, Drona is trying to come to the rescue
+    // to fight Shikhandi and your job is to stop him, and then this sequence plays out." Each is a holding fight: it is won
+    // by standing, not by killing, and whichever way it goes the grandsire falls (bh_fall, next).
+    {
+      id: "bh_stand", act: 6, age: 44, war: true, away: true, when: (S) => S.side !== "neutral" && free(S), skipTo: "a6_bhishma", next: "a6_bhishma",
+      art: "scene_shikhandi", place: "Kurukshetra · day 10", caption: "Shikhandi's chariot comes on",
+      title: (S) => (S.side === "kaurava" ? "Before the grandsire" : "Drona turns his chariot"),
+      body: (S) => (S.side === "kaurava"
+        ? ["Shikhandi's chariot is coming straight at the grandsire, and Arjuna's is behind it. Bhishma has lowered his bow. He will not raise it at Shikhandi.", "If Shikhandi is to be stopped, it is his guard that must do it."]
+        : ["Shikhandi's chariot is almost level with the grandsire's, with Arjuna close behind it.", "Away to the left Drona has seen it. He turns his chariot out of the line to come at Shikhandi, and your men are what stands in his road."]),
+      choices: (S) => [
+        { id: "stand", t: S.side === "kaurava" ? "Go at Shikhandi" : "Stand in Drona's road", combat: S.side === "kaurava" ? "e_bh_shikhandi" : "e_bh_drona", hint: "Won by standing" },
+        { id: "watch", t: "Stay where you are", fx: { flag: "bh_stood_by" }, text: S.side === "kaurava"
+          ? "Others of the guard go at him. None of them gets as far as his wheel."
+          : "Another company closes the road. You watch Drona's banner stop, and stay stopped." }
+      ]
+    },
     {
       id: "bh_fall", act: 6, age: 44, war: true, away: true, when: (S) => S.side !== "neutral" && free(S), skipTo: "a6_bhishma", next: "a6_bhishma", enter: { moment: { kind: "bh_fall" } },
       art: "scene_shikhandi", place: "Kurukshetra · day 10", caption: "The arrows", title: "The grandsire falls",
@@ -427,6 +445,26 @@
     }
   ]);
 
+  // The two holding fights of the tenth day. Neither champion can be killed here: he is held, or the road is lost.
+  const stand10 = (id, title, foes, extra) => K.encounter(Object.assign({ id, title, hold: 5, hard: true, lethal: false, curse: true, allies: K.warAllies, spare: false,
+    flee: { tags: ["retreat"] }, art: "war_bhishma", callHelp: K.warHelp, enemies: foes }, extra));
+  stand10("e_bh_drona", "Drona's road", [K.foe("Drona", 10, { abilities: ["strike", "arrows", "heavy"], hero: true, person: "drona", hp: 900, atk: 7 }), K.foe("Drona's wheel-guard", 4, { abilities: ["strike", "guard"] }), K.foe("Kaurava spearmen", 3, { plural: true })],
+    { caption: "Until Shikhandi is through", intro: "Drona is coming to put himself between Shikhandi and the grandsire. Keep him here. Not to beat him: to be in his road until it no longer matters.",
+      holdText: "Behind you a great shout goes up, and then nothing. Drona lets his bow fall to his side.",
+      beats: [{ round: 2, text: "Drona's arrows come in a sheet. Your company's shields go up together.", run: (B) => B.living("friends").forEach((u) => B.status(u, "guard", 1)) },
+        { round: 4, text: "He has stopped shouting orders. He is looking past you, at the grandsire's banner.", run: (B) => B.living("enemy").forEach((u) => B.status(u, "exposed", 1)) }],
+      win: { fx: { flag: "bh_held_drona", rep: { pandava: 2 }, bond: { arjuna: 1 }, journal: "On the tenth day you stood in Drona's road while Shikhandi and Arjuna reached the grandsire." }, text: "Drona does not come on. He is looking over your head at the place where the grandsire's banner was." },
+      lose: { fx: { flag: "bh_drona_through" }, text: "Drona's chariot goes through your company. He is a bowshot from Shikhandi when the shout goes up, and he pulls his horses in. He is too late." },
+      flee: { fx: { flag: "bh_drona_through" }, text: "You pull your men off the road. Drona drives through, and is still too late." } });
+  stand10("e_bh_shikhandi", "Before the grandsire", [K.foe("Shikhandi", 9, { abilities: ["strike", "arrows"], hero: true, person: "shikhandi", hp: 850, atk: 6 }), K.foe("Panchala chariot-guard", 4, { abilities: ["strike", "guard"] }), K.foe("Panchala archers", 3, { plural: true, abilities: ["arrows"] })],
+    { caption: "As long as you can", intro: "The grandsire will not loose at Shikhandi. Stop Shikhandi's chariot yourself, for as long as you can. Arjuna is behind him.",
+      holdText: "Arrows go past you from behind Shikhandi, a great many, and none of them is Shikhandi's. You hear the grandsire's bow fall.",
+      beats: [{ round: 2, text: "Arjuna is shooting over Shikhandi's shoulder. Not at you.", run: (B) => B.living("friends").forEach((u) => B.status(u, "exposed", 1)) },
+        { round: 4, text: "The grandsire's guard is thinning round you. The ones who are left close up without being told.", run: (B) => B.living("friends").forEach((u) => B.status(u, "guard", 1)) }],
+      win: { fx: { flag: "bh_held_shikhandi", rep: { kuru: 2 }, bond: { bhishma: 1 }, journal: "On the tenth day you held Shikhandi's chariot off the grandsire, and Arjuna's arrows went past you both." }, text: "You have held Shikhandi, and it has made no difference. The arrows that mattered were never his." },
+      lose: { fx: { flag: "bh_shikhandi_through" }, text: "Shikhandi's guard puts you down and his chariot goes on. From the ground you see the grandsire lower his bow." },
+      flee: { fx: { flag: "bh_shikhandi_through" }, text: "You give ground, and Shikhandi's chariot goes by you toward the old man." } });
+
   // Where they come: day 9 after Iravan (day 8) and before the ninth night's promotion; the fall
   // straight after Shikhandi's charge on the tenth morning; then the bed of arrows that night.
   {
@@ -434,7 +472,7 @@
     const night = L.indexOf("cmd_promotion_1") >= 0 ? L.indexOf("cmd_promotion_1") : L.indexOf("ep_shikhandi") >= 0 ? L.indexOf("ep_shikhandi") : L.length;
     L.splice(night, 0, "bh_day9", "bh_guard9");
     const sh = L.indexOf("ep_shikhandi");
-    L.splice(sh >= 0 ? sh + 1 : L.length, 0, "bh_fall");
+    L.splice(sh >= 0 ? sh + 1 : L.length, 0, "bh_stand", "bh_fall");
     K.BEFORE.a6_bhishma = L;
   }
   // The bed of arrows that night does not tell the fall again to those who saw it.

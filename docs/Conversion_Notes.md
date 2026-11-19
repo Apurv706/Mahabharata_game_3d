@@ -660,3 +660,18 @@ Published to both play pages as a patch of `k3d.js` alone (the two changed scrip
 ## 19 November (Version 84): Vikarna's board and chaupar are 2D again
 
 Owner: "The game with Vikarna doesn't work correctly. Bring it back to 2D, same comment on the chaupar." Moksha patam (on Vikarna's board) and chaupar (against Shakuni) are played on their painted 2D boards again (`js/ui/boards.js`). They were taken off the list of games played in 3D (`KINDS` in `js/ui/tests3d/frame.js`); their 3D boards are still in `js/ui/tests3d/games.js`, unused, and putting the two names back in the list returns to them. Tigers and goats (baghchal) was not named and is still 3D, on the same 3D table. Opened in a real page: both start on the 2D board with no 3D canvas and no error.
+
+## 19 November (Version 85): a fight beside Bhishma's fall
+
+Owner: "Can we make a fight where the player is close to this happening? Maybe he has to guard Bhishma and fight Shikhandi, which he fails to do, and then this happens. From the Pandavas' side, Drona is trying to come to the rescue to fight Shikhandi and your job is to stop him, and then this sequence plays out."
+
+A new scene on the tenth day, `bh_stand` (`js/content/war_bhishma.js`), comes straight before "The grandsire falls" (`bh_fall`) for both sides:
+
+- **With the Pandavas: "Drona's road"** (`e_bh_drona`). Drona turns his chariot out of the line to reach Shikhandi; you stand in his road. A holding fight in 3D against Drona, his wheel-guard and spearmen: it is won by standing five rounds, not by killing him.
+- **With the Kauravas: "Before the grandsire"** (`e_bh_shikhandi`). Bhishma will not loose at Shikhandi, so his guard must stop Shikhandi's chariot. A holding fight against Shikhandi, his chariot-guard and archers. Held or not, Arjuna's arrows go past you: the story's text says so either way.
+- You may also stay where you are; then the fall plays as before.
+- Whichever way the fight goes (held, broken, or you give ground) the grandsire falls next. Nothing can prevent it.
+
+The game's own fighter: Drona's road 92 wins in 100, before the grandsire 100, about 40 seconds each. The 16 recorded lives and the fight bands were recorded again (81 fights now).
+
+**Not done: the fall itself is still the flat animated moment.** It was asked to be remade in 3D on the same field, with Shikhandi before Arjuna on the chariot. That is the next piece of work.

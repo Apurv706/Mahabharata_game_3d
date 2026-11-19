@@ -11,7 +11,7 @@
   // orders only to a life that has had none yet.)
   O.at = {
     cross_call: 1, a6_day1: 1, cross_duel: 2, cross_called: 2, fs_d3: 3, fs_sk_6: 6, wl_iravan: 8, bh_day9: 9, bh_guard9: 9,
-    ep_shikhandi: 10, bh_fall: 10, a6_bhishma: 10, cmd_array_1: 11, fs_sk_11: 11, wc_child_line: 11, a6_capture: 11,
+    ep_shikhandi: 10, bh_stand: 10, bh_fall: 10, a6_bhishma: 10, cmd_array_1: 11, fs_sk_11: 11, wc_child_line: 11, a6_capture: 11,
     fs_d12: 12, oath_south: 12, oath_crescent: 12, oath_king: 12, a6_wheel: 13, a6_d13_bow: 13, fs_d13: 13, a6_day13: 13,
     kb_ride: 14, kb_drag: 14, fs_d14: 14, wr_map_14: 14, a6_day14: 14, cmd_array_2: 15, wr_map_15: 15, kf_reach: 15,
     a6_day15: 15, fs_d15: 15, a6_day16: 16, oath_again: 16, fs_d16: 16, kd_son: 17, kd_guard: 17, ep_sibling_field: 17,
