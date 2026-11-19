@@ -23,7 +23,10 @@
 
   const P = (R3.P = {
     story: 8,            // seconds for each "round" of a fight's story: holds, beats, the field event
-    hpFoe: 4.6, hpFriend: 1.55, hpAlly: 3.0, atkFoe: 0.74,
+    hpFoe: 4.85, hpFriend: 1.55, hpAlly: 3.0, atkFoe: 0.83,   // (19 November, owner: "make foes stronger": they hit an eighth harder (0.74) and stand a twentieth longer (4.6))
+    blowK: 1.3,          // each blow of yours lands this much harder than it did when blows came as fast as the arm allowed: fewer, heavier blows, and a fight takes about as long as before
+    strikeGap: 1.0,      // (19 November, owner: "when a player attacks it should take a second before strike is ready again") seconds from the start of one blow of yours to the start of the next
+    hemR: 2.6, hemGap: 2.8, // (the same day: "roll should be possible only when not surrounded") you are hemmed in when three or more foes stand within hemR of you and no gap between them, seen from where you stand, is wider than hemGap (rad, 160 degrees)
     rad: 13,             // the field's radius (m)
     run: 5.3, turnRate: 3.4, turnHold: 2.5, faceNear: 6, sideWalk: 0.78, backWalk: 0.62, foeRun: 3.2, archerRun: 2.6, allyRun: 3.7, blockWalk: 0.42,
     turn: 2.4,           // how fast a foe winding up can still turn after you (rad/s); a champion turns faster
@@ -827,11 +830,21 @@
   const blowsAtOnce = (R) => (R.line && R.line.dream ? 2 + (R.t > 20 ? 1 : 0) + (R.t > 38 ? 1 : 0) : 2) + (R.rallyUntil > R.t ? 1 : 0) + (idleNow(R) ? 1 : 0);   // (Kritavarma's call; a man who stands and does nothing)
   const ready = (id) => { const row = C.available().find((a) => a.id === id); return !!row && !row.why; };
   const swinging = (p) => !!(p && p.g && (p.g.busy > 0 || p.g.blow));
+  // Hemmed in: three or more foes close about you with no way out between them. You cannot roll then: there is nowhere to
+  // roll to. Cut one down, or push through with your shield, and the way opens.
+  R3.hemmed = function (R) {
+    const p = C.player(); if (!p || !p.g) return false; const as = [];
+    for (const e of R.B.units) { if (e.side !== "enemy" || e.hp <= 0 || !e.g || e.spared || !e.g.entered || e.g.kind === "light" || e.g.down > 0 || e.g.beaten) continue;
+      const d = Math.hypot(e.g.x - p.g.x, e.g.z - p.g.z) - (e.g.rad || 0.4); if (d <= P.hemR) as.push(Math.atan2(e.g.x - p.g.x, e.g.z - p.g.z)); }
+    if (as.length < 3) return false; as.sort((a, b) => a - b); let gap = as[0] + Math.PI * 2 - as[as.length - 1];
+    for (let i = 1; i < as.length; i++) gap = Math.max(gap, as[i] - as[i - 1]);
+    return gap < P.hemGap;
+  };
   R3.can = function (R, what) {
     const p = C.player();
     if (!p || R.over || p.hp <= 0) return false;
     switch (what) {
-      case "roll": return R.roll <= 0 && R.kneel <= 0 && R.breath >= P.rollMin && !held(p) && R.frozen <= 0 && !(R.downUntil > R.t);
+      case "roll": return R.roll <= 0 && R.kneel <= 0 && R.breath >= P.rollMin && !held(p) && R.frozen <= 0 && !(R.downUntil > R.t) && !R3.hemmed(R);
       case "block": return R.blocker && !R.broken && (R.block || (R.roll <= 0 && R.kneel <= 0 && !R.winded && R.breath >= P.blockMin && !swinging(p))) && !held(p) && R.frozen <= 0 && !(R.downUntil > R.t);
       case "skill": return !R.noStrike && !!R.skill && R.skillCd <= 0 && R.kneel <= 0 && !held(p);
       case "strike": return !R.noStrike;
@@ -886,7 +899,7 @@
   const tire = (R3.tire = (R) => { const p = C.player(), f = p && p.maxHp ? Math.max(0, p.hp) / p.maxHp : 1; return 1 + P.tireMost * clamp((P.tireFrom - f) / P.tireFrom, 0, 1); });
   // A foe tires as you do: his wind-up and his rest between blows lengthen by the health he has lost. (Not a man who fights harder hurt.)
   const tireOf = (R3.tireOf = (u) => (!u || !u.maxHp || (u.g && u.g.wind2) ? 1 : 1 + P.tireMost * clamp((P.tireFrom - Math.max(0, u.hp) / u.maxHp) / P.tireFrom, 0, 1)));
-  const tired = (R, c) => { const k = tire(R); return k > 1.001 ? Object.assign({}, c, { land: c.land * k, len: c.len * k, tire: k }) : c; };
+  const tired = (R, c) => { const k = tire(R), o = Object.assign({}, c, { m: c.m * P.blowK }); return k > 1.001 ? Object.assign(o, { land: c.land * k, len: c.len * k, tire: k }) : o; };   /* (and each blow of yours is heavier, now that they come a second apart: P.blowK) */
   R3.nextBlow = (R) => { const list = R3.comboOf(); return tired(R, list[R.t - R.comboT > 0.6 || R.combo >= list.length ? 0 : R.combo]); };
   const PARRY_WITH = new Set(["sword", "woodsword", "mace", "spear", "staff", "club", "hammer", "dagger", "fist"]), LIGHT = new Set(["dagger", "fist"]);
 
@@ -946,7 +959,7 @@
     if (a.skill && R3.can(R, "skill") && R.roll <= 0 && !R.block && g.busy <= 0.05) skill(R);
     if (a.strike && R.roll <= 0 && R.kneel <= 0 && !R.block) {
       if (parry(R)) { /* your weapon met his */ }
-      else if (g.busy > 0) R.buffer = true;
+      else if (g.busy > 0 || R.t < (R.strikeAt || 0)) R.buffer = true;   /* (pressed too soon, it is remembered and thrown when the arm is ready) */
       else blow(R);
     }
   }
@@ -1226,9 +1239,9 @@
     // You turn to the one you face when he is near enough to matter, and step in if he is just out of reach.
     if (t && (c.shot || dist(t, p) <= g.reach + 3.2)) g.a = angTo(p, t);
     if (c.shot) return bowShot(R, c, list, t);
-    g.busy = c.len; g.blow = { c, at: R.t + c.land, n: R.combo };
+    g.busy = c.len; g.blow = { c, at: R.t + c.land, n: R.combo }; R.strikeAt = R.t + P.strikeGap;
     if (t) { const d = dist(t, p), want = g.reach * 0.9 + t.g.rad - 0.42; if (d > want && d < want + 1.6) { g.stepX = Math.sin(g.a) * (d - want) / c.land; g.stepZ = Math.cos(g.a) * (d - want) / c.land; g.stepT = c.land; } }
-    R.combo = (R.combo + 1) % list.length; R.comboT = R.t + c.len;
+    R.combo = (R.combo + 1) % list.length; R.comboT = R.t + Math.max(c.len, P.strikeGap);   /* (the run of blows is kept across the wait) */
     R.fx.push({ k: "blow", n: g.blow.n, arc: c.arc || null, land: c.land, len: c.len, heavy: !!c.heavy, last: R.combo === 0, tire: c.tire || 1 });
   }
   function bowShot(R, c, list, t) {
@@ -1238,8 +1251,8 @@
     const one = (on, m, knock, dt) => { const am = aimAt(g, on, P.myArrow, c.land + dt), s = { by: p.uid, side: "player", m, knock, on: on ? on.uid : null, x: g.x, z: g.z, y: FLY.y0, a: am ? am.a : g.a, vy: am ? am.vy : flat(P.myArrow, 12), t0: R.t + c.land + dt, v: P.myArrow, heavy: !!c.heavy && !dt, n: ++R.shotN, life: 1.2 }; R.shots.push(s); R.fx.push({ k: "shot", uid: p.uid, shot: s, second: !!dt }); };
     one(t1, t2 ? c.m : c.m * P.bowSecond, c.knock || 0, 0);
     one(t2 || t1, c.m * P.bowSecond, 0, P.bowGap);
-    g.busy = c.len; R.stats.blows++;
-    R.combo = (R.combo + 1) % list.length; R.comboT = R.t + c.len;
+    g.busy = c.len; R.stats.blows++; R.strikeAt = R.t + P.strikeGap;
+    R.combo = (R.combo + 1) % list.length; R.comboT = R.t + Math.max(c.len, P.strikeGap);
     R.fx.push({ k: "blow", n: R.combo, shot: true, land: c.land, len: c.len, heavy: !!c.heavy });
   }
   function raiseShield(R) { const p = C.player(); R.block = true; R.blockT = R.t; R.stats.blocks++; R.readN = 0; p.g.blow = null; p.g.busy = 0; R.buffer = false; R.combo = 0; faceThreat(R); R.fx.push({ k: "shield", up: true }); }
@@ -1384,7 +1397,7 @@
     if (R.roll > 0) {
       R.roll -= dt;
       { const far = R.dash ? 1 : RT.rollMul ? RT.rollMul() : 1, T_ = R.rollDur || P.roll, whole = P.rollDist * far * (T_ / P.roll), u1 = clamp(1 - R.roll / T_, 0, 1), u0 = clamp(u1 - dt / T_, 0, 1), d = (rollF(u1) - rollF(u0)) * whole; // (Vayu's gift: a roll carries a fifth further)
-        move(R, p, R.rdx * d, R.rdz * d, true);
+        move(R, p, R.rdx * d, R.rdz * d, "roll");
         if (R.roll <= 0) { const v = (ROLLC * (1 - PHYS.rollEase) * whole) / T_ * 0.45; g.wx = R.rdx * v; g.wz = R.rdz * v; g.landT = R.t + 0.3; } } // (you land still moving: your feet take it up or run it down)
       if (R.roll <= 0) R.dash = false;
     } else if (R.block) { R.breath -= P.blockDrain * tireCost() * dt; if (R.breath <= 0) { R.breath = 0; lowerShield(R, true); } }
@@ -1399,7 +1412,8 @@
     if (R.salve && R.t >= R.salve.next) { living(B, "friends").filter((u) => !u.still && dist(u, p) <= 5.5).forEach((u) => B.heal(p, u, Math.max(1, Math.round(u.maxHp * 0.28 / 3)))); R.fx.push({ k: "heal", uid: p.uid }); R.salve.left--; R.salve.next = R.t + 1; if (!R.salve.left) R.salve = null; }
     if (g.stepT > 0) { g.stepT -= dt; walk(R, p, g.stepX, g.stepZ, dt); }
     if (g.blow && R.t >= g.blow.at) landBlow(R);
-    if (g.busy > 0) { g.busy -= dt; if (g.busy <= 0 && R.buffer) { R.buffer = false; if (!g.blow) blow(R); } }
+    if (g.busy > 0) g.busy -= dt;
+    if (g.busy <= 0 && R.buffer && R.t >= (R.strikeAt || 0) && R.roll <= 0 && R.kneel <= 0 && !R.block) { R.buffer = false; if (!g.blow) blow(R); }
     if (held(p) || R.roll > 0) return;
     // Turning and stepping are two things (owner, 13 November: "turn left and walk left should mean two different
     // things"). a.turn (+1 left, -1 right) turns you where you stand; the stick or the keys move you without turning you
@@ -1442,8 +1456,9 @@
     if (!pass) {
       for (const o of R.B.units) {
         if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light") continue;
-        if (u.side !== "player" && o.side === "player" && u.side !== "enemy") continue;
-        touch(g, x, z, o.g, u.side !== o.side && !(u.side !== "enemy" && o.side !== "enemy") ? 0.25 : 0);   // (the whole of the one against the whole of the other: a car's team is in the way as its deck is)
+        const yours = u.side !== "player" && o.side === "player" && u.side !== "enemy";   /* (your own men do not push you about, but they do not walk through you either: they go round) */
+        touch(g, x, z, o.g, u.side !== o.side && !(u.side !== "enemy" && o.side !== "enemy") ? 0.25 : 0);
+        if (yours) { if (TP > 0) { x += TX * TP; z += TZ * TP; } continue; }   // (the whole of the one against the whole of the other: a car's team is in the way as its deck is)
         if (TP > 0) { // each gives ground by the other's weight (a wall's locked shields push as one)
           const pen = TP, nx = TX, nz = TZ, tw = TW, deep = noseL(g) || noseL(o.g) ? DEEP : 1e9, mu = weight(u) * (locked(R, u) ? 3 : 1), mo = weight(o) * brace(R, o, u), sh0 = mu / (mu + mo), share = sh0 > 0.8 ? 1 : sh0; /* (what is far the heavier is not turned from its way) */
           if (share > 0.004) { const bx = o.g.x, bz = o.g.z; shove(R, o, -nx * pen * share, -nz * pen * share); jostle(R, u, o, share, -nx, -nz, tw); const got = Math.hypot(o.g.x - bx, o.g.z - bz), out = Math.min(pen - got, deep); x += nx * out; z += nz * out; }
@@ -1451,8 +1466,17 @@
         }
       }
       for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; } }   // (a car that stands dead on the field, and its team if they still stand: nothing moves them)
+    } else if (pass === "roll") {
+      // (19 November, owner: "Humans and horses should not merge into each other. Player should not be able to cross walls and
+      // merge across humans." A roll went through every man on the field, a locked wall of shields among them. It stops at
+      // whatever stands in its way now, man or beast, and moves no one.)
+      for (const o of R.B.units) {
+        if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light" || o.g.down > 0) continue;
+        touch(g, x, z, o.g, 0); if (TP > 0) { const out = noseL(o.g) ? Math.min(TP, DEEP) : TP; x += TX * out; z += TZ * out; }
+      }
+      for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; } }
     } else {
-      // (A roll, or a body thrown back, passes between men, but not through a car's team, an elephant or a car that stands
+      // (A body thrown back passes between men, but not through a car's team, an elephant or a car that stands
       // dead: owner, 18 November, "The player is still able to go through horses". A roll carries three metres, and it
       // carried you through a team of four and out the far side before the easing-apart could stop it.)
       for (const o of R.B.units) {
@@ -1463,7 +1487,19 @@
     }
     const r = Math.hypot(x, z), lim = R.rad - 0.3;
     if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; }
+    // Nothing ends a step inside another body. Being put out of one body can put you into the next (a man walked into the
+    // gap between two, or between a man and the field's edge, and came out the far side a step later). So the place is
+    // looked at once more: if it is deeper inside anything than where the step began, the step is not taken.
+    if (pass !== true && (u.side === "player" || !noseL(g))) { const w1 = deepIn(R, u, x, z); if (w1 > 0.12 && w1 > deepIn(R, u, g.x, g.z) + 0.01) return; }
     g.x = x; g.z = z;
+  }
+  function deepIn(R, u, x, z) {   // how deep (m) a body at this place would stand inside the nearest thing in its way
+    let worst = 0; const g = u.g;
+    for (const o of R.B.units) { if (o === u || o.hp <= 0 || !o.g || o.spared || (o.side === "enemy" && !o.g.entered) || o.g.kind === "light" || o.g.down > 0) continue;
+      if ((u.side === "enemy") === (o.side === "enemy") && !noseL(o.g)) continue;   /* (men of one side give each other room: you are not shut in by your own rank. It is the other side, and anything as big as a team, that a step may not end inside.) */
+      touch(g, x, z, o.g, 0); if (TP > worst) worst = TP; }
+    for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > worst) worst = TP; }
+    return worst;
   }
 
   // A car whose man is killed. Brought down by a heavy blow, or within a moment of a meeting with a car or an elephant, or

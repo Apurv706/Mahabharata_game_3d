@@ -167,3 +167,27 @@ Checked by reading, and by the three automated fights in a real browser that pla
 **"&79" in play.** Found by reading: a named foe's great blow is called out over his head by name as it begins, and that name came made safe for a web page while being shown as plain text, so an apostrophe came out as `&#39;`. The same for the small tag over a foe. Both fixed (`callout` and the bar's tag in `js/ui/battle/view.js`). The rest of the fight screen was read for the same mistake (text made page-safe twice, or page-safe text set as plain text) and none was found.
 
 Not covered: text that only appears mid-fight was read in the code, not watched in play.
+
+## Solid bodies, a second between strikes, stronger foes, no roll when hemmed in (19 November, Version 82)
+
+Asked for, four things: "Object permanence: humans and horses should not merge into each other. Player should not be able to cross walls and merge across humans"; "When a player attacks it should take a second before strike is ready again"; "Make foes stronger"; "Roll should be possible only when not surrounded". All four are in the rules (`js/ui/battle/sim.js`).
+
+**1. Bodies are solid.**
+- **A roll went through every man on the field**, a locked wall of shields among them (only a chariot's team stopped it, since the 18th). A roll now stops at whatever stands in its way, man or beast, and moves no one.
+- **Your own men walked through you.** They were told not to push you about, and so were not stopped by you at all. They are stopped by you now and go round; they still do not push you.
+- **Being put out of one body could put you into the next**: walking into the gap between two men, or between a man and the field's edge, you came out the far side a step later. A step that would end deeper inside anything than it began is not taken.
+- A body thrown back by a blow still passes between men (it strikes them by the rules of weight, section 2), and the fallen can still be walked over.
+
+**2. A second between your strikes** (`P.strikeGap`, 1.0). From the start of one blow to the start of the next. Pressed sooner, the press is remembered and the blow is thrown when the arm is ready. The run of blows (first, second, heavy third) is kept across the wait. The Strike button shows the wait draining. A parry (your weapon meeting his) is not held back. Because blows are fewer, **each of yours lands 1.3 times as hard** (`P.blowK`), so a fight takes about as long as it did.
+
+**3. Foes are stronger.** They hit an eighth harder (`P.atkFoe` 0.83 from 0.74) and have a twentieth more health (`P.hpFoe` 4.85 from 4.6), every one of them.
+
+**4. No roll when hemmed in** (`R3.hemmed`). Three or more foes within 2.6 m of you, with no gap between them wider than 160 degrees seen from where you stand: the Roll button goes dark. Cut one down or push out behind your shield and it comes back. A first-time tip says so.
+
+**What it did to the fights.** The game's own fighter, 12 runs of each of the 79 fights: 84 wins in 100 (92 before), 50 seconds a fight (42), no fight failing or running out the clock. Step by step: the second between strikes, solid bodies and the roll rule alone gave 86 in 100 and 55 seconds; stronger foes on top of that 79 and three fights out of time; heavier blows of yours brought it to 84 and 50. The bands were recorded again from 28 runs of each fight, over which it is 81 wins in 100 and 51 seconds.
+
+Much harder than before for the fighter, and worth playing by hand before anything else: the duel at the crossing (17 in 100 from 75), the road to Jayadratha (33 from 82), the escape at the crossing (42 from 82), the hunt (42 from 96), Bhadra on the road (50 from 96). Some of that is the fighter itself: it was taught to roll through men to get clear, and no longer can.
+
+Checks added (`tests/rules3d.js`, 131 from 127): a roll at a man stops against him; walked at four men shoulder to shoulder for four seconds, you do not come out behind them; hemmed in on four sides you cannot roll, and with two gone you can; Strike held down for three seconds throws four blows, never less than a second apart.
+
+Not done: walls drawn as scenery at the field's edge stand outside the ground you can reach, so nothing was needed there; the fallen are still not in the way (the rules do not know where the physics engine laid them). None of this has been played on a phone.

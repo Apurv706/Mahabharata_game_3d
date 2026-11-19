@@ -1278,8 +1278,8 @@
       const goal = goalText(); if (me.goal.textContent !== goal) me.goal.textContent = goal;
       const st2 = Object.keys(p.status).filter((s) => p.status[s]).map((s) => K.tr(s)).join(" · ") + (R.haste > 0 ? " · ♪" : ""); if (me.status.textContent !== st2) me.status.textContent = st2;
       const set = (a, ok, cd, hide) => { const b = btnEls[a]; if (!b) return; b.classList.toggle("off", !ok); if (hide != null) b.hidden = hide; const c = b.querySelector(".cd"); if (c) c.style.transform = "scaleY(" + clamp(cd || 0, 0, 1).toFixed(2) + ")"; };
-      set("strike", R3.can(R, "strike") || R.noStrike, 0);
-      set("roll", R3.can(R, "roll"), 0);
+      set("strike", R3.can(R, "strike") || R.noStrike, Math.max(0, ((R.strikeAt || 0) - R.t) / R3.P.strikeGap));
+      set("roll", R3.can(R, "roll"), 0); if (!tips.hemmed && R3.hemmed(R)) tip("hemmed", "Hemmed in: you cannot roll while they stand all round you. Cut one down, or raise your shield and push out.");
       set("block", R3.can(R, "block") || R.block, R.broken ? 1 : 0); if (btnEls.block) btnEls.block.classList.toggle("on", !!R.block);
       if (R.skill) set("skill", R3.can(R, "skill"), R.skillCd / (RT.RECHARGE[R.skill] || 10));
       set("vanish", R3.can(R, "vanish"));
