@@ -570,16 +570,29 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     p.g.x = 0; p.g.z = 13; car.still = false; car.g.x = 0; car.g.z = -8; steady(car, 4.5); car.g.tgt = p.uid; car.g.jostleT = 0; car.g.wreckT = 0; car.g.down = 0; al.g.jostleT = 0; R.downFree = 0; R.downUntil = 0;   // (their horses' heads two and a half metres apart)
     let cr = null; for (let i = 0; i < 120 && !cr; i++) { p.hp = p.maxHp; steady(car, 4.5); al.g.cool = 99; al.g.ca = Math.PI; al.g.a = Math.PI; R3.step(R, { mx: 0.01 }); for (const e of R.fx) if (e.k === "crash") cr = { fell: e.fell, me: e.me, n: e.n, n1: e.n1, a: car.g.wreckT > R.t && car.g.cv === 0, b: al.g.wreckT > R.t, down: car.g.down > 1 }; R.fx.length = 0; }
     ok(!!cr && cr.fell && cr.me && cr.a && cr.b && cr.down && cr.n > 0 && cr.n1 > 0, "A chariot that runs into another at speed stops both dead, throws their men down on the deck, and costs both health (" + (cr ? (cr.n / 10).toFixed(1) + "% and " + (cr.n1 / 10).toFixed(1) + "%" : "they never met") + ")");
-    // A car whose man is killed stands where it stopped, in the way of everything from then on: with its team, if they
-    // still stand. Brought down by a heavy blow it is wrecked, its team is down, and only the car itself is in the way.
+    // A car whose man is killed stands where it stopped, in the way of everything from then on, with its team. Brought down
+    // by a heavy blow it is wrecked and its team is down, and the horses lying in their traces are in the way as well, a
+    // little wider (owner, 18 November: "The player is still able to go through horses").
     const T_ = R3.TEAM, set = (u, x) => { u.g.car = true; u.g.rad = 1.25; u.g.team = 2; u.g.entered = true; u.g.x = x; u.g.z = -4; u.g.ca = 0; u.g.a = 0; u.g.cv = 0; u.g.wreckT = 0; u.g.jostleT = 0; u.g.bumpT = 0; u.g.down = 0; u.g.fell = null; u.hp = u.maxHp; u.still = false; };
     car.g.x = 40; car.g.z = 45; car.g.entered = false; set(al, -5); al.g.killHeavy = false; set(b, 5); b.g.killHeavy = true; p.g.x = 0; p.g.z = 12; al.hp = 0; b.hp = 0; R3.step(R, {}); R.fx.length = 0;
     const stood = R.blocks.find((x) => x.uid === al.uid), wreck = R.blocks.find((x) => x.uid === b.uid);
     // (walked at from straight in front of where it stopped, along its own line)
     const walkAt = (k) => { if (!k) return 0; const ex = Math.sin(k.a), ez = Math.cos(k.a); p.g.x = k.x + ex * (T_.z + T_.r + 4); p.g.z = k.z + ez * (T_.z + T_.r + 4); p.g.wx = p.g.wz = 0; p.g.busy = 0; R.downUntil = 0; for (let i = 0; i < 60 * 3; i++) { p.hp = p.maxHp; R3.step(R, { mx: -ex, mz: -ez }); R.fx.length = 0; } return (p.g.x - k.x) * ex + (p.g.z - k.z) * ez; };
     const s1 = walkAt(stood), s2 = walkAt(wreck);
-    ok(al.g.wrecked === false && b.g.wrecked === true && !!stood && stood.nl > 0 && !!wreck && wreck.nl === 0 && s1 >= T_.z + T_.r - 0.1 + p.g.rad - 0.03 && s1 < T_.z + T_.r + p.g.rad + 0.3 && s2 > 1.4 && s2 < 1.9,
-      "A car whose man is killed stays in the way: with its team still standing you are stopped " + s1.toFixed(1) + " m before its deck's middle; one wrecked by a heavy blow has its team down, and you walk over that ground to the car itself (" + s2.toFixed(1) + " m)"); }
+    ok(al.g.wrecked === false && b.g.wrecked === true && !!stood && stood.nl > 0 && !!wreck && wreck.nl > 0 && s1 >= T_.z + T_.r - 0.1 + p.g.rad - 0.03 && s1 < T_.z + T_.r + p.g.rad + 0.3 && s2 >= T_.z + T_.r + 0.15 + p.g.rad - 0.03 && s2 < T_.z + T_.r + 0.15 + p.g.rad + 0.3,
+      "A car whose man is killed stays in the way: with its team still standing you are stopped " + s1.toFixed(1) + " m before its deck's middle; one wrecked by a heavy blow has its team down, and you are stopped at the horses where they lie (" + s2.toFixed(1) + " m)"); }
+  { // A roll passes between men but not through a car's team (owner, 18 November). A car that stands, never driven, has
+    // its own way (its team is no longer swung round with its man at a man's pace).
+    const T_ = R3.TEAM, c = B.units.find((u) => u.side === "ally" && u.g && u.hp > 0 && u.g.car) || B.units.find((u) => u.side === "ally" && u.g);
+    R.blocks.length = 0; c.g.car = true; c.g.rad = 1.25; c.g.team = 2; c.g.entered = true; c.g.x = 0; c.g.z = -4; c.g.ca = null; c.g.a = 0; c.g.cv = 0; c.hp = c.maxHp = 1000; c.still = true; c.g.atk = null; c.g.cool = 99;
+    for (const u of B.units) if (u !== c && u !== p && u.g) { u.g.x = 60; u.g.z = 60; u.g.entered = false; }
+    R3.step(R, {}); const own = c.g.ca != null;
+    p.g.x = 0; p.g.z = c.g.z + T_.z + T_.r + p.g.rad + 2.2; p.g.wx = p.g.wz = 0; p.g.busy = 0; R.downUntil = 0; R.breath = 99; R.roll = 0;
+    let rolled = false; for (let i = 0; i < 60 * 2; i++) { p.hp = p.maxHp; R.breath = 99; const a = { mx: 0, mz: -1 }; if (!rolled && R.roll <= 0) { a.roll = true; rolled = true; } else if (R.roll <= 0 && i % 25 === 0) a.roll = true; R3.step(R, a); R.fx.length = 0; }
+    const gap = p.g.z - c.g.z, minGap = T_.z + T_.r + p.g.rad - 0.35;
+    c.still = false;
+    ok(own && rolled && gap >= minGap,
+      "A roll at a standing car's team stops at the horses (" + gap.toFixed(1) + " m from the deck, the team reaches " + (T_.z + T_.r).toFixed(1) + "); a car never driven has its own way from the first step"); }
   try { C.settle("flee"); C.end(); } catch (x) {}
 }
 {

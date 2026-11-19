@@ -472,7 +472,7 @@
         if (!g.car && hero && u.side !== "player" && (STANDARD[hero] || STEEDS[hero]) && st && !st.indoor && (R.line || K.S.act >= 6)) {
           const steeds = STEEDS[hero], car = CAR[hero], side = u.side === "enemy" ? (K.S.side === "kaurava" ? BLUE : RED) : K.S.side === "kaurava" ? RED : BLUE;
           v.parked = G.chariot({ col: car ? car[0] : G.shade(side, 0.82), trim: car ? car[1] : 0xe2b55a, flag: STANDARD[hero] || [side, "#f2ead2", side === RED ? "sun" : "moon"], canopy: UMBRELLA.has(hero) ? 0xf4f0e6 : null, horseCol: steeds ? steeds[0] : undefined, tack: steeds ? steeds[1] : undefined, horses: 4 });   // (four on every setting: where this car comes onto the field, fast in the earth on the seventeenth day, the rules have a team of four in the way)
-          const a = Math.atan2(g.x, g.z) + (u.side === "ally" ? 0.55 : -0.4), r = R.rad + 3.6;
+          const a = Math.atan2(g.x, g.z) + (u.side === "ally" ? 0.55 : -0.4), r = R.rad + 4.6;   // (Owner, 18 November: "The player is still able to go through horses". At R.rad + 3.6 the team, facing in, put its heads 0.7 m inside the field's edge, and nothing in the rules stood there: you walked into them. At 4.6 its nearest head is 1.04 m beyond the edge, and the farthest you reach is 0.12 m beyond it)
           v.parked.position.set(Math.sin(a) * r, 0, Math.cos(a) * r); v.parked.rotation.y = a + Math.PI; v.parked.traverse((m) => { if (m.isMesh) m.castShadow = true; }); G.actors.add(v.parked);
         }
       }
@@ -530,7 +530,7 @@
         return;
       }
       if (v.car) { // the car runs under its archer; fallen, it stands where it stopped
-        const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.a; }
+        const c = v.car; if (snap) { c.position.set(g.x, 0, g.z); c.rotation.y = g.ca != null ? g.ca : g.a; }   // (drawn the way the rules have it pointing: 18 November)
         const k20 = Math.min(1, dt * 20), mx = (g.x - c.position.x) * k20, mz = (g.z - c.position.z) * k20, mv = Math.hypot(mx, mz), mps = dt > 0 ? Math.min(12, mv / dt) : 0; c.position.x += mx; c.position.z += mz;
         if (PH) { PH.mover(u.uid, { kind: "car", x: c.position.x, z: c.position.z, a: c.rotation.y, dt });   // (and so does a car, and its team before it)
           if (!v.wrecked) { const tm = c.userData.team, tp = tm.getWorldPosition(v.tp || (v.tp = new T.Vector3())); PH.mover(u.uid + ":team", { kind: "team", n: (c.userData.horses || []).length || 2, x: tp.x, z: tp.z, a: c.rotation.y + tm.rotation.y, dt }); } }

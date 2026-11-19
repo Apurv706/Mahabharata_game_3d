@@ -640,3 +640,19 @@ Asked for, after Version 72 was played: "Player was still able to walk through h
 - `tests/rules3d.js`: 126 checks from 116, and four older ones made to stand on their own (`docs/Fight_Feel.md`, "Checks added"). `tools/review/footprint.js` (new).
 - Two faults of the first tries, both of which hung a fight: the team as a circle of its own left a hollow at the pole; and a man who was sent to the nearer end of a car when what he wanted was its man, at the other end, went back and forth at the horses' heads.
 - The fight bands are as recorded: 92 wins in 100 and 41 seconds over the 79 fights, none failing, none running out the clock.
+
+
+## Version 74 (18 November): horses you could still go through
+
+Asked for: "The player is still able to go through horses. I thought we fixed that." Version 73 made a standing or moving team solid, but four ways through were left. Found by a new tool, `tools/review/horses.js`, which drives the fighter straight at the nearest drawn horse (and, with `ROLL=1`, rolls at it) in every fight and counts the frames in which you stand inside one.
+
+| Way through | Where it showed | Fixed |
+|---|---|---|
+| **A roll passed through everything.** `move(..., pass)` skipped every body, and a roll of about three metres carried you through a team of four before the easing-apart could stop it. | Any fight with a car | A roll, and a body thrown back, still pass between men, but stop at a car's team, an elephant, or a car that stands dead (`move`, the `else` of `if (!pass)`). |
+| **A car never driven had no way of its own** (`g.ca` null), so its team was put where its man faced. A man on its deck turning to fight swung his team round at a man's pace, hundreds of degrees a second, while the picture brought the car round at a car's. | Abhimanyu's last stand (`e_last_stand`): his team stood 75 to 95 degrees from where it was drawn | Every car and elephant has its own way from its first step; one that stands is brought round toward its man at its turn on the spot (`PHYS.car.pivot`, `clocks`). The view starts a car the way the rules point it. |
+| **A wrecked car's team was out of the way**, though its horses lie where they fell. | Any wreck | A team that is down is in the way as one that stands, 0.15 m wider (`carDown`, `beatItem`). |
+| **A hero's parked car** at the field's edge (R.rad + 3.6) faced in, and its horses' heads came 0.7 m inside the edge. Nothing in the rules stood there. | The night battle (`wc_e_ghost`) | It stands at R.rad + 4.6: its nearest head is 1.04 m beyond the edge; the farthest you reach is 0.12 m beyond it. |
+
+Checked: `tools/review/horses.js` over all 79 fights, walking (as a Pandava, with the mace) and rolling (as a Kaurava, with the bow): no frame with you standing inside a horse, except a fifth of a second in "The water's edge" (`e_lake_hold`), where a roll can squeeze you between an ally's car standing at the field's edge and the edge itself. `tests/rules3d.js`: 127 checks (one new: a roll at a standing team stops at the horses; one changed: a wrecked car's team is in the way). The fight bands are as recorded: 92 wins in 100, 42 seconds, every fight inside its band.
+
+Published to both play pages as a patch of `k3d.js` alone (the two changed scripts swapped into the bundle in place; nothing else in either part changed).

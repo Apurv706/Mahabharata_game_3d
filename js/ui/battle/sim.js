@@ -714,7 +714,8 @@
     const dn = beat && beat.down3, d = dn && R.B.units.find((x) => x.person === dn && x.hp > 0 && x.g && x.g.car);
     if (d) { // (the wreck stays where it stopped and is in the way; its team is down. He is on the ground beside it, on the side toward the field's middle)
       const a = d.g.ca != null ? d.g.ca : d.g.a, cx = d.g.x, cz = d.g.z, lx = Math.cos(a), lz = -Math.sin(a), sd = lx * -cx + lz * -cz >= 0 ? 1 : -1;
-      d.g.car = false; d.g.rad = 0.42; d.g.ca = null; d.g.cv = 0; d.g.wrecked = true; R.blocks.push({ x: cx, z: cz, rad: 1.15, a, nl: 0, nr: 0, uid: d.uid });
+      const nl0 = noseL(d.g), nr0 = noseR(d.g) + 0.15;   // (its team lies in the traces, and is in the way as the car is: 18 November)
+      d.g.car = false; d.g.rad = 0.42; d.g.ca = null; d.g.cv = 0; d.g.wrecked = true; R.blocks.push({ x: cx, z: cz, rad: 1.15, a, nl: nl0, nr: nr0, uid: d.uid });
       d.g.x = cx + lx * sd * 1.75; d.g.z = cz + lz * sd * 1.75; R.fx.push({ k: "dismount", uid: d.uid, x: d.g.x, z: d.g.z }); }
     const it = beat && beat.item3; if (!it) return; const u = R.B.units.find((x) => x.person === it[0] && x.hp > 0 && x.g); if (!u) return;
     u.g.weapon = it[2] || it[1]; if (it[1] !== "bow") u.g.archer = false; R.fx.push({ k: "item", uid: u.uid, item: it[1], shield: it[3] });
@@ -1450,6 +1451,15 @@
         }
       }
       for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; } }   // (a car that stands dead on the field, and its team if they still stand: nothing moves them)
+    } else {
+      // (A roll, or a body thrown back, passes between men, but not through a car's team, an elephant or a car that stands
+      // dead: owner, 18 November, "The player is still able to go through horses". A roll carries three metres, and it
+      // carried you through a team of four and out the far side before the easing-apart could stop it.)
+      for (const o of R.B.units) {
+        if (o === u || o.hp <= 0 || !o.g || o.spared || !noseL(o.g) || (o.side === "enemy" && !o.g.entered)) continue;
+        touch(g, x, z, o.g, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; }
+      }
+      for (const b of R.blocks) { touch(g, x, z, b, 0); if (TP > 0) { const out = Math.min(TP, DEEP); x += TX * out; z += TZ * out; } }
     }
     const r = Math.hypot(x, z), lim = R.rad - 0.3;
     if (r > lim && (u.side !== "enemy" || g.entered)) { x *= lim / r; z *= lim / r; }
@@ -1464,7 +1474,10 @@
   function carDown(R, u) {
     const g = u.g; g.cv = 0;
     g.wrecked = u.side !== "player" && who(u) !== "arjuna" && !!(g.killHeavy || g.jostleT > R.t || g.bumpT > R.t || g.wreckT > R.t);
-    R.blocks.push({ x: g.x, z: g.z, rad: g.rad - 0.1, a: g.ca != null ? g.ca : g.a, nl: g.wrecked ? 0 : noseL(g), nr: noseR(g) - 0.1, uid: u.uid });
+    // (Owner, 18 November: "The player is still able to go through horses". A wrecked car's horses go down where they
+    // stood, under the physics engine, and lie there; the rules had them out of the way, and you walked through them as
+    // they lay. A team that is down is in the way now as one that stands, a little wider for horses on their sides.)
+    R.blocks.push({ x: g.x, z: g.z, rad: g.rad - 0.1, a: g.ca != null ? g.ca : g.a, nl: noseL(g), nr: noseR(g) + (g.wrecked ? 0.15 : -0.1), uid: u.uid });
   }
 
   // ---------- Foes ----------
@@ -1843,7 +1856,14 @@
         else if (s !== "crit") u.status[s] = Math.max(1, Math.ceil(u.g.st[s] / ROUND));
       }
       // what throws a body back wears off quickly
-      if (u.g.walkN !== R.n) { if (wheeled(u)) { if (u.g.cv > 0) drive(R, u, 0, 0, 0, dt); else u.g.cw = 0; } else if (u.g.wx || u.g.wz) walk(R, u, 0, 0, dt, u.hp <= 0); } // (legs asked for nothing run down; a car runs on a little)
+      // (Owner, 18 November: "The player is still able to go through horses". A car that had never been driven had no way
+      // of its own (g.ca null), and its team was put where its man faced: a man on its deck turning to fight swung his
+      // team round at a man's pace, hundreds of degrees a second, while the picture brought the car round at a car's. In
+      // Abhimanyu's last stand his team stood in the rules 75 to 95 degrees from where it was drawn, and you walked
+      // through the drawn horses. Every car and elephant now has its own way from the start, and one that stands is
+      // brought round toward where its man faces at its turn on the spot (V.pivot), as a driver turns a car.)
+      if (wheeled(u) && u.g.ca == null) u.g.ca = u.g.a;
+      if (u.g.walkN !== R.n) { if (wheeled(u)) { if (u.g.cv > 0) drive(R, u, 0, 0, 0, dt); else { u.g.cw = 0; if (u.hp > 0 && !u.still && !(u.g.wreckT > R.t)) { const V = u.g.kind === "elephant" ? PHYS.ele : PHYS.car, d = adiff(u.g.a, u.g.ca), m = V.pivot * dt, st = clamp(d, -m, m); if (Math.abs(st) > 1e-4) { u.g.ca += st; u.g.cw = st / dt; } } } } else if (u.g.wx || u.g.wz) walk(R, u, 0, 0, dt, u.hp <= 0); } // (legs asked for nothing run down; a car runs on a little)
       if (u.g.vx || u.g.vz) { if (!(u.g.bumpT > R.t)) bump(R, u); move(R, u, u.g.vx * dt, u.g.vz * dt, true); const k = Math.max(0, 1 - PHYS.fric * dt); u.g.vx *= k; u.g.vz *= k; if (Math.abs(u.g.vx) + Math.abs(u.g.vz) < 0.05) { u.g.vx = 0; u.g.vz = 0; } const r = Math.hypot(u.g.x, u.g.z); if (r > R.rad - 0.3 && u.g.entered) { u.g.x *= (R.rad - 0.3) / r; u.g.z *= (R.rad - 0.3) / r; } }
     }
     // Bodies that have ended up in each other (a roll's end, a body thrown back, a press) ease apart, each by the other's weight.
