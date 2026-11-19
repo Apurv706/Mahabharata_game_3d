@@ -24,7 +24,10 @@
   U.TWIST = TWIST;
   const PLAY = (U.PLAY = {});      // kind → play(ctx) → optional stop()
   const AUTO = (U.AUTO = {});      // kind → (t, power) → [outcome, summary]   (kinds that are games of their own: dice)
-  const KINDS = ["aim", "push", "steady", "retort", "draw", "sneak", "notice", "rhythm", "race", "dash", "herd", "rings", "drill", "formation", "array", "breath", "escape", "fuse", "pasha", "hands", "chaupar", "baghchal", "moksha"];
+  const KINDS = ["aim", "push", "steady", "retort", "draw", "sneak", "notice", "rhythm", "race", "dash", "herd", "rings", "drill", "formation", "array", "breath", "escape", "fuse", "pasha", "hands", "baghchal"];
+  // (19 November, owner: "The game with Vikarna doesn't work correctly. Bring it back to 2D, same comment on the chaupar." Moksha
+  //  patam, on Vikarna's board, and chaupar are played on their painted 2D boards again (js/ui/boards.js). Their 3D boards are
+  //  still in games.js, unused: put the two names back in the list above to return to them.)
   U.TRIAL_KINDS = KINDS;
 
   function roll(kind, t, power) {

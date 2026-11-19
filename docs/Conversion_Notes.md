@@ -656,3 +656,7 @@ Asked for: "The player is still able to go through horses. I thought we fixed th
 Checked: `tools/review/horses.js` over all 79 fights, walking (as a Pandava, with the mace) and rolling (as a Kaurava, with the bow): no frame with you standing inside a horse, except a fifth of a second in "The water's edge" (`e_lake_hold`), where a roll can squeeze you between an ally's car standing at the field's edge and the edge itself. `tests/rules3d.js`: 127 checks (one new: a roll at a standing team stops at the horses; one changed: a wrecked car's team is in the way). The fight bands are as recorded: 92 wins in 100, 42 seconds, every fight inside its band.
 
 Published to both play pages as a patch of `k3d.js` alone (the two changed scripts swapped into the bundle in place; nothing else in either part changed).
+
+## 19 November (Version 84): Vikarna's board and chaupar are 2D again
+
+Owner: "The game with Vikarna doesn't work correctly. Bring it back to 2D, same comment on the chaupar." Moksha patam (on Vikarna's board) and chaupar (against Shakuni) are played on their painted 2D boards again (`js/ui/boards.js`). They were taken off the list of games played in 3D (`KINDS` in `js/ui/tests3d/frame.js`); their 3D boards are still in `js/ui/tests3d/games.js`, unused, and putting the two names back in the list returns to them. Tigers and goats (baghchal) was not named and is still 3D, on the same 3D table. Opened in a real page: both start on the 2D board with no 3D canvas and no error.
