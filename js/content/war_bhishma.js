@@ -352,9 +352,66 @@
   };
   K.MOMENT_KINDS.bh_wheel = () => Object.assign({ theme: "milestone", title: "Krishna takes up the wheel", line: "He swore not to fight. He runs at the grandsire with a chariot wheel." },
     K.UI && K.UI.hasVideo && K.UI.hasVideo("war_wheel") && K.UI.living && K.UI.living() ? wheelClip : wheelPuppets);
+  // ---------- The fall, in 3D (19 November) ----------
+  // Owner: "Arjuna killing Bhishma is not done well. Still based on old 2D and no Shikhandi in there." Where the 3D layer can
+  // start, the moment is played on a built field with the game's own figures: Shikhandi at the front of Arjuna's car with
+  // Krishna at the reins and Arjuna behind Shikhandi's shoulder; Bhishma in his own car lowers his bow; Arjuna's arrows go
+  // past Shikhandi and stay in the old man; he goes over the side and lies on them, off the ground. The moment's own card
+  // (title, line, tap to go on) is laid over it. Where 3D cannot start, the flat staging above is played as before.
+  function fall3(el) {
+    const U = K.UI, G = K.G3;
+    try {
+      if (!U || !U.b3d || !U.b3d.can || !U.b3d.can() || !G || !U.b3d.on() || !G.ok) return false;
+      const T = window.THREE, offs = [], figs = [], cues = []; let live = true, stuck = [], clock = 0;
+      G.clear(G.actors); G.lookHint = "war"; G.setStage("fight_war_sunset", { clear: 14 });
+      el.style.zIndex = 450; el.style.background = "transparent"; el.classList.add("in3"); const art = el.querySelector(".mo-art"); if (art) art.style.display = "none";
+      const fig = (who, item, pose) => { const f = G.figure(G.lookOf(who), {}); if (item) f.setItem(item); f.pose(pose, true); figs.push(f); return f; };
+      // Arjuna's car on the left, the grandsire's facing it on the right. A car's team is ahead of it along its own +z.
+      const carA = G.chariot({ col: 0x2d5aa0, trim: 0xe2b55a, flag: ["#2d5aa0", "#f2ead2", "sun"], horseCol: 0xf2efe6, horses: 4 }); carA.position.set(-5.2, 0, 0); carA.rotation.y = Math.PI / 2; G.actors.add(carA); if (carA.userData.banner) carA.userData.banner.visible = false; /* (its standard would hang between the camera and the old man) */
+      const carB = G.chariot({ col: 0xb9b6ad, trim: 0xe2b55a, flag: ["#e9e5d8", "#c9a23a", "sun"], canopy: 0xf4f0e6, horseCol: 0xd9d6cc, horses: 4 }); carB.position.set(5.2, 0, 0.5); carB.rotation.y = -Math.PI / 2; G.actors.add(carB);
+      const sh = fig("shikhandi", "bow", "aim"), ar = fig("arjuna", "bow", "aim"), kr = fig("krishna", null, "drive"), bh = fig("bhishma", "bow", "readyBow");
+      carA.add(sh.root); sh.root.position.set(-0.22, 0.86, 0.3); carA.add(ar.root); ar.root.position.set(0.3, 0.86, -0.5); carA.add(kr.root); kr.root.position.set(0.32, 0.86, 0.62);
+      /* (he stands in a frame of his own, set where his car's floor is, so that he can leave the car and still lie the way he faced) */
+      const seat = new T.Group(); seat.position.set(5.3, 0.86, 0.5); seat.rotation.y = -Math.PI / 2; G.actors.add(seat); seat.add(bh.root);
+      const wp = (o, y) => { const v = new T.Vector3(0, y, 0); o.updateWorldMatrix(true, false); return o.localToWorld(v); };
+      // The scene keeps its own clock (it stops when the game is paused), and each cue waits on that.
+      const at = (secs, fn) => cues.push([clock + secs, fn]);
+      offs.push(G.onFrame((dt, tt) => { clock += dt; K.bhStage.t = clock; for (const f of figs) f.update(dt, tt);
+        for (let i = 0; i < cues.length; i++) if (cues[i] && cues[i][0] <= clock) { const fn = cues[i][1]; cues[i] = null; try { fn(); } catch (e) { if (window.console) console.error(e); } } }));
+      let pan = null;
+      const shot = (a, b, fov, a2, secs) => { if (pan) pan(); pan = null; G.camSet(a, b, fov, true); if (a2) { pan = G.tween(secs, (k) => { const e = k * (2 - k); G.camSet([a[0] + (a2[0] - a[0]) * e, a[1] + (a2[1] - a[1]) * e, a[2] + (a2[2] - a[2]) * e], b, fov, true); }); offs.push(pan); } };
+      const stick = (from) => { /* an arrow that has arrived stays in him, its feathers toward the bow that sent it */
+        if (!live || !G.arrowMesh || stuck.length > 20 || bh.fallTo) return; const m = G.arrowMesh(0.6); bh.root.add(m); stuck.push(m);
+        m.position.set((Math.random() - 0.5) * 0.3, 1.0 + Math.random() * 0.45, 0.13 + Math.random() * 0.06);
+        const w = bh.root.localToWorld(m.position.clone()), d = w.clone().sub(from).setY(0).normalize(); m.lookAt(w.x + d.x, w.y - 0.04 + Math.random() * 0.08, w.z + d.z); };
+      const loose = () => { if (!live) return; ar.act("aimLoose", 0.3); const a = wp(ar.root, 1.45), b = wp(bh.root, 1.2); b.y += (Math.random() - 0.5) * 0.4; b.z += (Math.random() - 0.5) * 0.25;
+        G.fx.arrow([a.x, a.y, a.z], [b.x, b.y, b.z], 0.3, 0.2, () => stick(a)); if (K.Sound) K.Sound.play("tap"); };
+      const B = wp(bh.root, 0);
+      // 1. from behind Arjuna's car: Shikhandi stands in front, and across the field the old man sees who it is
+      shot([-10.4, 4.35, 0.0], [1.0, 1.7, 0.2], 34, [-9.6, 4.1, 0.0], 2.6);
+      at(1.5, () => { bh.pose("stand"); });
+      // 2. the grandsire, close: the bow comes down
+      at(2.6, () => { shot([B.x - 3.5, 2.5, B.z + 1.5], [B.x, 2.3, B.z], 27, [B.x - 3.1, 2.45, B.z + 1.2], 1.8); });
+      // 3. Arjuna shoots past Shikhandi, one arrow after another; then the old man again, taking them
+      at(4.3, () => { shot([-9.3, 3.9, 0.45], [1.0, 1.75, 0.1], 34, [-8.9, 3.75, 0.4], 1.4); for (let i = 0; i < 12; i++) at(0.1 + i * 0.19, loose); });
+      at(5.6, () => { shot([B.x - 3.6, 2.2, B.z + 2.4], [B.x, 2.0, B.z], 34, [B.x - 3.2, 2.1, B.z + 2.1], 1.4); });
+      // 4. he goes over the side of his car and lies on the arrows, off the ground
+      at(6.9, () => { const p = wp(bh.root, 0), L = [B.x - 0.7, 0.36, B.z + 3.1]; for (const m of stuck) bh.root.remove(m); stuck = []; bh.setItem(null); bh.pose("stand", true); bh.drop(true, 1, { rate: 1.15 });
+        at(0.5, () => shot([L[0] - 3.5, 2.9, L[2] + 1.7], [L[0] + 1.0, 0.45, L[2]], 36, [L[0] - 2.9, 1.25, L[2] + 1.5], 2.3)); /* (from beyond his feet, along the length of him: an upright screen is narrow. The cut comes as he lands) */
+        offs.push(G.tween(0.85, (k) => { seat.position.set(p.x + (L[0] - p.x) * k, p.y + (L[1] - p.y) * k * k, p.z + (L[2] - p.z) * k); }));
+        at(0.8, () => { if (!G.arrowMesh) return;
+          for (let i = 0; i < 18; i++) { const up = i % 3 === 0, m = G.arrowMesh(up ? 0.5 : 0.4), x = L[0] + 0.3 + (i / 18) * 1.35 + Math.random() * 0.1, z = L[2] - 0.16 + Math.random() * 0.32; G.actors.add(m); // (two in three under him, heads in the earth; the rest standing out of his chest)
+            m.position.set(x, up ? L[1] + 0.3 : 0.17, z); m.rotation.set(Math.PI / 2 + (Math.random() - 0.5) * 0.3, 0, (Math.random() - 0.5) * 0.3); }
+          if (K.Sound) K.Sound.play("thud"); G.shake(0.05, 0.3); }); });
+      // When the moment's card goes, the field goes with it.
+      const end = () => { if (!live) return; live = false; for (const o of offs) { try { o(); } catch (e) { /* already gone */ } } G.lookHint = ""; U.b3d.off(); };
+      const watch = setInterval(() => { if (!document.body.contains(el)) { clearInterval(watch); end(); } }, 120);
+      return true;
+    } catch (e) { if (window.console) console.error(e); try { K.UI.b3d.off(); } catch (x) { /* nothing to put away */ } el.style.zIndex = ""; el.style.background = ""; const art = el.querySelector(".mo-art"); if (art) art.style.display = ""; return false; }
+  }
   K.MOMENT_KINDS.bh_fall = () => ({ theme: "farewell", title: "The grandsire falls", line: "Arjuna's arrows hold him off the ground.",
-    art: "fight_war_sunset", playAt: 250, ms: 9400, play: (el) => { stageFall(el).catch(() => {}); } });
-  K.bhStage = { wheel: stageWheel, fall: stageFall }; // for the screenshot steps
+    art: "fight_war_sunset", playAt: 250, ms: 10000, play: (el) => { if (!fall3(el)) stageFall(el).catch(() => {}); } });
+  K.bhStage = { wheel: stageWheel, fall: stageFall, fall3 }; // for the screenshot steps
 
   // =====================================================================================
   // The fight: the line under Bhishma's arrows on the ninth day

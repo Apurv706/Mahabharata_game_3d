@@ -674,4 +674,21 @@ A new scene on the tenth day, `bh_stand` (`js/content/war_bhishma.js`), comes st
 
 The game's own fighter: Drona's road 92 wins in 100, before the grandsire 100, about 40 seconds each. The 16 recorded lives and the fight bands were recorded again (81 fights now).
 
-**Not done: the fall itself is still the flat animated moment.** It was asked to be remade in 3D on the same field, with Shikhandi before Arjuna on the chariot. That is the next piece of work.
+(The fall itself was remade in 3D in Version 86, below.)
+
+## 19 November (Version 86): Bhishma's fall in 3D, and the two fights beside it made harder
+
+Asked for: "Make them harder and convert to 3D."
+
+**The fall** (`fall3` in `js/content/war_bhishma.js`) now plays on the same 3D field as the fights, in four shots, about ten seconds:
+
+1. From behind Arjuna's chariot: Krishna driving, Shikhandi standing in front, Arjuna behind him, and across the field Bhishma under his white parasol.
+2. Bhishma close: he sees who stands before him and lowers his bow.
+3. Arjuna shoots past Shikhandi, twelve arrows one after another; then Bhishma again, the arrows standing in him.
+4. He goes over the side of his car and lies on the arrows, off the ground, seen along the length of him.
+
+How it is built: the moment's card is made transparent and raised above the 3D canvas, so its title and line stay on screen. The scene keeps its own clock (it stops when the game pauses) and every cue waits on that clock, not on wall time. Bhishma stands in a small frame of his own rather than on his car, so he can leave the car and still lie the way he faced. The shots are framed for an upright phone (a narrow view), so they look along the line of the two cars rather than across it. When the card goes, the field is cleared and the 3D layer put away. If 3D cannot start, the old flat staging plays as before.
+
+**The two fights** (`R3.TUNE` in `js/ui/battle/sim.js`): Drona's road: foes' health 1.25, blows 1.3. Before the grandsire: health 1.3, blows 1.45. The test fighter now wins 71% and 79% of them (was 92% and 100%). Neither can end the life, and losing either still leads to the fall.
+
+Scratch tool used to check it: a headless page that plays the scene and photographs it at given scene times.

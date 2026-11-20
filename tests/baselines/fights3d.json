@@ -1,7 +1,7 @@
 {
  "runs": 28,
  "seed": 21,
- "mean": 82,
+ "mean": 81,
  "fights": {
   "e_dream": {
    "win": 0,
@@ -269,13 +269,13 @@
    "capped": 0
   },
   "e_bh_drona": {
-   "win": 86,
-   "secs": 38,
+   "win": 71,
+   "secs": 37,
    "capped": 0
   },
   "e_bh_shikhandi": {
-   "win": 100,
-   "secs": 40,
+   "win": 79,
+   "secs": 37,
    "capped": 0
   },
   "cross_e_escape": {

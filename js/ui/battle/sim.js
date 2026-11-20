@@ -79,7 +79,9 @@
     // (16 November, the named's own blows: where a great blow now does what the plain ones did; over: his plain blow's floor above the common men's, 0 for none)
     fs_d3_storm: { atk: 0.9, over: 0 },
     // (16 November, Version 70: two fights that had grown harder with each of the last three versions, eased back toward nine wins in ten)
-    wc_e_ghost: { atk: 0.88 } };
+    wc_e_ghost: { atk: 0.88 },
+    // (19 November, owner: "make them harder": the two stands beside Bhishma's fall)
+    e_bh_drona: { hp: 1.25, atk: 1.3 }, e_bh_shikhandi: { hp: 1.3, atk: 1.45 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
   const held = (u) => !!(u.status.stun || u.status.asleep || u.status.bound);
