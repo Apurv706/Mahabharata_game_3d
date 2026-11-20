@@ -370,6 +370,15 @@
     "Open!": "खुला है!",
     "He fights harder": "वह और ज़ोर से लड़ता है",
     "Stunned": "ठिठक गए",
-    "You stand idle: every foe turns on you.": "तुम खड़े रह गए: हर शत्रु तुम्हारी ओर मुड़ता है।"
+    "You stand idle: every foe turns on you.": "तुम खड़े रह गए: हर शत्रु तुम्हारी ओर मुड़ता है।",
+    "He is through you": "वह तुम्हें पार कर गया",
+    "Stop his car if you can": "रोक सको तो उसका रथ रोको",
+    "A horn. {t} turns his car at the grandsire, and you are what stands between. Stop him if you can!": "शंख बजा। {t} ने अपना रथ पितामह की ओर मोड़ा, और बीच में केवल तुम हो। रोक सको तो रोको!",
+    "{t}'s car is past you, and Arjuna's behind it. Nothing stands between them and the grandsire.": "{t} का रथ तुम्हें पार कर गया, और उसके पीछे अर्जुन का। अब उनके और पितामह के बीच कोई नहीं।",
+    "{t} is the stronger. The team comes on through your blow, and through you.": "{t} अधिक बलवान है। घोड़े तुम्हारे वार को चीरते हुए, तुम्हें गिराते हुए बढ़ आते हैं।",
+    "too strong": "बहुत बलवान",
+    "{t} gives the field.": "{t} मैदान छोड़ देता है।",
+    "driven off": "खदेड़ दिया",
+    "Beat them back": "उन्हें पीछे धकेलो"
   });
 })(window.K = window.K || {});

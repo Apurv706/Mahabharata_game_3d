@@ -754,7 +754,9 @@
           case "defended": { banner(U.tr("He turns it aside on his bow, as he has turned ten thousand.")); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("turned aside"), "foe"); G.fx.burst("spark", at, { n: 12, s: 1.4, col: 0xffffff }); } break; }
           case "checked": { sfx("gong"); G.shake(0.3, 0.3); const at = posOf(e.uid, 2.6); if (at) { float(at, U.tr("checked!"), "foe big"); G.fx.ring(at.clone().setY(0.1), 0xf2d27a, 0.5, 4, 0.6); } break; }
           case "barred": sfx("gong"); banner(R.plan && R.plan.who !== "bhishma" ? U.tr(e.why === "sarathi" ? "Your hand is on the charioteer's rein. {t} turns away." : "{t} cannot get through you, and turns away down the line.", { t: nameOf(e.uid) }) : U.tr(e.why === "sarathi" ? "Your hand is on his charioteer's rein. The grandsire looks at you a moment, and turns his car away." : "He cannot get through you. The grandsire turns his car away down the line.")); break;
-          case "crossed": sfx("drum"); G.shake(0.5, 0.5); banner(U.tr("His car goes through the place where the line was.")); break;
+          case "crossed": sfx("drum"); G.shake(0.5, 0.5); banner(e.past ? U.tr("{t}'s car is past you, and Arjuna's behind it. Nothing stands between them and the grandsire.", { t: nameOf(e.uid) }) : U.tr("His car goes through the place where the line was.")); break;
+          case "tooStrong": { sfx("gong"); G.shake(0.6, 0.5); banner(U.tr("{t} is the stronger. The team comes on through your blow, and through you.", { t: nameOf(e.uid) })); const at = posOf(e.uid, 2.6); if (at) float(at, U.tr("too strong"), "foe big"); break; }
+          case "drivenOff": { sfx("horn"); banner(U.tr("{t} gives the field.", { t: nameOf(e.uid) })); const at = posOf(e.uid, 2.4); if (at) float(at, U.tr("driven off"), "foe big"); break; }
           case "taskDone": case "taskFail": planTask(e); break;
           case "rout": toast(U.tr("They break and run"), "good"); sfx("gong"); G.shake(0.3, 0.4); break;
           case "shaken": toast(U.tr("Their host is shaken: their men are slower to come on"), "good"); break;
@@ -854,7 +856,8 @@
         let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "standard") { if (stdMark) { G.fxRoot.remove(stdMark); G.dispose(stdMark); stdMark = null; } return true; }
           if (Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(stdMark.position, 0xf2d27a, 0.4, 2.6, 0.7); G.fx.beam(stdMark.position.clone().setY(0.2), stdMark.position.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
       else if (e.kind === "bar") { const w = R.plan && R.plan.who, cu = B.units.find((x) => x.uid === e.uid), inCar = !!(cu && cu.g && cu.g.car);
-        banner(w === "bhishma" ? U.tr("A horn. Bhishma turns his car at the gap where you stand. Bar his way: cut at his banner, or get to his charioteer!") : U.tr(!inCar ? "A horn. {t} comes straight for the gap where you stand. Bar the way: three good blows will turn him!" : w === "arjuna" ? "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner. No one lays a hand on his charioteer." : "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner, or get to his charioteer!", { t: nameOf(e.uid) }));
+        if (R.plan && R.plan.noBar) banner(U.tr("A horn. {t} turns his car at the grandsire, and you are what stands between. Stop him if you can!", { t: nameOf(e.uid) }));
+        else banner(w === "bhishma" ? U.tr("A horn. Bhishma turns his car at the gap where you stand. Bar his way: cut at his banner, or get to his charioteer!") : U.tr(!inCar ? "A horn. {t} comes straight for the gap where you stand. Bar the way: three good blows will turn him!" : w === "arjuna" ? "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner. No one lays a hand on his charioteer." : "A horn. {t} turns his car at the gap where you stand. Bar the way: cut at his banner, or get to his charioteer!", { t: nameOf(e.uid) }));
         const uid = e.uid; let t = 0; G.fx.run((dt, cut) => { t += dt; if (cut || !R.task || R.task.kind !== "bar") return true; const at = posOf(uid, 0.1); if (at && Math.floor(t * 1.4) !== Math.floor((t - dt) * 1.4)) { G.fx.ring(at, 0xf2d27a, 0.5, 3.4, 0.7); G.fx.beam(at.clone().setY(3), at.clone().setY(13), 0xf2d27a, 0.12, 0.7); } return false; }); }
       else if (e.kind === "banner" || e.kind === "sarathi") { // the epic's own: the banner over a great car, or its charioteer while the wheel-guards are away
         banner(U.tr(e.kind === "banner" ? "A horn. Their wall is broken and his car stands open. Cut down his banner!" : "A horn. His wheel-guards have left his car to come round you. Reach his charioteer!"));
@@ -1252,7 +1255,7 @@
     }
     function goalText() {
       const left = R3.timeLeft(R), n = left != null ? Math.ceil(left) : 0;
-      if (R.plan && R.plan.kind === "bhishma") return R.task ? K.tr("Bar his way: {n} of 3", { n: R.plan.checks }) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
+      if (R.plan && R.plan.kind === "bhishma") return R.task ? (R.plan.noBar ? K.tr(R.plan.broke ? "He is through you" : "Stop his car if you can") : K.tr("Bar his way: {n} of 3", { n: R.plan.checks })) : K.tr(R.plan.who === "bhishma" ? "Stand under his arrows: pass {n} of 3" : "Stand your ground: pass {n} of 3", { n: Math.min(3, R.plan.pass + 1) });
       if (R.task) { const s2 = Math.max(0, Math.ceil(R.task.until - R.t)), on = B.units.find((u) => u.uid === R.task.on); return (R.task.kind === "capture" ? K.tr("Take {who}", { who: shortOf(R.task.uid) }) : R.task.kind === "banner" ? K.tr("Cut down his banner") : R.task.kind === "sarathi" ? K.tr("Reach his charioteer") : R.task.kind === "standard" ? K.tr("Take their banner") : K.tr("Stop the man going for {who}", { who: on ? K.text(on.name) : "" })) + " · " + s2 + " s"; }
       if (B.enc.mahout3 && B.units.some((x) => x.side === "enemy" && x.hp > 0 && x.g && x.g.kind === "elephant")) return K.tr("Come at the mahout from its flank: {n} of 3", { n: (R.mahout && R.mahout.n) || 0 }) + (left != null ? " · " + n + " s" : "");
       if (R.step3) return K.tr("Get to {t}", { t: nameOf(R.step3.uid) }) + " · " + Math.max(0, Math.ceil(R.step3.until - R.t)) + " s";
@@ -1341,7 +1344,7 @@
     const tradeLines = (list) => [...new Set(list.map((u) => u.g && u.g.cls).filter(Boolean))].slice(0, 3).map((k) => K.tr(R3.CLASS_LINE[k]) + (K.lang === "hi" ? "।" : "."));   // what the kinds of men against you can do
     function brief() {
       const p = C.player(), every = B.units.filter((u) => u.side === "enemy" && u.g && !u.line), foes = every.filter((u) => u.g.entered !== false && u.g.kind !== "light");
-      const allies = B.units.filter((u) => u.side === "ally" && u.g && !u.line), title = K.text(K.val(enc.title) || "A fight"), cap = K.val(enc.caption) ? K.text(K.val(enc.caption)) : "";
+      const allies = B.units.filter((u) => u.side === "ally" && u.g && !u.line), title = K.text(K.val(enc.title) || "A fight"), cap = R.beat && /\bround/i.test(String(K.val(enc.caption) || "")) ? K.tr("Beat them back") : K.val(enc.caption) ? K.text(K.val(enc.caption)) : "";   /* (a fight that counted rounds in the story and is won outright here does not show the count) */
       const lines = B.log.filter((r) => r && r.raw).map((r) => C.line(r));
       if (U.battleBot || U.calm() || !p.g) return ready(true);
       if (!foes.length) {   /* (18 November: one fight, the Narayana weapon, has no foe on the field to show, and so had no opening at all: it went straight to the question. It opens on its name, over you, and what the story says.) */

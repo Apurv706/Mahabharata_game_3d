@@ -692,3 +692,33 @@ How it is built: the moment's card is made transparent and raised above the 3D c
 **The two fights** (`R3.TUNE` in `js/ui/battle/sim.js`): Drona's road: foes' health 1.25, blows 1.3. Before the grandsire: health 1.3, blows 1.45. The test fighter now wins 71% and 79% of them (was 92% and 100%). Neither can end the life, and losing either still leads to the fall.
 
 Scratch tool used to check it: a headless page that plays the scene and photographs it at given scene times.
+
+## 20 November (Version 87): fewer holds, longer fights, Shikhandi gets through, and the fall remade
+
+Owner, after playing Version 86: "Increase the length of the fights. Too many hold the line scenarios today: make them where the player needs to defeat the opponent." "For Shikhandi... show that Shikhandi reaches anyway and the player is unable to stop Shikhandi as he is stronger." "The current 3D animation of Bhishma dying is bad": open on Arjuna and Bhishma fighting from their chariots; Shikhandi's chariot comes between them with the player just behind it (Kauravas) or in front (Pandavas); Bhishma stops and stands with hands joined; Arjuna looses a thousand arrows; he falls.
+
+**Holds that are now won outright** (`R.beat`, set in `R3.begin`, `js/ui/battle/sim.js`). 43 of the 81 fights carry a round count (`hold`). 19 of them no longer end on the clock in 3D: the foes must be beaten. They are: a gap in the line, the three duels of the skirmish days (archer, chariot, mace) and their later twins, the outer ring, the king's flank against Duryodhana, Satyaki's ride and his Yadava guard, through Drona's division, beside Iravan, the water's edge, at Arjuna's wheel, and Drona's road.
+- A champion who may not die in such a fight (Drona, Duryodhana) has a quarter of the health he had as a hold (`P.beatHero`); beaten down to the tenth the story leaves him, he gives the field (`drivenOff`, then `fled`; a car is driven off and leaves no wreck).
+- These fights now get a plan and a turn like any other war fight, and show "Beat them back" where the story's caption counted rounds.
+- **Still a matter of time**, because time is the story: the healers' cart, carrying a man out (two), breaking through (two), Bhishma's arrows, the elephant's mahout, the Narayana weapon, over Bhima, the banner, in Arjuna's place, Karna's wheel (two), Abhimanyu's last stand, three champions at the water (`holds3`), under Arjuna's arrows at Vrishasena's wheel (`STAYS`), and the fights where a great car must be barred. Those that run on a count last 1.35 times as long (`P.holdK`).
+
+**Longer fights.** Foes' health 4.85 to 6.0 and their blows 0.83 to 0.71 (`P.hpFoe`, `P.atkFoe`), then each fight that moved was tuned (`R3.TUNE`). The game's own fighter over 28 runs of each: **80 wins in 100 and 69 seconds a fight; it was 81 and 51.**
+
+**Before the grandsire (Kaurava side)** is no longer a hold. Shikhandi's car makes three passes along your front, and two of the guard fall at each. Then it turns at the grandsire through the place where you stand. Your first blow he turns aside; the next two check his team; the third time "he is the stronger": the team comes through the blow and throws you down, and the car goes past. If you never check it, it goes past the same. Either way the fall follows, with no second try (`unbarred3`, `once`). Checking him twice is what the story counts as having stood.
+
+**Drona's road (Pandava side)** is won by beating his guard and driving him off.
+
+**A fault found:** a great car crossing at a walk could be held for good by a knot of men standing in its road (the rules check for Bhishma's line failed on one seed once foes were tougher and more of your line was still standing). A crossing team stopped for two seconds now shoulders aside whoever is before it.
+
+**The fall** (`fall3`, `js/content/war_bhishma.js`), twenty seconds, three chariots:
+1. Arjuna close, loosing; Bhishma close, loosing; then both from behind Arjuna's car.
+2. Seen from above Bhishma's team: Shikhandi's car drives in from the Pandava side on a curve and stops in the gap between the two. You are running at its tail (Kauravas) or before its horses (Pandavas).
+3. From behind Shikhandi's car, with you beside it, Bhishma beyond.
+4. Bhishma close: the bow comes down, and he joins his hands (a new pose, `namaskar`).
+5. Arjuna's arrows, in three shots (behind Arjuna, behind Shikhandi, on Bhishma): about fifty in six seconds, faster and faster, up to thirty-six standing in him. They are carried by his chest and hips, so they go down with him.
+6. He falls from the car toward the camera, and lies on the arrows, seen along his length.
+
+The scene was checked as a true film: `film2.js` (scratch) takes over the page's clock and its frames, advances a tenth of a second, photographs, and repeats; the frames are joined into a video. (A first attempt that only waited on the scene's clock skipped most of the action, because the test browser draws slower than the clock runs.)
+
+**Not done:** arrows in flight are thin and hard to see from behind Arjuna on a small screen; the fallen man's arms lie out to the sides, not joined; the intros of four converted fights still speak of holding for a count (the king's flank, a gap in the line, the outer ring, beside Iravan); Hindi exists for the new on-screen lines but not for the new story text of the tenth day.
+

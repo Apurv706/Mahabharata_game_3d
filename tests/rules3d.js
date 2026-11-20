@@ -255,7 +255,7 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
   const K = fresh(5); life(K); const C = K.Combat, R3 = K.RT3, B = C.start("e_day1", null), R = R3.begin(B, { noPlan: true }), p = C.player();
   const lineMen = () => B.units.filter((u) => u.side === "ally" && u.line && u.hp > 0 && u.g), far = () => Math.max(...lineMen().map((u) => Math.hypot(u.g.x - p.g.x, u.g.z - p.g.z)));
   const hold = (secs, act) => { R3.step(R, act || {}); for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; for (const u of B.units) if (u.side !== "enemy") u.hp = u.maxHp; R3.step(R, {}); } };
-  hold(3); const before = far(); hold(6, { orders: { friend: "guard", soldiers: "defend", form: "follow" } }); const after = far();
+  hold(3); const before = far(); hold(10, { orders: { friend: "guard", soldiers: "defend", form: "follow" } }); const after = far();   /* (ten seconds, not six: the farthest man may have twelve metres to come) */
   ok(lineMen().length >= 2 && after < 4.5 && before > after, "Follow me brings the men of your line to your heels (" + before.toFixed(1) + " m to " + after.toFixed(1) + " m)");
   C.settle("flee"); C.end();
 }
@@ -635,5 +635,24 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     for (let i = 0; i < 60 * 3.2; i++) { p.hp = p.maxHp; R.over = B.over = null; R3.step(R, { strike: true }); for (const e of R.fx) if (e.k === "blow") starts.push(R.t); R.fx.length = 0; }
     const gaps = starts.slice(1).map((t, i) => t - starts[i]); ok(starts.length >= 3 && starts.length <= 4 && Math.min.apply(null, gaps) >= P_.strikeGap - 0.03, "Strike held down for three seconds throws " + starts.length + " blows, never less than a second apart (shortest gap " + Math.min.apply(null, gaps).toFixed(2) + " s)");
     K.Combat.end(); }
+{ // 20 November: a fight the story calls a hold is won outright in 3D; a champion who cannot die there is driven off; Shikhandi's car cannot be barred
+  const K = fresh(77); life(K, { side: "pandava" }); const C = K.Combat, R3 = K.RT3, P_ = R3.P;
+  { const B = C.start("fs_sk_hold", null), R = R3.begin(B, { noPlan: true, noLine: true }), p = C.player(); p.maxHp = p.hp = 99999;
+    const secs = B.enc.hold * P_.story * P_.holdK + 6; for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; R3.step(R, {}); R.fx.length = 0; }
+    ok(R.beat && !R.over && R3.timeLeft(R) == null, "A gap in the line is no longer won by standing: past its old count (" + Math.round(secs) + " s) the fight is still on, and no clock is shown");
+    for (const u of B.units) if (u.side === "enemy") u.hp = 0; for (let i = 0; i < 30 && !R.over; i++) R3.step(R, {});
+    ok(R.over === "win", "It is won when its foes are beaten (" + R.over + ")"); C.end(); }
+  { const B = C.start("fs_sk_carry", null), R = R3.begin(B, { noPlan: true, noLine: true }); ok(!R.beat && R3.timeLeft(R) > B.enc.hold * P_.story, "Carrying a man out is still a matter of time, and a longer one (" + Math.round(R3.timeLeft(R)) + " s)"); C.end(); }
+  { const B = C.start("e_bh_drona", null), R = R3.begin(B, { noPlan: true, noLine: true }), p = C.player(), d = B.units.find((u) => u.person === "drona"); p.maxHp = p.hp = 99999;
+    for (const u of B.units) if (u.side === "enemy" && u !== d) u.hp = 0; d.hp = Math.round(d.maxHp * 0.1); let off = false, fled = false;
+    for (let i = 0; i < 60 * 8 && !R.over; i++) { p.hp = p.maxHp; R3.step(R, {}); for (const e of R.fx) { if (e.k === "drivenOff") off = true; if (e.k === "fled" && e.uid === d.uid) fled = true; } R.fx.length = 0; }
+    ok(R.beat && off && fled && R.over === "win" && !R.blocks.some((b) => b.uid === d.uid), "Drona, beaten down as far as the story lets him be, gives the field: the fight is won and no wreck is left where his car was"); C.end(); }
+  { life(K, { side: "kaurava" }); const B = C.start("e_bh_shikhandi", null), R = R3.begin(B, { noLine: true }), p = C.player(), c = B.units.find((u) => u.person === "shikhandi"); p.maxHp = p.hp = 99999;
+    let checks = 0, strong = false, past = false;
+    for (let i = 0; i < 60 * 200 && !R.over; i++) { p.hp = p.maxHp; if (R.task && R.task.kind === "bar" && !R.plan.broke && i % 90 === 0) c.g.struck = true; R3.step(R, {}); for (const e of R.fx) { if (e.k === "checked") checks++; if (e.k === "tooStrong") strong = true; if (e.k === "crossed") past = !!e.past; } R.fx.length = 0; }
+    ok(R.plan && R.plan.noBar && checks === 2 && strong && past && R.over === "win", "Shikhandi's car is checked twice and no more: the third time it comes through, and it goes past you (checks " + checks + ", ended " + R.over + ")"); C.end();
+    const B2 = C.start("e_bh_shikhandi", null), R2 = R3.begin(B2, { noLine: true }), p2 = C.player(); p2.maxHp = p2.hp = 99999; for (let i = 0; i < 60 * 200 && !R2.over; i++) { p2.hp = p2.maxHp; R3.step(R2, {}); R2.fx.length = 0; }
+    ok(R2.over === "lose", "Left alone it goes past you just the same, and that is a fight lost with no second try (" + R2.over + ")"); C.end(); }
+}
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

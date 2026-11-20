@@ -1,166 +1,166 @@
 {
  "runs": 28,
  "seed": 21,
- "mean": 81,
+ "mean": 80,
  "fights": {
   "e_dream": {
    "win": 0,
-   "secs": 31,
+   "secs": 38,
    "capped": 0
   },
   "e_ugra": {
    "win": 100,
-   "secs": 71,
+   "secs": 85,
    "capped": 0
   },
   "e_ugra_again": {
    "win": 100,
-   "secs": 71,
+   "secs": 86,
    "capped": 0
   },
   "e_spar": {
    "win": 100,
-   "secs": 45,
+   "secs": 54,
    "capped": 0
   },
   "e_panchala": {
    "win": 100,
-   "secs": 71,
+   "secs": 87,
    "capped": 0
   },
   "e_border": {
    "win": 100,
-   "secs": 38,
+   "secs": 45,
    "capped": 0
   },
   "e_kings": {
    "win": 100,
-   "secs": 37,
+   "secs": 46,
    "capped": 0
   },
   "e_jayadratha": {
-   "win": 57,
-   "secs": 79,
+   "win": 64,
+   "secs": 97,
    "capped": 0
   },
   "e_gandharva": {
    "win": 100,
-   "secs": 50,
+   "secs": 61,
    "capped": 0
   },
   "e_sudatta": {
    "win": 100,
-   "secs": 58,
+   "secs": 71,
    "capped": 0
   },
   "e_cattle": {
-   "win": 64,
-   "secs": 79,
-   "capped": 0
-  },
-  "e_cattle_k": {
    "win": 61,
    "secs": 88,
    "capped": 0
   },
+  "e_cattle_k": {
+   "win": 68,
+   "secs": 101,
+   "capped": 0
+  },
   "e_day1": {
    "win": 82,
-   "secs": 88,
+   "secs": 95,
    "capped": 0
   },
   "e_guard": {
-   "win": 86,
-   "secs": 91,
+   "win": 79,
+   "secs": 96,
    "capped": 0
   },
   "e_hunt": {
-   "win": 54,
-   "secs": 85,
+   "win": 61,
+   "secs": 111,
    "capped": 0
   },
   "e_wheel": {
-   "win": 21,
-   "secs": 91,
+   "win": 39,
+   "secs": 106,
    "capped": 0
   },
   "e_last_stand": {
-   "win": 43,
-   "secs": 52,
+   "win": 61,
+   "secs": 55,
    "capped": 0
   },
   "e_ring": {
    "win": 0,
-   "secs": 57,
+   "secs": 64,
    "capped": 0
   },
   "e_gate": {
-   "win": 96,
-   "secs": 41,
+   "win": 100,
+   "secs": 40,
    "capped": 0
   },
   "e_road": {
-   "win": 43,
-   "secs": 76,
+   "win": 46,
+   "secs": 96,
    "capped": 0
   },
   "e_jaya": {
-   "win": 79,
-   "secs": 101,
+   "win": 75,
+   "secs": 107,
    "capped": 0
   },
   "e_night": {
-   "win": 89,
-   "secs": 83,
+   "win": 68,
+   "secs": 105,
    "capped": 0
   },
   "e_dushasana": {
-   "win": 89,
-   "secs": 71,
+   "win": 100,
+   "secs": 77,
    "capped": 0
   },
   "e_day16": {
-   "win": 86,
-   "secs": 84,
+   "win": 75,
+   "secs": 107,
    "capped": 0
   },
   "e_day18": {
-   "win": 86,
-   "secs": 76,
+   "win": 89,
+   "secs": 90,
    "capped": 0
   },
   "e_raid": {
-   "win": 64,
-   "secs": 121,
+   "win": 68,
+   "secs": 129,
    "capped": 0
   },
   "e_ash": {
-   "win": 68,
-   "secs": 125,
+   "win": 75,
+   "secs": 132,
    "capped": 0
   },
   "hold_karna": {
    "win": 100,
-   "secs": 34,
+   "secs": 35,
    "capped": 0
   },
   "hold_duryodhana": {
-   "win": 68,
-   "secs": 57,
+   "win": 61,
+   "secs": 98,
    "capped": 0
   },
   "hold_arjuna": {
    "win": 100,
-   "secs": 33,
+   "secs": 34,
    "capped": 0
   },
   "hold_bhima": {
-   "win": 100,
-   "secs": 29,
+   "win": 96,
+   "secs": 30,
    "capped": 0
   },
   "e_bandits": {
    "win": 100,
-   "secs": 42,
+   "secs": 52,
    "capped": 0
   },
   "e_ep_bhishma": {
@@ -169,23 +169,23 @@
    "capped": 0
   },
   "e_ep_carts": {
-   "win": 14,
-   "secs": 62,
+   "win": 32,
+   "secs": 76,
    "capped": 0
   },
   "e_ep_ugra": {
-   "win": 82,
-   "secs": 83,
+   "win": 86,
+   "secs": 93,
    "capped": 0
   },
   "e_bhadra": {
-   "win": 36,
-   "secs": 73,
+   "win": 39,
+   "secs": 94,
    "capped": 0
   },
   "e_bhadra_road": {
    "win": 39,
-   "secs": 64,
+   "secs": 75,
    "capped": 0
   },
   "wc_e_child_line": {
@@ -195,172 +195,172 @@
   },
   "wc_e_ghost": {
    "win": 79,
-   "secs": 38,
+   "secs": 52,
    "capped": 0
   },
   "wc_e_reach": {
-   "win": 93,
-   "secs": 39,
+   "win": 100,
+   "secs": 40,
    "capped": 0
   },
   "e_kb_ride": {
    "win": 100,
-   "secs": 40,
+   "secs": 94,
    "capped": 0
   },
   "e_kb_hold": {
-   "win": 100,
-   "secs": 48,
+   "win": 96,
+   "secs": 64,
    "capped": 0
   },
   "e_kb_guard": {
    "win": 100,
-   "secs": 40,
+   "secs": 107,
    "capped": 0
   },
   "e_kf_reach": {
-   "win": 100,
-   "secs": 40,
+   "win": 93,
+   "secs": 93,
    "capped": 0
   },
   "e_iravan": {
-   "win": 93,
-   "secs": 44,
+   "win": 75,
+   "secs": 69,
    "capped": 0
   },
   "e_lake_hold": {
-   "win": 71,
-   "secs": 36,
+   "win": 79,
+   "secs": 85,
    "capped": 0
   },
   "e_lake_hold_deep": {
-   "win": 96,
-   "secs": 42,
+   "win": 68,
+   "secs": 95,
    "capped": 0
   },
   "e_lake_three": {
    "win": 96,
-   "secs": 32,
+   "secs": 43,
    "capped": 0
   },
   "e_lake_three_deep": {
    "win": 100,
-   "secs": 32,
+   "secs": 43,
    "capped": 0
   },
   "oath_arjuna_12": {
-   "win": 93,
-   "secs": 38,
+   "win": 100,
+   "secs": 35,
    "capped": 0
   },
   "oath_arjuna_16": {
    "win": 100,
-   "secs": 36,
+   "secs": 37,
    "capped": 0
   },
   "oath_king_hold": {
-   "win": 89,
-   "secs": 31,
+   "win": 96,
+   "secs": 33,
    "capped": 0
   },
   "bh_line9": {
-   "win": 89,
-   "secs": 31,
+   "win": 86,
+   "secs": 32,
    "capped": 0
   },
   "e_bh_drona": {
    "win": 71,
-   "secs": 37,
+   "secs": 96,
    "capped": 0
   },
   "e_bh_shikhandi": {
-   "win": 79,
-   "secs": 37,
+   "win": 96,
+   "secs": 50,
    "capped": 0
   },
   "cross_e_escape": {
    "win": 32,
-   "secs": 51,
+   "secs": 64,
    "capped": 0
   },
   "cross_e_duel": {
-   "win": 18,
-   "secs": 66,
+   "win": 29,
+   "secs": 85,
    "capped": 0
   },
   "cross_e_called": {
-   "win": 86,
-   "secs": 69,
+   "win": 96,
+   "secs": 77,
    "capped": 0
   },
   "kd_e_son": {
-   "win": 93,
-   "secs": 48,
+   "win": 82,
+   "secs": 63,
    "capped": 0
   },
   "kd_e_wheel": {
    "win": 100,
-   "secs": 48,
+   "secs": 108,
    "capped": 0
   },
   "fs_sk_hold": {
-   "win": 96,
-   "secs": 32,
+   "win": 79,
+   "secs": 86,
    "capped": 0
   },
   "fs_sk_escort": {
    "win": 64,
-   "secs": 29,
+   "secs": 38,
    "capped": 0
   },
   "fs_sk_break": {
-   "win": 82,
-   "secs": 11,
+   "win": 89,
+   "secs": 12,
    "capped": 0
   },
   "fs_sk_range": {
-   "win": 96,
-   "secs": 32,
+   "win": 82,
+   "secs": 70,
    "capped": 0
   },
   "fs_sk_chariot": {
-   "win": 100,
-   "secs": 32,
+   "win": 79,
+   "secs": 70,
    "capped": 0
   },
   "fs_sk_mace": {
-   "win": 100,
-   "secs": 32,
+   "win": 68,
+   "secs": 76,
    "capped": 0
   },
   "fs_sk_carry": {
    "win": 100,
-   "secs": 31,
+   "secs": 41,
    "capped": 0
   },
   "fs_d3_storm": {
-   "win": 71,
-   "secs": 30,
+   "win": 79,
+   "secs": 41,
    "capped": 0
   },
   "fs_d12_elephant": {
    "win": 100,
-   "secs": 32,
+   "secs": 43,
    "capped": 0
   },
   "fs_d13_break": {
-   "win": 86,
-   "secs": 31,
+   "win": 96,
+   "secs": 43,
    "capped": 0
   },
   "fs_d13_hold": {
-   "win": 100,
-   "secs": 32,
+   "win": 86,
+   "secs": 76,
    "capped": 0
   },
   "fs_d14_chariot": {
-   "win": 100,
-   "secs": 32,
+   "win": 79,
+   "secs": 69,
    "capped": 0
   },
   "fs_d15_narayana": {
@@ -369,43 +369,43 @@
    "capped": 0
   },
   "fs_d16_range": {
-   "win": 89,
-   "secs": 31,
+   "win": 64,
+   "secs": 75,
    "capped": 0
   },
   "fs_d18_mace": {
-   "win": 100,
-   "secs": 32,
+   "win": 86,
+   "secs": 86,
    "capped": 0
   },
   "fs_carry": {
    "win": 100,
-   "secs": 31,
+   "secs": 41,
    "capped": 0
   },
   "new_over_bhima": {
    "win": 100,
-   "secs": 48,
+   "secs": 65,
    "capped": 0
   },
   "new_banner": {
-   "win": 68,
-   "secs": 45,
+   "win": 82,
+   "secs": 62,
    "capped": 0
   },
   "new_arjuna_place": {
-   "win": 89,
-   "secs": 47,
+   "win": 82,
+   "secs": 64,
    "capped": 0
   },
   "kw_e_close": {
-   "win": 68,
-   "secs": 45,
+   "win": 79,
+   "secs": 62,
    "capped": 0
   },
   "kw_e_guard": {
-   "win": 86,
-   "secs": 54,
+   "win": 82,
+   "secs": 72,
    "capped": 0
   }
  }

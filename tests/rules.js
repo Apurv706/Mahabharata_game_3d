@@ -696,7 +696,7 @@ require(G + "content/war_bhishma.js");
   S = war({ side: "pandava" }); K.apply(K.SCENES.bh_wheel.enter);
   ok(S.moments.some((m) => m.kind === "bh_wheel") && K.MOMENT_KINDS.bh_wheel().play && K.MOMENT_KINDS.bh_wheel().art === "fight_war_field", "the wheel is a moment, staged in code over the field painting");
   S = war({ side: "kaurava" }); K.apply(K.SCENES.bh_fall.enter);
-  ok(S.moments.some((m) => m.kind === "bh_fall") && K.MOMENT_KINDS.bh_fall().play && K.MOMENT_KINDS.bh_fall().ms <= 10000, "the barrage is a moment of under ten seconds");
+  ok(S.moments.some((m) => m.kind === "bh_fall") && K.MOMENT_KINDS.bh_fall().play && K.MOMENT_KINDS.bh_fall().ms <= 20000, "the barrage is a moment of twenty seconds at most");
   const tent = K.SCENES.bh_wheel.choices.find((c) => c.id === "tent");
   S = war({ side: "pandava" }); S.bonds.arjuna = 2; S.bonds.yudhishthira = 2;
   ok(!K.test(tent.req, S), "the tent: not for those who are not close to the brothers");

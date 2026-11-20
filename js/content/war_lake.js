@@ -119,7 +119,7 @@
   }, "{They} fell in the reeds at Dvaipayana on the last night, holding the water's edge beside Ashwatthama, Kripa and Kritavarma.");
   const hero = (u, atk) => Object.assign({}, u, { hp: 600, atk, hero: true });
   twin({
-    id: "e_lake_three", title: "Three at the water", art: "fight_lake_reeds_night", caption: "Fire-baskets on the bank", lethal: false, hard: true, curse: true, hold: 4,
+    id: "e_lake_three", title: "Three at the water", art: "fight_lake_reeds_night", caption: "Fire-baskets on the bank", lethal: false, hard: true, curse: true, hold: 4, holds3: true, /* (three champions you cannot beat: in 3D too this one is won by lasting) */
     holdText: "Kripa lowers his sword first, and the three turn back to the water.", spare: false, flee: { tags: ["retreat"], fx: { flag: "lake_fled" }, text: "You get away through the reeds before they can close on you." },
     callHelp: reedsHelp, allies: [{ name: "Your fellow scouts", plural: true, hp: 50, atk: 6, def: 2, abilities: ["strike", "arrows"] }],
     enemies: [hero(ASH, 8), hero(KRIPA, 5), hero(KRITA, 5)],

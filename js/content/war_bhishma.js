@@ -362,55 +362,85 @@
     const U = K.UI, G = K.G3;
     try {
       if (!U || !U.b3d || !U.b3d.can || !U.b3d.can() || !G || !U.b3d.on() || !G.ok) return false;
-      const T = window.THREE, offs = [], figs = [], cues = []; let live = true, stuck = [], clock = 0;
-      G.clear(G.actors); G.lookHint = "war"; G.setStage("fight_war_sunset", { clear: 14 });
+      const T = window.THREE, offs = [], figs = [], cues = [], S = K.S || {}, kaurava = S.side === "kaurava"; let live = true, clock = 0, duel = true; const stuckIn = [];
+      G.clear(G.actors); G.lookHint = "war"; G.setStage("fight_war_sunset", { clear: 26 });
       el.style.zIndex = 450; el.style.background = "transparent"; el.classList.add("in3"); const art = el.querySelector(".mo-art"); if (art) art.style.display = "none";
-      const fig = (who, item, pose) => { const f = G.figure(G.lookOf(who), {}); if (item) f.setItem(item); f.pose(pose, true); figs.push(f); return f; };
-      // Arjuna's car on the left, the grandsire's facing it on the right. A car's team is ahead of it along its own +z.
-      const carA = G.chariot({ col: 0x2d5aa0, trim: 0xe2b55a, flag: ["#2d5aa0", "#f2ead2", "sun"], horseCol: 0xf2efe6, horses: 4 }); carA.position.set(-5.2, 0, 0); carA.rotation.y = Math.PI / 2; G.actors.add(carA); if (carA.userData.banner) carA.userData.banner.visible = false; /* (its standard would hang between the camera and the old man) */
-      const carB = G.chariot({ col: 0xb9b6ad, trim: 0xe2b55a, flag: ["#e9e5d8", "#c9a23a", "sun"], canopy: 0xf4f0e6, horseCol: 0xd9d6cc, horses: 4 }); carB.position.set(5.2, 0, 0.5); carB.rotation.y = -Math.PI / 2; G.actors.add(carB);
-      const sh = fig("shikhandi", "bow", "aim"), ar = fig("arjuna", "bow", "aim"), kr = fig("krishna", null, "drive"), bh = fig("bhishma", "bow", "readyBow");
-      carA.add(sh.root); sh.root.position.set(-0.22, 0.86, 0.3); carA.add(ar.root); ar.root.position.set(0.3, 0.86, -0.5); carA.add(kr.root); kr.root.position.set(0.32, 0.86, 0.62);
-      /* (he stands in a frame of his own, set where his car's floor is, so that he can leave the car and still lie the way he faced) */
-      const seat = new T.Group(); seat.position.set(5.3, 0.86, 0.5); seat.rotation.y = -Math.PI / 2; G.actors.add(seat); seat.add(bh.root);
+      const fig = (look, item, pose) => { const f = G.figure(typeof look === "string" ? G.lookOf(look) : look, {}); if (item) f.setItem(item); f.pose(pose, true); figs.push(f); return f; };
+      const car = (o, x, z, ry) => { const c = G.chariot(o); c.position.set(x, 0, z); c.rotation.y = ry; G.actors.add(c); return c; };
+      // Arjuna's car on the left and the grandsire's facing it on the right, a bowshot apart; Shikhandi's comes in between them. (A car's team is ahead of it along its own +z.)
+      const carA = car({ col: 0x2d5aa0, trim: 0xe2b55a, flag: ["#2d5aa0", "#f2ead2", "sun"], horseCol: 0xf2efe6, horses: 4 }, -11, 0, Math.PI / 2); if (carA.userData.banner) carA.userData.banner.visible = false; /* (its standard would hang between the camera and the old man) */
+      const carB = car({ col: 0xb9b6ad, trim: 0xe2b55a, flag: ["#e9e5d8", "#c9a23a", "sun"], canopy: 0xf4f0e6, horseCol: 0xd9d6cc, horses: 4 }, 10.5, 0.5, -Math.PI / 2);
+      const carC = car({ col: 0x7a2f5a, trim: 0xe2b55a, flag: ["#7a2f5a", "#f2ead2", "sun"], horseCol: 0x6a4a34, horses: 2 }, -10, 11, 2.3); if (carC.userData.banner) carC.userData.banner.visible = false;
+      const ar = fig("arjuna", "bow", "aim"), kr = fig("krishna", null, "drive"), bh = fig("bhishma", "bow", "aim"), sh = fig("shikhandi", "bow", "readyBow");
+      const dr = fig(Object.assign({}, G.EXTRAS.rider, { item: "whip", headgear: "turban", hat: "#2c4c86", gear: ["bands"], whiskers: "stache", face: "long" }), null, "drive");
+      const me = fig(G.lookOf("me"), null, "ready");
+      carA.add(ar.root); ar.root.position.set(0, 0.86, -0.3); carA.add(kr.root); kr.root.position.set(0.32, 0.86, 0.62);
+      carC.add(sh.root); sh.root.position.set(-0.1, 0.86, -0.3); carC.add(dr.root); dr.root.position.set(0.32, 0.86, 0.62);
+      /* (the old man stands in a frame of his own, set where his car's floor is, so that he can leave the car and still lie the way he faced) */
+      const seat = new T.Group(); seat.position.set(10.6, 0.86, 0.5); seat.rotation.y = -Math.PI / 2; G.actors.add(seat); seat.add(bh.root);
+      const walk = new T.Group(); G.actors.add(walk); walk.add(me.root);
       const wp = (o, y) => { const v = new T.Vector3(0, y, 0); o.updateWorldMatrix(true, false); return o.localToWorld(v); };
+      const B = wp(bh.root, 0), ease = (k) => k * k * (3 - 2 * k);
+      // Shikhandi's road: in from the Pandava side on a curve, to stand in the gap, a little to one side of the line the arrows fly on.
+      const P0 = [-10, 11], PC = [-4.5, 1.7], P1 = [-1.5, 1.7], LEN = 17.5, T0 = 3.2, T1 = 6.7;
+      const road = (u) => { if (u > 1) return [P1[0] + (u - 1) * LEN, P1[1], 1, 0]; if (u < 0) u = 0; const a = 1 - u;
+        return [a * a * P0[0] + 2 * a * u * PC[0] + u * u * P1[0], a * a * P0[1] + 2 * a * u * PC[1] + u * u * P1[1], a * (PC[0] - P0[0]) + u * (P1[0] - PC[0]), a * (PC[1] - P0[1]) + u * (P1[1] - PC[1])]; };
+      const lead = kaurava ? -4.3 / LEN : 6.6 / LEN, aside = kaurava ? 0.9 : 1.4; let rolled = 0, uWas = 0;
+      const drive = (dt, tt) => { const k = G.clamp((clock - T0) / (T1 - T0), 0, 1), u = 1 - (1 - k) * (1 - k), r = road(u), mps = dt > 0 ? ((u - uWas) * LEN) / dt : 0; uWas = u; rolled += mps * dt;
+        carC.position.set(r[0], 0, r[1]); carC.rotation.y = Math.atan2(r[2], r[3]); G.roll(carC, rolled, tt, Math.min(1, mps / 4), mps);
+        const q = road(u + lead), run = k > 0 && k < 1 ? mps : 0; walk.position.set(q[0], 0, q[1] + aside * u); walk.rotation.y = Math.atan2(q[2], q[3]); me.vf = run; me.vs = 0; me.speed = run; };
       // The scene keeps its own clock (it stops when the game is paused), and each cue waits on that.
-      const at = (secs, fn) => cues.push([clock + secs, fn]);
-      offs.push(G.onFrame((dt, tt) => { clock += dt; K.bhStage.t = clock; for (const f of figs) f.update(dt, tt);
+      const at = (secs, fn) => cues.push([secs, fn]);
+      offs.push(G.onFrame((dt, tt) => { clock += dt; K.bhStage.t = clock; drive(dt, tt); G.roll(carA, 0, tt, 0); G.roll(carB, 0, tt, 0); for (const f of figs) f.update(dt, tt);
         for (let i = 0; i < cues.length; i++) if (cues[i] && cues[i][0] <= clock) { const fn = cues[i][1]; cues[i] = null; try { fn(); } catch (e) { if (window.console) console.error(e); } } }));
       let pan = null;
-      const shot = (a, b, fov, a2, secs) => { if (pan) pan(); pan = null; G.camSet(a, b, fov, true); if (a2) { pan = G.tween(secs, (k) => { const e = k * (2 - k); G.camSet([a[0] + (a2[0] - a[0]) * e, a[1] + (a2[1] - a[1]) * e, a[2] + (a2[2] - a[2]) * e], b, fov, true); }); offs.push(pan); } };
-      const stick = (from) => { /* an arrow that has arrived stays in him, its feathers toward the bow that sent it */
-        if (!live || !G.arrowMesh || stuck.length > 20 || bh.fallTo) return; const m = G.arrowMesh(0.6); bh.root.add(m); stuck.push(m);
-        m.position.set((Math.random() - 0.5) * 0.3, 1.0 + Math.random() * 0.45, 0.13 + Math.random() * 0.06);
-        const w = bh.root.localToWorld(m.position.clone()), d = w.clone().sub(from).setY(0).normalize(); m.lookAt(w.x + d.x, w.y - 0.04 + Math.random() * 0.08, w.z + d.z); };
-      const loose = () => { if (!live) return; ar.act("aimLoose", 0.3); const a = wp(ar.root, 1.45), b = wp(bh.root, 1.2); b.y += (Math.random() - 0.5) * 0.4; b.z += (Math.random() - 0.5) * 0.25;
-        G.fx.arrow([a.x, a.y, a.z], [b.x, b.y, b.z], 0.3, 0.2, () => stick(a)); if (K.Sound) K.Sound.play("tap"); };
-      const B = wp(bh.root, 0);
-      // 1. from behind Arjuna's car: Shikhandi stands in front, and across the field the old man sees who it is
-      shot([-10.4, 4.35, 0.0], [1.0, 1.7, 0.2], 34, [-9.6, 4.1, 0.0], 2.6);
-      at(1.5, () => { bh.pose("stand"); });
-      // 2. the grandsire, close: the bow comes down
-      at(2.6, () => { shot([B.x - 3.5, 2.5, B.z + 1.5], [B.x, 2.3, B.z], 27, [B.x - 3.1, 2.45, B.z + 1.2], 1.8); });
-      // 3. Arjuna shoots past Shikhandi, one arrow after another; then the old man again, taking them
-      at(4.3, () => { shot([-9.3, 3.9, 0.45], [1.0, 1.75, 0.1], 34, [-8.9, 3.75, 0.4], 1.4); for (let i = 0; i < 12; i++) at(0.1 + i * 0.19, loose); });
-      at(5.6, () => { shot([B.x - 3.6, 2.2, B.z + 2.4], [B.x, 2.0, B.z], 34, [B.x - 3.2, 2.1, B.z + 2.1], 1.4); });
-      // 4. he goes over the side of his car and lies on the arrows, off the ground
-      at(6.9, () => { const p = wp(bh.root, 0), L = [B.x - 0.7, 0.36, B.z + 3.1]; for (const m of stuck) bh.root.remove(m); stuck = []; bh.setItem(null); bh.pose("stand", true); bh.drop(true, 1, { rate: 1.15 });
-        at(0.5, () => shot([L[0] - 3.5, 2.9, L[2] + 1.7], [L[0] + 1.0, 0.45, L[2]], 36, [L[0] - 2.9, 1.25, L[2] + 1.5], 2.3)); /* (from beyond his feet, along the length of him: an upright screen is narrow. The cut comes as he lands) */
-        offs.push(G.tween(0.85, (k) => { seat.position.set(p.x + (L[0] - p.x) * k, p.y + (L[1] - p.y) * k * k, p.z + (L[2] - p.z) * k); }));
-        at(0.8, () => { if (!G.arrowMesh) return;
-          for (let i = 0; i < 18; i++) { const up = i % 3 === 0, m = G.arrowMesh(up ? 0.5 : 0.4), x = L[0] + 0.3 + (i / 18) * 1.35 + Math.random() * 0.1, z = L[2] - 0.16 + Math.random() * 0.32; G.actors.add(m); // (two in three under him, heads in the earth; the rest standing out of his chest)
-            m.position.set(x, up ? L[1] + 0.3 : 0.17, z); m.rotation.set(Math.PI / 2 + (Math.random() - 0.5) * 0.3, 0, (Math.random() - 0.5) * 0.3); }
-          if (K.Sound) K.Sound.play("thud"); G.shake(0.05, 0.3); }); });
+      const shot = (a, b, fov, a2, secs, b2) => { if (pan) pan(); pan = null; G.camSet(a, b, fov, true); if (a2) { pan = G.tween(secs, (k) => { const e = k * (2 - k), m = (p, q) => [p[0] + (q[0] - p[0]) * e, p[1] + (q[1] - p[1]) * e, p[2] + (q[2] - p[2]) * e]; G.camSet(m(a, a2), b2 ? m(b, b2) : b, fov, true); }); offs.push(pan); } };
+      // An arrow that has arrived stays in him: its head a hand's breadth in, the shaft standing out toward the bow that sent it. It is carried by his chest, so it goes down with him.
+      const stick = () => { const low = stuckIn.length % 4 === 3, J = bh.j && (low ? bh.j.P : bh.j.T); if (!live || !G.arrowMesh || !J || stuckIn.length >= 36) return; const m = G.arrowMesh(0.6), rnd = Math.random; J.updateWorldMatrix(true, false);
+        const q = J.getWorldQuaternion(new T.Quaternion()).invert(), sc = J.getWorldScale(new T.Vector3()).x || 1, pitch = -0.2 + rnd() * 0.5, yaw = Math.PI / 2 + (rnd() - 0.5) * 0.9;
+        const dir = new T.Vector3(Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).applyQuaternion(q);
+        J.add(m); m.quaternion.copy(q).multiply(new T.Quaternion().setFromEuler(new T.Euler(pitch, yaw, rnd() * 6, "YXZ"))); m.scale.setScalar(1 / sc);
+        m.position.set((rnd() - 0.5) * 0.36, low ? -0.3 + rnd() * 0.3 : -0.05 + rnd() * 0.5, 0).addScaledVector(dir, -(0.2 + rnd() * 0.12) / sc); stuckIn.push(m); bh.jolt(0, -1, 0.3); };
+      const V3 = (v) => (v.isVector3 ? v : new T.Vector3(v[0], v[1], v[2]));
+      const fly = (from, to, secs, hit, streak) => { if (!live) return; const m = G.fx.arrow(from, to, secs, 0.5, hit || null, hit ? 0 : 1.6); if (m) m.scale.setScalar(1.7); /* (drawn large: these are seen across a field, on a phone) */
+        if (streak && G.fx.beam && Math.random() < 0.5) G.fx.beam(V3(from), V3(to), 0xe8c88a, 0.006, 0.12); };   /* (a hair of light along half of them, so the stream reads at a distance) */
+      const spread = (v, r) => [v.x + (Math.random() - 0.5) * r, v.y + (Math.random() - 0.5) * r * 0.5, v.z + (Math.random() - 0.5) * r];
+      // 1. The two great bowmen, car against car: arrow for arrow, and neither gives.
+      const volley = (t0, n, gap) => { for (let i = 0; i < n; i++) { at(t0 + i * gap, () => { if (!duel) return; ar.act("aimLoose", 0.3); const a = wp(ar.root, 1.45), b = wp(carB, 1.25); b.x -= 1.2; fly(a, spread(b, 1.6), 0.5); if (K.Sound) K.Sound.play("tap"); });
+        at(t0 + 0.24 + i * gap, () => { if (!duel) return; bh.act("aimLoose", 0.3); const a = wp(bh.root, 1.45), b = wp(carA, 1.25); b.x += 1.2; fly(a, spread(b, 1.6), 0.5); }); } };
+      shot([-7.9, 2.7, 1.9], [-11.2, 2.3, 0], 28, [-8.3, 2.65, 1.6], 1.3); volley(0.15, 12, 0.46);
+      at(1.2, () => shot([B.x - 3.6, 2.55, B.z + 1.6], [B.x, 2.3, B.z], 28, [B.x - 3.2, 2.5, B.z + 1.35], 1.3));
+      at(2.4, () => shot([-17.4, 4.5, 0.0], [-4.8, 1.75, 0.2], 30, [-16.6, 4.25, 0.0], 1.3));
+      // 2. Shikhandi's car comes in between them, and you with it: at its tail if you fought to stop it, before its team if you cleared its road.
+      at(3.6, () => shot([17.8, 7.6, 2.2], [-3.5, 0.8, 3.2], 34, [17.2, 7.2, 2.0], 3.2, [-2.2, 0.9, 1.3]));
+      at(T1 - 0.1, () => { sh.pose("aim"); me.pose(kaurava ? "slump" : "ready"); });
+      at(6.9, () => { duel = false; bh.pose("readyBow"); shot(kaurava ? [-10.6, 3.5, 4.6] : [-9.4, 3.3, 3.9], [5.0, 1.5, 1.4], 36, kaurava ? [-9.8, 3.3, 4.3] : [-8.6, 3.15, 3.6], 1.4); });
+      // 3. The grandsire sees who stands before him. He will not loose at Shikhandi: the bow goes down, and he joins his hands.
+      at(8.2, () => { bh.pose("stand"); shot([B.x - 3.5, 2.5, B.z + 1.5], [B.x, 2.3, B.z], 27, [B.x - 3.0, 2.45, B.z + 1.2], 2.3); });
+      at(8.9, () => { bh.setItem(null); bh.pose("namaskar"); });
+      // 4. From behind Shikhandi, Arjuna looses: a thousand arrows, one upon another. The old man does not move.
+      const storm = (t0, t1) => { let t = t0, gap = 0.22, n = 0; while (t < t1) { const k = n++; at(t, () => { if (k % 2 === 0) ar.act("aimLoose", 0.22); const a = wp(ar.root, 1.45 + Math.random() * 0.2), b = wp(bh.root, 1.25); a.z += (Math.random() - 0.5) * 0.3;
+          fly(a, [b.x, b.y + (Math.random() - 0.5) * 0.5, b.z + (Math.random() - 0.5) * 0.3], 0.42, stick, true); if (K.Sound && k % 3 === 0) K.Sound.play("tap"); }); t += gap; gap = Math.max(0.075, gap * 0.94); } };
+      at(10.4, () => shot([-17.0, 4.4, 0.4], [-4.8, 1.8, 0.2], 30, [-16.2, 4.15, 0.3], 1.9)); storm(10.6, 16.3);
+      at(12.2, () => shot([-8.8, 3.2, 3.8], [B.x, 1.9, B.z], 30, [-7.6, 3.0, 3.4], 1.7));
+      at(13.8, () => shot([B.x - 3.9, 2.25, B.z + 2.6], [B.x, 1.95, B.z], 34, [B.x - 3.2, 2.1, B.z + 2.1], 2.7));
+      // 5. He goes over the side of his car and lies on the arrows, off the ground.
+      at(16.5, () => { const p = seat.position.clone(), L = [B.x - 0.7, 0.5, B.z + 3.1]; bh.drop(true, 1, { rate: 1.0 });
+        shot([L[0] + 1.3, 1.9, L[2] + 5.6], [B.x - 0.1, 1.3, B.z + 1.2], 40, [L[0] + 1.1, 1.5, L[2] + 5.2], 1.2, [L[0] + 0.8, 0.6, L[2]]); /* (from the side he falls to: he comes down toward the camera) */
+        offs.push(G.tween(1.1, (k) => { seat.position.set(p.x + (L[0] - p.x) * k, p.y + (L[1] - p.y) * k * k, p.z + (L[2] - p.z) * k); }));
+        at(clock + 1.3, () => { stuckIn.forEach((m, i) => { if (i % 3 && m.parent) m.parent.remove(m); }); /* (most of them have gone through him: they are what he lies on) */ shot([L[0] - 4.7, 3.3, L[2] + 1.1], [L[0] + 0.9, 0.55, L[2]], 36, [L[0] - 4.0, 1.75, L[2] + 0.95], 2.0); }); /* (from beyond his feet, along the length of him: an upright screen is narrow. The cut comes as he lands) */
+        at(clock + 1.0, () => { if (!G.arrowMesh) return;
+          for (let i = 0; i < 30; i++) { const m = G.arrowMesh(0.56), x = L[0] + 0.25 + (i / 30) * 1.45 + Math.random() * 0.08, z = L[2] + (i % 2 ? 0.17 : -0.17) + (Math.random() - 0.5) * 0.14; G.actors.add(m); // (the shafts under him, heads in the earth)
+            m.position.set(x, 0.24, z); m.rotation.set(Math.PI / 2 + (Math.random() - 0.5) * 0.3, 0, (Math.random() - 0.5) * 0.3); }
+          if (K.Sound) K.Sound.play("thud"); G.shake(0.05, 0.3); me.pose(kaurava ? "kneel" : "slump"); sh.pose("readyBow"); ar.pose("readyBow"); }); });
       // When the moment's card goes, the field goes with it.
-      const end = () => { if (!live) return; live = false; for (const o of offs) { try { o(); } catch (e) { /* already gone */ } } G.lookHint = ""; U.b3d.off(); };
+      const end = () => { if (!live) return; live = false; for (const o of offs) { try { o(); } catch (e) { /* already gone */ } } try { G.clear(G.actors); } catch (e) { /* nothing left */ } G.lookHint = ""; U.b3d.off(); };
       const watch = setInterval(() => { if (!document.body.contains(el)) { clearInterval(watch); end(); } }, 120);
       return true;
     } catch (e) { if (window.console) console.error(e); try { K.UI.b3d.off(); } catch (x) { /* nothing to put away */ } el.style.zIndex = ""; el.style.background = ""; const art = el.querySelector(".mo-art"); if (art) art.style.display = ""; return false; }
   }
   K.MOMENT_KINDS.bh_fall = () => ({ theme: "farewell", title: "The grandsire falls", line: "Arjuna's arrows hold him off the ground.",
-    art: "fight_war_sunset", playAt: 250, ms: 10000, play: (el) => { if (!fall3(el)) stageFall(el).catch(() => {}); } });
+    art: "fight_war_sunset", playAt: 250, ms: 20000, play: (el) => { if (!fall3(el)) stageFall(el).catch(() => {}); } });
   K.bhStage = { wheel: stageWheel, fall: stageFall, fall3 }; // for the screenshot steps
 
   // =====================================================================================
@@ -478,7 +508,7 @@
         ? ["Shikhandi's chariot is coming straight at the grandsire, and Arjuna's is behind it. Bhishma has lowered his bow. He will not raise it at Shikhandi.", "If Shikhandi is to be stopped, it is his guard that must do it."]
         : ["Shikhandi's chariot is almost level with the grandsire's, with Arjuna close behind it.", "Away to the left Drona has seen it. He turns his chariot out of the line to come at Shikhandi, and your men are what stands in his road."]),
       choices: (S) => [
-        { id: "stand", t: S.side === "kaurava" ? "Go at Shikhandi" : "Stand in Drona's road", combat: S.side === "kaurava" ? "e_bh_shikhandi" : "e_bh_drona", hint: "Won by standing" },
+        { id: "stand", t: S.side === "kaurava" ? "Go at Shikhandi" : "Stand in Drona's road", combat: S.side === "kaurava" ? "e_bh_shikhandi" : "e_bh_drona", hint: S.side === "kaurava" ? "He is stronger than you" : "Drive Drona back" },
         { id: "watch", t: "Stay where you are", fx: { flag: "bh_stood_by" }, text: S.side === "kaurava"
           ? "Others of the guard go at him. None of them gets as far as his wheel."
           : "Another company closes the road. You watch Drona's banner stop, and stay stopped." }
@@ -506,7 +536,7 @@
   const stand10 = (id, title, foes, extra) => K.encounter(Object.assign({ id, title, hold: 5, hard: true, lethal: false, curse: true, allies: K.warAllies, spare: false,
     flee: { tags: ["retreat"] }, art: "war_bhishma", callHelp: K.warHelp, enemies: foes }, extra));
   stand10("e_bh_drona", "Drona's road", [K.foe("Drona", 10, { abilities: ["strike", "arrows", "heavy"], hero: true, person: "drona", hp: 900, atk: 7 }), K.foe("Drona's wheel-guard", 4, { abilities: ["strike", "guard"] }), K.foe("Kaurava spearmen", 3, { plural: true })],
-    { caption: "Until Shikhandi is through", intro: "Drona is coming to put himself between Shikhandi and the grandsire. Keep him here. Not to beat him: to be in his road until it no longer matters.",
+    { caption: "Drive him back", intro: "Drona is coming to put himself between Shikhandi and the grandsire. Beat his guard down and drive him off this road before he reaches them.",
       holdText: "Behind you a great shout goes up, and then nothing. Drona lets his bow fall to his side.",
       beats: [{ round: 2, text: "Drona's arrows come in a sheet. Your company's shields go up together.", run: (B) => B.living("friends").forEach((u) => B.status(u, "guard", 1)) },
         { round: 4, text: "He has stopped shouting orders. He is looking past you, at the grandsire's banner.", run: (B) => B.living("enemy").forEach((u) => B.status(u, "exposed", 1)) }],
@@ -514,12 +544,12 @@
       lose: { fx: { flag: "bh_drona_through" }, text: "Drona's chariot goes through your company. He is a bowshot from Shikhandi when the shout goes up, and he pulls his horses in. He is too late." },
       flee: { fx: { flag: "bh_drona_through" }, text: "You pull your men off the road. Drona drives through, and is still too late." } });
   stand10("e_bh_shikhandi", "Before the grandsire", [K.foe("Shikhandi", 9, { abilities: ["strike", "arrows"], hero: true, person: "shikhandi", hp: 850, atk: 6 }), K.foe("Panchala chariot-guard", 4, { abilities: ["strike", "guard"] }), K.foe("Panchala archers", 3, { plural: true, abilities: ["arrows"] })],
-    { caption: "As long as you can", intro: "The grandsire will not loose at Shikhandi. Stop Shikhandi's chariot yourself, for as long as you can. Arjuna is behind him.",
-      holdText: "Arrows go past you from behind Shikhandi, a great many, and none of them is Shikhandi's. You hear the grandsire's bow fall.",
+    { caption: "Stop his car if you can", plan: "bhishma", unbarred3: true, once: true, intro: "The grandsire will not loose at Shikhandi. Stop Shikhandi's chariot yourself, if you can. Arjuna is behind him.",
+      holdText: "Twice you checked his team. The third time it came through you. From the ground you watch his car go on toward the grandsire, and Arjuna's behind it.",
       beats: [{ round: 2, text: "Arjuna is shooting over Shikhandi's shoulder. Not at you.", run: (B) => B.living("friends").forEach((u) => B.status(u, "exposed", 1)) },
         { round: 4, text: "The grandsire's guard is thinning round you. The ones who are left close up without being told.", run: (B) => B.living("friends").forEach((u) => B.status(u, "guard", 1)) }],
-      win: { fx: { flag: "bh_held_shikhandi", rep: { kuru: 2 }, bond: { bhishma: 1 }, journal: "On the tenth day you held Shikhandi's chariot off the grandsire, and Arjuna's arrows went past you both." }, text: "You have held Shikhandi, and it has made no difference. The arrows that mattered were never his." },
-      lose: { fx: { flag: "bh_shikhandi_through" }, text: "Shikhandi's guard puts you down and his chariot goes on. From the ground you see the grandsire lower his bow." },
+      win: { fx: { flag: "bh_held_shikhandi", rep: { kuru: 2 }, bond: { bhishma: 1 }, journal: "On the tenth day you stood in front of Shikhandi's chariot and could not stop it." }, text: "You stood to Shikhandi's car as long as a man could, and he was the stronger. He is level with the grandsire now, and the arrows that go past him are not his." },
+      lose: { fx: { flag: "bh_shikhandi_through" }, text: "You never lay a blow on his car that counts. Shikhandi goes by you as if you were not there. From the ground you see the grandsire lower his bow." },
       flee: { fx: { flag: "bh_shikhandi_through" }, text: "You give ground, and Shikhandi's chariot goes by you toward the old man." } });
 
   // Where they come: day 9 after Iravan (day 8) and before the ninth night's promotion; the fall
