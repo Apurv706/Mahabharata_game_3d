@@ -707,7 +707,7 @@
           // The named's own great blows (sim.js, "The named: each man's own fight"): called over his head as he begins, explained once.
           case "sig": { if (pf && G.feel && v && v.u.g.atk && v.u.g.atk.on === p.uid) G.feel(pf, "surprise", 0.7); /* (you see it coming) */ const S = R3.SIG[e.id], at = posOf(e.uid, v && v.car ? 3.2 : v && v.kind === "elephant" ? 4.4 : 2.45); if (S && S.name) callout(at, U.tr(S.name), S.steps && S.steps.some((x) => x.nb) ? "nb" : ""); sfx("drumCall");
             if (e.id === "rally" && at) for (let i = 0; i < 3; i++) setTimeout(() => { if (!closed) G.fx.ring(at.clone().setY(0.08), 0xff9a70, 0.4, 7 + i * 2, 0.7); }, i * 140);
-            if (S && S.tip) tip("sig_" + e.id, S.tip); break; }
+            if (S && S.tip) { if (e.lent) { if (S.say) tip("sigl_" + e.id, S.say); } else tip("sig_" + e.id, S.tip); } break; }   /* (a blow lent to him for a round is explained in its own words, not in its owner's name) */
           case "sigEnd": { const at = posOf(e.uid, 2.3); if (at) float(at, U.tr("Open!"), "good big"); break; }
           case "wind2": { const at = posOf(e.uid, 2.3); if (at) { callout(at, U.tr("He fights harder")); G.fx.ring(at.clone().setY(0.08), 0xff7050, 0.4, 5, 0.6); } sfx("gong"); break; }
           case "stunned": { const at = posOf(e.uid, 1.9); if (at) float(at, U.tr("Stunned"), "me"); G.shake(0.2, 0.2); break; }
@@ -756,7 +756,13 @@
           case "barred": sfx("gong"); banner(R.plan && R.plan.who !== "bhishma" ? U.tr(e.why === "sarathi" ? "Your hand is on the charioteer's rein. {t} turns away." : "{t} cannot get through you, and turns away down the line.", { t: nameOf(e.uid) }) : U.tr(e.why === "sarathi" ? "Your hand is on his charioteer's rein. The grandsire looks at you a moment, and turns his car away." : "He cannot get through you. The grandsire turns his car away down the line.")); break;
           case "crossed": sfx("drum"); G.shake(0.5, 0.5); banner(e.past ? U.tr("{t}'s car is past you, and Arjuna's behind it. Nothing stands between them and the grandsire.", { t: nameOf(e.uid) }) : U.tr("His car goes through the place where the line was.")); break;
           case "tooStrong": { sfx("gong"); G.shake(0.6, 0.5); banner(U.tr("{t} is the stronger. The team comes on through your blow, and through you.", { t: nameOf(e.uid) })); const at = posOf(e.uid, 2.6); if (at) float(at, U.tr("too strong"), "foe big"); break; }
-          case "drivenOff": { sfx("horn"); banner(U.tr("{t} gives the field.", { t: nameOf(e.uid) })); const at = posOf(e.uid, 2.4); if (at) float(at, U.tr("driven off"), "foe big"); break; }
+          // Rounds (sim.js, "Rounds"): each is called, with what their leader has brought back to it.
+          case "roundWon": { sfx("gong"); banner(U.tr("Round {n} is yours. Get your breath: they are coming again.", { n: e.n })); const at = posOf(p.uid, 2.2); if (at) float(at, U.tr("Round {n} won", { n: e.n }), "good big"); break; }
+          case "round": { if (e.n < 2) break; sfx("horn"); G.shake(0.25, 0.3); const t = nameOf(e.uid), S = e.id ? R3.SIG[e.id] : null, last = e.n >= e.of;
+            const what = e.trick === "sig" && S ? U.tr("{t} comes back with a new blow: {s}.", { t, s: K.tr(S.name) }) : e.trick === "arm" ? U.tr("{t} comes back with a heavier weapon.", { t }) : U.tr("{t} comes back quicker than before.", { t });
+            banner((last ? U.tr("The last round, {n} of {m}.", { n: e.n, m: e.of }) : U.tr("Round {n} of {m}.", { n: e.n, m: e.of })) + " " + what);
+            const at = posOf(e.uid, 2.6); if (at) { float(at, e.trick === "sig" && S ? U.tr(S.name) : e.trick === "arm" ? U.tr("heavier weapon") : U.tr("quicker"), "foe big"); G.fx.ring(at.clone().setY(0.08), 0xff9a70, 0.4, 6, 0.8); } break; }
+          case "drivenOff": { sfx("horn"); banner(e.back ? U.tr("{t} falls back. He is not done.", { t: nameOf(e.uid) }) : U.tr("{t} gives the field.", { t: nameOf(e.uid) })); const at = posOf(e.uid, 2.4); if (at) float(at, U.tr("driven off"), "foe big"); break; }
           case "taskDone": case "taskFail": planTask(e); break;
           case "rout": toast(U.tr("They break and run"), "good"); sfx("gong"); G.shake(0.3, 0.4); break;
           case "shaken": toast(U.tr("Their host is shaken: their men are slower to come on"), "good"); break;
@@ -1266,7 +1272,8 @@
       if (R.noStrike) return K.tr("Nothing to strike at: block, roll and live. {n} seconds", { n });
       if (R.through) return K.tr("Break through to the far side") + (left != null ? " · " + n + " s" : "");
       if (R.escort) { const cart = B.units.find((u) => u.still); return K.tr("Keep {who} whole", { who: cart ? K.text(cart.name) : "" }) + " · " + n + " s"; }
-      if (left != null) return K.tr("Hold your ground") + " · " + n + " s · " + K.tr("Foes left: {n}", { n: R3.count(R) });
+      if (left != null) { const rd = R3.round(R); return (rd ? K.tr("Round {n} of {m}", { n: rd.k, m: rd.n }) + " · " : K.tr("Hold your ground") + " · ") + n + " s · " + K.tr("Foes left: {n}", { n: R3.count(R) }); }
+      { const rd = R3.round(R); if (rd) return K.tr("Round {n} of {m}", { n: rd.k, m: rd.n }) + " · " + (rd.wait ? K.tr("They are coming again") : K.tr("Foes left: {n}", { n: R3.count(R) })); }
       return K.tr("Foes left: {n}", { n: R3.count(R) });
     }
     let hudGap = 0;

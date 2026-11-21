@@ -227,7 +227,7 @@
       dmg = Math.max(1, Math.round(dmg));
       if (B.rt && C.traitCap) dmg = C.traitCap(B, t, dmg);
       // A holding fight (enc.hold): the champion is held, never killed. He is never brought below a tenth.
-      if (B.enc.hold && t.hero) dmg = Math.min(dmg, Math.max(0, t.hp - Math.round(t.maxHp * 0.1)));
+      if (B.enc.hold && (t.hero || t.keep10)) dmg = Math.min(dmg, Math.max(0, t.hp - Math.round(t.maxHp * 0.1)));   // (keep10: the 3D rounds' leader, before the last round)
       // A sage's kavacha: one blow that would have killed you, in the whole war, leaves you standing (§18.7).
       if (isP(t) && dmg >= t.hp && B.enc.lethal && (K.S.charges || {}).kavacha) { K.S.charges.kavacha = 0; dmg = t.hp - 1; api.tell("The blow that should have ended you breaks on the kavacha. It will not do so twice."); }
       t.hp = Math.max(0, t.hp - dmg);

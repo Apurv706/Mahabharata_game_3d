@@ -24,6 +24,12 @@
   const P = (R3.P = {
     story: 8,            // seconds for each "round" of a fight's story: holds, beats, the field event
     beatHero: 0.25,      // a champion's health in a fight that used to be a hold and is now won by driving him off
+    // Rounds (owner, 20 November: "wherever the story calls for X rounds, make it actually X rounds, each harder than the rest")
+    boutHp: 0.95,        // all the rounds' foes together, against the one company the fight used to have
+    boutAtk0: 0.85, boutAtk1: 1.15, boutAtkT: 1.02,   // their blows in the first round and the last (boutAtkT: the last, where the fight is won by lasting)
+    boutLong: 0.07,      // for each round past four, this much less health in all: more rounds are more comings and goings, not a longer fight
+    boutRest: 2.0,       // seconds between a round won and the next coming on
+    boutHeal: 0.1,       // the breath you get back between rounds, as a share of your health
     holdK: 1.35,         // a fight that is still won by standing lasts this much longer than its rounds say (owner, 20 November: "increase the length of the fights")
     hpFoe: 6.0, hpFriend: 1.55, hpAlly: 3.0, atkFoe: 0.71,   // (19 November, owner: "make foes stronger": they hit an eighth harder (0.74) and stand a twentieth longer (4.6))
     blowK: 1.3,          // each blow of yours lands this much harder than it did when blows came as fast as the arm allowed: fewer, heavier blows, and a fight takes about as long as before
@@ -73,11 +79,11 @@
   // of soldiers in the war battles: where the 2D game has a recorded win rate for a fight the 3D rate is kept near it; the
   // ring round Abhimanyu and the dream are meant to be lost by nearly everyone (docs/Balance_3D.md).
   R3.TUNE = { e_bhadra: { hp: 1.3, atk: 1.25 }, e_bhadra_road: { hp: 1.25, atk: 1.3 }, cross_e_escape: { hp: 0.6, atk: 1.0 }, e_ring: { atk: 0.75 }, e_last_stand: { hp: 0.85, atk: 0.44 }, e_lake_three: { atk: 0.8 }, e_lake_three_deep: { atk: 0.8 }, cross_e_duel: { hp: 1.25, atk: 1.4 }, e_raid: { hp: 0.88, atk: 0.9 }, e_ash: { hp: 0.88, atk: 0.9 },
-    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.6, over: 1 }, fs_sk_hold: { atk: 0.65 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
+    oath_arjuna_12: { atk: 0.82 }, oath_arjuna_16: { atk: 0.77 }, bh_line9: { atk: 0.6, over: 1 }, fs_sk_hold: { atk: 0.8 }, fs_d13_break: { atk: 0.66 }, fs_sk_break: { atk: 0.84 }, fs_sk_escort: { atk: 1.15 }, wc_e_reach: { atk: 0.86 },
     e_wheel: { hp: 1, atk: 1.12 }, e_day16: { hp: 0.76, atk: 0.7 }, e_road: { atk: 1.2 }, oath_king_hold: { atk: 0.96 }, e_cattle_k: { hp: 0.88, atk: 0.8 }, e_iravan: { atk: 0.8 }, e_ep_carts: { hp: 1.08, atk: 1.1 }, e_hunt: { hp: 1.0, atk: 1.25 },
     // (13 November, night: with a man to take where a banner on a pole had ended a war fight in fifteen seconds, and with the trades, these needed easing)
     e_night: { hp: 0.85, atk: 0.9 }, e_lake_hold: { atk: 0.75 }, e_lake_hold_deep: { atk: 0.8 },
-    hold_duryodhana: { hp: 0.68, atk: 0.75 },
+    hold_duryodhana: { hp: 0.68, atk: 0.95 },
     // (16 November, the named's own blows: where a great blow now does what the plain ones did; over: his plain blow's floor above the common men's, 0 for none)
     fs_d3_storm: { atk: 0.72, over: 0 }, kw_e_close: { atk: 0.85 },
     // (16 November, Version 70: two fights that had grown harder with each of the last three versions, eased back toward nine wins in ten)
@@ -85,7 +91,7 @@
     // (19 November, owner: "make them harder": the two stands beside Bhishma's fall)
     e_bh_shikhandi: { hp: 1.3, atk: 1.2 },
     // (20 November, owner: "too many hold the line scenarios: make them where the player needs to defeat the opponent". Fights that were won by outlasting a count and must now be won outright)
-    e_bh_drona: { hp: 0.5, atk: 0.75 }, e_kb_guard: { hp: 0.45 }, e_kf_reach: { hp: 0.8 }, fs_sk_range: { atk: 0.85 }, fs_d16_range: { atk: 0.85 }, fs_d18_mace: { atk: 0.75 }, fs_d13_hold: { atk: 0.85 }, kd_e_wheel: { hp: 0.7 }, e_kb_ride: { hp: 0.6 } };
+    e_bh_drona: { hp: 0.5, atk: 0.95 }, e_kb_guard: { hp: 0.45, atk: 1.15 }, e_kf_reach: { hp: 0.65 }, fs_sk_range: { atk: 0.85 }, fs_d16_range: { atk: 0.7 }, fs_sk_chariot: { atk: 0.85 }, kd_e_son: { atk: 0.85 }, fs_d18_mace: { atk: 0.75 }, fs_d13_hold: { atk: 0.85 }, kd_e_wheel: { hp: 0.7 }, e_kb_ride: { hp: 0.6 } };
 
   const living = (B, side) => B.units.filter((u) => u.hp > 0 && !u.spared && (side === "friends" ? u.side !== "enemy" : u.side === side));
   const held = (u) => !!(u.status.stun || u.status.asleep || u.status.bound);
@@ -277,7 +283,7 @@
   function harm(R, o, dv) {
     if (o.hp <= 0 || o.still || o.decoy || !o.maxHp || !(dv > PHYS.hurtV) || (o.g && o.g.kind === "light")) return 0;
     if (o.side === "player" && (R.roll > 0 || R.unseen > 0)) return 0;
-    const keep = (R.B.enc.hold && o.hero) || (who(o) === "bhishma" && RT.warDay && RT.warDay() < 10) ? Math.round(o.maxHp * 0.1) : 0;
+    const keep = (R.B.enc.hold && (o.hero || o.keep10)) || (who(o) === "bhishma" && RT.warDay && RT.warDay() < 10) ? Math.round(o.maxHp * 0.1) : 0;
     const n = Math.max(0, Math.min(Math.round(o.maxHp * Math.min(PHYS.hurtMost, (dv - PHYS.hurtV) * PHYS.hurtPer)), o.hp - keep)); if (!n) return 0;
     o.hp -= n; R.stats.crash = (R.stats.crash || 0) + n;
     if (o.side === "player") { R.stats.taken += n; R.kneel = 0; R.salveStop = true; }
@@ -496,7 +502,7 @@
   function planFor(R, opts) {
     const B = R.B, enc = B.enc, rad = R.rad;
     if ((enc.plan === "bhishma" || CROSS[enc.id]) && !opts.noPlan) return bhishmaPlan(R);
-    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && !R.beat && !HOLD_PLAN[enc.id] && !enc.plan3) || (enc.rounds && !enc.plan3) || enc.dream || R.kind || R.through || R.escort) return;
+    if (opts.noPlan || enc.noPlan || !K.S || K.S.act < 6 || (enc.hold && (!R.beat || R.boutN) && !HOLD_PLAN[enc.id] && !enc.plan3) || (enc.rounds && !enc.plan3) || enc.dream || R.kind || R.through || R.escort) return;
     const foes = B.units.filter((u) => u.side === "enemy" && u.hp > 0 && !u.line && u.g && !u.still), foot = foes.filter((u) => !u.g.archer && !u.g.car && (u.g.kind === "man" || u.g.kind === "squad")).concat(B.units.filter((u) => u.side === "enemy" && u.hp > 0 && u.line && u.g)); // (the named foot, and then the men of their line)
     if (foot.length < 3) return;
     const champ = foes.filter((u) => !u.plural && (u.g.kind === "man") && (u.hero || u.person || tier(u) >= 1 || u.g.car)).sort((a, b) => (b.hero ? 3 : b.person ? 2 : tier(b)) - (a.hero ? 3 : a.person ? 2 : tier(a)))[0] || null;
@@ -565,7 +571,7 @@
       // (A car coming on at a walk could be held for good by a knot of men who gave it no room: found 20 November, when tougher foes left more
       // of your line standing in its road. A team that has been stopped two seconds puts its shoulders into whoever is before it.)
       pl.stall = (g.cv || 0) < 0.3 && !g.atk ? (pl.stall || 0) + dt : 0;
-      if (pl.stall > 2 && !(R.task && R.task.held > 0)) { pl.stall = 0; for (const u of B.units) if (u.hp > 0 && u.g && u.side !== "enemy" && !u.still && dist(u, e) < g.rad + 3.2) { knock(R, u, angTo(e, u) + (u.g.x >= g.x ? 0.9 : -0.9), 2.8, u === p); if (u === p) throwDown(R, 1.1); } }
+      if (pl.stall > 2 && !(R.task && R.task.held > 0)) { pl.stall = 0; for (const u of B.units) if (u.hp > 0 && u.g && u.side !== "enemy" && !u.still && dist(u, e) < g.rad + 6.2) { /* (measured from the deck: the team's heads are five metres before it) */ knock(R, u, angTo(e, u) + (u.g.x >= g.x ? 0.9 : -0.9), 2.8, u === p); if (u === p) throwDown(R, 1.1); } }
       if (g.z >= R.rad - 2.4) { pl.phase = "crossed"; R.task = null; R.fx.push({ k: "crossed", uid: e.uid, past: !!pl.noBar }); if (pl.noBar && pl.broke) { B.say(B.enc.holdText || "He is through."); end(R, "win"); } else end(R, "lose"); }   /* (a car that cannot be barred: you stood to it as long as a man could, and that is what the story counts) */
       return true; }
     if (g.role === "wguard") { const c = B.units.find((u) => u.uid === pl.car); if (!c || c.hp <= 0) { g.role = null; return false; }
@@ -591,6 +597,71 @@
       ["shatanika", "Shatanika, a prince of Matsya", "uttara"], ["kuntibhoja", "Kuntibhoja, the old king", "virata"], ["satyajit", "Satyajit, a prince of Panchala", "dhrishtadyumna"], ["purujit", "Purujit, Kunti's brother", "drupada"]]
   };
   R3.captiveFor = (S = K.S) => { const list = S && R3.CAPTIVES[S.side]; if (!list) return null; const f = S.flags || []; const c = list.find((x) => !f.includes("took_" + x[0])); return c ? { id: c[0], name: c[1], look: c[2] } : null; };
+  // ---------- Rounds ----------
+  // Where the story calls a fight so many rounds, it is that many rounds. The company you beat falls back and comes on again,
+  // each time with more health and a harder blow, and its leader comes back each time with something new: a great blow he
+  // did not have, a heavier weapon, or a quicker hand. He cannot be killed before the last round: beaten down, he gives ground
+  // and returns. In a fight that is still won by lasting (a cart, a fallen man, a banner) the rounds are told by the clock:
+  // at each, the fallen are made good and the leader has his new thing.
+  const BOUT_MELEE = ["onetwo", "lunge", "feint", "flurry", "bash", "slam"], BOUT_BOW = ["stream", "wedge", "lesson", "storm", "serpent"], BOUT_SEQ = ["sig", "arm", "fast", "sig", "arm", "sig", "fast"];
+  const BOUT_ARM = { sword: "mace", woodsword: "staff", dagger: "sword", fist: "club", club: "mace", staff: "spear" };
+  const boutScale = (k, n, timed) => { const f = n > 1 ? (k - 1) / (n - 1) : 1; return { hp: (Math.max(0.5, P.boutHp - P.boutLong * Math.max(0, n - 4)) / n) * (0.7 + 0.6 * f), atk: P.boutAtk0 + ((timed ? P.boutAtkT : P.boutAtk1) - P.boutAtk0) * f }; };
+  R3.boutScale = boutScale;
+  function boutTrick(R, u, tr) {
+    const g = u.g;
+    if (tr.kind === "fast") { g.windup = Math.max(0.26, g.windup * 0.84); g.speed *= 1.1; }
+    else if (tr.kind === "arm") { u.atk = Math.round(u.atk * 1.2 * 10) / 10; if (!u.abilities.includes("heavy") && !g.archer) u.abilities = u.abilities.concat("heavy");
+      const up = !tr.live && !g.archer && !g.car && g.kind === "man" ? BOUT_ARM[g.weapon] : null; if (up) { g.weapon = up; u.item = up; g.reach = R3.REACH[up] || g.reach; } }
+    else if (tr.kind === "sig") { const own = g.sigs || (HERO[g.hk] ? HERO[g.hk].sigs : []); if (!own.includes(tr.id)) g.sigs = own.concat(tr.id); (g.lent = g.lent || {})[tr.id] = 1; g.sigAt = R.t + rr(2.2, 3.4); }
+  }
+  function boutPick(R, k) {
+    const b = R.bout, boss = b.tpl.find((t) => t.boss).cur, g = boss.g; let kind = BOUT_SEQ[(k - 2) % BOUT_SEQ.length];
+    if (kind === "sig") { const own = (g.sigs || (HERO[g.hk] ? HERO[g.hk].sigs : [])).concat(b.tricks.filter((t) => t.kind === "sig").map((t) => t.id)), id = (g.archer ? BOUT_BOW : g.kind === "man" && !g.car ? BOUT_MELEE : []).find((x) => !own.includes(x)); if (id) return { kind, id }; kind = "arm"; }
+    return { kind };
+  }
+  function boutSpawn(R, t, k, i, n) {
+    const B = R.B, o = t.u, s = boutScale(k, R.bout.n, !R.bout.beat), rad = R.rad;
+    const u = Object.assign({}, o, { uid: "e" + (500 + (R.boutSeq = (R.boutSeq || 0) + 1)), cds: {}, status: {}, abilities: t.abil.slice(), hp: t.tb.maxHp, maxHp: t.tb.maxHp, atk: t.tb.atk, shield: t.shield, item: t.item, fled: false, keep10: false });
+    delete u.g; delete u._tb; delete u.sp;
+    B.units.push(u); initUnit(R, u);
+    if (R.bout.beat) u.maxHp = u.hp = Math.max(1, Math.round(u.maxHp * s.hp));
+    u.atk = Math.round(u.atk * s.atk * 10) / 10;
+    const g = u.g, th = n > 1 ? (i / (n - 1) - 0.5) * 1.5 : 0, r = rad * (g.archer ? 0.86 : 0.74);
+    g.x = Math.sin(th) * r; g.z = -Math.cos(th) * r; g.a = 0; g.entered = true; g.wave = 0; g.round = k; g.cool = rr(0.9, 1.8);
+    if (t.boss) { g.boss = true; if (!g.hk) { g.hk = "_boss"; g.sigAt = R.t + 4; } u.keep10 = k < R.bout.n && !u.hero; for (const tr of R.bout.tricks) boutTrick(R, u, tr); }
+    t.cur = u; return u;
+  }
+  function boutSetup(R) {
+    const B = R.B, n = R.boutN;
+    const ros = B.units.filter((u) => u.side === "enemy" && !u.line && !u.still && !u.decoy && !u.captive && u.g && u.hp > 0 && (u.g.kind === "man" || u.g.kind === "squad"));
+    if (!ros.length) { R.boutN = 0; return; }
+    const boss = ros.find((u) => u.hero) || ros.find((u) => u.g.hk) || ros.find((u) => u.person) || ros.slice().sort((a, b) => (b.maxHp * (b.atk || 1)) / (b.g.bodies || 1) - (a.maxHp * (a.atk || 1)) / (a.g.bodies || 1))[0];
+    const b = (R.bout = { n, k: 1, beat: !!R.beat, per: R.beat ? 0 : (B.enc.hold * P.story * P.holdK) / n, wait: 0, tricks: [], tpl: ros.map((u) => ({ u, cur: u, boss: u === boss, tb: Object.assign({}, u._tb), abil: u.abilities.slice(), shield: u.shield, item: u.item })) });
+    const s = boutScale(1, n, !b.beat);
+    for (const t of b.tpl) { const u = t.u; if (b.beat) u.maxHp = u.hp = Math.max(1, Math.round(u.maxHp * s.hp)); u.atk = Math.round(u.atk * s.atk * 10) / 10; u.g.round = 1; }
+    boss.g.boss = true; if (!boss.g.hk) { boss.g.hk = "_boss"; boss.g.sigAt = R.t + 4; } boss.keep10 = !boss.hero;
+    R.fx.push({ k: "round", n: 1, of: n, uid: boss.uid });
+  }
+  function boutNext(R) {
+    const B = R.B, b = R.bout, was = boutScale(b.k, b.n, !b.beat); b.k++; const now = boutScale(b.k, b.n, !b.beat), tr = boutPick(R, b.k); b.tricks.push(tr);
+    const back = b.tpl.filter((t) => b.beat || t.cur.hp <= 0 || t.cur.fled); let i = 0;
+    for (const t of b.tpl) {
+      if (back.includes(t)) boutSpawn(R, t, b.k, i++, back.length);
+      else { const c = t.cur; c.atk = Math.round(((c.atk * now.atk) / was.atk) * 10) / 10; if (t.boss) { boutTrick(R, c, Object.assign({ live: true }, tr)); c.keep10 = b.k < b.n && !c.hero; } }   /* (still standing when the round turns: he fights on, harder) */
+    }
+    heroFloor(R);   /* (the one who has come back is no lighter than the men about him, as at the start) */
+    const boss = b.tpl.find((t) => t.boss).cur;
+    R.fx.push({ k: "round", n: b.k, of: b.n, uid: boss.uid, trick: tr.kind, id: tr.id || null, came: back.length });
+  }
+  function boutStep(R) {
+    if (!R.boutN || R.over) return; if (!R.bout) { boutSetup(R); if (!R.bout) return; }
+    const b = R.bout, p = C.player(); if (p.hp <= 0) return;
+    if (b.wait) { if (R.t >= b.wait) { b.wait = 0; boutNext(R); } return; }
+    if (b.k >= b.n) return;
+    if (b.beat) { if (!b.tpl.some((t) => t.cur.hp > 0 && !t.cur.fled && !(t.cur.g && t.cur.g.flee))) { b.wait = R.t + P.boutRest;   /* (a man already giving ground is beaten for this round) */ p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * P.boutHeal)); R.fx.push({ k: "roundWon", n: b.k, of: b.n }); } }
+    else if (R.t >= b.k * b.per) boutNext(R);
+  }
+  R3.round = (R) => (R.bout ? { k: R.bout.k, n: R.bout.n, wait: !!R.bout.wait } : null);
   function captive(R, car) {
     const B = R.B, who = B.enc.rounds || B.enc.dream || B.enc.noCaptive ? null : R3.captiveFor(K.S); if (!who) return null;
     const men = B.units.filter((u) => u.side === "enemy" && !u.line && u._tb && !u.hero && !u.person), ref = men.length ? men : B.units.filter((u) => u.side === "enemy" && u._tb && !u.line);
@@ -808,7 +879,8 @@
     // hold the line scenarios: make them where the player needs to defeat the opponent"). The ones that stay a matter of time
     // are those where time is the story: a cart or a fallen man to keep, a banner to carry, arrows to live under, a way to
     // break through, a wheel, a car that must be barred. A champion who cannot die here is driven off the field instead.
-    { const e2 = B.enc; R.beat = !!(e2.hold && !e2.dream && !e2.wheel3 && !e2.ride3 && !e2.fallen && !e2.bearer && !e2.nerve3 && !e2.mahout3 && e2.plan !== "bhishma" && !CROSS[e2.id] && !R.through && !R.escort && !R.noStrike && kind !== "carry" && !e2.holds3 && !STAYS[e2.id]); }
+    { const e2 = B.enc; R.beat = !!(e2.hold && !e2.dream && !e2.wheel3 && !e2.ride3 && !e2.fallen && !e2.bearer && !e2.nerve3 && !e2.mahout3 && e2.plan !== "bhishma" && !CROSS[e2.id] && !R.through && !R.escort && !R.noStrike && kind !== "carry" && !e2.holds3 && !STAYS[e2.id]);
+      R.boutN = e2.hold >= 2 && !opts.noBout && !e2.dream && e2.plan !== "bhishma" && !CROSS[e2.id] && !R.noStrike && !e2.ride3 && !e2.wheel3 && !e2.mahout3 && !R.through ? e2.hold : 0; }
     const L = opts.noLine ? null : R3.lineFor(B);
     if (L) { R.line = Object.assign({ n: 0, next: L.every, sent: [0, 0] }, R3.LINE, L); if (L.dream) { R.line.hpTheirs = 22; R.line.atkTheirs = 4; R.line.hpMine = 7; R.line.atkMine = 3; } for (let i = 0; i < L.mine; i++) addLine(R, "ally"); for (let i = 0; i < L.theirs; i++) addLine(R, "enemy"); }
     B.units.forEach((u) => initUnit(R, u));
@@ -1092,6 +1164,7 @@
     bhurishravas: { sigs: ["feint"], every: [6, 8.5], over: 1.2 }, arjuna: { sigs: ["wedge"], every: [5.5, 7.5], over: 1.2 }, karna: { sigs: ["serpent"], every: [5.5, 7.5], over: 1.2 },
     bhishma: { sigs: ["storm"], every: [7, 9], over: 1.2 }, drona: { sigs: ["lesson"], every: [5.5, 7.5], over: 1.15 }, abhimanyu: { sigs: ["round"], every: [7, 9.5] }, supratika: { sigs: ["trample"], every: [7.5, 10] },
     kripa: { sigs: ["stance"], every: [7, 10] }, kritavarma: { sigs: ["rally"], every: [9, 12] }, ashwatthama: { sigs: ["flurry", "stream"], every: [7.5, 10], wind: 1 },
+    _boss: { sigs: [], every: [7, 9.5] },   // (the leader of a company that comes back round after round, where he is not one of the named: he has what the rounds lend him)
     ugra: { sigs: ["hold"], every: [8, 11], wind: 1 }, bhadra: { sigs: ["bash"], every: [7.5, 10], wind: 1 }, kanaka: { sigs: ["lunge"], every: [6.5, 9], wind: 1 }, ketan: { sigs: ["onetwo"], every: [7.5, 10] }
   });
   // Which of the named a man is: by his person, or by his name where the story gives him none.
@@ -1103,7 +1176,7 @@
   };
   R3.hero = (u) => (u && u.g && u.g.hk) || null;
   // His great blow, for the opening and the bar over his head: the first he can make with the weapon in his hand.
-  R3.sigOf = (u) => { const H = u && u.g && HERO[u.g.hk]; if (!H) return null; const k = H.sigs.find((id) => !SIG[id].bow === !u.g.archer); return k ? SIG[k] : null; };
+  R3.sigOf = (u) => { const H = u && u.g && HERO[u.g.hk]; if (!H) return null; const k = (u.g.sigs || H.sigs).find((id) => !SIG[id].bow === !u.g.archer); return k ? SIG[k] : null; };
   // His plain blow is never lighter than the common men's about him (a fight may set its own share: R3.TUNE over).
   function heroFloor(R) {
     const foes = R.B.units.filter((u) => u.side === "enemy" && u.g && !u.line), tn = R3.TUNE[R.B.enc.id] || {};
@@ -1122,7 +1195,7 @@
   function sigTry(R, e, t) {
     const g = e.g, H = HERO[g.hk], p = C.player();
     if (!H || t !== p || g.role === "bcross" /* (crossing your line, he does not stop for it) */ || R.t < g.sigAt || R.t < (R.sigNext || 0) || R.unseen > 0 || R.downUntil > R.t || !onField(R, e) || e.hp <= 0) return false;
-    const d = dist(e, t), list = H.sigs.map((k) => SIG[k]).filter((S) => !S.bow === !g.archer && (!S.range || (d >= S.range[0] && d <= S.range[1])));
+    const d = dist(e, t), list = (g.sigs || H.sigs).map((k) => SIG[k]).filter((S) => !S.bow === !g.archer && (!S.range || (d >= S.range[0] && d <= S.range[1])));
     if (!list.length) return false;
     const S = list[(g.sigN = (g.sigN || 0) + 1) % list.length];   // (each in its turn)
     g.sigAt = R.t + rr(H.every[0], H.every[1]) * (g.wind2 ? 0.7 : 1); R.sigNext = R.t + P.sigGap * (living(R.B, "enemy").filter((u) => u.g && u.g.hk && u.g.entered).length >= 3 ? 1.6 : 1); /* (three of the named at once: their great blows come further apart) */ R.stats.sigs = (R.stats.sigs || 0) + 1;
@@ -1147,7 +1220,7 @@
     if (s.feint) { a.feint = R.t + wind * 0.8; a.feintW = s.feint; }
     R.stats.maxAtk = Math.max(R.stats.maxAtk, R3.attacking(R));
     R.fx.push({ k: "windup", uid: e.uid, id: a.id, heavy: a.heavy, ranged, arc: a.arc, wind, sig: S.id, i });
-    if (!i && !S.quiet) R.fx.push({ k: "sig", uid: e.uid, id: S.id });
+    if (!i && !S.quiet) R.fx.push({ k: "sig", uid: e.uid, id: S.id, lent: !!(e.g.lent && e.g.lent[S.id]) });
   }
   function sigLand(R, e) {
     const g = e.g, a = g.atk, s = a.step, B = R.B, p = C.player(), m = fanOf(e, a);
@@ -1726,7 +1799,7 @@
   function foeStep(R, e, dt) {
     const B = R.B, p = C.player(), g = e.g;
     if (e.decoy) { if (R.t >= e.decoy || !B.units.some((x) => x.uid === e.real && x.hp > 0)) vanishDecoy(R, e); else if (p && p.g) g.a = turnTo(g.a, angTo(e, p), 6 * dt); return; } // a false Ghatotkacha only stands and looks at you
-    if (R.beat && e.hero && !g.flee && e.hp > 0 && e.hp <= Math.round(e.maxHp * 0.1) + 1) { g.flee = R.t + (g.car ? 3.6 : 2.4); g.role = null; g.off = true; if (g.atk) cancel(e); R.fx.push({ k: "drivenOff", uid: e.uid }); }   // (beaten as far as the story lets him be: he gives the field)
+    if (((R.beat && e.hero) || e.keep10) && !g.flee && e.hp > 0 && e.hp <= Math.round(e.maxHp * 0.1) + 1) { const back = !!(R.bout && R.bout.k < R.bout.n); g.flee = R.t + (back ? (g.car ? 2.0 : 1.3) : g.car ? 3.6 : 2.4); g.role = null; g.off = true; if (g.atk) cancel(e); R.fx.push({ k: "drivenOff", uid: e.uid, back }); }   // (beaten as far as the story lets him be: he gives the field)
     if (g.flee) { // he has seen a divine weapon land: he runs, and is out of the fight
       if (g.car) { const aw = angTo(p, e); g.atk = null; drive(R, e, Math.sin(aw), Math.cos(aw), 1.3, dt); }   /* (a car is turned and driven off, as a car is) */
       else { g.a = turnTo(g.a, angTo(p, e), 9 * dt); g.x += Math.sin(g.a) * 5.4 * dt; g.z += Math.cos(g.a) * 5.4 * dt; g.moving = 1; g.atk = null; g.walkN = R.n; g.wx = Math.sin(g.a) * 5.4; g.wz = Math.cos(g.a) * 5.4; }
@@ -1963,6 +2036,7 @@
     if (p.hp <= 0) return "lose";
     if (R.finale) return R.finale === true ? "win" : R.finale; // (the last arrow has flown)
     const named = living(B, "enemy").filter((u) => !u.line && !u.still); // the fight is decided by the named: when they fall, the line breaks (a man who only stands, Karna at his wheel, decides nothing)
+    if (R.bout && R.bout.beat && !named.length && (R.bout.k < R.bout.n || R.bout.wait)) return null;   // (a round won is not the fight won)
     const fin = (out) => { if (enc.wheel3) { R.finale = out; R.frozen = 2.4; R.fx.push({ k: "wheelEnd" }); return null; } return out; }; // (at the wheel the end is Arjuna's arrow, and it is seen)
     if (R.through) { if (R.reached) return "win"; if (R.t >= (enc.hold || 4) * P.story * P.holdK) return enc.roundOut || "lose"; if (!named.length && !enc.cannot) return "win"; return null; }
     { const r2 = B.rule && B.rule.over ? B.rule.over(B) : null; if (r2) return r2; }
@@ -2029,6 +2103,7 @@
     clocks(R);
     lineStep(R); joined(R); fireStep(R, STEP); burnStep(R, STEP); planStep(R); bearerStep(R); storyStep(R); rideStep(R, STEP);
     for (const u of B.units) if (u.g && u.hp <= 0 && u.g.fell == null) { u.g.fell = R.t; u.g.atk = null; if (u.g.car) carDown(R, u); if (u.captive && !u.fled && R.task && R.task.kind === "capture" && R.task.uid === u.uid) u.taken = true; /* (brought down inside the count: he is taken, not killed) */ R.fx.push({ k: u.taken ? "taken" : "fall", uid: u.uid }); if (u.side === "enemy" && leads(u)) captainDown(R, u); if (u.side === "enemy" && (u.shield || u.shieldDrawn) && !u.shieldBroken && R.broken) { const gd = { id: ++R.gid, x: u.g.x, z: u.g.z, at: R.t + 0.5 }; R.ground.push(gd); R.fx.push({ k: "shieldthrown", g: gd }); } }
+    boutStep(R);
     const out = overNow(R);
     if (out) end(R, out);
     return R;

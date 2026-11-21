@@ -379,6 +379,18 @@
     "too strong": "बहुत बलवान",
     "{t} gives the field.": "{t} मैदान छोड़ देता है।",
     "driven off": "खदेड़ दिया",
-    "Beat them back": "उन्हें पीछे धकेलो"
+    "Beat them back": "उन्हें पीछे धकेलो",
+    "Round {n} is yours. Get your breath: they are coming again.": "दौर {n} तुम्हारा रहा। साँस ले लो: वे फिर आ रहे हैं।",
+    "Round {n} won": "दौर {n} जीता",
+    "{t} comes back with a new blow: {s}.": "{t} एक नए वार के साथ लौटा है: {s}।",
+    "{t} comes back with a heavier weapon.": "{t} और भारी शस्त्र लेकर लौटा है।",
+    "{t} comes back quicker than before.": "{t} पहले से अधिक फुर्ती के साथ लौटा है।",
+    "The last round, {n} of {m}.": "अंतिम दौर, {m} में से {n}।",
+    "Round {n} of {m}.": "दौर {n}, कुल {m}।",
+    "Round {n} of {m}": "दौर {n} / {m}",
+    "They are coming again": "वे फिर आ रहे हैं",
+    "heavier weapon": "भारी शस्त्र",
+    "quicker": "और तेज़",
+    "{t} falls back. He is not done.": "{t} पीछे हटता है। वह अभी हारा नहीं।"
   });
 })(window.K = window.K || {});

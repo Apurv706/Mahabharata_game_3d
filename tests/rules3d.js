@@ -456,6 +456,7 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
 // The named: each man's own fight (16 November).
 {
   const K = fresh(5), R3 = K.RT3, SIG = R3.SIG, HERO = R3.HERO, used = {};
+  delete HERO._boss;   // (not a man: the leader of a company in a fight of rounds, who has only what the rounds lend him)
   for (const [h, H] of Object.entries(HERO)) for (const id of H.sigs) (used[id] = used[id] || []).push(h);
   ok(Object.values(HERO).every((H) => H.sigs.length && H.sigs.every((id) => SIG[id] && SIG[id].name && SIG[id].say && SIG[id].tip)) && Object.values(used).every((l) => l.length === 1),
     "Every named opponent has a great blow of his own, with a name, a line and a tip, and no two of them share one (" + Object.keys(HERO).length + " men, " + Object.keys(used).length + " blows)");
@@ -637,13 +638,13 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     K.Combat.end(); }
 { // 20 November: a fight the story calls a hold is won outright in 3D; a champion who cannot die there is driven off; Shikhandi's car cannot be barred
   const K = fresh(77); life(K, { side: "pandava" }); const C = K.Combat, R3 = K.RT3, P_ = R3.P;
-  { const B = C.start("fs_sk_hold", null), R = R3.begin(B, { noPlan: true, noLine: true }), p = C.player(); p.maxHp = p.hp = 99999;
+  { const B = C.start("fs_sk_hold", null), R = R3.begin(B, { noPlan: true, noLine: true, noBout: true }), p = C.player(); p.maxHp = p.hp = 99999;
     const secs = B.enc.hold * P_.story * P_.holdK + 6; for (let i = 0; i < 60 * secs && !R.over; i++) { p.hp = p.maxHp; R3.step(R, {}); R.fx.length = 0; }
     ok(R.beat && !R.over && R3.timeLeft(R) == null, "A gap in the line is no longer won by standing: past its old count (" + Math.round(secs) + " s) the fight is still on, and no clock is shown");
     for (const u of B.units) if (u.side === "enemy") u.hp = 0; for (let i = 0; i < 30 && !R.over; i++) R3.step(R, {});
     ok(R.over === "win", "It is won when its foes are beaten (" + R.over + ")"); C.end(); }
   { const B = C.start("fs_sk_carry", null), R = R3.begin(B, { noPlan: true, noLine: true }); ok(!R.beat && R3.timeLeft(R) > B.enc.hold * P_.story, "Carrying a man out is still a matter of time, and a longer one (" + Math.round(R3.timeLeft(R)) + " s)"); C.end(); }
-  { const B = C.start("e_bh_drona", null), R = R3.begin(B, { noPlan: true, noLine: true }), p = C.player(), d = B.units.find((u) => u.person === "drona"); p.maxHp = p.hp = 99999;
+  { const B = C.start("e_bh_drona", null), R = R3.begin(B, { noPlan: true, noLine: true, noBout: true }), p = C.player(), d = B.units.find((u) => u.person === "drona"); p.maxHp = p.hp = 99999;
     for (const u of B.units) if (u.side === "enemy" && u !== d) u.hp = 0; d.hp = Math.round(d.maxHp * 0.1); let off = false, fled = false;
     for (let i = 0; i < 60 * 8 && !R.over; i++) { p.hp = p.maxHp; R3.step(R, {}); for (const e of R.fx) { if (e.k === "drivenOff") off = true; if (e.k === "fled" && e.uid === d.uid) fled = true; } R.fx.length = 0; }
     ok(R.beat && off && fled && R.over === "win" && !R.blocks.some((b) => b.uid === d.uid), "Drona, beaten down as far as the story lets him be, gives the field: the fight is won and no wreck is left where his car was"); C.end(); }
@@ -653,6 +654,25 @@ function play(K, id, o) { // a whole fight by the bot; returns the last state
     ok(R.plan && R.plan.noBar && checks === 2 && strong && past && R.over === "win", "Shikhandi's car is checked twice and no more: the third time it comes through, and it goes past you (checks " + checks + ", ended " + R.over + ")"); C.end();
     const B2 = C.start("e_bh_shikhandi", null), R2 = R3.begin(B2, { noLine: true }), p2 = C.player(); p2.maxHp = p2.hp = 99999; for (let i = 0; i < 60 * 200 && !R2.over; i++) { p2.hp = p2.maxHp; R3.step(R2, {}); R2.fx.length = 0; }
     ok(R2.over === "lose", "Left alone it goes past you just the same, and that is a fight lost with no second try (" + R2.over + ")"); C.end(); }
+}
+{ // 20 November, evening: where the story calls a fight so many rounds, it is that many rounds, each harder, and the leader comes back each time with something new
+  const K = fresh(31); life(K, { side: "pandava" }); const C = K.Combat, R3 = K.RT3;
+  { const B = C.start("e_bh_drona", null), R = R3.begin(B, { noLine: true }), p = C.player(); p.maxHp = p.hp = 99999;
+    const seen = [], tricks = [], won = [], hp = [], atk = []; let early = false, two = false, backs = 0;
+    for (let i = 0; i < 60 * 400 && !R.over; i++) { p.hp = p.maxHp; const rd = R3.round(R);
+      if (rd && !rd.wait && i % 20 === 0) for (const u of B.units) if (u.side === "enemy" && !u.line && u.hp > 0 && u.g && u.g.entered && !u.g.flee) { if (u.person === "drona") u.hp = Math.min(u.hp, Math.round(u.maxHp * 0.1)); else u.hp = 0; }   /* (each round's company is beaten as soon as it has come on) */
+      R3.step(R, {}); if (B.units.filter((u) => u.person === "drona" && u.hp > 0 && !u.fled).length > 1) two = true;
+      for (const e of R.fx) { if (e.k === "round") { seen.push(e.n); if (e.n > 1) tricks.push(e.trick + (e.id ? ":" + e.id : "")); const d = B.units.find((u) => u.uid === e.uid); hp.push(d.maxHp); atk.push(d.atk); } if (e.k === "roundWon") won.push(e.n); if (e.k === "drivenOff" && e.back) backs++; }
+      if (R.over && seen.length < B.enc.hold) early = true; R.fx.length = 0; }
+    const X = B.enc.hold, rising = (l) => l.every((v, i) => !i || v > l[i - 1]);
+    ok(R.bout && seen.join() === Array.from({ length: X }, (_, i) => i + 1).join() && won.length === X - 1 && !early && R.over === "win", "Drona's road is " + X + " rounds: each is called in turn, and the fight is won only when the last is (rounds " + seen.join() + ", ended " + R.over + ")");
+    ok(rising(hp) && rising(atk), "Each round he has more health and a harder blow than the last (health " + hp.join(", ") + "; blow " + atk.join(", ") + ")");
+    ok(tricks.length === X - 1 && new Set(tricks).size >= Math.min(3, X - 1) && tricks.some((t) => /^sig:/.test(t)) && tricks.some((t) => t === "arm"), "He comes back each time with something new: a great blow he did not have, a heavier weapon, a quicker hand (" + tricks.join(", ") + ")");
+    ok(backs === X - 1 && !two, "Before the last round he cannot be killed: beaten down, he falls back and returns, and there are never two of him on the field (fell back " + backs + " times)"); C.end(); }
+  { const B = C.start("new_over_bhima", null), R = R3.begin(B, { noLine: true }), p = C.player(); p.maxHp = p.hp = 99999; const at = [];
+    for (let i = 0; i < 60 * 200 && !R.over; i++) { p.hp = p.maxHp; R3.step(R, {}); for (const e of R.fx) if (e.k === "round") at.push(Math.round(R.t)); R.fx.length = 0; }
+    ok(R.bout && !R.bout.beat && at.length === B.enc.hold && R.over === "win", "A fight still won by lasting has its rounds told by the clock: over Bhima, " + B.enc.hold + " rounds at " + at.join(", ") + " s, and it is won at the end of the last"); C.end(); }
+  { const B = C.start("bh_line9", null), R = R3.begin(B, {}); R3.step(R, {}); ok(!R.bout && !R3.round(R), "A fight with its own shape (Bhishma's three passes) is left as it is"); C.end(); }
 }
 console.log("\n" + (fails ? fails + " of " + n + " FAILED" : "all " + n + " passed"));
 process.exit(fails ? 1 : 0);

@@ -722,3 +722,22 @@ The scene was checked as a true film: `film2.js` (scratch) takes over the page's
 
 **Not done:** arrows in flight are thin and hard to see from behind Arjuna on a small screen; the fallen man's arms lie out to the sides, not joined; the intros of four converted fights still speak of holding for a count (the king's flank, a gap in the line, the outer ring, beside Iravan); Hindi exists for the new on-screen lines but not for the new story text of the tenth day.
 
+## 20 November, evening (Version 88): X rounds are X rounds
+
+Owner: "Wherever the story calls for X rounds, can you make it actually X rounds, with each round becoming harder than the rest. The hero comes back each time with a new trick or new stronger weapon."
+
+**What a round is now** (`js/ui/battle/sim.js`, "Rounds": `boutSetup`, `boutStep`, `boutNext`, `boutSpawn`, `boutTrick`, `boutPick`, `R3.round`). Every fight whose story gives a count (`hold`) is that many rounds in 3D, except those with a shape of their own (a great car to bar, Karna's wheel, a ride in Arjuna's car, the elephant's mahout, arrows you can only live under, a way to break through, the dream).
+
+- **In a fight won by beating them** (19 fights): the round ends when that round's company is beaten. You get a tenth of your health back and two seconds; then they come on again from their side of the field. Each round's company has more health and a harder blow than the one before (`boutScale`: health rises from 0.7 to 1.3 of the round's share, blows from 0.85 to 1.15). All the rounds together have about the health the one company had (`P.boutHp` 0.95, less 0.07 for each round past four, since each round also costs its coming and going).
+- **Their leader** is the champion, or the strongest named man where there is none. Before the last round he cannot be killed: beaten to a tenth he falls back ("He is not done") and returns with the next round. Each time he brings one new thing, in this order (`BOUT_SEQ`): a great blow he did not have, a heavier weapon (blows 1.2 times as hard; a sword becomes a mace, and so on), a quicker hand (wind-up 0.84), then round again. The great blows are lent from the named men's own (`BOUT_MELEE`, `BOUT_BOW`), are called over his head as always, and are explained by their own line, not by their owner's name. What he has gained he keeps.
+- **In a fight still won by lasting** (a cart, a fallen man, a banner, carrying a man out): the rounds are told by the clock. At each, the fallen are made good, those standing hit harder (to 1.02), and the leader has his new thing.
+- **On screen:** the goal reads "Round 2 of 5 · Foes left: 3"; a banner calls each round and what he has brought ("Round 3 of 5. Drona comes back with a heavier weapon."); "Round 2 won" over your head.
+- A man who comes back is a new unit made from the first's own numbers (`boutSpawn`), so the view makes him a fresh figure and the one who fell back is not raised.
+- A fight of rounds has no plan and no turn of its own (the rounds are its shape), except the few that always had one.
+
+**Also:** a crossing car stopped by a man pinned at the field's edge is now measured from its team's heads, not its deck (the Shikhandi fight could hang on one seed).
+
+**Tool:** `tools/review/rounds.js` plays a fight of rounds in a real page with the game's own fighter and prints each round's call, with a photograph.
+
+**Not done:** the story's own text before these fights was not rewritten; in the timed fights a leader's heavier weapon is felt but not drawn (he is not replaced by a new figure); the bodies of earlier rounds stay on the field.
+
