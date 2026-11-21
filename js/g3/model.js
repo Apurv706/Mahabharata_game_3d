@@ -243,7 +243,7 @@
         Q2.multiply(Q3.setFromAxisAngle(X1, down)); Q1.invert().multiply(Q2); const ang = 2 * Math.acos(Math.min(1, Math.abs(Q1.w)));
         ft.quaternion.slerpQuaternions(ID, Q1, rag ? 0 : (ang > 1.0 ? 1.0 / ang : 1) * (1 - (f.fall || 0))); }
       const g = j["g" + sd], h = j["h" + sd];
-      if (g && h) { const held = sd === "R" ? !!f.item : !!(f.bow || f.shield), want = held || fists ? 0 : 0.55; R.open[sd] += (want - R.open[sd]) * k;
+      if (g && h) { const held = sd === "R" ? !!f.item : !!(f.bow || f.shield), want = held || fists ? 0 : /^nama/.test(f.base || "") ? 0.2 : 0.55;   /* (joined hands: the fingers straight, palm to palm) */ R.open[sd] += (want - R.open[sd]) * k;
         g.rotation.z = sx * R.open[sd] * 0.4; h.rotation.z = sx * R.open[sd] * 1.25; }
     }
     if (j.J) { // the face

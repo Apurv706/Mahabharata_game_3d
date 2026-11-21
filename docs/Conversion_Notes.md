@@ -748,3 +748,11 @@ Owner, from the orders card of day 6: "Why does this card pop up and not the ani
 - **Recaps** (`O.DAYS` in `js/content/war_orders.js`): day 3 now reads "Bhishma's arrows fell like rain and scattered the Pandava ranks. Only Arjuna's chariot stood against him until dusk." Day 9 tells the wheel once, as the first time. Hindi for both in `i18n/hi/manual_nov5.json`.
 - **The wheel** (`wheel3`, `js/content/war_bhishma.js`), about fourteen seconds: Bhishma close, loosing; his arrows falling on Arjuna's car while Arjuna's bow is slack; Krishna lets the reins fall; he jumps down, takes up a broken car's wheel and runs at the grandsire with it raised over his head (the camera runs ahead of him); Bhishma lowers his bow and joins his hands; Arjuna catches Krishna from behind and holds him; the wheel comes down, and Arjuna joins his hands. Where 3D cannot start, the clip or the flat staging plays as before.
 
+## 21 November (Version 90): joined hands that are joined
+
+Owner, with a photograph of Bhishma in the wheel scene: "This is not namaste position. Can you fix." His hands were crossed at the wrists off to one side, fingers loose.
+
+- `namaste` and `namaskar` (`js/g3/figure.js`) now share one set of arm angles, found by a search over shoulder, elbow and wrist that measured the wrists and the middle of each palm (`f.gripL`/`gripR`) on the built model: wrists 7 cm apart on the middle line, at the sternum, 20 cm before it, hands pointing up, palms facing each other. It was then checked in photographs from the front and the side; a first search put the backs of the hands together, because the hand's own axes are not the arm joint's.
+- The fingers (`js/g3/model.js`): in joined hands they are set to 0.2 open, nearly straight and lying against each other. The usual empty-hand 0.55 bends them back past straight.
+- One fault on the way: a `sed` substitution with `\|\|` in it was read as "or nothing" and wrote into every line of `model.js`; it was restored from git before anything was committed. Edits to code with `||` in them go through Python.
+
