@@ -741,3 +741,10 @@ Owner: "Wherever the story calls for X rounds, can you make it actually X rounds
 
 **Not done:** the story's own text before these fights was not rewritten; in the timed fights a leader's heavier weapon is felt but not drawn (he is not replaced by a new figure); the bodies of earlier rounds stay on the field.
 
+## 21 November (Version 89): the wheel in 3D, and the day 3 recap
+
+Owner, from the orders card of day 6: "Why does this card pop up and not the animation?" The card's recap of day 3 said Krishna took up the wheel, which the game stages on day 9; then "Fix the summary of the card" and "Also make the wheel animation to 3D".
+
+- **Recaps** (`O.DAYS` in `js/content/war_orders.js`): day 3 now reads "Bhishma's arrows fell like rain and scattered the Pandava ranks. Only Arjuna's chariot stood against him until dusk." Day 9 tells the wheel once, as the first time. Hindi for both in `i18n/hi/manual_nov5.json`.
+- **The wheel** (`wheel3`, `js/content/war_bhishma.js`), about fourteen seconds: Bhishma close, loosing; his arrows falling on Arjuna's car while Arjuna's bow is slack; Krishna lets the reins fall; he jumps down, takes up a broken car's wheel and runs at the grandsire with it raised over his head (the camera runs ahead of him); Bhishma lowers his bow and joins his hands; Arjuna catches Krishna from behind and holds him; the wheel comes down, and Arjuna joins his hands. Where 3D cannot start, the clip or the flat staging plays as before.
+

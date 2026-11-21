@@ -351,7 +351,63 @@
     }
   };
   K.MOMENT_KINDS.bh_wheel = () => Object.assign({ theme: "milestone", title: "Krishna takes up the wheel", line: "He swore not to fight. He runs at the grandsire with a chariot wheel." },
-    K.UI && K.UI.hasVideo && K.UI.hasVideo("war_wheel") && K.UI.living && K.UI.living() ? wheelClip : wheelPuppets);
+    K.UI && K.UI.b3d && K.UI.b3d.can && K.UI.b3d.can() ? Object.assign({}, wheelPuppets, { ms: 13800, play: (el) => { if (!K.bhStage.wheel3(el)) stageWheel(el).catch(() => {}); } })   /* (in 3D where 3D runs: 21 November) */
+      : K.UI && K.UI.hasVideo && K.UI.hasVideo("war_wheel") && K.UI.living && K.UI.living() ? wheelClip : wheelPuppets);
+  // ---------- The wheel, in 3D (21 November) ----------
+  // Owner: "Also make the wheel animation to 3D." The same field and the same way of working as the fall below: its own clock,
+  // shots framed for an upright phone, and the flat staging kept for where 3D cannot start.
+  function wheel3(el) {
+    const U = K.UI, G = K.G3;
+    try {
+      if (!U || !U.b3d || !U.b3d.can || !U.b3d.can() || !G || !U.b3d.on() || !G.ok) return false;
+      const T = window.THREE, offs = [], figs = [], cues = []; let live = true, clock = 0, rain = true, track = null;
+      G.clear(G.actors); G.lookHint = "war"; G.setStage("fight_war_field", { clear: 26 });
+      el.style.zIndex = 450; el.style.background = "transparent"; el.classList.add("in3"); const art = el.querySelector(".mo-art"); if (art) art.style.display = "none";
+      const fig = (look, item, pose) => { const f = G.figure(G.lookOf(look), {}); if (item) f.setItem(item); f.pose(pose, true); figs.push(f); return f; };
+      const car = (o, x, z, ry) => { const c = G.chariot(o); c.position.set(x, 0, z); c.rotation.y = ry; G.actors.add(c); return c; };
+      const carA = car({ col: 0x2d5aa0, trim: 0xe2b55a, flag: ["#2d5aa0", "#f2ead2", "sun"], horseCol: 0xf2efe6, horses: 4 }, -9, 0, Math.PI / 2); if (carA.userData.banner) carA.userData.banner.visible = false;
+      const carB = car({ col: 0xb9b6ad, trim: 0xe2b55a, flag: ["#e9e5d8", "#c9a23a", "sun"], canopy: 0xf4f0e6, horseCol: 0xd9d6cc, horses: 4 }, 11, 0.5, -Math.PI / 2);
+      // (a wheel off a broken car lies beside Arjuna's: it is taken from a spare car that is never shown)
+      const spare = G.chariot({ col: 0x6a5a48, trim: 0x8a7a50, horses: 0 }), wheel = spare.userData.wheels && spare.userData.wheels[0], lie = [-6.2, 2.3];
+      if (wheel) { wheel.removeFromParent(); G.actors.add(wheel); wheel.position.set(lie[0], 0.1, lie[1]); wheel.rotation.set(0, 0.4, Math.PI / 2 - 0.06); }
+      const ar = fig("arjuna", "bow", "readyBow"), kr = fig("krishna", null, "drive"), bh = fig("bhishma", "bow", "aim");
+      // Each of the three stands in a frame of his own, so that he can leave his car.
+      const frame = (f, x, y, z, ry) => { const g = new T.Group(); g.position.set(x, y, z); g.rotation.y = ry; G.actors.add(g); g.add(f.root); return g; };
+      const kG = frame(kr, -8.38, 0.86, -0.32, Math.PI / 2), aG = frame(ar, -9.3, 0.86, 0, Math.PI / 2), bG = frame(bh, 11.1, 0.86, 0.5, -Math.PI / 2);
+      const wp = (o, y) => { const v = new T.Vector3(0, y, 0); o.updateWorldMatrix(true, false); return o.localToWorld(v); }, B = bG.position;
+      const at = (secs, fn) => cues.push([secs, fn]);
+      // A man walked from where he is to a place, in so many seconds, his legs keeping pace; `hop` lifts him over a car's side on the way.
+      const go = (g, f, x, z, secs, hop, done) => { const p = g.position.clone(), d = Math.hypot(x - p.x, z - p.z), v = d / secs; g.rotation.y = Math.atan2(x - p.x, z - p.z); f.vf = hop ? 0 : v; f.vs = 0; f.speed = hop ? 0 : v;
+        offs.push(G.tween(secs, (k) => { g.position.set(p.x + (x - p.x) * k, hop ? p.y * (1 - k) + Math.sin(Math.PI * k) * 0.55 : 0, p.z + (z - p.z) * k); }, () => { f.vf = 0; f.speed = 0; if (done) done(); })); };
+      offs.push(G.onFrame((dt, tt) => { clock += dt; K.bhStage.t = clock; G.roll(carA, 0, tt, 0); G.roll(carB, 0, tt, 0); for (const f of figs) f.update(dt, tt); if (track) track();
+        for (let i = 0; i < cues.length; i++) if (cues[i] && cues[i][0] <= clock) { const fn = cues[i][1]; cues[i] = null; try { fn(); } catch (e) { if (window.console) console.error(e); } } }));
+      let pan = null;
+      const shot = (a, b, fov, a2, secs) => { track = null; if (pan) pan(); pan = null; G.camSet(a, b, fov, true); if (a2) { pan = G.tween(secs, (k) => { const e = k * (2 - k); G.camSet([a[0] + (a2[0] - a[0]) * e, a[1] + (a2[1] - a[1]) * e, a[2] + (a2[2] - a[2]) * e], b, fov, true); }); offs.push(pan); } };
+      // 1. The grandsire is breaking the army: arrow after arrow, and Arjuna's bow slack in his hand.
+      for (let i = 0; i < 34; i++) at(0.15 + i * 0.2, () => { if (!rain || !live) return; bh.act("aimLoose", 0.2); const a = wp(bh.root, 1.45), m = G.fx.arrow(a, [-9 + (Math.random() - 0.5) * 7, 0.05 + (Math.random() < 0.3 ? 1.2 : 0), (Math.random() - 0.5) * 6], 0.55, 0.9, null, 2.4); if (m) m.scale.setScalar(1.7); if (K.Sound && i % 3 === 0) K.Sound.play("tap"); });
+      shot([B.x - 3.6, 2.55, B.z + 1.6], [B.x, 2.3, B.z], 28, [B.x - 3.2, 2.5, B.z + 1.35], 1.5);
+      at(1.5, () => shot([-15.4, 4.5, 0.0], [-2.8, 1.75, 0.2], 30, [-14.6, 4.25, 0.0], 1.5));
+      // 2. Krishna, who swore he would not fight, lets the reins fall.
+      at(3.0, () => { shot([-5.5, 2.75, 1.5], [-8.4, 2.3, -0.3], 27, [-5.9, 2.7, 1.2], 1.3); });
+      at(3.5, () => kr.pose("proud"));
+      // 3. He is down from the car, and has a wheel off a broken one over his head, and runs at the grandsire.
+      at(4.3, () => { kr.pose("ready"); shot([-1.6, 2.1, 5.2], [-6.6, 1.2, 1.6], 36, [-2.0, 1.9, 4.8], 1.7); go(kG, kr, -7.4, 1.5, 0.45, true, () => go(kG, kr, lie[0] - 0.5, lie[1], 0.5, false, () => kr.pose("heave"))); });
+      at(5.75, () => { kr.pose("carry"); if (wheel) { kG.add(wheel); wheel.position.set(0, 2.45, 0.05); wheel.rotation.set(0, 0, 0.12); }   /* (upright over his head, its axle across his shoulders) */ if (K.Sound) K.Sound.play("drum"); });
+      at(6.1, () => { go(kG, kr, 3.2, 1.0, 3.1); track = () => { const p = kG.position; G.camSet([p.x + 6.4, 2.1, p.z + 2.6], [p.x, 1.9, p.z], 40, true); }; });
+      // 4. The grandsire puts down his bow and joins his hands: let him come.
+      at(7.7, () => { rain = false; bh.pose("stand"); shot([B.x - 3.5, 2.5, B.z + 1.5], [B.x, 2.3, B.z], 27, [B.x - 3.1, 2.45, B.z + 1.25], 1.7); });
+      at(8.2, () => { bh.setItem(null); bh.pose("namaskar"); });
+      // 5. Arjuna is down after him, and has him round the body, and digs his heels in. At the tenth step he holds him.
+      at(7.0, () => { ar.setItem(null); ar.pose("ready"); go(aG, ar, -8.4, 1.4, 0.4, true, () => go(aG, ar, 2.62, 1.0, 1.75, false, () => { aG.rotation.y = Math.PI / 2; ar.pose("hold"); })); });
+      at(9.3, () => { shot([3.4, 2.0, 5.6], [2.9, 1.6, 1.0], 36, [3.3, 1.9, 5.0], 2.6);   /* (from the side: Arjuna's arms round him from behind) */ G.shake(0.2, 0.25); if (K.Sound) K.Sound.play("thud"); });
+      // 6. The wheel comes down.
+      at(11.7, () => { kr.pose("stand"); if (wheel) { const y0 = wheel.position.y; offs.push(G.tween(0.7, (k) => { wheel.position.set(0.75 * k, y0 + (0.74 - y0) * k, 0.05 + 0.3 * k); wheel.rotation.z = 0.12 * (1 - k); })); } });
+      at(12.3, () => { ar.pose("namaste"); });
+      const end = () => { if (!live) return; live = false; for (const o of offs) { try { o(); } catch (e) { /* already gone */ } } try { G.clear(G.actors); } catch (e) { /* nothing left */ } G.lookHint = ""; U.b3d.off(); };
+      const watch = setInterval(() => { if (!document.body.contains(el)) { clearInterval(watch); end(); } }, 120);
+      return true;
+    } catch (e) { if (window.console) console.error(e); try { K.UI.b3d.off(); } catch (x) { /* nothing to put away */ } el.style.zIndex = ""; el.style.background = ""; const art = el.querySelector(".mo-art"); if (art) art.style.display = ""; return false; }
+  }
   // ---------- The fall, in 3D (19 November) ----------
   // Owner: "Arjuna killing Bhishma is not done well. Still based on old 2D and no Shikhandi in there." Where the 3D layer can
   // start, the moment is played on a built field with the game's own figures: Shikhandi at the front of Arjuna's car with
@@ -441,7 +497,7 @@
   }
   K.MOMENT_KINDS.bh_fall = () => ({ theme: "farewell", title: "The grandsire falls", line: "Arjuna's arrows hold him off the ground.",
     art: "fight_war_sunset", playAt: 250, ms: 20000, play: (el) => { if (!fall3(el)) stageFall(el).catch(() => {}); } });
-  K.bhStage = { wheel: stageWheel, fall: stageFall, fall3 }; // for the screenshot steps
+  K.bhStage = { wheel: stageWheel, fall: stageFall, fall3, wheel3 }; // for the screenshot steps
 
   // =====================================================================================
   // The fight: the line under Bhishma's arrows on the ninth day
